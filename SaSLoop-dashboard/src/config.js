@@ -14,10 +14,10 @@ const NGROK_URL = "https://comply-lagged-concave.ngrok-free.dev";
 
 const API_BASE =
   isCapacitor
-    ? NGROK_URL                   // native app → always use tunnel/production URL
-    : process.env.NODE_ENV === "production"
-      ? ""                        // same domain in production → /api/...
-      : "http://localhost:5000";  // local dev browser
+    ? NGROK_URL
+    : window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
+      ? "http://localhost:5000"
+      : ""; // In production/ngrok, use relative paths (/api/...)
 
 export default API_BASE;
 

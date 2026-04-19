@@ -224,6 +224,21 @@ function DigitalCatalog() {
     return '₹';
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = ["SL", "Product Name", "Category", "Sub Category", "Price", "Tax Applicable (1/0)", "Availability (TRUE/FALSE)"];
+    const rows = [
+        ["ITM001", "Butter Chicken", "Main Course", "Spicy", "450", "1", "TRUE"],
+        ["ITM002", "Garlic Naan", "Breads", "Fresh", "40", "1", "TRUE"],
+    ];
+    const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "menu_import_template.csv");
+    link.click();
+  };
+
   const filteredItems = items.filter(item => 
       item && (
           item.product_name?.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -254,6 +269,12 @@ function DigitalCatalog() {
                 <Download className="w-4 h-4 text-indigo-500" /> Export CSV
             </button>
             <button
+                onClick={handleDownloadTemplate}
+                className="px-6 py-4 bg-white border border-slate-100 text-indigo-500 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 flex items-center justify-center gap-2"
+            >
+                <FileDown className="w-4 h-4" /> Template
+            </button>
+            <button
                 onClick={handleClearCatalog}
                 className="px-6 py-4 bg-white border border-rose-100 text-rose-500 rounded-2xl font-black text-[10px] uppercase tracking-widest active:scale-95 flex items-center justify-center gap-2"
             >
@@ -269,26 +290,61 @@ function DigitalCatalog() {
                         try {
                             const text = evt.target.result;
                             const rows = text.split(/\r?\n/).filter(l => l.trim().length > 0).slice(1);
+                            
+                            // Robust CSV parsing helper
+                            const parseCSVLine = (line) => {
+                                const result = [];
+                                let current = '';
+                                let inQuotes = false;
+                                for (let i = 0; i < line.length; i++) {
+                                    const char = line[i];
+                                    if (char === '"') { inQuotes = !inQuotes; }
+                                    else if (char === ',' && !inQuotes) {
+                                        result.push(current.trim());
+                                        current = '';
+                                    } else { current += char; }
+                                }
+                                result.push(current.trim());
+                                return result;
+                            };
+
                             const parsedItems = rows.map(r => {
-                                const cols = r.split(",");
+                                const cols = parseCSVLine(r);
                                 return { 
-                                    code: cols[0],
-                                    product_name: cols[1], 
-                                    category: cols[2], 
-                                    sub_category: cols[3], 
-                                    price: parseFloat(cols[4]) || 0, 
-                                    tax_applicable: parseInt(cols[5]) || 0,
-                                    availability: cols[6]?.toUpperCase() !== 'FALSE' 
+                                    code: cols[0]?.replace(/^"|"$/g, '') || "",
+                                    product_name: cols[1]?.replace(/^"|"$/g, '') || "", 
+                                    category: cols[2]?.replace(/^"|"$/g, '') || "", 
+                                    sub_category: cols[3]?.replace(/^"|"$/g, '') || "", 
+                                    price: parseFloat(cols[4]?.replace(/^"|"$/g, '')) || 0, 
+                                    tax_applicable: parseInt(cols[5]?.replace(/^"|"$/g, '')) || 0,
+                                    availability: cols[6]?.replace(/^"|"$/g, '').toUpperCase() !== 'FALSE' 
                                 };
-                            }).filter(i => i.product_name);
+                            }).filter(i => i.product_name && i.product_name.length > 1);
+
+                            if (parsedItems.length === 0) {
+                                showNotice("error", "No valid items found in file!");
+                                return;
+                            }
+
+                            showNotice("info", `Importing ${parsedItems.length} items...`);
                             const token = localStorage.getItem("token");
                             const res = await fetch(`${API_BASE}/api/catalog/import`, {
                                 method: "POST",
                                 headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
                                 body: JSON.stringify({ items: parsedItems })
                             });
-                            if (res.ok) window.location.reload();
-                        } catch (err) { console.error(err); }
+                            
+                            if (res.ok) {
+                                showNotice("success", "Import successful!");
+                                setTimeout(() => window.location.reload(), 1000);
+                            } else {
+                                const errData = await res.json();
+                                showNotice("error", "Import failed: " + (errData.error || "Server error"));
+                            }
+                        } catch (err) { 
+                            console.error(err);
+                            showNotice("error", "Error processing CSV file");
+                        }
                     };
                     reader.readAsText(file);
                 }} className="hidden" accept=".csv" />

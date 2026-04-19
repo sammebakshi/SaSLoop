@@ -308,8 +308,12 @@ function Login() {
         setErrorMsg(data.error || "Login failed. Please check your credentials.");
       }
     } catch (err) {
-      console.error("FRONTEND ERROR:", err);
-      setErrorMsg("Server error. Please try again later.");
+      console.error("FRONTEND LOGIN ERROR:", err);
+      if (err.message === "Failed to fetch") {
+        setErrorMsg("Network Error: Could not reach the server. Is the backend running?");
+      } else {
+        setErrorMsg("Connection Error: " + (err.message || "Please try again later."));
+      }
     }
   };
 

@@ -35,11 +35,24 @@ function CustomerMenu() {
   const [checkingLoyalty, setCheckingLoyalty] = useState(false);
   const categoryRefs = useRef({});
 
+  const [error, setError] = useState(null);
+
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`)
-      .then(r => r.json())
-      .then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); })
-      .catch(e => console.error(e));
+      .then(r => {
+        if (!r.ok) throw new Error("Business or Menu not found");
+        return r.json();
+      })
+      .then(d => { 
+        setData(d); 
+        setLoading(false); 
+        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
+      })
+      .catch(e => {
+        console.error(e);
+        setError(e.message);
+        setLoading(false);
+      });
   }, [bizId]);
 
   const biz = data?.business;
@@ -126,6 +139,15 @@ function CustomerMenu() {
   const openWhatsApp = () => { const p = biz?.whatsapp_number || biz?.phone?.replace(/\D/g, ""); if (p) window.location.href = `https://wa.me/${p}?text=Hi!`; };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Menu...</p></div>);
+
+  if (error || !data) return (
+    <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-10 text-center">
+      <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center mb-6 border border-rose-100 italic font-serif text-3xl text-rose-500">!</div>
+      <h2 className="text-xl font-black text-slate-800 tracking-tight">Menu Unavailable</h2>
+      <p className="text-sm text-slate-400 mt-2 max-w-xs">{error || "Please contact the business or try again later."}</p>
+      <button onClick={() => window.location.reload()} className="mt-8 bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Retry</button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-slate-50/50 relative pb-32 selection:bg-emerald-500/30">

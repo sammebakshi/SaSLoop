@@ -71,15 +71,24 @@ function QRManager() {
                   <p className="text-slate-400 text-xs font-medium mb-6">Use this for Home Delivery stickers, Instagram, or Flyers. No table number attached.</p>
                   
                   {(() => {
-                     const onlineUrl = `${baseUrl}/online/${user?.id || '50'}/0`;
+                     const onlineUrl = `${baseUrl}/order/${user?.id || '50'}`;
                      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(onlineUrl)}`;
+                     
+                     const copyToClipboard = () => {
+                        navigator.clipboard.writeText(onlineUrl);
+                        alert("Link copied to clipboard!");
+                     };
+
                      return (
                         <div className="flex flex-col items-center">
                            <div className="bg-white p-4 rounded-3xl mb-6">
                               <img src={qrUrl} alt="Online QR" className="w-32 h-32" />
                            </div>
-                           <div className="flex gap-3 w-full">
-                              <a href={qrUrl} download="Online_Order_QR.png" className="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all">
+                           <div className="flex flex-col gap-3 w-full">
+                              <button onClick={copyToClipboard} className="w-full bg-white/10 text-white border border-white/20 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all">
+                                 <ExternalLink className="w-3.5 h-3.5" /> Copy Link
+                              </button>
+                              <a href={qrUrl} download="Online_Order_QR.png" className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all">
                                  <Download className="w-3.5 h-3.5" /> Save QR
                               </a>
                            </div>
@@ -145,13 +154,24 @@ function QRManager() {
                            <img src={qrUrl} alt={`Table ${t} QR`} className="w-40 h-40 mix-blend-multiply" />
                         </div>
                         
-                        <div className="flex gap-4 w-full">
-                           <button onClick={() => window.print()} className="flex-1 bg-slate-100 text-slate-600 p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
-                              <Printer className="w-4 h-4" /> Print
+                        <div className="flex flex-col gap-3 w-full">
+                           <button 
+                             onClick={() => {
+                                navigator.clipboard.writeText(menuUrl);
+                                alert("Table Link Copied!");
+                             }} 
+                             className="w-full bg-slate-50 border border-slate-100 text-slate-500 p-3 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all"
+                           >
+                              <ExternalLink className="w-3 h-3" /> Copy Link
                            </button>
-                           <a href={qrUrl} download={`Table_${t}_QR.png`} className="flex-1 bg-indigo-600 text-white p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                              <Download className="w-4 h-4" /> Save
-                           </a>
+                           <div className="flex gap-3 w-full">
+                              <button onClick={() => window.print()} className="flex-1 bg-slate-100 text-slate-600 p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
+                                 <Printer className="w-4 h-4" /> Print
+                              </button>
+                              <a href={qrUrl} download={`Table_${t}_QR.png`} className="flex-1 bg-indigo-600 text-white p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
+                                 <Download className="w-4 h-4" /> Save
+                              </a>
+                           </div>
                         </div>
                      </div>
                   );

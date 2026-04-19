@@ -61,6 +61,26 @@ app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
 
 // ======================
+// ✅ HEALTH CHECK
+// ======================
+app.get("/api/health-check", async (req, res) => {
+    const health = {
+        status: "up",
+        time: new Date().toISOString(),
+        database: "checking...",
+        env: process.env.NODE_ENV || "unknown"
+    };
+    try {
+        const dbCheck = await pool.query("SELECT NOW()");
+        if (dbCheck.rows.length > 0) health.database = "connected";
+    } catch (err) {
+        health.database = "error: " + err.message;
+        health.status = "degraded";
+    }
+    res.json(health);
+});
+
+// ======================
 // ✅ STATIC ASSETS
 // ======================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));

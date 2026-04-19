@@ -473,7 +473,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
 
             // 5a. Loyalty Check before Order Type
-            const biz = (await pool.query("SELECT * FROM restaurants WHERE user_id=$1", [userId])).rows[0];
             const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
             const availablePoints = checkPoints.rows[0]?.points || 0;
             const minRedeem = biz?.min_redeem_points || 300;

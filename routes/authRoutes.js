@@ -12,6 +12,10 @@ router.post("/login", async (req, res) => {
     console.log("👉 LOGIN HIT");
     const { identifier, password } = req.body;
 
+    if (!identifier || !password) {
+        return res.status(400).json({ error: "Email/Username and password are required" });
+    }
+
     let queryStr = "SELECT * FROM app_users WHERE email = $1";
     
     try {
@@ -59,8 +63,12 @@ router.post("/login", async (req, res) => {
     });
 
   } catch (err) {
-    console.error("🔥 ERROR:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("🔥 LOGIN ERROR:", err);
+    // Return specific message for database connection issues
+    if (err.message && (err.message.includes("ECONNREFUSED") || err.message.includes("password authentication failed"))) {
+        return res.status(500).json({ error: "Database Connection Error: Please check your .env settings and ensure Postgres is running on your server." });
+    }
+    res.status(500).json({ error: "Server error: " + err.message });
   }
 });
 

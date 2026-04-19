@@ -30,6 +30,12 @@ router.post("/order", async (req, res) => {
         const prefix = isOnline ? "ONL" : "QR";
         const orderRef = `${prefix}-${Math.random().toString(36).substring(7).toUpperCase()}`;
         
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const bizData = bizRes.rows[0];
+        if (!bizData) return res.status(404).json({ error: "Business details not found" });
+
+        const currSymbol = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
+        
         let finalPrice = totalPrice;
         let redeemedPoints = 0;
 
@@ -43,8 +49,6 @@ router.post("/order", async (req, res) => {
             const available = checkPoints.rows[0]?.points || 0;
             if (available >= pointsToRedeem) {
                 redeemedPoints = pointsToRedeem;
-                // Price reduction is handled by calculating finalPrice on server if needed,
-                // but for now we trust frontend totalPrice which is already deducted.
             }
         }
 
@@ -56,9 +60,6 @@ router.post("/order", async (req, res) => {
         );
         
         const orderId = insertRes.rows[0].id;
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-        const bizData = bizRes.rows[0];
-        const currSymbol = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
         
         // Build notification message
         const mode = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINEIN" : "PICKUP");
