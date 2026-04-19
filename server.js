@@ -24,7 +24,6 @@ app.use((req, res, next) => {
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
-const xss = require("xss-clean");
 
 // ======================
 // ✅ SECURITY MIDDLEWARE
@@ -33,7 +32,6 @@ app.use(helmet({
     contentSecurityPolicy: false, // Required for React build serving
     crossOriginEmbedderPolicy: false
 }));
-app.use(xss());
 app.use(hpp());
 
 // Global Rate Limiter: 100 requests per 15 minutes per IP
