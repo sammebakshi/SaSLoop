@@ -1,0 +1,170 @@
+import { useEffect, useState, useMemo } from "react";
+import API_BASE, { isMobileDevice } from "../config";
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
+} from "recharts";
+import { 
+  TrendingUp, Users, ShoppingBag, CreditCard, ArrowUpRight, ArrowDownRight, Package, Clock, Activity, Megaphone
+} from "lucide-react";
+
+function Dashboard() {
+  const [business, setBusiness] = useState(null);
+  const [orders, setOrders] = useState([]);
+  const [credits, setCredits] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const isMobile = isMobileDevice();
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) { window.location.href = "/"; return; }
+
+    const fetchData = async () => {
+      try {
+        const impersonateId = sessionStorage.getItem("impersonate_id");
+        const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
+        const statusRes = await fetch(`${API_BASE}/api/business/status${targetParam}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const statusData = await statusRes.json();
+        if (statusData.hasBusiness === false) {
+           if (!impersonateId) window.location.href = "/setup-business";
+           return;
+        }
+        setBusiness(statusData.business);
+        const ordersRes = await fetch(`${API_BASE}/api/orders${targetParam}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const ordersData = await ordersRes.json();
+        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        const adminUser = JSON.parse(localStorage.getItem("user") || "{}");
+        setCredits(impersonateId ? 0 : (adminUser.broadcast_credits || 0));
+      } catch (err) {
+        console.error("Dashboard Load Error:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const analytics = useMemo(() => {
+    if (!Array.isArray(orders)) return { totalRevenue: 0, avgOrder: 0, chartData: [] };
+    const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);
+    const avgOrder = orders.length > 0 ? (totalRevenue / orders.length).toFixed(2) : 0;
+    const grouped = {};
+    orders.forEach(o => {
+      const date = new Date(o.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      grouped[date] = (grouped[date] || 0) + parseFloat(o.total_price || 0);
+    });
+    const chartData = Object.keys(grouped).map(date => ({ date, sales: grouped[date] })).reverse().slice(-7);
+    return { totalRevenue, avgOrder, chartData };
+  }, [orders]);
+
+  if (loading) return (
+    <div className="flex-1 flex items-center justify-center bg-white">
+       <Activity className="w-10 h-10 text-emerald-500 animate-spin" />
+    </div>
+  );
+
+  return (
+    <div className={`flex flex-col h-full bg-white ${isMobile ? 'p-4 space-y-4' : 'p-6 space-y-8'} overflow-y-auto no-scrollbar`}>
+      
+      {/* GREETING */}
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-black text-slate-800 tracking-tight`}>{business?.name || 'Business Intel'}</h2>
+          {!isMobile && <p className="text-slate-500 font-medium text-sm mt-1">Real-time performance metrics.</p>}
+        </div>
+        {!isMobile && (
+          <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
+             Refreshed: {new Date().toLocaleTimeString()}
+          </div>
+        )}
+      </div>
+
+      {/* STATS GRID */}
+      <div className={`grid ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-4'} gap-3 md:gap-6`}>
+        {[
+          { label: 'Revenue', val: `₹${analytics.totalRevenue.toLocaleString()}`, trend: '+12%', icon: CreditCard, color: 'emerald' },
+          { label: 'Orders', val: orders.length, trend: '+4%', icon: ShoppingBag, color: 'blue' },
+          { label: 'Avg Sale', val: `₹${analytics.avgOrder}`, trend: '-1%', icon: TrendingUp, color: 'indigo' },
+          { label: 'Wallet', val: credits, trend: 'Credits', icon: Megaphone, color: 'amber' },
+        ].map((stat, idx) => (
+          <div key={idx} className={`bg-white border border-slate-100 ${isMobile ? 'p-3' : 'p-6'} rounded-3xl shadow-sm group`}>
+             <div className="flex justify-between items-start mb-2">
+                <div className={`p-2 bg-${stat.color}-50 text-${stat.color}-500 rounded-xl`}>
+                   <stat.icon className={`${isMobile ? 'w-3.5 h-3.5' : 'w-5 h-5'}`} />
+                </div>
+                {!isMobile && (
+                  <div className={`flex items-center gap-1 text-[9px] font-black px-2 py-0.5 rounded-full ${stat.trend.startsWith('+') ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
+                    {stat.trend}
+                  </div>
+                )}
+             </div>
+             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{stat.label}</p>
+             <h3 className={`${isMobile ? 'text-lg' : 'text-3xl'} font-black text-slate-800 tracking-tighter mt-0.5`}>{stat.val}</h3>
+          </div>
+        ))}
+      </div>
+
+      <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-3 gap-8'} gap-4 pb-10`}>
+        
+        {/* REVENUE CHART */}
+        <div className={`lg:col-span-2 bg-white border border-slate-100 rounded-[2rem] ${isMobile ? 'p-4' : 'p-8'} shadow-sm`}>
+           <div className="flex justify-between items-center mb-6">
+              <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Sales Velocity</h3>
+           </div>
+           <div className={`${isMobile ? 'h-[180px]' : 'h-[300px]'} w-full`}>
+              <ResponsiveContainer width="100%" height="100%">
+                 <AreaChart data={analytics.chartData}>
+                    <defs>
+                       <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                          <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                       </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fontSize: 8, fontWeight: 700, fill: '#cbd5e1'}} dy={5} />
+                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 8, fontWeight: 700, fill: '#cbd5e1'}} />
+                    <Area type="monotone" dataKey="sales" stroke="#10b981" strokeWidth={isMobile ? 2 : 4} fillOpacity={1} fill="url(#colorSales)" />
+                 </AreaChart>
+              </ResponsiveContainer>
+           </div>
+        </div>
+
+        {/* RECENT ORDERS MINI TABLE */}
+        <div className={`bg-white border border-slate-100 rounded-[2rem] ${isMobile ? 'p-4' : 'p-8'} shadow-sm flex flex-col`}>
+           <h3 className="text-sm font-black text-slate-800 tracking-tight mb-4 uppercase">Recent Arrivals</h3>
+           <div className="space-y-2 flex-1 overflow-y-auto no-scrollbar">
+              {orders.slice(0, 4).map((order) => (
+                <div key={order.id} className="flex items-center justify-between p-3 bg-slate-50 border border-transparent rounded-2xl active:bg-slate-100 transition-all cursor-pointer">
+                   <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-white rounded-lg shadow-sm border border-slate-100 flex items-center justify-center text-slate-800">
+                         <Package className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0">
+                         <p className="text-[11px] font-black text-slate-800 tracking-tight truncate">{order.customer_name || 'Guest'}</p>
+                         <p className="text-[9px] text-slate-400 font-bold uppercase">{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      </div>
+                   </div>
+                   <div className="text-right">
+                      <p className="text-[11px] font-black text-emerald-600">₹{Math.floor(order.total_price)}</p>
+                   </div>
+                </div>
+              ))}
+              {orders.length === 0 && (
+                <div className="py-10 flex flex-col items-center justify-center text-slate-300 opacity-50">
+                   <ShoppingBag className="w-8 h-8 mb-2" />
+                   <p className="text-[9px] font-black uppercase">Empty</p>
+                </div>
+              )}
+           </div>
+        </div>
+
+      </div>
+
+    </div>
+  );
+}
+
+export default Dashboard;

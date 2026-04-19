@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================ */
+/* 📱 MOBILE APP — Native Feel & High Density                   */
+/* ============================================================ */
+
+@layer base {
+  html {
+    /* Global aggressive size reduction */
+    font-size: 12.5px;
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+/* Global padding & spacing squasher (All Screens) */
+.p-2 { padding: 0.3rem !important; }
+.p-3 { padding: 0.5rem !important; }
+.p-4 { padding: 0.75rem !important; }
+.p-5 { padding: 0.8rem !important; }
+.p-6 { padding: 1rem !important; }
+.p-8 { padding: 1.2rem !important; }
+.p-10 { padding: 1.5rem !important; }
+
+.px-6 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.px-8 { padding-left: 1.2rem !important; padding-right: 1.2rem !important; }
+.px-10 { padding-left: 1.5rem !important; padding-right: 1.5rem !important; }
+
+.py-6 { padding-top: 0.8rem !important; padding-bottom: 0.8rem !important; }
+.py-8 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
+.py-10 { padding-top: 1.2rem !important; padding-bottom: 1.2rem !important; }
+
+.gap-4 { gap: 0.6rem !important; }
+.gap-6 { gap: 0.8rem !important; }
+.gap-8 { gap: 1rem !important; }
+.gap-10 { gap: 1.2rem !important; }
+
+.space-y-4 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.6rem !important; }
+.space-y-6 > :not([hidden]) ~ :not([hidden]) { margin-top: 0.8rem !important; }
+.space-y-8 > :not([hidden]) ~ :not([hidden]) { margin-top: 1rem !important; }
+.space-y-10 > :not([hidden]) ~ :not([hidden]) { margin-top: 1.2rem !important; }
+
+.rounded-\[2rem\] { border-radius: 1rem !important; }
+.rounded-\[2\.5rem\] { border-radius: 1.2rem !important; }
+.rounded-\[3rem\] { border-radius: 1.5rem !important; }
+.rounded-\[3\.5rem\] { border-radius: 1.5rem !important; }
+
+h2 { font-size: 1.6rem !important; }
+h3 { font-size: 1.4rem !important; }
+h4 { font-size: 1.1rem !important; }
+
+/* Hide all scrollbars for native app look */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* iOS Safe Area Insets (notch, home indicator) */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Smooth native-like scrolling on mobile */
+.mobile-safe-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Custom Scrollbar — minimal on mobile */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.2);
+  border-radius: 10px;
+}
+
+/* Bottom sheet slide-up animation */
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0.8; }
+  to { transform: translateY(0); opacity: 1; }
+}
+.animate-slide-up {
+  animation: slideUp 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+}
+
+/* Disable text selection on tap targets (native feel) */
+nav button, .no-select {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Remove iOS input zoom */
+@media screen and (max-width: 768px) {
+  input, select, textarea {
+    font-size: 16px !important; /* Keep 16px to prevent zoom, but style for small appearance */
+  }
+}
+
+/* Haptic press effect */
+@media (hover: none) and (pointer: coarse) {
+  button:active {
+    transform: scale(0.96);
+    transition: transform 0.05s ease;
+  }
+}
+
+body {
+  background-color: #ffffff;
+  color: #1e293b;
+  overflow-x: hidden;
+  width: 100vw;
+}
