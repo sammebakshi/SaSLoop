@@ -66,25 +66,31 @@ app.use("/api/crm", require("./routes/crmRoutes"));
 // ✅ STATIC ASSETS
 // ======================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-const buildPath = path.resolve(__dirname, "SaSLoop-dashboard", "build");
-app.use(express.static(buildPath));
+
+const buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
+console.log("Checking build path:", buildPath);
+if (fs.existsSync(buildPath)) {
+    console.log("✅ Build folder found!");
+    app.use(express.static(buildPath));
+} else {
+    console.warn("⚠️ Build folder NOT FOUND at:", buildPath);
+}
 
 // ======================
 // ✅ ULTIMATE SPA HANDLER (Force Menu Fix)
 // ======================
 app.get(/^\/(?!api|uploads).*/, (req, res) => {
-    // If it's an API call that leaked through, error out
     if (req.path.startsWith("/api/")) {
         return res.status(404).json({ error: "API not found" });
     }
-    // For ANYTHING else (especially /menu/...), send the React app
+    
     const indexPath = path.join(buildPath, "index.html");
-    res.sendFile(indexPath, (err) => {
-        if (err) {
-            console.error("Index Send Fail", err);
-            res.status(500).send("Menu interface is offline. Please rebuild the dashboard.");
-        }
-    });
+    if (!fs.existsSync(indexPath)) {
+        console.error("❌ index.html missing at:", indexPath);
+        return res.status(500).send(`Frontend not built. Please run: npm run build-frontend`);
+    }
+
+    res.sendFile(indexPath);
 });
 
 // ======================
