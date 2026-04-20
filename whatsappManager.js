@@ -1,6 +1,8 @@
 const pool = require("./db");
 const Groq = require("groq-sdk");
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 
 const normalizePhone = (p) => {
     if (!p) return "";
@@ -108,6 +110,78 @@ const handleMetaWebhook = async (body) => {
             }
         }
     } catch (e) { console.error("Webhook Logic Error", e); }
+};
+
+// ----------------------------------------------------------------------------------
+// 🖼️ Automatic Profile & DP Sync (SaSLoop -> WhatsApp)
+// ----------------------------------------------------------------------------------
+const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
+    try {
+        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0];
+        if (!token || !phoneId) return { success: false, error: "WhatsApp API not configured" };
+
+        let payload = {
+            messaging_product: "whatsapp",
+            description: bizData.address || "",
+            about: `Official bot for ${bizData.name}`,
+            address: bizData.address || ""
+        };
+
+        // If a logo exists, try to update the DP
+        if (bizData.logo_url) {
+            try {
+                // 1. Get the App ID associated with this token
+                const debugRes = await axios.get(`https://graph.facebook.com/debug_token?input_token=${token}&access_token=${token}`);
+                const appId = debugRes.data?.data?.app_id;
+
+                if (appId) {
+                    const localPath = path.join(__dirname, bizData.logo_url);
+                    if (fs.existsSync(localPath)) {
+                        const stats = fs.statSync(localPath);
+                        const fileData = fs.readFileSync(localPath);
+                        const mimeType = bizData.logo_url.endsWith(".png") ? "image/png" : "image/jpeg";
+
+                        // 2. Start Resumable Upload
+                        const uploadSessionRes = await axios.post(
+                            `https://graph.facebook.com/v21.0/${appId}/uploads?file_length=${stats.size}&file_type=${mimeType}`,
+                            {}, { headers: { "Authorization": `Bearer ${token}` } }
+                        );
+                        const uploadSessionId = uploadSessionRes.data.id;
+
+                        // 3. Upload the binary file
+                        const uploadRes = await axios.post(
+                            `https://graph.facebook.com/${uploadSessionId}`,
+                            fileData,
+                            { 
+                                headers: { 
+                                    "Authorization": `OAuth ${token}`,
+                                    "Content-Type": "application/octet-stream"
+                                } 
+                            }
+                        );
+                        const handle = uploadRes.data.h;
+                        if (handle) payload.profile_picture_handle = handle;
+                    }
+                }
+            } catch (err) {
+                console.error("WhatsApp DP sync failed (non-critical):", err.response?.data || err.message);
+            }
+        }
+
+        // 4. Update the actual profile fields
+        await axios.post(
+            `https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile`,
+            payload,
+            { headers: { "Authorization": `Bearer ${token}` } }
+        );
+
+        console.log(`[SYNC] WhatsApp Profile updated for User ${userId}`);
+        return { success: true };
+    } catch (e) {
+        console.error("WhatsApp Profile Sync Error:", e.response?.data || e.message);
+        return { success: false, error: e.message };
+    }
 };
 
 // ----------------------------------------------------------------------------------
@@ -928,5 +1002,6 @@ module.exports = {
   logChat,
   getWalletCredits,
   deductWalletCredits,
-  notifyKitchenAndStaff
+  notifyKitchenAndStaff,
+  syncBusinessProfileToWhatsApp
 };

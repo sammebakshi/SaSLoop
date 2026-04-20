@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const pool = require("../db");
+const whatsappManager = require("../whatsappManager");
 const authMiddleware = require("../middleware/authMiddleware");
 
 // POST /api/business/setup
@@ -108,8 +109,13 @@ router.post("/setup", authMiddleware, async (req, res) => {
         await pool.query("UPDATE app_users SET bot_knowledge = $1 WHERE id = $2", [bot_knowledge, userId]);
     }
 
-    console.log(`✨ NEW BUSINESS CREATED FOR ${userId}:`, result.rows[0]);
-    res.json({ message: "Business created successfully", business: result.rows[0] });
+    const updatedBiz = result.rows[0];
+    console.log(`✨ BUSINESS PROCESS COMPLETE FOR ${userId}`);
+
+    // 🔥 AUTOMATIC WHATSAPP SYNC (Background)
+    whatsappManager.syncBusinessProfileToWhatsApp(userId, updatedBiz).catch(e => console.error("WhatsApp Async Sync Failed:", e));
+
+    res.json({ message: "Business setup saved successfully", business: updatedBiz });
 
   } catch (err) {
     console.error("BUSINESS ERROR:", err);
