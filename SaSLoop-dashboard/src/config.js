@@ -28,3 +28,22 @@ export const isMobileDevice = () => {
   const ua = navigator.userAgent || navigator.vendor;
   return /android|iphone|ipad|ipod|mobile/i.test(ua) || window.innerWidth <= 768;
 };
+
+// Global Fetch Patch: Bypass Ngrok Free Tier HTML Interstitial Warning
+if (typeof window !== 'undefined') {
+  const originalFetch = window.fetch;
+  window.fetch = async function () {
+    let [resource, config] = arguments;
+    if (!config) config = {};
+    if (!config.headers) config.headers = {};
+    
+    // Convert Headers object to normal object if necessary
+    if (config.headers instanceof Headers) {
+      config.headers.append('ngrok-skip-browser-warning', 'true');
+    } else {
+      config.headers['ngrok-skip-browser-warning'] = 'true';
+    }
+    
+    return originalFetch.apply(this, [resource, config]);
+  };
+}
