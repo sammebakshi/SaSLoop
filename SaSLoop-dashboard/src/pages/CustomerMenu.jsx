@@ -116,7 +116,8 @@ function CustomerMenu() {
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (ptsEnabled ? (pointsToRedeem / ptsRatio) : 0));
 
   const placeOrder = () => {
-    const bizPhone = biz?.whatsapp_number || biz?.phone?.replace(/\D/g, "");
+    const rawPhone = biz?.whatsapp_number || biz?.phone || "";
+    const bizPhone = rawPhone.replace(/\D/g, "");
     if (!bizPhone) return alert("Business phone not set.");
     setOrderStatus("ordered");
     const tNo = fulfillmentMode === "DINEIN" ? (tableId && tableId !== "0" ? tableId : manualTableNo) : "0";
@@ -136,7 +137,11 @@ function CustomerMenu() {
     .catch(() => { alert("Failed to sync order."); setOrderStatus("browsing"); });
   };
 
-  const openWhatsApp = () => { const p = biz?.whatsapp_number || biz?.phone?.replace(/\D/g, ""); if (p) window.location.href = `https://wa.me/${p}?text=Hi!`; };
+  const openWhatsApp = () => { 
+    const rawPhone = biz?.whatsapp_number || biz?.phone || "";
+    const p = rawPhone.replace(/\D/g, ""); 
+    if (p) window.location.href = `https://wa.me/${p}?text=Hi!`; 
+  };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Menu...</p></div>);
 

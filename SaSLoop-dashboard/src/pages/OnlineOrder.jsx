@@ -133,7 +133,11 @@ function OnlineOrder() {
     finally { setPlacing(false); }
   };
 
-  const openWhatsApp = () => { const p = biz?.whatsapp_number || biz?.phone?.replace(/\D/g, ""); if (p) window.open(`https://wa.me/${p}?text=Hi!`, "_blank"); };
+  const openWhatsApp = () => { 
+    const rawPhone = biz?.whatsapp_number || biz?.phone || "";
+    const p = rawPhone.replace(/\D/g, ""); 
+    if (p) window.open(`https://wa.me/${p}?text=Hi!`, "_blank"); 
+  };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Menu...</p></div>);
   if (!biz) return (<div className="flex flex-col items-center justify-center h-screen bg-white text-center p-8"><AlertCircle className="w-12 h-12 text-slate-200 mb-4" /><h2 className="text-xl font-black text-slate-800 tracking-tight mb-2">Restaurant Not Found</h2></div>);

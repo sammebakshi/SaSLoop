@@ -7,7 +7,13 @@ const whatsappManager = require("../whatsappManager");
 router.get("/menu/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const bizRes = await pool.query(
+            `SELECT r.*, u.whatsapp_number 
+             FROM restaurants r 
+             JOIN app_users u ON u.id = r.user_id 
+             WHERE r.user_id = $1`, 
+            [userId]
+        );
         const itemsRes = await pool.query("SELECT * FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
         
         if (bizRes.rows.length === 0) return res.status(404).json({ error: "Business not found" });
