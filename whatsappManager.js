@@ -117,9 +117,14 @@ const handleMetaWebhook = async (body) => {
 // ----------------------------------------------------------------------------------
 const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
     try {
+        console.log(`[SYNC] Starting WhatsApp Profile Sync for User: ${userId}`);
         const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
-        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0];
-        if (!token || !phoneId) return { success: false, error: "WhatsApp API not configured" };
+        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        
+        if (!token || !phoneId) {
+            console.warn(`[SYNC] Skipped: No Meta Token/PhoneID found for user ${userId}`);
+            return { success: false, error: "WhatsApp API not configured" };
+        }
 
         let payload = {
             messaging_product: "whatsapp",
@@ -130,6 +135,7 @@ const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
 
         // If a logo exists, try to update the DP
         if (bizData.logo_url) {
+            console.log(`[SYNC] Found logo_url: ${bizData.logo_url}. Attempting DP update...`);
             try {
                 // 1. Get the App ID associated with this token
                 const debugRes = await axios.get(`https://graph.facebook.com/debug_token?input_token=${token}&access_token=${token}`);
