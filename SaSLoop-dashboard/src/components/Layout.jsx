@@ -484,8 +484,8 @@ const Layout = ({ children }) => {
         </header>
 
         {/* Page Content View */}
-        <main className="flex-1 overflow-auto bg-slate-50/50 custom-scrollbar p-4 lg:p-6 relative">
-          <div className="max-w-[1600px] mx-auto h-full flex flex-col">
+        <main className="flex-1 overflow-auto bg-slate-50/50 custom-scrollbar relative">
+          <div className="max-w-[1600px] mx-auto min-h-full flex flex-col p-4 lg:p-6">
             <Outlet />
           </div>
         </main>
