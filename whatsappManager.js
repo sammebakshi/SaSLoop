@@ -315,7 +315,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         // 1b. SPECIAL HANDLING: QR Table Context
         const tableMatch = msgText.match(/TABLE\s*(\d+)/i);
-        const session = await getSession(userId, customerNumber);
         
         if (tableMatch) {
             const tableId = tableMatch[1];
@@ -332,9 +331,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await sendAndLog(customerNumber, `Sorry, our menu is currently being updated. Please try again later!`, userId);
             return;
         }
-
-        const cart = session.context.items || [];
-        const sessionState = session.state || 'IDLE';
 
         if (session.is_paused) return;
 
