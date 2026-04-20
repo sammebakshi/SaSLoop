@@ -257,6 +257,16 @@ async function initializeDatabase() {
                 status VARCHAR(50) DEFAULT 'PENDING',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // 16. Audit Logs
+            `CREATE TABLE IF NOT EXISTS audit_logs (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id),
+                action VARCHAR(255),
+                details JSONB,
+                ip_address VARCHAR(100),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
