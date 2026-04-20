@@ -8,7 +8,7 @@
     "tunnel": "node start-tunnel.js",
     "dev": "concurrently \"node server.js\" \"node start-tunnel.js\"",
     "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && npm run build",
-    "update-live": "git pull origin main && npm install && npm run build-frontend && pm2 restart all",
+    "update-live": "git pull origin main && npm install && pm2 restart all",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
