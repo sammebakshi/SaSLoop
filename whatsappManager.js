@@ -218,8 +218,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (msgLower === 'view menu' || msgLower.includes('view_menu')) {
-            const menuLink = `${process.env.FRONTEND_URL || 'https://sasloop.com'}/menu/${userId}/0`;
-            const menuMsg = `📜 *Our Digital Menu*\n\nYou can browse our full menu and place orders here:\n👉 ${menuLink}\n\nOr just tell me what you're looking for!`;
+            const domain = process.env.NGROK_DOMAIN || 'sasloop.com';
+            const protocol = domain.includes('localhost') ? 'http' : 'https';
+            const menuLink = `${protocol}://${domain}/menu/${userId}/wa`;
+            
+            const menuMsg = `📜 *Our Digital Menu*\n\nYou can browse our full catalog and place orders directly from your browser here:\n👉 ${menuLink}\n\nSimply tap the link above to view our latest specials! 🍽️`;
             await sendAndLog(customerNumber, menuMsg, userId);
             return;
         }
