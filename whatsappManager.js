@@ -142,8 +142,12 @@ const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
                 const appId = debugRes.data?.data?.app_id;
 
                 if (appId) {
-                    const localPath = path.join(__dirname, bizData.logo_url);
+                    const cleanPath = bizData.logo_url.replace(/^\//, "");
+                    const localPath = path.join(__dirname, cleanPath);
+                    console.log(`[SYNC] Looking for file at: ${localPath}`);
+                    
                     if (fs.existsSync(localPath)) {
+                        console.log(`[SYNC] File found! Size: ${fs.statSync(localPath).size} bytes. Starting Meta upload...`);
                         const stats = fs.statSync(localPath);
                         const fileData = fs.readFileSync(localPath);
                         const mimeType = bizData.logo_url.endsWith(".png") ? "image/png" : "image/jpeg";
