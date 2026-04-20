@@ -147,6 +147,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const msgLower = (msgText || "").toLowerCase().trim();
 
+        // 🛡️ NEW CUSTOMER IDENTITY PUSH
+        // Check if this is the very first time we see this customer to send a Contact Card
+        const sessionCheck = await pool.query("SELECT id FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
+        if (sessionCheck.rows.length === 0) {
+            console.log(`[IDENTITY PUSH] New customer detected: ${customerNumber}. Sending vCard for ${bizName}`);
+            await sendVCard(customerNumber, biz, userId);
+        }
+
+        const session = await getSession(userId, customerNumber);
+        const sessionState = session.state || 'IDLE';
+        const cart = session.context.items || [];
+
         // 0. INTERCEPT WEB APP REDIRECTS (QR / ONLINE)
         // Checks for multiple common variants of the pre-filled redirect message.
         const isRedirect = 
@@ -820,10 +832,45 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
 
 // ----------------------------------------------------------------------------------
 // 📤 Send Message + Log to chat_messages
-// ----------------------------------------------------------------------------------
+// Now includes automatic branding!
 const sendAndLog = async (to, text, userId) => {
-    await sendOfficialMessage(to, { type: "text", text: { body: text } }, userId);
-    await logChat(userId, to, 'bot', text);
+    try {
+        const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
+        const bizName = bizRes.rows[0]?.name || "Assistant";
+        
+        const brandedText = `🤖 *${bizName}*\n━━━━━━━━━━━━━━\n${text}`;
+        
+        await sendOfficialMessage(to, { type: "text", text: { body: brandedText } }, userId);
+        await logChat(userId, to, 'bot', text);
+    } catch (err) {
+        // Fallback to unbranded if DB fails
+        await sendOfficialMessage(to, { type: "text", text: { body: text } }, userId);
+        await logChat(userId, to, 'bot', text);
+    }
+};
+
+const sendVCard = async (to, biz, userId) => {
+    try {
+        const cleanPhone = biz.phone ? biz.phone.replace(/\D/g, "") : "";
+        const vcard = `BEGIN:VCARD
+VERSION:3.0
+FN:${biz.name || 'Business'}
+ORG:${biz.name || 'Business'}
+TEL;type=CELL;type=VOICE;waid=${cleanPhone}:${biz.phone || ''}
+X-WA-BIZ-DESCRIPTION:${biz.address || 'Powered by SaSLoop AI'}
+END:VCARD`;
+
+        await sendOfficialMessage(to, {
+            type: "contacts",
+            contacts: [
+                {
+                    name: { formatted_name: biz.name || 'Business', first_name: biz.name || 'Business' },
+                    phones: [{ phone: biz.phone, type: "WORK", wa_id: cleanPhone }],
+                    org: { company: biz.name || 'Business' }
+                }
+            ]
+        }, userId);
+    } catch (e) { console.error("VCard push failed", e.message); }
 };
 
 const sendOfficialMessage = async (to, content, userId) => {

@@ -402,8 +402,8 @@ const MobileLayout = () => {
       </header>
 
       {/* 📄 CONTENT AREA */}
-      <main className="flex-1 overflow-auto bg-white mobile-safe-scroll">
-        <div className="h-full flex flex-col">
+      <main className="flex-1 overflow-y-auto bg-white mobile-safe-scroll relative">
+        <div className="min-h-full flex flex-col">
           <Outlet />
         </div>
       </main>

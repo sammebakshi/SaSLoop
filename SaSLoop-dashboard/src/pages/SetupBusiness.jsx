@@ -199,7 +199,7 @@ function SetupBusiness() {
         </p>
       </div>
 
-      <div className="max-w-4xl w-full bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden flex flex-col md:flex-row min-h-[650px]">
+      <div className="max-w-4xl w-full bg-white rounded-[3rem] shadow-2xl border border-slate-200 flex flex-col md:flex-row min-h-max md:min-h-[650px] overflow-hidden md:overflow-visible">
          
          <div className="w-full md:w-[320px] bg-slate-900 p-10 flex flex-col justify-between relative overflow-hidden">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32" />
