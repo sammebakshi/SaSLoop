@@ -8,8 +8,56 @@ const normalizePhone = (p) => {
 };
 
 // ----------------------------------------------------------------------------------
-// 🚀 Official Meta API Webhook Handler
+// 🚀 Official Meta API Webhook Handler (Helpers Defined Below)
 // ----------------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------------
+// 📤 Send Message + Log to chat_messages
+// ----------------------------------------------------------------------------------
+const sendOfficialMessage = async (to, content, userId) => {
+    try {
+        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0];
+        let payload = { messaging_product: "whatsapp", to };
+        if (typeof content === 'string') {
+            payload.type = "text";
+            payload.text = { body: content };
+        } else {
+            Object.assign(payload, content);
+        }
+        await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+    } catch (e) { console.error("Meta Send Error", e.response?.data || e.message); }
+};
+
+const sendAndLog = async (to, text, userId) => {
+    try {
+        const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
+        const bizName = bizRes.rows[0]?.name || "Assistant";
+        const brandedText = `🤖 *${bizName}*\n━━━━━━━━━━━━━━\n${text}`;
+        await sendOfficialMessage(to, { type: "text", text: { body: brandedText } }, userId);
+        await logChat(userId, to, 'bot', text);
+    } catch (err) {
+        await sendOfficialMessage(to, { type: "text", text: { body: text } }, userId);
+        await logChat(userId, to, 'bot', text);
+    }
+};
+
+const sendVCard = async (to, biz, userId) => {
+    try {
+        const cleanPhone = biz.phone ? biz.phone.replace(/\D/g, "") : "";
+        await sendOfficialMessage(to, {
+            type: "contacts",
+            contacts: [{
+                name: { formatted_name: biz.name || 'Business', first_name: biz.name || 'Business' },
+                phones: [{ phone: biz.phone, type: "WORK", wa_id: cleanPhone }],
+                org: { company: biz.name || 'Business' }
+            }]
+        }, userId);
+    } catch (e) { console.error("VCard push failed", e.message); }
+};
+
 const handleMetaWebhook = async (body) => {
     try {
         if (body.object === "whatsapp_business_account") {
@@ -873,18 +921,6 @@ END:VCARD`;
     } catch (e) { console.error("VCard push failed", e.message); }
 };
 
-const sendOfficialMessage = async (to, content, userId) => {
-    try {
-        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
-        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0];
-        
-        let payload = { messaging_product: "whatsapp", to };
-        if (typeof content === 'string') {
-            payload.type = "text";
-            payload.text = { body: content };
-        } else {
-            Object.assign(payload, content);
-        }
 
         await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
             headers: { "Authorization": `Bearer ${token}` }
