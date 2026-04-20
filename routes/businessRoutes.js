@@ -84,38 +84,39 @@ router.post("/setup", authMiddleware, async (req, res) => {
       }
       
       console.log(`✅ BUSINESS UPDATED FOR ${userId}:`, result.rows[0]);
-      return res.json({ message: "Business updated successfully", business: result.rows[0] });
+      finalBiz = result.rows[0];
+    } else {
+      // 2. Insert new business
+      const result = await pool.query(
+        `INSERT INTO restaurants 
+         (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) RETURNING *`,
+        [
+            name, phone, address || '', userId, businessType || 'restaurant', settings || {},
+            (latitude === "" ? null : latitude) || null, (longitude === "" ? null : longitude) || null, delivery_radius_km || 10,
+            kitchen_number || '', notification_numbers || [], track_inventory || false, low_stock_threshold || 5, currency_code || 'INR',
+            parseFloat(cgst_percent) || 0, parseFloat(sgst_percent) || 0, !!gst_included, show_gst_on_receipt !== undefined ? !!show_gst_on_receipt : true,
+            logo_url || null, banner_url || null, social_instagram || '', social_facebook || '', social_twitter || '', social_youtube || '', social_website || '',
+            loyalty_enabled !== undefined ? !!loyalty_enabled : true,
+            parseInt(points_per_100) || 5,
+            parseFloat(points_to_amount_ratio) || 10.00,
+            parseInt(min_redeem_points) || 300,
+            parseInt(max_redeem_per_order) || 300
+        ]
+      );
+      console.log(`✨ NEW BUSINESS CREATED FOR ${userId}:`, result.rows[0]);
+      finalBiz = result.rows[0];
     }
 
-    // 2. Insert new business
-    const result = await pool.query(
-      `INSERT INTO restaurants 
-       (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) RETURNING *`,
-      [
-          name, phone, address || '', userId, businessType || 'restaurant', settings || {},
-          (latitude === "" ? null : latitude) || null, (longitude === "" ? null : longitude) || null, delivery_radius_km || 10,
-          kitchen_number || '', notification_numbers || [], track_inventory || false, low_stock_threshold || 5, currency_code || 'INR',
-          parseFloat(cgst_percent) || 0, parseFloat(sgst_percent) || 0, !!gst_included, show_gst_on_receipt !== undefined ? !!show_gst_on_receipt : true,
-          logo_url || null, banner_url || null, social_instagram || '', social_facebook || '', social_twitter || '', social_youtube || '', social_website || '',
-          loyalty_enabled !== undefined ? !!loyalty_enabled : true,
-          parseInt(points_per_100) || 5,
-          parseFloat(points_to_amount_ratio) || 10.00,
-          parseInt(min_redeem_points) || 300,
-          parseInt(max_redeem_per_order) || 300
-      ]
-    );
     if (bot_knowledge !== undefined) {
         await pool.query("UPDATE app_users SET bot_knowledge = $1 WHERE id = $2", [bot_knowledge, userId]);
     }
 
-    const updatedBiz = result.rows[0];
-    console.log(`✨ BUSINESS PROCESS COMPLETE FOR ${userId}`);
-
     // 🔥 AUTOMATIC WHATSAPP SYNC (Background)
-    whatsappManager.syncBusinessProfileToWhatsApp(userId, updatedBiz).catch(e => console.error("WhatsApp Async Sync Failed:", e));
+    console.log(`[TRIGGER] Launching WhatsApp Sync for ${finalBiz.name}`);
+    whatsappManager.syncBusinessProfileToWhatsApp(userId, finalBiz).catch(e => console.error("WhatsApp Async Sync Failed:", e));
 
-    res.json({ message: "Business setup saved successfully", business: updatedBiz });
+    res.json({ message: "Business setup saved successfully", business: finalBiz });
 
   } catch (err) {
     console.error("BUSINESS ERROR:", err);
