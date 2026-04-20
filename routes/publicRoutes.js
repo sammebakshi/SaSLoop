@@ -31,9 +31,10 @@ router.get("/menu/:userId", async (req, res) => {
 // 🚀 PLACE ORDER (QR / ONLINE)
 router.post("/order", async (req, res) => {
     try {
-        const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst } = req.body;
+        const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst, status: customStatus, paymentMethod, paymentStatus, discount_amount, service_charge } = req.body;
         const isOnline = source === "ONLINE_ORDER";
-        const prefix = isOnline ? "ONL" : "QR";
+        const isPOS = source === "POS_MANUAL";
+        const prefix = isOnline ? "ONL" : (isPOS ? "POS" : "QR");
         const orderRef = `${prefix}-${Math.random().toString(36).substring(7).toUpperCase()}`;
         
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
@@ -61,8 +62,8 @@ router.post("/order", async (req, res) => {
         const orderAddress = address || (tableNumber && tableNumber !== "0" ? `Table ${tableNumber}` : "Pickup");
 
         const insertRes = await pool.query(
-            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
-            [userId, customerName || "Guest", customerPhone || "QR-ORDER", orderAddress, JSON.stringify(items), finalPrice, orderRef, 'PENDING', tableNumber]
+            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
+            [userId, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
         );
         
         const orderId = insertRes.rows[0].id;

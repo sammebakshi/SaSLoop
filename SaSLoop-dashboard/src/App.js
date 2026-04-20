@@ -29,6 +29,7 @@ import CustomerMenu from "./pages/CustomerMenu";
 import QRManager from "./pages/QRManager";
 import Reports from "./pages/Reports";
 import OnlineOrder from "./pages/OnlineOrder";
+import POS from "./pages/POS";
 
 // ============================================================
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
@@ -99,6 +100,8 @@ function App() {
             <Route path="/recharge" element={<RechargeHub />} />
             <Route path="/crm" element={<CRMDashboard />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/pos" element={<POS />} />
+            <Route path="/mobile-app" element={<AppCenter />} />
         </Route>
         
         {/* Shared Restricted Routes */}

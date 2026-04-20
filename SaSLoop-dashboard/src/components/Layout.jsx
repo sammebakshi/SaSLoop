@@ -27,7 +27,8 @@ import {
   Activity,
   Smartphone,
   Bell,
-  BarChart3
+  BarChart3,
+  Monitor
 } from "lucide-react";
 
 const SaSLoopLogo = () => (
@@ -273,6 +274,7 @@ const Layout = ({ children }) => {
               { name: "QR Code Manager", path: "/business-data/qr" },
           ]},
           { name: "Live Chats", path: "/chats", icon: MessageSquare },
+          { name: "POS Terminal", path: "/pos", icon: Monitor },
           { name: "Order Board", path: "/orders", icon: Package },
           { name: "Reports", path: "/reports", icon: BarChart3 },
           { name: "Customer Growth", path: "/crm", icon: Users },
