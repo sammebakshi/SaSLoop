@@ -190,18 +190,18 @@ function SetupBusiness() {
   const bannerPreview = formData.banner_url ? (formData.banner_url.startsWith("http") ? formData.banner_url : `${API_BASE}${formData.banner_url}`) : null;
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-full bg-slate-50 flex flex-col items-center py-6 px-4">
       
-      <div className="max-w-4xl w-full text-center mb-10">
-        <h1 className="text-4xl font-black text-slate-900 tracking-tight sm:text-5xl">Business Setup</h1>
-        <p className="mt-4 text-slate-500 font-medium text-lg uppercase tracking-widest flex items-center justify-center gap-2">
-           <Store className="w-5 h-5 text-emerald-500" /> Configure Your Business Profile
+      <div className="max-w-4xl w-full text-center mb-6">
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight sm:text-5xl">Business Setup</h1>
+        <p className="mt-2 text-slate-500 font-medium text-xs uppercase tracking-widest flex items-center justify-center gap-2">
+           <Store className="w-4 h-4 text-emerald-500" /> Configure Your Profile
         </p>
       </div>
 
-      <div className="max-w-4xl w-full bg-white rounded-[3rem] shadow-2xl border border-slate-200 flex flex-col md:flex-row min-h-max md:min-h-[650px] overflow-hidden md:overflow-visible">
+      <div className="max-w-4xl w-full bg-white rounded-[2rem] shadow-2xl border border-slate-200 flex flex-col md:flex-row h-auto overflow-visible">
          
-         <div className="w-full md:w-[320px] bg-slate-900 p-10 flex flex-col justify-between relative overflow-hidden">
+         <div className="w-full md:w-[320px] bg-slate-900 p-8 flex flex-col justify-between relative overflow-visible rounded-t-[2rem] md:rounded-l-[2rem] md:rounded-tr-none">
             <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[100px] -mr-32 -mt-32" />
             <div className="relative z-10">
                <div className="space-y-8">
@@ -221,7 +221,7 @@ function SetupBusiness() {
             </div>
          </div>
 
-         <div className="flex-1 p-14 bg-white relative">
+         <div className="flex-1 p-6 sm:p-14 bg-white relative h-auto">
             
             {/* Step 1: Identity + Logo */}
             {step === 1 && (
