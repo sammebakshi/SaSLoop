@@ -111,6 +111,20 @@ function SystemHealth() {
                   </div>
                   <div className="flex justify-between items-center">
                      <div className="flex items-center gap-3">
+                        <AlertTriangle className="w-5 h-5 text-rose-400" />
+                        <span className="text-xs font-bold text-slate-600">Total Restarts</span>
+                     </div>
+                     <span className="text-xs font-black text-rose-600 bg-rose-50 px-2 py-0.5 rounded-lg">{data?.restart_count} Times</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                     <div className="flex items-center gap-3">
+                        <Activity className="w-5 h-5 text-indigo-400" />
+                        <span className="text-xs font-bold text-slate-600">Memory usage (RSS)</span>
+                     </div>
+                     <span className="text-xs font-black text-slate-800">{data?.memory_usage?.rss} MB</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                     <div className="flex items-center gap-3">
                         <HardDrive className="w-5 h-5 text-slate-400" />
                         <span className="text-xs font-bold text-slate-600">Audit Density</span>
                      </div>

@@ -6,8 +6,8 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '250M', // Restart if process hits 250MB
-      exp_backoff_restart_delay: 100, // Exponential backoff
+      max_memory_restart: '800M', // Increased from 250M
+      exp_backoff_restart_delay: 100,
       env: {
         NODE_ENV: 'production',
       },
@@ -18,7 +18,7 @@ module.exports = {
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: '150M',
+      max_memory_restart: '300M', // Increased from 150M
       exp_backoff_restart_delay: 100,
     }
   ],

@@ -35,10 +35,15 @@ app.use(helmet({
 }));
 app.use(hpp());
 
-// Global Rate Limiter: 100 requests per 15 minutes per IP
+// Global Rate Limiter: 2000 requests per 15 minutes per IP (Dashboard Polling requires higher limits)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 200, 
+    max: 2000, 
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res, next, options) => {
+        res.status(options.statusCode).json({ error: options.message });
+    },
     message: "Too many requests from this IP, please try again later."
 });
 app.use("/api/", limiter); // Apply to all API routes
@@ -125,4 +130,13 @@ app.listen(PORT, async () => {
         fs.mkdirSync(path.join(__dirname, "uploads"));
     }
     await initializeDatabase();
+    
+    // Log Restart
+    try {
+        await pool.query("UPDATE system_status SET restart_count = restart_count + 1, last_restart_at = NOW() WHERE id = 1");
+        const res = await pool.query("SELECT restart_count FROM system_status WHERE id = 1");
+        console.log(`📈 SERVER RESTARTED! Total restarts logged: ${res.rows[0].restart_count}`);
+    } catch (err) {
+        console.error("Failed to log restart:", err.message);
+    }
 });

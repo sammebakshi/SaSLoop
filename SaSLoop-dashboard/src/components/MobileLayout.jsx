@@ -80,8 +80,13 @@ const MobileLayout = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
+    if (!token || !userData) {
+      window.location.href = "/";
+      return;
+    }
+    setUser(JSON.parse(userData));
 
     // Request Notification Permissions
     if (typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.()) {
@@ -340,10 +345,10 @@ const MobileLayout = () => {
   };
 
   return (
-    <div className="h-screen w-full bg-white flex flex-col overflow-hidden font-sans selection:bg-emerald-500/30">
+    <div className="fixed inset-0 w-full flex flex-col bg-white overflow-hidden font-sans selection:bg-emerald-500/30">
 
       {/* 📱 MINIMAL TOP BAR */}
-      <header className="h-10 flex-shrink-0 flex items-center justify-between px-2 bg-white border-b border-slate-100 z-30 safe-area-top">
+      <header className="h-14 flex-shrink-0 flex items-center justify-between px-4 bg-white border-b border-slate-100 z-30 safe-area-top shadow-sm">
         <div className="flex items-center gap-1.5 min-w-0">
           <SaSLoopLogo />
           <span className="text-[9px] font-black text-slate-800 uppercase tracking-tighter truncate">

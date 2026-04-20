@@ -295,7 +295,7 @@ function OperationalRules() {
                 </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 shadow-sm pl-1">CGST (%)</label>
                     <input type="number" step="0.01" value={formData.cgst_percent} onChange={e => setFormData({...formData, cgst_percent: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
@@ -304,7 +304,7 @@ function OperationalRules() {
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 shadow-sm pl-1">SGST (%)</label>
                     <input type="number" step="0.01" value={formData.sgst_percent} onChange={e => setFormData({...formData, sgst_percent: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                 </div>
-                <div className="flex flex-col justify-end gap-3">
+                <div className="flex flex-col justify-center gap-2">
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent">
                         <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.gst_included} onChange={e => { console.log("GST_INCLUDED:", e.target.checked); setFormData({...formData, gst_included: e.target.checked}); }} />
                         <span className="text-xs font-black text-slate-700 uppercase">GST Included in Price</span>

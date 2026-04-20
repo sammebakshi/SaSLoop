@@ -267,7 +267,15 @@ async function initializeDatabase() {
                 details JSONB,
                 ip_address VARCHAR(100),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`
+            )`,
+            // 17. System Status (to track crashes/restarts)
+            `CREATE TABLE IF NOT EXISTS system_status (
+                id SERIAL PRIMARY KEY,
+                restart_count INTEGER DEFAULT 0,
+                last_restart_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                server_uptime_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            `INSERT INTO system_status (id, restart_count) VALUES (1, 0) ON CONFLICT DO NOTHING`
         ];
 
         for (let q of queries) {

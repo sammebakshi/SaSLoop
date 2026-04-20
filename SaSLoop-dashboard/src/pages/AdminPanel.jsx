@@ -279,11 +279,11 @@ function AdminPanel() {
   const totalBusinesses = users.length;
 
   return (
-    <div className="flex flex-col h-full space-y-8 p-2">
-      <div className="flex justify-between items-center">
+    <div className="flex flex-col h-full space-y-6 md:space-y-8 p-4 md:p-6 w-full max-w-full overflow-x-hidden">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h2>
-          <p className="text-slate-500 mt-1 text-sm font-medium">Business client overview and management.</p>
+          <h2 className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">Admin Dashboard</h2>
+          <p className="text-slate-500 mt-1 text-[11px] md:text-sm font-medium">Business client overview and management.</p>
         </div>
       </div>
 
@@ -364,96 +364,120 @@ function AdminPanel() {
             </div>
 
             <div className="flex-1 overflow-y-auto custom-scrollbar">
-              <table className="w-full text-left border-separate border-spacing-0">
-                <thead className="sticky top-0 bg-slate-50 z-20 shadow-xl">
-                  <tr className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold border-b border-slate-200">
-                    <th className="px-8 py-5 border-b border-slate-200">Identity Details</th>
-                    <th className="px-8 py-5 border-b border-slate-200">Entity Info</th>
-                    <th className="px-8 py-5 border-b border-slate-200">Status</th>
-                    <th className="px-8 py-5 border-b border-slate-200 text-right">Operations</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/30">
-                  {users.filter(u => {
-                    let matchCategory = false;
-                    if (viewMode === 'active_biz') matchCategory = (u.status === 'active');
-                    else if (viewMode === 'total_biz') matchCategory = true;
-                    
-                    if (!matchCategory) return false;
-
-                    if (!searchQuery) return true;
-                    const searchLower = searchQuery.toLowerCase();
-                    return (
-                      u.first_name?.toLowerCase().includes(searchLower) ||
-                      u.last_name?.toLowerCase().includes(searchLower) ||
-                      u.email?.toLowerCase().includes(searchLower) ||
-                      u.username?.toLowerCase().includes(searchLower)
-                    );
-                  }).map(u => (
-                    <tr key={u.id} className="hover:bg-slate-50 transition-all group">
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-slate-800 font-bold tracking-tight text-sm">{u.first_name} {u.last_name || ''}</span>
-                          <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium"><Mail className="w-3 h-3" /> {u.email}</div>
-                          <div className="flex items-center gap-2 text-[10px] text-indigo-400 font-mono"><User className="w-3 h-3" /> @{u.username || 'n/a'}</div>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex flex-col gap-1.5">
-                           <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border inline-block w-fit text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
-                              Business
-                           </span>
-                           {u.business_type && <span className="text-[10px] text-slate-400 opacity-60 flex items-center gap-1 uppercase tracking-tighter"><Building2 className="w-3 h-3" /> {u.business_type}</span>}
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center gap-2">
-                           <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
-                           <span className={`text-[11px] font-black uppercase tracking-widest ${u.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>{u.status}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-6">
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            onClick={() => { setViewUser(u); setIsViewModalOpen(true); }}
-                            className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all"
-                            title="View Full Profile"
-                          >
-                             <Users className="w-4 h-4" />
-                          </button>
-                          {(adminPermissions.full_access) && (
-                            <>
-                              {u.role === 'user' && (
-                                 <button onClick={() => navigate('/bot-config', { state: { targetUser: u } })} className="p-2.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl transition-all" title="Configure AI Bot"><Bot className="w-4 h-4" /></button>
-                              )}
-                              <button onClick={() => editAccount(u)} className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>
-                              <button onClick={() => toggleStatus(u.id)} className={`p-2.5 rounded-xl transition-all ${u.status === 'active' ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`} title="Toggle Access"><Activity className="w-4 h-4" /></button>
-                              <button onClick={() => deleteUser(u.id)} className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500/30 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
-                            </>
-                          )}
-                          {!adminPermissions.full_access && !adminPermissions.can_view_only && (
-                            <>
-                              <button onClick={() => setViewUser(u)} className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title="View Full Profile"><Eye className="w-4 h-4" /></button>
-                              <button 
-                                 onClick={() => {
-                                   sessionStorage.setItem("impersonate_id", u.id);
-                                   sessionStorage.setItem("impersonate_name", u.business_name || u.username);
-                                   window.location.href = "/dashboard";
-                                 }} 
-                                 className="p-2.5 bg-indigo-50 text-indigo-500 hover:bg-indigo-100 rounded-xl transition-all" 
-                                 title="Visit Dashboard"
-                              >
-                                 <LayoutDashboard className="w-4 h-4" />
-                              </button>
-                              <button onClick={() => editAccount(u)} className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>
-                            </>
-                          )}
-                        </div>
-                      </td>
+              {/* Desktop Table View */}
+              <div className="hidden md:block">
+                <table className="w-full text-left border-separate border-spacing-0">
+                  <thead className="sticky top-0 bg-slate-50 z-20 shadow-xl">
+                    <tr className="text-[10px] uppercase tracking-[0.2em] text-slate-500 font-bold border-b border-slate-200">
+                      <th className="px-8 py-5 border-b border-slate-200">Identity Details</th>
+                      <th className="px-8 py-5 border-b border-slate-200">Entity Info</th>
+                      <th className="px-8 py-5 border-b border-slate-200">Status</th>
+                      <th className="px-8 py-5 border-b border-slate-200 text-right">Operations</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/30">
+                    {users.filter(u => {
+                      let matchCategory = false;
+                      if (viewMode === 'active_biz') matchCategory = (u.status === 'active');
+                      else if (viewMode === 'total_biz') matchCategory = true;
+                      if (!matchCategory) return false;
+                      if (!searchQuery) return true;
+                      const searchLower = searchQuery.toLowerCase();
+                      return (
+                        u.first_name?.toLowerCase().includes(searchLower) ||
+                        u.last_name?.toLowerCase().includes(searchLower) ||
+                        u.email?.toLowerCase().includes(searchLower) ||
+                        u.username?.toLowerCase().includes(searchLower)
+                      );
+                    }).map(u => (
+                      <tr key={u.id} className="hover:bg-slate-50 transition-all group">
+                        <td className="px-8 py-6">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-slate-800 font-bold tracking-tight text-sm">{u.first_name} {u.last_name || ''}</span>
+                            <div className="flex items-center gap-2 text-[10px] text-slate-500 font-medium"><Mail className="w-3 h-3" /> {u.email}</div>
+                            <div className="flex items-center gap-2 text-[10px] text-indigo-400 font-mono"><User className="w-3 h-3" /> @{u.username || 'n/a'}</div>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex flex-col gap-1.5">
+                             <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 rounded border inline-block w-fit text-emerald-500 border-emerald-500/20 bg-emerald-500/5">
+                                Business
+                             </span>
+                             {u.business_type && <span className="text-[10px] text-slate-400 opacity-60 flex items-center gap-1 uppercase tracking-tighter"><Building2 className="w-3 h-3" /> {u.business_type}</span>}
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center gap-2">
+                             <div className={`w-1.5 h-1.5 rounded-full ${u.status === 'active' ? 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]' : 'bg-rose-500'}`} />
+                             <span className={`text-[11px] font-black uppercase tracking-widest ${u.status === 'active' ? 'text-emerald-500' : 'text-rose-500'}`}>{u.status}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                          <div className="flex items-center justify-end gap-2">
+                            <button onClick={() => { setViewUser(u); setIsViewModalOpen(true); }} className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title="View Profile"><Users className="w-4 h-4" /></button>
+                            {(adminPermissions.full_access) && (
+                              <>
+                                {u.role === 'user' && (
+                                   <button onClick={() => navigate('/bot-config', { state: { targetUser: u } })} className="p-2.5 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 rounded-xl transition-all" title="Bot Config"><Bot className="w-4 h-4" /></button>
+                                )}
+                                <button onClick={() => editAccount(u)} className="p-2.5 bg-slate-100 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-all" title="Edit"><Edit className="w-4 h-4" /></button>
+                                <button onClick={() => toggleStatus(u.id)} className={`p-2.5 rounded-xl transition-all ${u.status === 'active' ? 'bg-amber-500/10 text-amber-500 hover:bg-amber-500/20' : 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20'}`} title="Status"><Activity className="w-4 h-4" /></button>
+                                <button onClick={() => deleteUser(u.id)} className="p-2.5 bg-rose-500/10 text-rose-500 hover:bg-rose-500/30 rounded-xl transition-all" title="Delete"><Trash2 className="w-4 h-4" /></button>
+                              </>
+                            )}
+                            {!adminPermissions.full_access && !adminPermissions.can_view_only && (
+                                <button onClick={() => { sessionStorage.setItem("impersonate_id", u.id); sessionStorage.setItem("impersonate_name", u.business_name || u.username); window.location.href = "/dashboard"; }} className="p-2.5 bg-indigo-50 text-indigo-500 hover:bg-indigo-100 rounded-xl transition-all" title="Visit Dashboard"><LayoutDashboard className="w-4 h-4" /></button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden p-4 space-y-4">
+                {users.filter(u => {
+                  let matchCategory = (viewMode === 'active_biz' ? u.status === 'active' : true);
+                  if (!matchCategory) return false;
+                  if (!searchQuery) return true;
+                  const searchLower = searchQuery.toLowerCase();
+                  return (u.first_name?.toLowerCase().includes(searchLower) || u.business_name?.toLowerCase().includes(searchLower));
+                }).map(u => (
+                  <div key={u.id} className="bg-slate-50 border border-slate-200 rounded-2xl p-5 space-y-4 shadow-sm">
+                    <div className="flex justify-between items-start">
+                      <div className="flex flex-col">
+                        <span className="text-slate-900 font-black tracking-tight">{u.business_name || u.username}</span>
+                        <span className="text-[10px] text-slate-500 uppercase tracking-widest">{u.first_name} {u.last_name || ''}</span>
+                        <span className="text-[10px] text-indigo-500 font-medium lowercase">@{u.username}</span>
+                      </div>
+                      <div className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest ${u.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                        {u.status}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-2 pt-2 border-t border-slate-200/60">
+                      <button onClick={() => { setViewUser(u); setIsViewModalOpen(true); }} className="flex-1 py-2.5 bg-white border border-slate-200 text-slate-700 rounded-xl flex items-center justify-center gap-2 text-xs font-bold">
+                        <Users className="w-3.5 h-3.5" /> Profile
+                      </button>
+                      <button onClick={() => { sessionStorage.setItem("impersonate_id", u.id); sessionStorage.setItem("impersonate_name", u.business_name || u.username); window.location.href = "/dashboard"; }} className="flex-1 py-2.5 bg-indigo-600 text-white rounded-xl flex items-center justify-center gap-2 text-xs font-bold shadow-lg shadow-indigo-100">
+                        <LayoutDashboard className="w-3.5 h-3.5" /> Dashboard
+                      </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                       {adminPermissions.full_access && (
+                         <>
+                           <button onClick={() => editAccount(u)} className="p-2.5 bg-white border border-slate-200 text-slate-400 rounded-xl"><Edit className="w-4 h-4" /></button>
+                           <button onClick={() => toggleStatus(u.id)} className={`p-2.5 border rounded-xl ${u.status === 'active' ? 'border-amber-200 text-amber-500 bg-amber-50' : 'border-emerald-200 text-emerald-500 bg-emerald-50'}`}><Activity className="w-4 h-4" /></button>
+                           <button onClick={() => deleteUser(u.id)} className="p-2.5 bg-rose-50 text-rose-500 border border-rose-100 rounded-xl"><Trash2 className="w-4 h-4" /></button>
+                         </>
+                       )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             
             <div className="px-8 py-5 bg-slate-50 border-t border-slate-200 flex justify-between items-center">

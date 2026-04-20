@@ -119,10 +119,13 @@ const Layout = ({ children }) => {
   }, [soundEnabled]);
 
   useEffect(() => {
+    const token = localStorage.getItem("token");
     const userData = localStorage.getItem("user");
-    if (userData) {
-      setUser(JSON.parse(userData));
+    if (!token || !userData) {
+      window.location.href = "/";
+      return;
     }
+    setUser(JSON.parse(userData));
   }, []);
 
   useEffect(() => {

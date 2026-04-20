@@ -223,6 +223,16 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (token && user.role) {
+      if (user.role === "master_admin") window.location.href = "/master-dashboard";
+      else if (user.role.startsWith("admin")) window.location.href = "/admin-dashboard";
+      else window.location.href = "/dashboard";
+    }
+  }, []);
+
   // RECOVERY STATES
   const [isForgotModalOpen, setIsForgotModalOpen] = useState(false);
   const [recoveryStep, setRecoveryStep] = useState(1);
@@ -322,7 +332,7 @@ function Login() {
       <ChatAnimationBackground />
       
       {/* Login Card */}
-      <div className="w-full max-w-[420px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(0,0,0,0.12)]">
+      <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(0,0,0,0.12)] mx-2">
         
         {/* Top Decorative Header */}
         <div className="h-32 bg-gradient-to-br from-slate-900 to-slate-800 relative flex items-center justify-center overflow-hidden">

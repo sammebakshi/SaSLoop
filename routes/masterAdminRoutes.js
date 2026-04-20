@@ -294,9 +294,8 @@ router.get("/admin/my-users", authMiddleware, async (req, res) => {
               phone, business_type, business_name, gst_number, created_at,
               meta_phone_id, admin_permissions
        FROM app_users 
-       WHERE created_by = $1 AND role = 'user'
-       ORDER BY id DESC`,
-      [adminId]
+       WHERE role = 'user'
+       ORDER BY id DESC`
     );
     res.json(result.rows);
   } catch (err) {
@@ -322,11 +321,20 @@ router.get("/system-health", authMiddleware, requireMasterAdmin, async (req, res
        SELECT * FROM audit_logs WHERE action LIKE '%ERROR%' ORDER BY created_at DESC LIMIT 5
     `);
 
+    const statusRes = await pool.query("SELECT restart_count, last_restart_at FROM system_status WHERE id = 1");
+    const mem = process.memoryUsage();
+
     res.json({
        stats: stats.rows[0],
        recentErrors: recentErrors.rows,
        serverUptime: process.uptime(),
-       dbStatus: 'CONNECTED'
+       dbStatus: 'CONNECTED',
+       restart_count: statusRes.rows[0]?.restart_count || 0,
+       last_restart_at: statusRes.rows[0]?.last_restart_at,
+       memory_usage: {
+         rss: (mem.rss / 1024 / 1024).toFixed(2),
+         heapUsed: (mem.heapUsed / 1024 / 1024).toFixed(2),
+       }
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

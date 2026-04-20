@@ -367,40 +367,42 @@ function MasterAdminPanel() {
 
   return (
     <div className="flex flex-col h-full space-y-8 p-2">
-      <div className="flex justify-between items-center mb-10">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-10">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 tracking-tighter">Master Control Panel</h2>
+          <h2 className="text-3xl lg:text-4xl font-black text-slate-900 tracking-tighter">Master Control Panel</h2>
           <p className="text-slate-500 font-bold uppercase text-[10px] tracking-widest opacity-60 mt-1">Global User, Subscription & System Management</p>
         </div>
         
-        <div className="bg-white border-2 border-slate-100 p-6 rounded-[2.5rem] shadow-sm flex items-center gap-6">
-           <div className="space-y-2">
+        <div className="w-full lg:w-auto bg-white border-2 border-slate-100 p-4 lg:p-6 rounded-[2rem] lg:rounded-[2.5rem] shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-4 lg:gap-6">
+           <div className="space-y-2 w-full lg:w-auto">
               <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">System Financial Config</p>
-              <div className="flex gap-2">
-                 <input type="text" placeholder="UPI ID" value={systemPayment.upi} onChange={e => setSystemPayment({...systemPayment, upi: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none" />
-                 <input type="text" placeholder="Account / IFSC" value={systemPayment.bank} onChange={e => setSystemPayment({...systemPayment, bank: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none" />
-                 <input type="text" placeholder="QR Image URL" value={systemPayment.qr_code_url} onChange={e => setSystemPayment({...systemPayment, qr_code_url: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none" />
-                 <button 
-                  onClick={async () => {
-                     const token = localStorage.getItem("token");
-                     await fetch(`${API_BASE}/api/master/config/payment`, {
-                        method: 'POST',
-                        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-                        body: JSON.stringify(systemPayment)
-                     });
-                     alert("Payment Config Saved!");
-                  }}
-                  className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all"
-                 >Save</button>
-                 <button 
-                  onClick={() => setIsRechargeModalOpen(true)}
-                  className="relative bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center gap-2"
-                 >
-                   Recharge Requests
-                   {rechargeRequests.filter(r => r.status === 'PENDING').length > 0 && (
-                     <span className="absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px]">{rechargeRequests.filter(r => r.status === 'PENDING').length}</span>
-                   )}
-                 </button>
+              <div className="flex flex-col sm:flex-row gap-2">
+                 <input type="text" placeholder="UPI ID" value={systemPayment.upi} onChange={e => setSystemPayment({...systemPayment, upi: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
+                 <input type="text" placeholder="Account / IFSC" value={systemPayment.bank} onChange={e => setSystemPayment({...systemPayment, bank: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
+                 <input type="text" placeholder="QR Image URL" value={systemPayment.qr_code_url} onChange={e => setSystemPayment({...systemPayment, qr_code_url: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
+                 <div className="flex gap-2">
+                    <button 
+                      onClick={async () => {
+                         const token = localStorage.getItem("token");
+                         await fetch(`${API_BASE}/api/master/config/payment`, {
+                            method: 'POST',
+                            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+                            body: JSON.stringify(systemPayment)
+                         });
+                         alert("Payment Config Saved!");
+                      }}
+                      className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all"
+                    >Save</button>
+                    <button 
+                      onClick={() => setIsRechargeModalOpen(true)}
+                      className="relative flex-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all flex items-center justify-center gap-2"
+                    >
+                      Recharge
+                      {rechargeRequests.filter(r => r.status === 'PENDING').length > 0 && (
+                        <span className="absolute -top-2 -right-2 bg-rose-500 text-white w-5 h-5 flex items-center justify-center rounded-full text-[10px] animate-bounce">{rechargeRequests.filter(r => r.status === 'PENDING').length}</span>
+                      )}
+                    </button>
+                 </div>
               </div>
            </div>
         </div>

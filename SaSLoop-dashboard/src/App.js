@@ -33,8 +33,15 @@ import OnlineOrder from "./pages/OnlineOrder";
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
 // ============================================================
 const AppLayout = () => {
-  const mobile = isMobileDevice();
-  return mobile ? <MobileLayout /> : <Layout />;
+  const [isMobile, setIsMobile] = useState(isMobileDevice());
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(isMobileDevice());
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  return isMobile ? <MobileLayout /> : <Layout />;
 };
 
 // ============================================================
