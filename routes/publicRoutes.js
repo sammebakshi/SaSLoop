@@ -58,53 +58,56 @@ router.post("/order", async (req, res) => {
                 redeemedPoints = pointsToRedeem;
             }
         }
-
         const orderAddress = address || (tableNumber && tableNumber !== "0" ? `Table ${tableNumber}` : "Pickup");
 
-        const insertRes = await pool.query(
-            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
-            [userId, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
-        );
-        
-        const orderId = insertRes.rows[0].id;
+        // SMART UPSERT LOGIC: Check if this table already has an active session
+        let existingOrder = null;
+        if (tableNumber && tableNumber !== "0" && isPOS) {
+           const checkRes = await pool.query(
+             "SELECT id, order_reference FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+             [userId, tableNumber]
+           );
+           existingOrder = checkRes.rows[0];
+        }
+
+        let insertRes;
+        let orderId;
+        let currentOrderRef = orderRef;
+
+        if (existingOrder) {
+           // UPDATE EXISTING SESSION
+           orderId = existingOrder.id;
+           currentOrderRef = existingOrder.order_reference;
+           insertRes = await pool.query(
+             "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7 WHERE id=$8 RETURNING *",
+             [JSON.stringify(items), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, orderId]
+           );
+        } else {
+           // NEW SESSION
+           insertRes = await pool.query(
+               "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
+               [userId, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
+           );
+           orderId = insertRes.rows[0].id;
+        }
         
         // Build notification message
         const mode = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINEIN" : "PICKUP");
         const modeLabel = mode === "DELIVERY" ? "🚚 Home Delivery" : (mode === "PICKUP" ? "🏪 Pickup" : `🍽️ Dine-In (Table ${tableNumber})`);
         const itemLines = items.map(i => `• ${i.qty}x ${i.name}`).join("\n");
-        const addressLine = mode === "DELIVERY" ? `\n📍 *Address:* ${address}` : "";
-        const phoneLine = customerPhone ? `\n📱 *Phone:* ${customerPhone}` : "";
-        
-        const kot = `${isOnline ? '🌐' : '🍽️'} *NEW ${isOnline ? 'ONLINE' : 'QR'} ORDER*\n*Ref:* ${orderRef}\n*Customer:* ${customerName || "Guest"}${phoneLine}\n*Type:* ${modeLabel}${addressLine}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}${redeemedPoints > 0 ? ` (Redeemed ${redeemedPoints} pts)` : ''}`;
         
         // Notify Kitchen & Staff
         try {
             const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
             const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
-            const isGstIncluded = !!bizData?.gst_included;
             let subtotal = frontendSubtotal !== undefined ? frontendSubtotal : 0;
             if (frontendSubtotal === undefined) items.forEach(i => subtotal += (i.qty * i.price));
             
             let cgstAmount = frontendCgst !== undefined ? frontendCgst : 0;
             let sgstAmount = frontendSgst !== undefined ? frontendSgst : 0;
             
-            // Fallback backward compatibility calculation if frontend doesn't provide it
-            if (frontendCgst === undefined && frontendSgst === undefined) {
-                if (cgstRate > 0 || sgstRate > 0) {
-                    if (isGstIncluded) {
-                        const totalRate = cgstRate + sgstRate;
-                        const basePrice = subtotal / (1 + totalRate / 100);
-                        cgstAmount = basePrice * (cgstRate / 100);
-                        sgstAmount = basePrice * (sgstRate / 100);
-                    } else {
-                        cgstAmount = subtotal * (cgstRate / 100);
-                        sgstAmount = subtotal * (sgstRate / 100);
-                    }
-                }
-            }
-            
             await whatsappManager.notifyKitchenAndStaff(
-                userId, orderRef, customerName || "Guest", customerPhone || "QR-ORDER", items,
+                userId, currentOrderRef, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), items,
                 subtotal, finalPrice, cgstAmount, sgstAmount, cgstRate, sgstRate, currSymbol,
                 mode.toLowerCase(), address, tableNumber && tableNumber !== "0" ? tableNumber : null
             );
@@ -113,20 +116,15 @@ router.post("/order", async (req, res) => {
         // Notify Customer (for online orders)
         try {
             if (isOnline && customerPhone && customerPhone !== "QR-ORDER") {
-                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${orderRef}\n*Type:* ${modeLabel}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\n⏱️ Estimated: ${mode === 'DELIVERY' ? '30-45 min' : '15-20 min'}\n\nWe'll update you when it's ready! 🔥`;
+                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n*Type:* ${modeLabel}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\n⏱️ Estimated: ${mode === 'DELIVERY' ? '30-45 min' : '15-20 min'}\n\nWe'll update you when it's ready! 🔥`;
                 await whatsappManager.sendOfficialMessage(customerPhone, custMsg, userId, `CONFIRM_${orderId}`);
             }
         } catch (custErr) { console.error("Customer notification failed:", custErr); }
         
-        // Update Points (Dynamic logic)
-        if (customerPhone && customerPhone !== "QR-ORDER") {
-            const biz = bizData; // Already fetched
-            const ptsEnabled = biz?.loyalty_enabled !== false;
-            
-            if (ptsEnabled) {
-                const normPhone = customerPhone.replace(/\D/g, "");
-                const ptsEarnRate = (parseFloat(biz.points_per_100) || 5) / 100;
-                const earned = Math.floor(finalPrice * ptsEarnRate);
+        // Update Points (Only for new sales completions)
+        if (customerPhone && customerPhone !== "QR-ORDER" && (customStatus === 'COMPLETED' || !existingOrder)) {
+            const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
+            const earned = Math.floor(finalPrice * ptsEarnRate);
             await pool.query(
                 `INSERT INTO customer_loyalty (user_id, customer_number, name, total_spent, points, last_visit)
                  VALUES ($1, $2, $3, $4, $5, NOW())
@@ -136,12 +134,11 @@ router.post("/order", async (req, res) => {
                     total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
                     points = (customer_loyalty.points + EXCLUDED.points) - $6,
                     last_visit = NOW()`,
-                [userId, normPhone, customerName || "Guest", finalPrice, earned, redeemedPoints]
+                [userId, customerPhone.replace(/\D/g, ""), customerName || "Guest", finalPrice, earned, redeemedPoints]
             );
-          }
         }
 
-        res.json({ success: true, orderId, orderRef, finalPrice, redeemedPoints });
+        res.json({ success: true, orderId, orderRef: currentOrderRef, finalPrice, redeemedPoints });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Internal error" });
