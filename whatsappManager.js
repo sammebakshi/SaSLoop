@@ -339,6 +339,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             
             const greetingMessage = `*Welcome to ${bizName}*\n\nHello *${customerName}*, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`;
             
+            const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
+            const isLoyaltyMember = loyaltyCheck.rows.length > 0;
+
             const menuRows = [
                 { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
                 { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog" },
@@ -349,7 +352,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
             
             menuRows.push({ id: "item_enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients/price" });
-            menuRows.push({ id: "loyalist_club", title: "🎁 Loyalty & Points", description: "Check your rewards" });
+
+            if (isLoyaltyMember) {
+                menuRows.push({ id: "loyalist_club", title: "🎁 Loyalty & Points", description: "Check your rewards" });
+            } else {
+                menuRows.push({ id: "join_vip", title: "💎 Join VIP Club", description: "Earn rewards on every order" });
+            }
+
             menuRows.push({ id: "contact_us", title: "📞 Contact Support", description: "Speak with our team" });
 
             await sendOfficialMessage(customerNumber, {
@@ -438,6 +447,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         if (msgLower === 'item enquiry' || msgLower.includes('item_enquiry') || msgLower.includes('dish enquiry')) {
             await sendAndLog(customerNumber, `*Dish Enquiry*\n\nHow can I help? Please ask about ingredients, portion sizes, or any dietary preferences.`, userId);
+            return;
+        }
+
+        if (msgLower === 'join vip club' || msgLower.includes('join_vip')) {
+            await pool.query(
+                `INSERT INTO customer_loyalty (user_id, customer_number, name, points) 
+                 VALUES ($1, $2, $3, $4) 
+                 ON CONFLICT (user_id, customer_number) DO NOTHING`,
+                [userId, normalizePhone(customerNumber), customerName || 'Customer', 50]
+            );
+            const welcomeVip = `🎉 *Congratulations!* You are now a member of our *VIP Club*.\n\nI've added *50 starter points* to your account. You will now earn rewards on every order you place with us! 🎁`;
+            await sendAndLog(customerNumber, welcomeVip, userId);
             return;
         }
 
