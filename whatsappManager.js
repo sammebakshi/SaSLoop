@@ -703,7 +703,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 const matchBefore = msgText.match(regex);
                 const matchAfter = msgText.match(regexAfter);
                 
-                let qty = 1;
+                let qty = null;
                 if (matchBefore) qty = parseInt(matchBefore[1]);
                 else if (matchAfter) qty = parseInt(matchAfter[1]);
                 
@@ -713,21 +713,49 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         if (foundItems.length > 0) {
             let updatedCart = [...cart];
+            let itemsNeedingQty = [];
+
             foundItems.forEach(newItem => {
-                const existingIdx = updatedCart.findIndex(c => c.name.toLowerCase() === newItem.name.toLowerCase());
-                if (existingIdx >= 0) {
-                    updatedCart[existingIdx].qty += newItem.qty;
+                if (newItem.qty === null) {
+                    itemsNeedingQty.push(newItem);
                 } else {
-                    updatedCart.push(newItem);
+                    const existingIdx = updatedCart.findIndex(c => c.name.toLowerCase() === newItem.name.toLowerCase());
+                    if (existingIdx >= 0) {
+                        updatedCart[existingIdx].qty += newItem.qty;
+                    } else {
+                        updatedCart.push(newItem);
+                    }
                 }
             });
+
+            // If we found items but no quantity was specified for them
+            if (itemsNeedingQty.length > 0 && updatedCart.length === cart.length) {
+                const itemDetails = itemsNeedingQty.map(i => `• *${i.name}*: ${symbol}${i.price}`).join("\n");
+                await sendAndLog(customerNumber, `The following items are available:\n${itemDetails}\n\nHow many would you like to order? (e.g., '2x ${itemsNeedingQty[0].name}')`, userId);
+                return;
+            }
 
             let totalPrice = updatedCart.reduce((sum, ci) => sum + (ci.qty * ci.price), 0);
             await updateSession(userId, customerNumber, { items: updatedCart, total_price: totalPrice });
 
             const cartLines = updatedCart.map(ci => `• ${ci.qty}x ${ci.name.toUpperCase()}`);
-            await sendAndLog(customerNumber, 
-                `📝 *Your Order:*\n${cartLines.join("\n")}\n\n*Total:* ${symbol}${totalPrice}\n\nShall I confirm this order?`, userId);
+            const summaryText = `📝 *Your Order Update:*\n${cartLines.join("\n")}\n\n*Total:* ${symbol}${totalPrice}\n\nWould you like to confirm this order or add more items?`;
+            
+            await sendOfficialMessage(customerNumber, {
+                type: "interactive",
+                interactive: {
+                    type: "button",
+                    body: { text: summaryText },
+                    action: {
+                        buttons: [
+                            { type: "reply", reply: { id: "confirm_yes", title: "✅ Confirm Order" } },
+                            { type: "reply", reply: { id: "add_more", title: "➕ Add More" } }
+                        ]
+                    }
+                }
+            }, userId);
+            
+            await logChat(userId, customerNumber, 'bot', summaryText);
             return;
         }
 
