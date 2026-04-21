@@ -383,7 +383,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (msgLower === 'view menu' || msgLower.includes('view_menu')) {
+        if (msgLower === 'view menu' || msgLower.includes('view_menu') || msgLower.includes('view digital menu')) {
             const domain = process.env.NGROK_DOMAIN || 'sasloop.com';
             const protocol = domain.includes('localhost') ? 'http' : 'https';
             const menuLink = `${protocol}://${domain}/menu/${userId}/wa`;
@@ -393,12 +393,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (msgLower === 'place an order' || msgLower.includes('place_order')) {
+        if (msgLower === 'place an order' || msgLower.includes('place_order') || msgLower.includes('place an order')) {
             await sendAndLog(customerNumber, `*Order Details*\n\nPlease specify the items you would like to order (e.g., '1x Burger').`, userId);
             return;
         }
 
-        if (msgLower === 'item enquiry' || msgLower.includes('item_enquiry')) {
+        if (msgLower === 'item enquiry' || msgLower.includes('item_enquiry') || msgLower.includes('dish enquiry')) {
             await sendAndLog(customerNumber, `*Dish Enquiry*\n\nHow can I help? Please ask about ingredients, portion sizes, or any dietary preferences.`, userId);
             return;
         }
