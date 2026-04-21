@@ -339,7 +339,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             
             const greetingMessage = `*Welcome to ${bizName}*\n\nHello *${customerName}*, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`;
             
-            const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
+            const normPhone10 = normalizePhone(customerNumber).slice(-10);
+            const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND (customer_number = $2 OR RIGHT(customer_number, 10) = $3)", [userId, normalizePhone(customerNumber), normPhone10]);
             const isLoyaltyMember = loyaltyCheck.rows.length > 0;
 
             const menuRows = [
@@ -451,11 +452,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (msgLower === 'join vip club' || msgLower.includes('join_vip')) {
+            const normPhone10 = normalizePhone(customerNumber).slice(-10);
             await pool.query(
                 `INSERT INTO customer_loyalty (user_id, customer_number, name, points) 
                  VALUES ($1, $2, $3, $4) 
                  ON CONFLICT (user_id, customer_number) DO NOTHING`,
-                [userId, normalizePhone(customerNumber), customerName || 'Customer', 50]
+                [userId, normPhone10, customerName || 'Customer', 50]
             );
             const welcomeVip = `🎉 *Congratulations!* You are now a member of our *VIP Club*.\n\nI've added *50 starter points* to your account. You will now earn rewards on every order you place with us! 🎁`;
             await sendAndLog(customerNumber, welcomeVip, userId);
