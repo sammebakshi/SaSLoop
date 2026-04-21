@@ -674,8 +674,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     body: { text: summary + "\n\nWould you like to proceed to checkout?" },
                     action: {
                         buttons: [
-                            { type: "reply", reply: { id: "confirm_yes", title: "💳 Checkout Now" } },
-                            { type: "reply", reply: { id: "add_more", title: "➕ Add More Items" } }
+                            { type: "reply", reply: { id: "confirm_yes", title: "✅ Confirm Order" } },
+                            { type: "reply", reply: { id: "add_more", title: "➕ Add More" } }
                         ]
                     }
                 }
@@ -684,8 +684,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        if (msgLower.includes('add more')) {
+            await sendAndLog(customerNumber, "Sure! What else can I add to your order?", userId);
+            return;
+        }
+
         // 5. CHECK FOR CONFIRMATION
-        if (['yes', 'checkout', 'confirm', 'done', 'place order', 'place it', 'checkout now', 'yes, confirm'].includes(msgLower) && cart.length > 0) {
+        if (['yes', 'checkout', 'confirm', 'done', 'place order', 'place it', 'checkout now', 'yes, confirm', 'confirm order'].some(k => msgLower.includes(k)) && cart.length > 0) {
             
             const subtotal = cart.reduce((sum, ci) => sum + (ci.qty * ci.price), 0);
             const cgstRate = parseFloat(biz?.cgst_percent) || 0;
