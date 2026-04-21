@@ -33,16 +33,16 @@ const sendOfficialMessage = async (to, content, userId) => {
     } catch (e) { console.error("Meta Send Error", e.response?.data || e.message); }
 };
 
-const sendAndLog = async (to, text, userId) => {
+const sendAndLog = async (to, text, userId, waMessageId = null) => {
     try {
         const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
         const bizName = bizRes.rows[0]?.name || "Assistant";
         const brandedText = `🤖 *${bizName}*\n━━━━━━━━━━━━━━\n${text}`;
         await sendOfficialMessage(to, { type: "text", text: { body: brandedText } }, userId);
-        await logChat(userId, to, 'bot', text);
+        await logChat(userId, to, 'bot', text, waMessageId);
     } catch (err) {
         await sendOfficialMessage(to, { type: "text", text: { body: text } }, userId);
-        await logChat(userId, to, 'bot', text);
+        await logChat(userId, to, 'bot', text, waMessageId);
     }
 };
 
@@ -67,6 +67,7 @@ const handleMetaWebhook = async (body) => {
                 const changes = entry.changes[0];
                 if (changes.value && changes.value.messages) {
                     const message = changes.value.messages[0];
+                    const msgId = message.id;
                     const fromNumber = normalizePhone(message.from);
                     const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
                     const metaPhoneId = changes.value.metadata.phone_number_id; 
@@ -74,6 +75,13 @@ const handleMetaWebhook = async (body) => {
                     const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
                     if (userRes.rows.length === 0) return;
                     const userId = userRes.rows[0].id;
+
+                    // 🛡️ DUPLICATE PREVENTION (Handles Retries from Meta)
+                    const dupCheck = await pool.query("SELECT id FROM chat_messages WHERE wa_message_id = $1", [msgId]);
+                    if (dupCheck.rows.length > 0) {
+                        console.log(`[DE-DUPE] Skipping already processed message: ${msgId}`);
+                        return;
+                    }
 
                     // Support text messages, button replies, and location messages
                     let textBody = "";
@@ -103,7 +111,7 @@ const handleMetaWebhook = async (body) => {
 
                     if (textBody) {
                         await upsertContact(userId, fromNumber, contactName);
-                        await logChat(userId, fromNumber, 'customer', textBody);
+                        await logChat(userId, fromNumber, 'customer', textBody, msgId);
                         await processAiAutomations(userId, fromNumber, textBody, contactName, locationData);
                     }
                 }
@@ -210,11 +218,20 @@ const upsertContact = async (userId, phone, name) => {
     }
 };
 
-const logChat = async (userId, customerNumber, role, text) => {
+const updateVCardStatus = async (userId, phone, status) => {
     try {
         await pool.query(
-            "INSERT INTO chat_messages (user_id, customer_number, role, text) VALUES ($1, $2, $3, $4)",
-            [userId, normalizePhone(customerNumber), role, text]
+            "UPDATE marketing_contacts SET vcard_sent = $1 WHERE user_id = $2 AND phone_number = $3",
+            [status, userId, normalizePhone(phone)]
+        );
+    } catch (e) { console.error("VCard status update error:", e.message); }
+};
+
+const logChat = async (userId, customerNumber, role, text, waMessageId = null) => {
+    try {
+        await pool.query(
+            "INSERT INTO chat_messages (user_id, customer_number, role, text, wa_message_id) VALUES ($1, $2, $3, $4, $5)",
+            [userId, normalizePhone(customerNumber), role, text, waMessageId]
         );
     } catch (e) {
         console.error("Chat log error (non-critical):", e.message);
@@ -280,11 +297,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const msgLower = (msgText || "").toLowerCase().trim();
 
         // 🛡️ NEW CUSTOMER IDENTITY PUSH
-        // Check if this is the very first time we see this customer to send a Contact Card
-        const sessionCheck = await pool.query("SELECT id FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
-        if (sessionCheck.rows.length === 0) {
-            console.log(`[IDENTITY PUSH] New customer detected: ${customerNumber}. Sending vCard for ${bizName}`);
+        // Check if vCard has been sent to this contact before
+        const contactCheck = await pool.query(
+            "SELECT vcard_sent FROM marketing_contacts WHERE user_id = $1 AND phone_number = $2",
+            [userId, normalizePhone(customerNumber)]
+        );
+        
+        if (contactCheck.rows.length > 0 && contactCheck.rows[0].vcard_sent === false) {
+            console.log(`[IDENTITY PUSH] First message from ${customerNumber}. Sending vCard for ${bizName}`);
             await sendVCard(customerNumber, biz, userId);
+            await updateVCardStatus(userId, customerNumber, true);
         }
 
         const session = await getSession(userId, customerNumber);
@@ -315,7 +337,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const isOrderingEnabled = bizSettings.homeDelivery === true || bizSettings.dining === true || bizSettings.delivery === true;
             const isBookingEnabled = bizSettings.tableBooking === true || bizSettings.appointments === true;
             
-            const greetingMessage = `✨ *Welcome to ${bizName}* ✨\n\nHello *${customerName}*! We're thrilled to have you here. 🍽️\n\nHow can I serve you today? Browse our specials or place an order using the options below! 👇`;
+            const greetingMessage = `*Welcome to ${bizName}*\n\nHello *${customerName}*, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`;
             
             const menuRows = [
                 { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
@@ -336,7 +358,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     type: "list",
                     header: { type: "text", text: "How can we help?" },
                     body: { text: greetingMessage },
-                    footer: { text: "Choose an option from the list below 👇" },
+                    footer: { text: "Please choose an option from the list below" },
                     action: {
                         button: "Menu Options",
                         sections: [{ title: "Main Menu", rows: menuRows }]
@@ -372,12 +394,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (msgLower === 'place an order' || msgLower.includes('place_order')) {
-            await sendAndLog(customerNumber, `🛍️ *Let's get started!*\n\nPlease tell me what you'd like to eat, or simply type the item name (e.g., '1x Burger').`, userId);
+            await sendAndLog(customerNumber, `*Order Details*\n\nPlease specify the items you would like to order (e.g., '1x Burger').`, userId);
             return;
         }
 
         if (msgLower === 'item enquiry' || msgLower.includes('item_enquiry')) {
-            await sendAndLog(customerNumber, `❓ *Sure thing!*\n\nAsk me anything about our menu—ingredients, spiciness, or prices—I'm here to help!`, userId);
+            await sendAndLog(customerNumber, `*Dish Enquiry*\n\nHow can I help? Please ask about ingredients, portion sizes, or any dietary preferences.`, userId);
             return;
         }
 
@@ -390,9 +412,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number = $2", [userId, normalizePhone(customerNumber)]);
             const pts = checkPoints.rows[0]?.points || 0;
             const earnPts = biz?.points_per_100 || 5;
-            const redeemPts = biz?.points_to_amount_ratio || 10;
+            const redeemRatio = biz?.points_to_amount_ratio || 10;
             const minRedeem = biz?.min_redeem_points || 300;
-            const balanceMsg = `🎁 *Loyalty Rewards*\n\nYour current balance: *${pts} points*\n\n✨ *How it works:*\n• Earn ${earnPts} points for every ${symbol}100 spent.\n• Redeem points for discounts (${redeemPts} points = ${symbol}1).\n• Minimum ${minRedeem} points required to redeem.`;
+            const balanceMsg = `*Loyalty Rewards*\n\nYour current balance: *${pts} points*\n\n*Program Details:*\n• Earn ${earnPts} points for every ${symbol}100 spent.\n• Points can be redeemed for discounts (${redeemRatio} points = ${symbol}1).\n• Minimum ${minRedeem} points required to redeem.`;
             await sendAndLog(customerNumber, balanceMsg, userId);
             return;
         }
@@ -720,16 +742,23 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         try {
             const chat = await groq.chat.completions.create({
                 messages: [
-                    { role: "system", content: `You are the AI assistant for ${bizName}. 
-                    Address: ${bizAddress}. 
+                    { role: "system", content: `You are the professional digital concierge for ${bizName}, located at ${bizAddress}. 
+                    Your goal is to provide a seamless, high-end experience for customers.
+                    
                     Menu: [${catalogStr}].
-                    Internal Knowledge Base: [${botKnowledge}].
+                    Knowledge Base: [${botKnowledge}].
                     ${cartStr}
                     
-                    Rules:
+                    Tone Rules:
+                    - Be professional, polite, and efficient.
+                    - Use sophisticated language but keep it clear for WhatsApp.
+                    - Do NOT use excessive emojis. One relevant emoji per message is fine.
+                    - Address the customer with courtesy.
+                    
+                    Operational Rules:
                     1. Use the knowledge base to answer questions about delivery fees, hours, or policies.
                     2. If adding items, use JSON format: {"reply": "...", "orders": [{"name": "item", "qty": 1}]}.
-                    3. If a customer provides feedback/rating (e.g. "Good food", "5 stars", "worst service"), use JSON: {"reply": "...", "feedback": {"rating": 5, "comment": "..."}}. Rating must be 1-5.
+                    3. If a customer provides feedback/rating, use JSON: {"reply": "...", "feedback": {"rating": 5, "comment": "..."}}. Rating must be 1-5.
                     4. If just answering, set orders to [] and feedback to null.` },
                     { role: "user", content: msgText }
                 ],
