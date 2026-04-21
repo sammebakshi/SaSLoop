@@ -370,6 +370,44 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        // 🛡️ SALESMAN LOGIC: Handle single-number replies for quantity
+        if (sessionState === 'AWAITING_QUANTITY' && /^\d+$/.test(msgText.trim())) {
+            const qty = parseInt(msgText.trim());
+            const pendingItem = session.context.pending_item;
+            
+            if (pendingItem && qty > 0) {
+                let updatedCart = [...cart];
+                const existingIdx = updatedCart.findIndex(c => c.name.toLowerCase() === pendingItem.name.toLowerCase());
+                if (existingIdx >= 0) {
+                    updatedCart[existingIdx].qty += qty;
+                } else {
+                    updatedCart.push({ ...pendingItem, qty });
+                }
+                
+                let totalPrice = updatedCart.reduce((sum, ci) => sum + (ci.qty * ci.price), 0);
+                const ctx = { ...session.context, items: updatedCart, total_price: totalPrice, pending_item: null };
+                await updateSessionState(userId, customerNumber, 'IDLE', ctx);
+
+                const cartLines = updatedCart.map(ci => `• ${ci.qty}x ${ci.name.toUpperCase()}`);
+                const summaryText = `✅ *Excellent choice!* I've added that to your order.\n\n${cartLines.join("\n")}\n\n*Total:* ${symbol}${totalPrice}\n\nWould you like to confirm this order or add something else?`;
+                
+                await sendOfficialMessage(customerNumber, {
+                    type: "interactive",
+                    interactive: {
+                        type: "button",
+                        body: { text: summaryText },
+                        action: {
+                            buttons: [
+                                { type: "reply", reply: { id: "confirm_yes", title: "✅ Confirm Order" } },
+                                { type: "reply", reply: { id: "add_more", title: "➕ Add More" } }
+                            ]
+                        }
+                    }
+                }, userId);
+                return;
+            }
+        }
+
         // 1a. HANDLE SPECIFIC MENU BUTTONS (CONTACT / BOOKING)
         if (msgLower === 'contact us' || msgLower.includes('contact_us')) {
             const contactMsg = `📞 *Contact Us*\n\nRestaurant: *${bizName}*\nPhone: ${biz?.phone || "N/A"}\nAddress: ${bizAddress}\n\nFeel free to call us for any urgent queries!`;
@@ -730,8 +768,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             // If we found items but no quantity was specified for them
             if (itemsNeedingQty.length > 0 && updatedCart.length === cart.length) {
-                const itemDetails = itemsNeedingQty.map(i => `• *${i.name}*: ${symbol}${i.price}`).join("\n");
-                await sendAndLog(customerNumber, `The following items are available:\n${itemDetails}\n\nHow many would you like to order? (e.g., '2x ${itemsNeedingQty[0].name}')`, userId);
+                const item = itemsNeedingQty[0];
+                const ctx = { ...session.context, pending_item: item };
+                await updateSessionState(userId, customerNumber, 'AWAITING_QUANTITY', ctx);
+                
+                const itemDetail = `Excellent choice! The *${item.name}* is one of our favorites. It is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                await sendAndLog(customerNumber, itemDetail, userId);
                 return;
             }
 
@@ -770,24 +812,30 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         try {
             const chat = await groq.chat.completions.create({
                 messages: [
-                    { role: "system", content: `You are the professional digital concierge for ${bizName}, located at ${bizAddress}. 
-                    Your goal is to provide a seamless, high-end experience for customers.
+                    { role: "system", content: `You are a top-tier Sales Executive and Concierge for ${bizName}.
+                    Your goal is to maximize customer satisfaction and drive sales with professional, persuasive, and warm communication.
                     
+                    Location: ${bizAddress}.
                     Menu: [${catalogStr}].
-                    Knowledge Base: [${botKnowledge}].
-                    ${cartStr}
+                    Internal KB: [${botKnowledge}].
+                    Current Cart: ${cartStr}
                     
-                    Tone Rules:
-                    - Be professional, polite, and efficient.
-                    - Use sophisticated language but keep it clear for WhatsApp.
-                    - Do NOT use excessive emojis. One relevant emoji per message is fine.
-                    - Address the customer with courtesy.
+                    Sales Tactics:
+                    - If a customer mentions an item but doesn't order it, highlight its popularity or quality.
+                    - If they ask for suggestions, recommend the most popular items from the menu.
+                    - Always use professional and appetising descriptions.
+                    - Treat every customer like a VIP.
+                    - If the customer provides a number alone, and we are talking about an item, assume it's the quantity.
                     
-                    Operational Rules:
-                    1. Use the knowledge base to answer questions about delivery fees, hours, or policies.
-                    2. If adding items, use JSON format: {"reply": "...", "orders": [{"name": "item", "qty": 1}]}.
-                    3. If a customer provides feedback/rating, use JSON: {"reply": "...", "feedback": {"rating": 5, "comment": "..."}}. Rating must be 1-5.
-                    4. If just answering, set orders to [] and feedback to null.` },
+                    Tone:
+                    - Professional, polite, and enthusiastic.
+                    - One emoji per message max.
+                    - Never sound like a robot.
+                    
+                    Response Format Rules:
+                    1. For adding items: {"reply": "...", "orders": [{"name": "item", "qty": 1}]}.
+                    2. For feedback: {"reply": "...", "feedback": {"rating": 5, "comment": "..."}}.
+                    3. For general talk: {"reply": "...", "orders": [], "feedback": null}.` },
                     { role: "user", content: msgText }
                 ],
                 model: "llama-3.1-8b-instant",
