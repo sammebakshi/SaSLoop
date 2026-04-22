@@ -778,17 +778,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // 7. KEYWORD MATCHING (Dish Name, Category, or Sub-Category)
+        // 7. KEYWORD MATCHING (Tiered: Category -> Sub-Category -> Product)
         let foundItems = [];
         let matchedCategories = new Set();
+        let matchedSubCategories = new Set();
 
         items.forEach(it => {
             const itemNameLower = it.product_name.toLowerCase();
             const categoryLower = (it.category || "").toLowerCase();
             const subCategoryLower = (it.sub_category || "").toLowerCase();
 
-            // Direct product name match
-            if (msgLower.includes(itemNameLower)) {
+            // A. Direct product name match (highest priority)
+            if (msgLower === itemNameLower || msgLower.includes(` ${itemNameLower}`) || msgLower.includes(`${itemNameLower} `)) {
                 const escapedName = it.product_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(\\d+)\\s*(?:x\\s*)?${escapedName}`, "i");
                 const regexAfter = new RegExp(`${escapedName}\\s*(\\d+)`, "i");
@@ -801,27 +802,47 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 
                 foundItems.push({ name: it.product_name, qty, price: parseFloat(it.price) });
             } 
-            // Category/Sub-Category match (if no direct product match found in the same message)
-            else if (categoryLower && msgLower.includes(categoryLower)) {
+            // B. Category match (lower priority)
+            else if (categoryLower && msgLower === categoryLower) {
                 matchedCategories.add(it.category);
-            } else if (subCategoryLower && msgLower.includes(subCategoryLower)) {
-                matchedCategories.add(it.sub_category);
+            } 
+            // C. Sub-Category/Variety match
+            else if (subCategoryLower && (msgLower === subCategoryLower || msgLower.includes(` ${subCategoryLower}`) || msgLower.includes(`${subCategoryLower} `))) {
+                matchedSubCategories.add(it.sub_category);
             }
         });
 
-        // 🛡️ If the user mentioned a Category but no specific item, list the options
-        if (foundItems.length === 0 && matchedCategories.size > 0) {
+        // 🛡️ TIER 1: If user mentioned a Category (e.g., "Pizza"), show VARIETIES (Sub-Categories)
+        if (foundItems.length === 0 && matchedCategories.size > 0 && matchedSubCategories.size === 0) {
             const category = Array.from(matchedCategories)[0];
-            const matchingItems = items.filter(it => it.category === category || it.sub_category === category);
+            const varieties = [...new Set(items.filter(it => it.category === category).map(it => it.sub_category).filter(s => s))];
+            
+            if (varieties.length > 0) {
+                const list = varieties.sort().map((v, i) => `${i + 1}. *${v}*`).join("\n");
+                const resp = `We have several varieties of *${category}*:\n\n${list}\n\nWhich variety would you like to explore?`;
+                await sendAndLog(customerNumber, resp, userId);
+                return;
+            } else {
+                // Fallback to item list if no sub-categories defined
+                const matchingItems = items.filter(it => it.category === category);
+                const list = matchingItems.map(it => `• *${it.product_name}* (${symbol}${it.price})`).join("\n");
+                await sendAndLog(customerNumber, `We have these items in *${category}*:\n\n${list}`, userId);
+                return;
+            }
+        }
+
+        // 🛡️ TIER 2: If user mentioned a Variety/Sub-Category (e.g., "Sprite"), show SIZES (Products)
+        if (foundItems.length === 0 && matchedSubCategories.size > 0) {
+            const subCat = Array.from(matchedSubCategories)[0];
+            const matchingItems = items.filter(it => it.sub_category === subCat);
             
             if (matchingItems.length > 0) {
                 const list = matchingItems.map(it => {
                     const vegIcon = it.is_veg ? "🟢" : "🔴";
-                    const desc = it.description ? ` - _${it.description}_` : "";
-                    return `${vegIcon} *${it.product_name}* (${symbol}${it.price})${desc}`;
+                    return `${vegIcon} *${it.product_name}* (${symbol}${it.price})`;
                 }).join("\n");
                 
-                const resp = `We have several types of *${category}* available:\n\n${list}\n\nWhich one would you like me to add for you?`;
+                const resp = `Great choice! Here are the available sizes/types for *${subCat}*:\n\n${list}\n\nWhich one should I add for you?`;
                 await sendAndLog(customerNumber, resp, userId);
                 return;
             }

@@ -54,6 +54,11 @@ function OnlineOrder() {
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 
+  const bizPhone = useMemo(() => {
+    const raw = biz?.whatsapp_number || biz?.phone || "";
+    return raw.replace(/\D/g, "");
+  }, [biz]);
+
   const socialLinks = useMemo(() => {
     if (!biz) return [];
     const links = [];
@@ -177,9 +182,7 @@ function OnlineOrder() {
   };
 
   const openWhatsApp = () => { 
-    const rawPhone = biz?.whatsapp_number || biz?.phone || "";
-    const p = rawPhone.replace(/\D/g, ""); 
-    if (p) window.open(`https://wa.me/${p}?text=Hi!`, "_blank"); 
+    if (bizPhone) window.open(`https://wa.me/${bizPhone}?text=Hi!`, "_blank"); 
   };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Menu...</p></div>);
