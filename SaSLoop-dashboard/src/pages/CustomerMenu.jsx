@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   MessageCircle, Plus, Minus, CheckCircle, Utensils, Search,
   LayoutGrid, X, MapPin, ArrowRight, RefreshCw, ShoppingBag,
-  Activity, Bike, Store, User, Globe
+  Activity, Bike, Store, User, Globe, Sparkles
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
