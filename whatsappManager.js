@@ -788,37 +788,36 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const subCat = (it.sub_category || "").toLowerCase();
             const cat = (it.category || "").toLowerCase();
 
-            // 1. Direct Product Name Match (Exact or Whole Word)
+            // A. Direct Product Name Match (Exact or Whole Word)
             if (msgLower === itemName || msgLower.includes(` ${itemName}`) || msgLower.includes(`${itemName} `)) {
                 exactProductMatches.push(it);
             } 
-            // 2. Sub-Category Match (Exact or within message)
-            else if (subCat && (msgLower === subCat || msgLower.includes(` ${subCat}`) || msgLower.includes(`${subCat} `) || subCat.includes(msgLower))) {
-                if (msgLower.length >= 3 || msgLower === subCat) {
-                    subCatMatches.push(it.sub_category);
-                }
-            }
-            // 3. Category Match (Exact or within message)
-            else if (cat && (msgLower === cat || msgLower.includes(` ${cat}`) || msgLower.includes(`${cat} `) || cat.includes(msgLower))) {
-                if (msgLower.length >= 3 || msgLower === cat) {
-                    categoryMatches.push(it.category);
+            // B. Fuzzy Product/Category/Sub-Category Match (Fallback)
+            else {
+                const isItemMatch = itemName.includes(msgLower) || msgLower.includes(itemName);
+                const isSubCatMatch = subCat && (subCat.includes(msgLower) || msgLower.includes(subCat));
+                const isCatMatch = cat && (cat.includes(msgLower) || msgLower.includes(cat));
+
+                // Only count as match if it's a significant word (>=4 chars) or an exact word match
+                const isSignificant = msgLower.length >= 4 || msgLower === itemName || msgLower === subCat || msgLower === cat;
+                
+                if (isSignificant && (isItemMatch || isSubCatMatch || isCatMatch)) {
+                    if (isSubCatMatch) subCatMatches.push(it.sub_category);
+                    else if (isCatMatch) categoryMatches.push(it.category);
+                    else exactProductMatches.push(it); // Treat as a potential product match
                 }
             }
         });
 
         // 🛡️ REFINEMENT: Prioritize exact matches over partial ones
-        // If "Butter Chicken" matches "CHICKEN" and "BUTTER CHICKEN PIZZA", pick the longest/most relevant.
+        // If "Biryani" matches "CHICKEN BIRYANI" and "MUTTON BIRYANI", we collect them.
         let finalSubCat = null;
         if (subCatMatches.length > 0) {
             const uniqueSubCats = [...new Set(subCatMatches)];
             // If any exact match exists, pick it
             const exactSubCat = uniqueSubCats.find(s => s.toLowerCase() === msgLower);
-            if (exactSubCat) {
-                finalSubCat = exactSubCat;
-            } else {
-                // Otherwise pick the one that matches the message best (usually the longest or one containing the message)
-                finalSubCat = uniqueSubCats.sort((a, b) => b.length - a.length)[0];
-            }
+            if (exactSubCat) finalSubCat = exactSubCat;
+            else finalSubCat = uniqueSubCats.sort((a, b) => b.length - a.length)[0];
         }
 
         let finalCat = null;
@@ -831,13 +830,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // 🛡️ TIER 1: Category Match -> Show Sub-Categories
         if (exactProductMatches.length === 0 && finalCat && !finalSubCat) {
             const varieties = [...new Set(items.filter(it => it.category === finalCat).map(it => it.sub_category).filter(s => s))];
-            if (varieties.length > 0) {
+            // If category and sub-category are same (bad data), list products instead
+            if (varieties.length > 0 && (varieties.length > 1 || varieties[0] !== finalCat)) {
                 const list = varieties.sort().map((v, i) => `${i + 1}. *${v}*`).join("\n");
                 await sendAndLog(customerNumber, `We have several varieties of *${finalCat}*:\n\n${list}\n\nWhich variety would you like to explore?`, userId);
                 return;
             } else {
                 const matchingItems = items.filter(it => it.category === finalCat);
-                const list = matchingItems.map(it => `• *${it.product_name}* (${symbol}${it.price})`).join("\n");
+                const list = matchingItems.map(it => `${it.is_veg ? "🟢" : "🔴"} *${it.product_name}* (${symbol}${it.price})`).join("\n");
                 await sendAndLog(customerNumber, `We have these items in *${finalCat}*:\n\n${list}`, userId);
                 return;
             }
@@ -853,20 +853,26 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
         }
 
-        if (exactProductMatches.length > 0) {
-            let foundItems = exactProductMatches.map(it => {
-                const escapedName = it.product_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-                const regex = new RegExp(`(\\d+)\\s*(?:x\\s*)?${escapedName}`, "i");
-                const regexAfter = new RegExp(`${escapedName}\\s*(\\d+)`, "i");
-                const matchBefore = msgText.match(regex);
-                const matchAfter = msgText.match(regexAfter);
-                
-                let qty = null;
-                if (matchBefore) qty = parseInt(matchBefore[1]);
-                else if (matchAfter) qty = parseInt(matchAfter[1]);
-                
-                return { name: it.product_name, qty, price: parseFloat(it.price) };
-            });
+        // 🛡️ TIER 3: Fuzzy Product List (e.g., "Biryani" matching multiple dish names)
+        if (exactProductMatches.length > 1) {
+            const list = exactProductMatches.map(it => `${it.is_veg ? "🟢" : "🔴"} *${it.product_name}* (${symbol}${it.price})`).join("\n");
+            await sendAndLog(customerNumber, `I found several items matching "*${msgText}*":\n\n${list}\n\nWhich one would you like to order?`, userId);
+            return;
+        }
+
+        if (exactProductMatches.length === 1) {
+            const it = exactProductMatches[0];
+            const escapedName = it.product_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const regex = new RegExp(`(\\d+)\\s*(?:x\\s*)?${escapedName}`, "i");
+            const regexAfter = new RegExp(`${escapedName}\\s*(\\d+)`, "i");
+            const matchBefore = msgText.match(regex);
+            const matchAfter = msgText.match(regexAfter);
+            
+            let qty = null;
+            if (matchBefore) qty = parseInt(matchBefore[1]);
+            else if (matchAfter) qty = parseInt(matchAfter[1]);
+            
+            let foundItems = [{ name: it.product_name, qty, price: parseFloat(it.price) }];
             let updatedCart = [...cart];
             let itemsNeedingQty = [];
 
