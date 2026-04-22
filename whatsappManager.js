@@ -803,8 +803,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 
                 if (isSignificant && (isItemMatch || isSubCatMatch || isCatMatch)) {
                     if (isSubCatMatch) subCatMatches.push(it.sub_category);
-                    else if (isCatMatch) categoryMatches.push(it.category);
-                    else exactProductMatches.push(it); // Treat as a potential product match
+                    if (isCatMatch) categoryMatches.push(it.category);
+                    
+                    // If it matches name but not cat/subcat in a significant way, treat as product search
+                    if (isItemMatch && !isSubCatMatch && !isCatMatch) {
+                        exactProductMatches.push(it);
+                    }
                 }
             }
         });
