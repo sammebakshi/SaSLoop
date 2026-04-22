@@ -31,7 +31,7 @@ function OnlineOrder() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
   const [customerAddress, setCustomerAddress] = useState("");
-  const [view, setView] = useState("menu");
+  const [checkSessionStatus, setCheckSessionStatus] = useState(null);
   const [orderRef, setOrderRef] = useState("");
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [placing, setPlacing] = useState(false);
