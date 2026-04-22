@@ -313,6 +313,26 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const sessionState = session.state || 'IDLE';
         const cart = session.context.items || [];
 
+        // 🛡️ FREE OTP TRIGGER (For Dev/Production)
+        // If user sends 'GET OTP', bot replies with their latest OTP from the database.
+        // This counts as a 'Service Message' (FREE) since the customer initiates the chat.
+        if (msgLower === 'get otp' || msgLower === 'get_otp' || msgLower === 'otp') {
+            const normPhone = normalizePhone(customerNumber);
+            const otpCodeRes = await pool.query(
+                "SELECT otp_code FROM loyalty_otps WHERE customer_number = $1 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1",
+                [normPhone]
+            );
+            
+            if (otpCodeRes.rows.length === 0) {
+                await sendAndLog(customerNumber, `❌ No active OTP request found for your number. Please click 'Redeem' on the menu first!`, userId);
+            } else {
+                const otpCode = otpCodeRes.rows[0].otp_code;
+                const responseText = `🔐 *Verification Code*\n\nYour OTP for redeeming loyalty points is: *${otpCode}*.\n\nValid for 10 minutes.`;
+                await sendAndLog(customerNumber, responseText, userId);
+            }
+            return;
+        }
+
         // 0. INTERCEPT WEB APP REDIRECTS (QR / ONLINE)
         // Checks for multiple common variants of the pre-filled redirect message.
         const isRedirect = 

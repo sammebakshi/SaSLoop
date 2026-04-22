@@ -37,6 +37,8 @@ function OnlineOrder() {
   const [placing, setPlacing] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
+  const [loyaltyOtp, setLoyaltyOtp] = useState("");
+  const [showOtpInput, setShowOtpInput] = useState(false);
   const [checkingLoyalty, setCheckingLoyalty] = useState(false);
   const [expandedItem, setExpandedItem] = useState(null);
 
@@ -107,6 +109,28 @@ function OnlineOrder() {
     finally { setCheckingLoyalty(false); } 
   };
 
+  const requestLoyaltyOtp = async () => {
+    if (!customerPhone || customerPhone.length < 5) return;
+    setCheckingLoyalty(true);
+    try {
+      const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+      // Generate OTP but skip the chargeable message
+      const res = await fetch(`${API_BASE}/api/public/loyalty/request-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: bizId, phone: fullPhone, manual: true })
+      });
+      const d = await res.json();
+      if (!res.ok) throw new Error(d.error || "Failed to generate OTP");
+      
+      // Open WhatsApp trigger (FREE response)
+      const waLink = `https://wa.me/${bizPhone}?text=${encodeURIComponent('GET OTP')}`;
+      window.open(waLink, '_blank');
+      setShowOtpInput(true);
+    } catch (e) { alert(e.message); }
+    finally { setCheckingLoyalty(false); }
+  };
+
   const scrollToCategory = (cat) => { categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveCategory(cat); };
 
   useEffect(() => {
@@ -121,14 +145,33 @@ function OnlineOrder() {
     setPlacing(true);
     const fullNumber = countryCode + customerPhone.replace(/\D/g, "");
     try {
-      const res = await fetch(`${API_BASE}/api/public/order`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: bizId, tableNumber: "0", items: cart.map(i => ({ name: i.product_name, qty: i.qty, price: i.price, tax_applicable: i.tax_applicable })), subtotal, cgst: taxData.cgst, sgst: taxData.sgst, totalPrice: finalTotal, customerName, customerPhone: fullNumber, pointsToRedeem, address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup at Store", fulfillmentMode, source: "ONLINE_ORDER" }) });
+      const res = await fetch(`${API_BASE}/api/public/order`, { 
+        method: "POST", 
+        headers: { "Content-Type": "application/json" }, 
+        body: JSON.stringify({ 
+          userId: bizId, 
+          tableNumber: "0", 
+          items: cart.map(i => ({ name: i.product_name, qty: i.qty, price: i.price, tax_applicable: i.tax_applicable })), 
+          subtotal, 
+          cgst: taxData.cgst, 
+          sgst: taxData.sgst, 
+          totalPrice: finalTotal, 
+          customerName, 
+          customerPhone: fullNumber, 
+          pointsToRedeem, 
+          loyaltyOtp,
+          address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup at Store", 
+          fulfillmentMode, 
+          source: "ONLINE_ORDER" 
+        }) 
+      });
       const orderData = await res.json();
       if (res.ok) { 
         setOrderRef(orderData.orderRef); 
         setFinalPaidAmount(orderData.finalPrice || 0); 
         setView("confirmed"); 
         setCart([]); 
-      } else alert("Failed to place order.");
+      } else alert(orderData.error || "Failed to place order.");
     } catch (err) { console.error(err); alert("Something went wrong."); }
     finally { setPlacing(false); }
   };
@@ -321,8 +364,35 @@ function OnlineOrder() {
                     {loyaltyPoints > 0 ? <div className="text-right"><p className="text-lg font-black leading-none">{loyaltyPoints}</p><p className="text-[7px] font-bold uppercase opacity-50">pts</p></div>
                     : <button onClick={checkLoyalty} disabled={checkingLoyalty} className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-all disabled:opacity-50"><RefreshCw className={`w-4 h-4 ${checkingLoyalty ? 'animate-spin' : ''}`} /></button>}
                   </div>
-                  {ptsEnabled && loyaltyPoints >= minRedeem && !pointsToRedeem && <button onClick={() => setPointsToRedeem(Math.min(loyaltyPoints, maxRedeem))} className="w-full py-2.5 bg-emerald-500 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Redeem {Math.min(loyaltyPoints, maxRedeem)} Points</button>}
-                  {pointsToRedeem > 0 && <div className="flex items-center justify-between bg-white/10 rounded-lg p-2.5"><span className="text-xs font-bold">-{symbol}{(pointsToRedeem/ptsRatio).toFixed(2)} Applied</span><button onClick={() => setPointsToRedeem(0)} className="w-6 h-6 bg-white/20 rounded flex items-center justify-center"><X className="w-3 h-3" /></button></div>}
+                  {showOtpInput && !pointsToRedeem && (
+                    <div className="mb-4 animate-in fade-in slide-in-from-top-2">
+                       <p className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2 pl-1">🔐 Enter WhatsApp OTP</p>
+                       <div className="flex gap-2">
+                         <input 
+                           type="text" 
+                           placeholder="6-digit code" 
+                           value={loyaltyOtp} 
+                           onChange={e => setLoyaltyOtp(e.target.value)} 
+                           className="flex-1 bg-white/10 border border-white/20 rounded-lg px-3 py-2 text-sm font-bold text-white outline-none focus:ring-2 focus:ring-emerald-500/50"
+                         />
+                         <button 
+                           onClick={() => {
+                             if (loyaltyOtp.length === 6) {
+                               setPointsToRedeem(Math.min(loyaltyPoints, maxRedeem));
+                               setShowOtpInput(false);
+                             } else {
+                               alert("Enter a 6-digit OTP");
+                             }
+                           }}
+                           className="bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-bold uppercase"
+                         >
+                           Verify
+                         </button>
+                       </div>
+                    </div>
+                  )}
+                  {ptsEnabled && loyaltyPoints >= minRedeem && !pointsToRedeem && !showOtpInput && <button onClick={requestLoyaltyOtp} className="w-full py-2.5 bg-emerald-500 text-white rounded-lg font-bold text-[10px] uppercase tracking-widest shadow-lg active:scale-95 transition-all">Redeem {Math.min(loyaltyPoints, maxRedeem)} Points</button>}
+                  {pointsToRedeem > 0 && <div className="flex items-center justify-between bg-white/10 rounded-lg p-2.5"><span className="text-xs font-bold">-{symbol}{(pointsToRedeem/ptsRatio).toFixed(2)} Applied</span><button onClick={() => { setPointsToRedeem(0); setLoyaltyOtp(""); }} className="w-6 h-6 bg-white/20 rounded flex items-center justify-center"><X className="w-3 h-3" /></button></div>}
                 </div>
               </div>
 
