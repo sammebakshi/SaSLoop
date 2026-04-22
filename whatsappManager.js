@@ -810,25 +810,36 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         });
 
         // 🛡️ REFINEMENT: Prioritize exact matches over partial ones
-        // If "Biryani" matches "CHICKEN BIRYANI" and "MUTTON BIRYANI", we collect them.
-        let finalSubCat = null;
-        if (subCatMatches.length > 0) {
-            const uniqueSubCats = [...new Set(subCatMatches)];
-            // If any exact match exists, pick it
-            const exactSubCat = uniqueSubCats.find(s => s.toLowerCase() === msgLower);
-            if (exactSubCat) finalSubCat = exactSubCat;
-            else finalSubCat = uniqueSubCats.sort((a, b) => b.length - a.length)[0];
-        }
-
+        // If "Pizza" matches Category "PIZZA" (exact) and SubCat "CHEESE PIZZA" (partial),
+        // we want the Category match to win so the user sees all varieties.
         let finalCat = null;
-        if (categoryMatches.length > 0 && !finalSubCat) {
-            const uniqueCats = [...new Set(categoryMatches)];
-            const exactCat = uniqueCats.find(c => c.toLowerCase() === msgLower);
-            finalCat = exactCat || uniqueCats.sort((a, b) => b.length - a.length)[0];
+        let finalSubCat = null;
+
+        const uniqueCats = [...new Set(categoryMatches)];
+        const exactCat = uniqueCats.find(c => c.toLowerCase() === msgLower);
+        
+        const uniqueSubCats = [...new Set(subCatMatches)];
+        const exactSubCat = uniqueSubCats.find(s => s.toLowerCase() === msgLower);
+
+        // 1. Exact Category match has top priority for general terms (e.g. "Pizza")
+        if (exactCat) {
+            finalCat = exactCat;
+        } 
+        // 2. Exact Sub-Category match
+        else if (exactSubCat) {
+            finalSubCat = exactSubCat;
+        } 
+        // 3. Fuzzy matches (if no exact matches)
+        else {
+            if (uniqueSubCats.length > 0) {
+                finalSubCat = uniqueSubCats.sort((a, b) => b.length - a.length)[0];
+            } else if (uniqueCats.length > 0) {
+                finalCat = uniqueCats.sort((a, b) => b.length - a.length)[0];
+            }
         }
 
-        // 🛡️ TIER 1: Category Match -> Show Sub-Categories
-        if (exactProductMatches.length === 0 && finalCat && !finalSubCat) {
+        // 🛡️ TIER 1: Category Match -> Show Sub-Categories (Varieties)
+        if (exactProductMatches.length === 0 && finalCat) {
             const varieties = [...new Set(items.filter(it => it.category === finalCat).map(it => it.sub_category).filter(s => s))];
             // If category and sub-category are same (bad data), list products instead
             if (varieties.length > 0 && (varieties.length > 1 || varieties[0] !== finalCat)) {
