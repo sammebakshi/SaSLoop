@@ -1,4 +1,4 @@
-const pool = require("./db");
+const pool = require("../db");
 
 async function applyLoyaltyOtpSchema() {
   console.log("Checking for 'loyalty_otps' table...");
