@@ -510,8 +510,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await updateSession(userId, customerNumber, session.context);
         }
 
-        // 2. FETCH MENU ITEMS
-        const itemsRes = await pool.query("SELECT product_name, price FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
+        // 2. FETCH MENU ITEMS (Enhanced to include Category, Sub-Category, Description, and Veg status)
+        const itemsRes = await pool.query("SELECT product_name, price, category, sub_category, description, is_veg FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
         const items = itemsRes.rows;
 
         if (items.length === 0) {
@@ -778,10 +778,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // 7. KEYWORD MATCHING
+        // 7. KEYWORD MATCHING (Dish Name, Category, or Sub-Category)
         let foundItems = [];
+        let matchedCategories = new Set();
+
         items.forEach(it => {
             const itemNameLower = it.product_name.toLowerCase();
+            const categoryLower = (it.category || "").toLowerCase();
+            const subCategoryLower = (it.sub_category || "").toLowerCase();
+
+            // Direct product name match
             if (msgLower.includes(itemNameLower)) {
                 const escapedName = it.product_name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                 const regex = new RegExp(`(\\d+)\\s*(?:x\\s*)?${escapedName}`, "i");
@@ -794,8 +800,32 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 else if (matchAfter) qty = parseInt(matchAfter[1]);
                 
                 foundItems.push({ name: it.product_name, qty, price: parseFloat(it.price) });
+            } 
+            // Category/Sub-Category match (if no direct product match found in the same message)
+            else if (categoryLower && msgLower.includes(categoryLower)) {
+                matchedCategories.add(it.category);
+            } else if (subCategoryLower && msgLower.includes(subCategoryLower)) {
+                matchedCategories.add(it.sub_category);
             }
         });
+
+        // 🛡️ If the user mentioned a Category but no specific item, list the options
+        if (foundItems.length === 0 && matchedCategories.size > 0) {
+            const category = Array.from(matchedCategories)[0];
+            const matchingItems = items.filter(it => it.category === category || it.sub_category === category);
+            
+            if (matchingItems.length > 0) {
+                const list = matchingItems.map(it => {
+                    const vegIcon = it.is_veg ? "🟢" : "🔴";
+                    const desc = it.description ? ` - _${it.description}_` : "";
+                    return `${vegIcon} *${it.product_name}* (${symbol}${it.price})${desc}`;
+                }).join("\n");
+                
+                const resp = `We have several types of *${category}* available:\n\n${list}\n\nWhich one would you like me to add for you?`;
+                await sendAndLog(customerNumber, resp, userId);
+                return;
+            }
+        }
 
         if (foundItems.length > 0) {
             let updatedCart = [...cart];
@@ -849,8 +879,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // 8. AI FALLBACK (Enhanced with Bot Knowledge)
-        const catalogStr = items.map(i => `${i.product_name}:${symbol}${i.price}`).join(", ");
+        // 8. AI FALLBACK (Enhanced with Description and Diet Knowledge)
+        const catalogStr = items.map(i => {
+            const diet = i.is_veg ? "Veg" : "Non-Veg";
+            return `${i.product_name} [${diet} | ${i.category || ''}]: ${symbol}${i.price} (${i.description || 'No description'})`;
+        }).join(", ");
         const cartStr = cart.length > 0 
             ? `Current cart: ${cart.map(c => `${c.qty}x ${c.name}`).join(", ")}.`
             : "Cart is empty.";
@@ -894,7 +927,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             if (res.orders && res.orders.length > 0) {
                 let updatedCart = [...cart];
                 res.orders.forEach(o => {
-                    const db = items.find(i => i.product_name.toLowerCase().includes(o.name.toLowerCase()));
+                    const db = items.find(i => 
+                        i.product_name.toLowerCase().includes(o.name.toLowerCase()) || 
+                        (i.category && i.category.toLowerCase().includes(o.name.toLowerCase())) || 
+                        (i.sub_category && i.sub_category.toLowerCase().includes(o.name.toLowerCase()))
+                    );
                     if (db) {
                         const existingIdx = updatedCart.findIndex(c => c.name.toLowerCase() === db.product_name.toLowerCase());
                         if (existingIdx >= 0) updatedCart[existingIdx].qty += o.qty;
