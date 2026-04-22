@@ -802,8 +802,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 
                 foundItems.push({ name: it.product_name, qty, price: parseFloat(it.price) });
             } 
-            // B. Category match (lower priority)
-            else if (categoryLower && msgLower === categoryLower) {
+            // B. Category match
+            else if (categoryLower && (msgLower === categoryLower)) {
                 matchedCategories.add(it.category);
             } 
             // C. Sub-Category/Variety match
@@ -811,6 +811,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 matchedSubCategories.add(it.sub_category);
             }
         });
+
+        // 🛡️ REFINEMENT: If multiple sub-categories matched (e.g., "Chicken" and "Chicken Blast Pizza"), 
+        // pick the one that is the LONGEST match in the actual message.
+        if (matchedSubCategories.size > 1) {
+            const sorted = Array.from(matchedSubCategories).sort((a, b) => b.length - a.length);
+            matchedSubCategories = new Set([sorted[0]]);
+        }
 
         // 🛡️ TIER 1: If user mentioned a Category (e.g., "Pizza"), show VARIETIES (Sub-Categories)
         if (foundItems.length === 0 && matchedCategories.size > 0 && matchedSubCategories.size === 0) {
