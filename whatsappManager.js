@@ -709,7 +709,28 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // 5. CHECK FOR CONFIRMATION
+        // 2. Detect LOCATION message
+        if (msgType === 'location') {
+            const { latitude, longitude } = msg.location;
+            const res = calculateDeliveryCharge(biz, latitude, longitude);
+            
+            if (!res.allowed) {
+                const resp = `📍 I see your location is approx ${res.distance.toFixed(1)}km away. Unfortunately, we currently only deliver within a *${biz.delivery_radius_km}km* radius. \n\nYou can still order for *Pickup*!`;
+                await sendAndLog(customerNumber, resp, userId);
+                return;
+            }
+            
+            const chargeMsg = res.charge > 0 
+                ? `✅ Great news! We deliver to your location. A delivery charge of *${symbol}${res.charge}* will apply.`
+                : `✅ Great news! You are within our *FREE* delivery zone.`;
+            
+            const ctx = { ...session.context, delivery_lat: latitude, delivery_long: longitude, delivery_charge: res.charge };
+            await updateSession(userId, customerNumber, ctx);
+            await sendAndLog(customerNumber, chargeMsg, userId);
+            return;
+        }
+
+        // 3. CHECK FOR BUTTON REPLIES (Order Confirmations)
         if (['yes', 'checkout', 'confirm', 'done', 'place order', 'place it', 'checkout now', 'yes, confirm', 'confirm order'].some(k => msgLower.includes(k)) && cart.length > 0) {
             
             const subtotal = cart.reduce((sum, ci) => sum + (ci.qty * ci.price), 0);
@@ -1208,9 +1229,6 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
     } catch (e) { console.error("Staff Notify Error:", e); }
 };
 
-// ----------------------------------------------------------------------------------
-// 📊 Get Recent Chat Messages (for Live AI Inbox)
-// ----------------------------------------------------------------------------------
 const getRecentChats = async (userId) => {
     try {
         const res = await pool.query(
@@ -1223,9 +1241,6 @@ const getRecentChats = async (userId) => {
     } catch (e) { return []; }
 };
 
-// ----------------------------------------------------------------------------------
-// 💰 Wallet / Broadcast Credit Management
-// ----------------------------------------------------------------------------------
 const getWalletCredits = async (userId) => {
     try {
         const res = await pool.query("SELECT broadcast_credits FROM app_users WHERE id = $1", [userId]);
@@ -1253,6 +1268,31 @@ const deductWalletCredits = async (userId, cost) => {
     }
 };
 
+const getDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
+const calculateDeliveryCharge = (biz, customerLat, customerLon) => {
+    if (!biz.latitude || !biz.longitude) return { allowed: true, charge: 0, distance: 0 };
+    
+    const dist = getDistance(biz.latitude, biz.longitude, customerLat, customerLon);
+    const radius = parseFloat(biz.delivery_radius_km) || 10;
+    
+    if (dist > radius) return { allowed: false, charge: 0, distance: dist };
+    
+    let charge = 0;
+    const tiers = biz.delivery_tiers || []; 
+    const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
+    if (matchedTier) charge = parseFloat(matchedTier.charge);
+    
+    return { allowed: true, charge, distance: dist };
+};
+
 module.exports = {
   initializeSession: async (id) => ({ status: 'CONNECTED' }),
   getSessionStatus: async (userId) => ({}),
@@ -1263,5 +1303,9 @@ module.exports = {
   getWalletCredits,
   deductWalletCredits,
   notifyKitchenAndStaff,
-  syncBusinessProfileToWhatsApp
+  syncBusinessProfileToWhatsApp,
+  getDistance,
+  calculateDeliveryCharge
 };
+
+

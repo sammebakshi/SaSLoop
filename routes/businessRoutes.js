@@ -21,6 +21,7 @@ router.post("/setup", authMiddleware, async (req, res) => {
     cgst_percent, sgst_percent, gst_included, show_gst_on_receipt,
     logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website,
     loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order,
+    delivery_tiers, is_auth_required, fulfillment_options,
     target_user_id
   } = req.body;
 
@@ -44,8 +45,9 @@ router.post("/setup", authMiddleware, async (req, res) => {
              kitchen_number=$9, notification_numbers=$10, track_inventory=$11, low_stock_threshold=$12, currency_code=$13,
               cgst_percent=$14, sgst_percent=$15, gst_included=$16, show_gst_on_receipt=$17,
               logo_url=$18, banner_url=$19, social_instagram=$20, social_facebook=$21, social_twitter=$22, social_youtube=$23, social_website=$24,
-              loyalty_enabled=$25, points_per_100=$26, points_to_amount_ratio=$27, min_redeem_points=$28, max_redeem_per_order=$29
-          WHERE user_id=$30 RETURNING *`,
+              loyalty_enabled=$25, points_per_100=$26, points_to_amount_ratio=$27, min_redeem_points=$28, max_redeem_per_order=$29,
+              delivery_tiers=$30, is_auth_required=$31, fulfillment_options=$32
+          WHERE user_id=$33 RETURNING *`,
         [
           name !== undefined ? name : e.name, 
           phone !== undefined ? phone : e.phone, 
@@ -76,6 +78,9 @@ router.post("/setup", authMiddleware, async (req, res) => {
           points_to_amount_ratio !== undefined ? parseFloat(points_to_amount_ratio) : e.points_to_amount_ratio,
           min_redeem_points !== undefined ? parseInt(min_redeem_points) : e.min_redeem_points,
           max_redeem_per_order !== undefined ? parseInt(max_redeem_per_order) : e.max_redeem_per_order,
+          delivery_tiers !== undefined ? JSON.stringify(delivery_tiers) : JSON.stringify(e.delivery_tiers || []),
+          is_auth_required !== undefined ? !!is_auth_required : e.is_auth_required,
+          fulfillment_options !== undefined ? JSON.stringify(fulfillment_options) : JSON.stringify(e.fulfillment_options || {dinein: true, pickup: true, delivery: true}),
           userId
         ]
       );
@@ -89,8 +94,8 @@ router.post("/setup", authMiddleware, async (req, res) => {
       // 2. Insert new business
       const result = await pool.query(
         `INSERT INTO restaurants 
-         (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30) RETURNING *`,
+         (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order, delivery_tiers, is_auth_required, fulfillment_options) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33) RETURNING *`,
         [
             name, phone, address || '', userId, businessType || 'restaurant', settings || {},
             (latitude === "" ? null : latitude) || null, (longitude === "" ? null : longitude) || null, delivery_radius_km || 10,
@@ -101,7 +106,10 @@ router.post("/setup", authMiddleware, async (req, res) => {
             parseInt(points_per_100) || 5,
             parseFloat(points_to_amount_ratio) || 10.00,
             parseInt(min_redeem_points) || 300,
-            parseInt(max_redeem_per_order) || 300
+            parseInt(max_redeem_per_order) || 300,
+            JSON.stringify(delivery_tiers || []),
+            !!is_auth_required,
+            JSON.stringify(fulfillment_options || {dinein: true, pickup: true, delivery: true})
         ]
       );
       console.log(`✨ NEW BUSINESS CREATED FOR ${userId}:`, result.rows[0]);

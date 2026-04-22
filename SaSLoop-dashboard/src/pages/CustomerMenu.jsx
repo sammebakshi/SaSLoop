@@ -22,6 +22,8 @@ function CustomerMenu() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
+  const [view, setView] = useState("auth"); // auth, menu, ordered
+  const [placing, setPlacing] = useState(false);
 
   const [fulfillmentMode, setFulfillmentMode] = useState(tableId && tableId !== "0" ? "DINEIN" : "");
   const [manualTableNo, setManualTableNo] = useState("");
@@ -38,6 +40,7 @@ function CustomerMenu() {
   const categoryRefs = useRef({});
 
   const [error, setError] = useState(null);
+  const [isVerifying, setIsVerifying] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`)
@@ -49,13 +52,17 @@ function CustomerMenu() {
         setData(d); 
         setLoading(false); 
         if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
+        // If auth is not required by business, skip to menu (or keep mandatory as per user request)
+        if (d?.business?.is_auth_required === false && !tableId) setView("menu");
+        // For Table QR, user EXPLICITLY asked for mandatory mobile auth first
+        if (tableId && tableId !== "0") setView("auth");
       })
       .catch(e => {
         console.error(e);
         setError(e.message);
         setLoading(false);
       });
-  }, [bizId]);
+  }, [bizId, tableId]);
 
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
@@ -100,8 +107,17 @@ function CustomerMenu() {
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${fullPhone}`); 
       const d = await res.json(); 
       setLoyaltyPoints(d.points || 0); 
-    } catch (e) { console.error(e); } 
-    finally { setCheckingLoyalty(false); } 
+    } catch (e) { console.error(e); } finally { 
+      setCheckingLoyalty(false); 
+    } 
+  };
+
+  const handleVerify = async () => {
+    if (!customerPhone || customerPhone.length < 5) return alert("Please enter a valid phone number.");
+    setIsVerifying(true);
+    await checkLoyalty();
+    setIsVerifying(false);
+    setView("menu");
   };
 
   const requestLoyaltyOtp = async () => {
@@ -109,7 +125,6 @@ function CustomerMenu() {
     setCheckingLoyalty(true);
     try {
       const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
-      // Generate OTP in DB but skip the chargeable auto-send
       const res = await fetch(`${API_BASE}/api/public/loyalty/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,7 +133,6 @@ function CustomerMenu() {
       const d = await res.json();
       if (!res.ok) throw new Error(d.error || "Failed to generate OTP");
       
-      // Open WhatsApp to trigger the free reply
       const waLink = `https://wa.me/${bizPhone}?text=${encodeURIComponent('GET OTP')}`;
       window.open(waLink, '_blank');
       setShowOtpInput(true);
@@ -190,15 +204,34 @@ function CustomerMenu() {
   };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Menu...</p></div>);
+  if (error) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><X className="w-12 h-12 text-rose-500 mb-4" /><h2 className="text-xl font-black text-slate-900 mb-2">Technical Glitch</h2><p className="text-slate-400 text-sm font-bold uppercase tracking-widest">{error}</p></div>);
 
-  if (error || !data) return (
-    <div className="flex flex-col items-center justify-center h-screen bg-slate-50 p-10 text-center">
-      <div className="w-20 h-20 bg-rose-50 rounded-3xl flex items-center justify-center mb-6 border border-rose-100 italic font-serif text-3xl text-rose-500">!</div>
-      <h2 className="text-xl font-black text-slate-800 tracking-tight">Menu Unavailable</h2>
-      <p className="text-sm text-slate-400 mt-2 max-w-xs">{error || "Please contact the business or try again later."}</p>
-      <button onClick={() => window.location.reload()} className="mt-8 bg-slate-900 text-white px-8 py-3 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Retry</button>
-    </div>
-  );
+  if (view === "auth") {
+    return (
+      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mb-8">
+           {logoUrl ? <img src={logoUrl} alt="logo" className="w-12 h-12 rounded-xl object-contain" /> : <Utensils className="w-10 h-10 text-emerald-600" />}
+        </div>
+        <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Welcome to {biz?.name}</h1>
+        {tableId && tableId !== "0" && <p className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8">Table No: {tableId}</p>}
+        
+        <div className="w-full max-w-sm space-y-4">
+           <p className="text-slate-400 text-sm font-bold leading-relaxed">To view our menu and access your loyalty rewards, please enter your mobile number.</p>
+           
+           <div className="flex gap-2">
+              <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-20 bg-slate-50 border border-slate-100 px-2 py-4 rounded-2xl text-sm font-bold outline-none">
+                 {countryCodes.map(c => <option key={c.code} value={c.dial_code}>{c.dial_code}</option>)}
+              </select>
+              <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="00000 00000" className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-lg font-black tracking-widest outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-200" />
+           </div>
+
+           <button onClick={handleVerify} disabled={isVerifying} className="w-full bg-emerald-600 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-600/20 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">
+              {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : <><Sparkles className="w-5 h-5" /> Let's Go</>}
+           </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-50/50 relative pb-32 selection:bg-emerald-500/30">

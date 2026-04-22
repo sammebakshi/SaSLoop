@@ -1,6 +1,24 @@
-import React, { useState, useEffect } from "react";
-import API_BASE from "../config";
-import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag } from "lucide-react";
+import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag, X, Bike, Utensils, ArrowRight, MousePointer2 } from "lucide-react";
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Fix Leaflet marker icons
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+});
+
+function LocationPicker({ lat, lng, onChange }) {
+  const map = useMapEvents({
+    click(e) {
+      onChange(e.latlng.lat, e.latlng.lng);
+    },
+  });
+  return lat && lng ? <Marker position={[lat, lng]} /> : null;
+}
 
 function OperationalRules() {
   const [user, setUser] = useState(null);
@@ -24,6 +42,9 @@ function OperationalRules() {
      points_to_amount_ratio: 10,
      min_redeem_points: 300,
      max_redeem_per_order: 300,
+     is_auth_required: false,
+     delivery_tiers: [],
+     fulfillment_options: { dinein: true, pickup: true, delivery: true },
      settings: {
         openingTime: "09:00",
         closingTime: "22:00",
@@ -74,6 +95,9 @@ function OperationalRules() {
              points_to_amount_ratio: b.points_to_amount_ratio || 10,
              min_redeem_points: b.min_redeem_points || 300,
              max_redeem_per_order: b.max_redeem_per_order || 300,
+             is_auth_required: !!b.is_auth_required,
+             delivery_tiers: b.delivery_tiers || [],
+             fulfillment_options: b.fulfillment_options || { dinein: true, pickup: true, delivery: true },
              bot_knowledge: data.bot_knowledge || "",
              settings: {
                 openingTime: b.settings?.openingTime || "09:00",
@@ -147,6 +171,9 @@ function OperationalRules() {
                 points_to_amount_ratio: b.points_to_amount_ratio || 10,
                 min_redeem_points: b.min_redeem_points || 300,
                 max_redeem_per_order: b.max_redeem_per_order || 300,
+                is_auth_required: !!b.is_auth_required,
+                delivery_tiers: b.delivery_tiers || [],
+                fulfillment_options: b.fulfillment_options || { dinein: true, pickup: true, delivery: true },
                 bot_knowledge: b.bot_knowledge || formData.bot_knowledge,
                 settings: b.settings || formData.settings
             });
@@ -179,7 +206,6 @@ function OperationalRules() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-           {/* Basic Info */}
            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col justify-between">
               <div className="flex items-center gap-4 mb-8">
                  <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
@@ -214,7 +240,6 @@ function OperationalRules() {
               </div>
            </div>
 
-           {/* AI Prompt Section */}
            <div className="bg-[#0f172a] p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
               <div className="flex items-center gap-4 mb-6 relative z-10">
                  <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center">
@@ -230,32 +255,102 @@ function OperationalRules() {
            </div>
         </div>
 
-        {/* New Geofencing & Alert Routing Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm relative overflow-hidden">
                 <div className="flex items-center gap-4 mb-6">
                     <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center">
                         <MapPin className="w-6 h-6 text-rose-600" />
                     </div>
                     <div>
                         <h3 className="text-lg font-black text-slate-900">Delivery Geofencing</h3>
-                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Coordinates & Radius</p>
+                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Locate your business on map</p>
                     </div>
                 </div>
+
+                <div className="h-64 bg-slate-100 rounded-[2rem] overflow-hidden mb-6 border border-slate-200 relative">
+                   <MapContainer center={[formData.latitude || 34.0837, formData.longitude || 74.7973]} zoom={13} style={{ height: '100%', width: '100%' }}>
+                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                      <LocationPicker lat={formData.latitude} lng={formData.longitude} onChange={(lat, lng) => setFormData(prev => ({...prev, latitude: lat, longitude: lng}))} />
+                   </MapContainer>
+                   <div className="absolute top-4 right-4 z-[400] bg-white/90 backdrop-blur px-4 py-2 rounded-xl border border-slate-200 shadow-lg pointer-events-none">
+                       <p className="text-[9px] font-black uppercase text-slate-500 flex items-center gap-2">
+                           <MousePointer2 className="w-3 h-3 text-emerald-600" /> Click Map to Set Location
+                       </p>
+                   </div>
+                </div>
+
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Shop Latitude</label>
-                           <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="e.g. 34.226" className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Latitude</label>
+                           <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                         </div>
                         <div>
-                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Shop Longitude</label>
-                           <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="e.g. 74.839" className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                           <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Longitude</label>
+                           <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                         </div>
                     </div>
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Service Radius (KM)</label>
-                        <input type="number" value={formData.delivery_radius_km} onChange={e => setFormData({...formData, delivery_radius_km: e.target.value})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                        <div className="flex justify-between items-center mb-1">
+                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ">Service Radius (KM)</label>
+                            <span className="text-[10px] font-black text-emerald-600">{formData.delivery_radius_km} KM</span>
+                        </div>
+                        <input type="range" min="1" max="50" value={formData.delivery_radius_km} onChange={e => setFormData({...formData, delivery_radius_km: e.target.value})} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                    </div>
+                </div>
+
+                <div className="mt-8 border-t border-slate-50 pt-8">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h4 className="text-[10px] font-black text-slate-800 uppercase tracking-widest">Pricing Tiers</h4>
+                            <p className="text-[9px] text-slate-400 font-bold">Charge based on distance from shop</p>
+                        </div>
+                        <button type="button" onClick={() => setFormData(prev => ({...prev, delivery_tiers: [...prev.delivery_tiers, {min: 0, max: 0, charge: 0}]}))} className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-lg font-black text-[9px] uppercase hover:bg-emerald-100 transition-colors flex items-center gap-1">
+                            <ArrowRight className="w-3 h-3" /> Add Tier
+                        </button>
+                    </div>
+                    
+                    <div className="space-y-3">
+                        {formData.delivery_tiers.map((tier, idx) => (
+                            <div key={idx} className="group relative flex items-center gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-100/50 hover:border-emerald-200 transition-all">
+                                <div className="flex-1 grid grid-cols-3 gap-2">
+                                    <div>
+                                        <label className="text-[8px] font-black text-slate-400 uppercase">Min km</label>
+                                        <input type="number" placeholder="0" value={tier.min} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[idx].min = parseFloat(e.target.value);
+                                            setFormData({...formData, delivery_tiers: newTiers});
+                                        }} className="w-full bg-white border border-slate-100 px-2 py-1.5 text-xs font-bold rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] font-black text-slate-400 uppercase">Max km</label>
+                                        <input type="number" placeholder="5" value={tier.max} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[idx].max = parseFloat(e.target.value);
+                                            setFormData({...formData, delivery_tiers: newTiers});
+                                        }} className="w-full bg-white border border-slate-100 px-2 py-1.5 text-xs font-bold rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="text-[8px] font-black text-slate-400 uppercase">Charge</label>
+                                        <input type="number" placeholder="0" value={tier.charge} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[idx].charge = parseFloat(e.target.value);
+                                            setFormData({...formData, delivery_tiers: newTiers});
+                                        }} className="w-full bg-white border border-emerald-100 px-2 py-1.5 text-xs font-bold rounded-lg text-emerald-600" />
+                                    </div>
+                                </div>
+                                <button type="button" onClick={() => {
+                                    const newTiers = formData.delivery_tiers.filter((_, i) => i !== idx);
+                                    setFormData({...formData, delivery_tiers: newTiers});
+                                }} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button>
+                            </div>
+                        ))}
+                        {formData.delivery_tiers.length === 0 && (
+                            <div className="flex flex-col items-center justify-center p-8 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest text-center shadow-none">No custom tiers set</p>
+                                <p className="text-[8px] text-slate-400 mt-1">Default flat delivery rules will apply</p>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -280,10 +375,21 @@ function OperationalRules() {
                         <input type="text" value={formData.notification_numbers.join(", ")} onChange={e => setFormData({...formData, notification_numbers: e.target.value.split(",").map(n => n.trim())})} placeholder="91..., 91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                     </div>
                 </div>
+                
+                <div className="mt-8 pt-8 border-t border-slate-50">
+                    <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest mb-4">Active Fulfillment Modes</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                        {[{id: 'dinein', label: 'Dine-In', icon: <Utensils className="w-3.5 h-3.5" />}, {id: 'pickup', label: 'Pickup', icon: <Store className="w-3.5 h-3.5" />}, {id: 'delivery', label: 'Delivery', icon: <Bike className="w-3.5 h-3.5" />}].map(mode => (
+                             <button key={mode.id} onClick={() => setFormData(prev => ({...prev, fulfillment_options: {...prev.fulfillment_options, [mode.id]: !prev.fulfillment_options[mode.id]} }))} className={`flex flex-col items-center justify-center p-3 rounded-2xl border-2 transition-all gap-2 ${formData.fulfillment_options[mode.id] ? 'border-emerald-600 bg-emerald-50 text-emerald-900' : 'border-slate-50 bg-white text-slate-400'}`}>
+                                 {mode.icon}
+                                 <span className="text-[9px] font-black uppercase tracking-tight">{mode.label}</span>
+                             </button>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
 
-        {/* GST & TAXATION SECTION */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-8">
             <div className="flex items-center gap-4 mb-8">
                 <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center">
@@ -306,18 +412,17 @@ function OperationalRules() {
                 </div>
                 <div className="flex flex-col justify-center gap-2">
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent">
-                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.gst_included} onChange={e => { console.log("GST_INCLUDED:", e.target.checked); setFormData({...formData, gst_included: e.target.checked}); }} />
+                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.gst_included} onChange={e => { setFormData({...formData, gst_included: e.target.checked}); }} />
                         <span className="text-xs font-black text-slate-700 uppercase">GST Included in Price</span>
                     </label>
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent">
-                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.show_gst_on_receipt} onChange={e => { console.log("SHOW_GST_ON_BILL:", e.target.checked); setFormData({...formData, show_gst_on_receipt: e.target.checked}); }} />
+                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.show_gst_on_receipt} onChange={e => { setFormData({...formData, show_gst_on_receipt: e.target.checked}); }} />
                         <span className="text-xs font-black text-slate-700 uppercase">Show GST on WhatsApp Bill</span>
                     </label>
                 </div>
             </div>
         </div>
 
-        {/* LOYALTY PROGRAM SECTION */}
         <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm mb-8">
             <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
@@ -382,27 +487,25 @@ function OperationalRules() {
                        <input type="time" value={formData.settings.closingTime} onChange={e => handleSettingChange('closingTime', e.target.value)} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                     </div>
                  </div>
-                 <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                    <label className="flex items-center justify-between cursor-pointer group">
-                       <span className="text-sm font-black text-slate-700 group-hover:text-amber-600 transition-colors uppercase">Home Delivery</span>
-                       <div className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked={formData.settings.homeDelivery} onChange={e => handleSettingChange('homeDelivery', e.target.checked)} />
-                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-                       </div>
-                    </label>
-                 </div>
               </div>
 
               <div className="space-y-3">
                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pl-1">Commerce Features</label>
+                 <label className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer hover:bg-indigo-100 transition-colors border border-transparent active:scale-98">
+                     <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-slate-300" checked={formData.is_auth_required} onChange={e => setFormData({...formData, is_auth_required: e.target.checked})} />
+                     <span className="text-xs font-black text-indigo-700 uppercase">Mandatory Mobile Login First</span>
+                  </label>
                  {[
                     { key: 'dining', label: 'Dine-In / Table QR' },
                     { key: 'tableBooking', label: 'Table Booking' },
                     { key: 'pickupOnly', label: 'Takeaway / Pickup only' },
+                    { key: 'homeDelivery', label: 'Home Delivery Service' },
                     { key: 'botTakeover', label: 'Manual Bot Takeover' }
                  ].map(service => (
                     <label key={service.key} className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent active:scale-98">
-                       <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.settings[service.key]} onChange={e => handleSettingChange(service.key, e.target.checked)} />
+                       <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" 
+                          checked={service.key === 'homeDelivery' ? formData.settings.homeDelivery : formData.settings[service.key]} 
+                          onChange={e => service.key === 'homeDelivery' ? handleSettingChange('homeDelivery', e.target.checked) : handleSettingChange(service.key, e.target.checked)} />
                        <span className="text-xs font-black text-slate-700 uppercase">{service.label}</span>
                     </label>
                  ))}
