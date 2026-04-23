@@ -2,9 +2,9 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import API_BASE from "../config";
 import { 
-  MessageCircle, Plus, Minus, CheckCircle, Utensils, Search,
-  LayoutGrid, X, MapPin, ArrowRight, RefreshCw, ShoppingBag,
-  Activity, Bike, Store, User, Globe, Sparkles, ChevronLeft
+  Plus, Minus, CheckCircle, Utensils, Search,
+  X, MapPin, ArrowRight, RefreshCw, ShoppingBag,
+  Activity, Sparkles, ChevronLeft, Globe, MessageCircle
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -22,7 +22,6 @@ function CustomerMenu() {
   const [activeCategory, setActiveCategory] = useState("");
   const [view, setView] = useState("auth"); // auth, menu, ordered
   const [placing, setPlacing] = useState(false);
-  const [fulfillmentMode] = useState(tableId && tableId !== "0" ? "DINEIN" : "PICKUP");
   
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
@@ -33,6 +32,10 @@ function CustomerMenu() {
   const [checkingLoyalty, setCheckingLoyalty] = useState(false);
   const categoryRefs = useRef({});
   const [expandedItem, setExpandedItem] = useState(null);
+  
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [authOtp, setAuthOtp] = useState("");
+  const [otpMode, setOtpMode] = useState(false);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`)
@@ -41,7 +44,6 @@ function CustomerMenu() {
         setData(d); 
         setLoading(false); 
         if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
-        // For Table QR, we always start with auth for lead collection
         setView("auth");
       })
       .catch(e => { console.error(e); setLoading(false); });
@@ -69,7 +71,10 @@ function CustomerMenu() {
   }, [biz]);
 
   const filteredItems = useMemo(() => {
-    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
+    return (data?.items || []).filter(i => 
+       i.product_name.toLowerCase().includes(search.toLowerCase()) ||
+       (i.description || "").toLowerCase().includes(search.toLowerCase())
+    );
   }, [data, search]);
 
   const groupedItems = useMemo(() => {
@@ -99,7 +104,7 @@ function CustomerMenu() {
   const minRedeem = biz?.min_redeem_points || 300;
   const maxRedeem = biz?.max_redeem_per_order || 300;
 
-  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (ptsEnabled ? (pointsToRedeem / ptsRatio) : 0));
+  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / ptsRatio));
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
@@ -112,10 +117,6 @@ function CustomerMenu() {
     } catch (e) { console.error(e); } 
     finally { setCheckingLoyalty(false); } 
   };
-
-  const [authOtp, setAuthOtp] = useState("");
-  const [otpMode, setOtpMode] = useState(false);
-  const [isVerifying, setIsVerifying] = useState(false);
 
   const handleVerify = async () => {
     if (!customerPhone || customerPhone.length < 5) return alert("Valid phone req.");
@@ -169,7 +170,7 @@ function CustomerMenu() {
           cgst: taxData.cgst, 
           sgst: taxData.sgst, 
           totalPrice: finalTotal, 
-          customerName: "Guest", // Leads use phone for identification
+          customerName: "Guest", 
           customerPhone: fullNumber, 
           pointsToRedeem, 
           loyaltyOtp,
@@ -197,11 +198,11 @@ function CustomerMenu() {
     return () => observer.disconnect();
   }, [categories.length]);
 
-  if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Store...</p></div>);
+  if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Digital Menu Loading...</p></div>);
 
   if (view === "auth") return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-900 overflow-hidden">
-      <div className="absolute inset-0 z-0 opacity-20 scale-110">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-900 overflow-hidden font-sans">
+      <div className="absolute inset-0 z-0 scale-110 opacity-30">
         <img 
           src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&q=80&w=2070" 
           alt="background" 
@@ -210,206 +211,157 @@ function CustomerMenu() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60" />
       </div>
 
-      <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700">
-        <div className="bg-white/[0.05] backdrop-blur-3xl px-6 py-12 rounded-[3.5rem] border border-white/10 shadow-2xl text-center">
+      <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700 px-4">
+        <div className="bg-white/[0.03] backdrop-blur-3xl px-8 py-12 rounded-[3.5rem] border border-white/10 shadow-2xl text-center">
             <div className="w-20 h-20 bg-white p-3.5 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
                {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain rounded-xl" /> : <Utensils className="w-10 h-10 text-emerald-600" />}
             </div>
             
-            <h1 className="text-3xl font-black text-white tracking-tight mb-1.5 uppercase">Table {tableId}</h1>
-            <p className="text-emerald-400/60 text-[10px] font-black uppercase tracking-[0.3em] mb-10">Welcome to {biz?.name || 'our store'}</p>
+            <h1 className="text-3xl font-black text-white tracking-tighter mb-1.5 uppercase">Table {tableId}</h1>
+            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Connected Dining</p>
 
             <div className="space-y-4">
                {!otpMode ? (
                  <div className="flex gap-2">
                     <div className="relative">
-                      <select 
-                        value={countryCode} 
-                        onChange={e => setCountryCode(e.target.value)} 
-                        className="w-[75px] bg-white/5 border border-white/10 pl-3 pr-1 py-4.5 rounded-2xl text-xs font-black text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
-                      >
-                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code}</option>)}
+                      <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[75px] bg-white/5 border border-white/10 pl-3 pr-1 py-4.5 rounded-2xl text-xs font-black text-white outline-none appearance-none cursor-pointer">
+                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900">+{c.code}</option>)}
                       </select>
-                      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                        <ChevronLeft className="-rotate-90 w-3 h-3 text-white" />
-                      </div>
                     </div>
                     <div className="flex-1">
-                      <input 
-                        type="tel" 
-                        value={customerPhone} 
-                        onChange={e => setCustomerPhone(e.target.value)} 
-                        placeholder="WhatsApp Number" 
-                        className="w-full bg-white/5 border border-white/10 px-6 py-4.5 rounded-2xl text-base font-black text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all tracking-widest" 
-                      />
+                      <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="WhatsApp No." className="w-full bg-white/5 border border-white/10 px-6 py-4.5 rounded-2xl text-base font-black text-white placeholder:text-white/20 outline-none" />
                     </div>
                  </div>
                ) : (
-                 <div className="animate-in slide-in-from-bottom-4 duration-500 text-center">
-                    <input 
-                      type="text" 
-                      value={authOtp} 
-                      onChange={e => setAuthOtp(e.target.value)} 
-                      placeholder="OTP CODE" 
-                      maxLength={6}
-                      className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white placeholder:text-white/10 outline-none focus:border-emerald-500/60 transition-all tracking-[0.6em] text-center" 
-                    />
-                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[9px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4">Change Number</button>
+                 <div className="animate-in slide-in-from-bottom-4 duration-500">
+                    <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white placeholder:text-white/10 outline-none tracking-[0.5em] text-center" />
+                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4">Change Phone Number</button>
                  </div>
                )}
 
-               <button 
-                 onClick={otpMode ? verifyAuthOtp : handleVerify} 
-                 disabled={isVerifying} 
-                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-2"
-               >
-                  {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (
-                    <>
-                      {otpMode ? "Verify & Order" : "Login with WhatsApp"}
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
+               <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-2">
+                  {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify & Open Menu" : "Enter with WhatsApp")}
+                  <ArrowRight className="w-4 h-4" />
                </button>
             </div>
             
             <div className="mt-12 flex items-center justify-center gap-6 opacity-30">
-               <div className="flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Safe</span>
-               </div>
+               <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase"><Activity className="w-4 h-4 text-emerald-400" /> Secure</div>
                <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
-               <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">VIP</span>
-               </div>
+               <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase"><Sparkles className="w-4 h-4 text-emerald-400" /> Digital</div>
             </div>
         </div>
-        <p className="mt-10 text-center text-[9px] font-bold text-white/20 uppercase tracking-[0.5em]">Powered by SaSLoop</p>
+        <p className="mt-8 text-center text-[9px] font-bold text-white/20 uppercase tracking-[0.5em]">Powered by SaSLoop</p>
       </div>
     </div>
   );
 
   if (view === "ordered") return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
-       <div className="w-20 h-20 bg-white rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-emerald-500/10 border border-emerald-50 relative">
-          <CheckCircle className="w-10 h-10 text-emerald-500" />
-          <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-ping opacity-20" />
+    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans font-sans">
+       <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.2rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl shadow-emerald-500/10">
+          <CheckCircle className="w-10 h-10 text-emerald-600" />
        </div>
        <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Sent!</h1>
-       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">We're preparing your delicious meal at Table {tableId}</p>
-       
-       <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-slate-900/20 active:scale-95 transition-all mb-4">Add More Items</button>
-       <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">A bill will be generated upon serving</p>
+       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">We're preparing your treats at Table {tableId}</p>
+       <button onClick={() => setView("menu")} className="w-full max-w-[300px] bg-slate-900 text-white py-6 rounded-[2rem] font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all">Add More to Order</button>
+       <p className="mt-5 text-[9px] font-black text-slate-300 uppercase tracking-widest">Bill will be updated automatically</p>
     </div>
   );
 
   return (
     <div className="min-h-screen bg-white lg:bg-slate-50 selection:bg-emerald-500/20 pb-32 lg:pb-10 font-sans">
       <header className="bg-white border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
-        <div className="max-w-7xl mx-auto px-5 py-3 sm:py-4 flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
-                <Sparkles className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-                <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} PTS</p>
-              </div>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+           <div className="flex items-center gap-3 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
+             <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
+             <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} LOYALTY PTS</p>
            </div>
            
            <div className="flex flex-col text-right">
-              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Dinning at</p>
-              <p className="text-xs font-black text-slate-800 uppercase tracking-tighter bg-slate-50 px-3 py-1 rounded-lg">Table {tableId}</p>
+              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Dining at</p>
+              <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">Table {tableId}</p>
            </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto lg:p-6 lg:mt-4">
-        <div className="lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-8 items-start">
+      <main className="max-w-7xl mx-auto lg:p-10 lg:mt-4">
+        <div className="lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           
-          <aside className="hidden lg:block sticky top-28 space-y-2 max-h-[75vh] overflow-y-auto no-scrollbar pr-4">
-             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.25em] mb-4 pl-3">Sections</h2>
+          <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
+             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6 pl-4">Discover Menu</h2>
              {categories.map(cat => (
                <button 
                  key={cat} 
                  onClick={() => scrollToCategory(cat)} 
-                 className={`w-full text-left px-6 py-4 rounded-2xl text-[11px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-xl shadow-slate-900/10 translate-x-1' : 'text-slate-400 hover:bg-white hover:text-slate-600'}`}
+                 className={`w-full text-left px-7 py-4 rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl scale-105 px-8 translate-x-2' : 'text-slate-400 hover:text-slate-900 hover:translate-x-1'}`}
                >
                  {cat}
                </button>
              ))}
           </aside>
 
-          <div className="bg-white lg:rounded-[3rem] lg:shadow-2xl lg:shadow-slate-200/50 lg:border lg:border-white overflow-hidden min-h-screen relative">
+          <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen relative">
              <div className="relative">
                 {bannerUrl && (
                   <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative">
-                    <img src={bannerUrl} alt="Store Banner" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/10" />
+                    <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" />
                   </div>
                 )}
-                <div className="px-8 py-4 flex items-center gap-5 relative -mt-10 sm:-mt-12">
-                  {logoUrl && <img src={logoUrl} alt="Logo" className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2rem] object-cover border-4 border-white shadow-2xl bg-white" />}
-                  <div className="flex-1 min-w-0 pt-10 sm:pt-12">
+                <div className="px-8 py-4 flex items-center gap-6 relative -mt-10 sm:-mt-12">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center overflow-hidden shrink-0">
+                     {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
+                  </div>
+                  <div className="flex-1 min-w-0 pt-10 sm:pt-14">
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-1.5 mt-1.5 truncate">
-                       <MapPin className="w-3 h-3 text-emerald-500" /> {biz?.address || 'Premium Lounge'}
+                    <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mt-1 truncate">
+                       <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Premium Establishment'}
                     </p>
                   </div>
                 </div>
              </div>
 
-             <div className="px-8 py-5 sticky top-[65px] lg:top-0 z-[80] bg-white lg:bg-white/90 lg:backdrop-blur-md">
+             <div className="px-8 py-6 sticky top-[80px] lg:top-0 z-[80] bg-white lg:bg-white/90 lg:backdrop-blur-xl">
                 <div className="relative group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300 group-focus-within:text-emerald-500 transition-colors" />
-                  <input 
-                    placeholder="Search our cuisine..." 
-                    className="w-full bg-slate-50 border border-slate-100 rounded-[1.8rem] pl-12 pr-6 py-4 text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:border-emerald-500 focus:bg-white transition-all shadow-inner" 
-                    value={search} 
-                    onChange={e => setSearch(e.target.value)} 
-                  />
+                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
+                  <input placeholder="Search for flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
 
-                <div className="lg:hidden flex items-center gap-2 mt-5 overflow-x-auto no-scrollbar pb-1">
-                   {categories.map(cat => (<button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeCategory === cat ? "bg-emerald-600 text-white shadow-lg shadow-emerald-500/20" : "bg-slate-50 text-slate-400 border border-slate-100"}`}>{cat}</button>))}
+                <div className="lg:hidden flex items-center gap-2 mt-6 overflow-x-auto no-scrollbar pb-1">
+                   {categories.map(cat => (<button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeCategory === cat ? "bg-slate-900 text-white shadow-xl" : "bg-white text-slate-400 border border-slate-100 shadow-sm"}`}>{cat}</button>))}
                 </div>
              </div>
 
-             <div className="px-8 py-6">
+             <div className="px-8 py-8">
                 {categories.map(cat => (
-                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-14 scroll-mt-44 lg:scroll-mt-12">
-                    <div className="flex items-center gap-4 mb-8">
-                       <h2 className="text-[13px] font-black text-slate-900 uppercase tracking-[0.35em]">{cat}</h2>
-                       <div className="flex-1 h-[2px] bg-slate-50 rounded-full" />
-                    </div>
+                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-16 scroll-mt-48 lg:scroll-mt-12">
+                    <div className="flex items-center gap-4 mb-10"><h2 className="text-[13px] font-black text-slate-900 uppercase tracking-[0.4em]">{cat}</h2><div className="flex-1 h-[2px] bg-slate-50 rounded-full" /></div>
                     
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 lg:gap-10">
                       {groupedItems[cat].map(item => {
                         const inCart = cart.find(c => c.id === item.id);
-                        const fullImgUrl = item.image_url?.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`;
+                        const img = item.image_url?.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`;
                         return (
-                          <div key={item.id} className="group flex flex-col bg-white rounded-[2.5rem] p-3 transition-all hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-2 lg:hover:border lg:border-emerald-100">
-                             <div className="relative aspect-[4/3] rounded-[2rem] overflow-hidden bg-slate-100 mb-4 cursor-pointer" onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}>
-                              {item.image_url ? <img src={fullImgUrl} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt={item.product_name} /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
-                              <div className="absolute bottom-3 right-3 px-4 py-2 bg-white/90 backdrop-blur-md rounded-2xl text-[13px] font-black text-slate-900 shadow-lg">{symbol}{item.price}</div>
-                              <div className={`absolute top-4 left-4 w-5 h-5 rounded-md border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-red-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-red-500'}`} /></div>
+                          <div key={item.id} className="group flex flex-col bg-white rounded-[2.5rem] p-4 transition-all hover:shadow-2xl hover:shadow-slate-200/50 hover:-translate-y-2 lg:hover:border-emerald-100 lg:border lg:border-transparent">
+                            <div className="relative aspect-[4/3] rounded-[2.2rem] overflow-hidden bg-slate-50 mb-5 cursor-pointer" onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}>
+                              {item.image_url ? <img src={img} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-700" alt={item.product_name} /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
+                              <div className="absolute bottom-4 right-4 px-5 py-2.5 bg-white/90 backdrop-blur-xl rounded-2xl text-base font-black text-slate-900 shadow-xl border border-white/50">{symbol}{item.price}</div>
+                              <div className={`absolute top-5 left-5 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-red-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-red-500'}`} /></div>
                             </div>
 
                             <div className="px-3 flex-1 flex flex-col">
-                              <h3 className="text-sm sm:text-base font-black text-slate-800 leading-tight mb-2 tracking-tighter group-hover:text-emerald-600 transition-colors uppercase">{item.product_name}</h3>
-                              {item.description && <p className="text-[11px] text-slate-400 font-medium mb-5 line-clamp-2 leading-relaxed flex-1">{item.description}</p>}
+                              <h3 className="text-base font-black text-slate-800 leading-tight mb-2 tracking-tighter group-hover:text-emerald-600 transition-colors uppercase">{item.product_name}</h3>
+                              {item.description && <p className="text-[11px] text-slate-400 font-medium mb-6 line-clamp-2 leading-relaxed flex-1">{item.description}</p>}
                               
-                              <div className="mt-auto">
+                              <div className="mt-auto pt-4">
                                  {inCart ? (
-                                   <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl p-1 h-12 shadow-xl animate-in zoom-in">
-                                     <button onClick={() => removeFromCart(item.id)} className="w-10 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors"><Minus className="w-4 h-4" /></button>
-                                     <span className="text-sm font-black">{inCart.qty}</span>
-                                     <button onClick={() => addToCart(item)} className="w-10 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-colors"><Plus className="w-4 h-4" /></button>
+                                   <div className="flex items-center justify-between bg-slate-900 text-white rounded-[1.5rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
+                                     <button onClick={() => removeFromCart(item.id)} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all active:scale-75"><Minus className="w-5 h-5" /></button>
+                                     <span className="text-sm font-black w-8 text-center">{inCart.qty}</span>
+                                     <button onClick={() => addToCart(item)} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all active:scale-75"><Plus className="w-5 h-5" /></button>
                                    </div>
                                  ) : (
-                                   <button 
-                                     onClick={() => addToCart(item)} 
-                                     className="w-full bg-slate-50 text-slate-400 py-4 rounded-[1.5rem] font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white group-active:scale-95 flex items-center justify-center gap-2"
-                                   >
-                                      Add Item <Plus className="w-4 h-4" />
-                                   </button>
+                                   <button onClick={() => addToCart(item)} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add to Tray <Plus className="w-4 h-4" /></button>
                                  )}
                               </div>
                             </div>
@@ -422,57 +374,40 @@ function CustomerMenu() {
              </div>
           </div>
 
-          <aside className="hidden lg:block sticky top-28 space-y-6">
-             <div className="bg-white rounded-[3rem] shadow-2xl shadow-slate-200/50 border border-white p-10">
+          <aside className="hidden lg:block sticky top-32 space-y-8">
+             <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-10">
                 <div className="flex items-center justify-between mb-10">
-                   <h2 className="text-base font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3">
-                      <ShoppingBag className="w-6 h-6 text-emerald-500" /> Current Order
-                   </h2>
-                   <span className="bg-slate-50 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase">{totalCartItems} Items</span>
+                   <h2 className="text-base font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3"><ShoppingBag className="w-6 h-6 text-emerald-500" /> Cart</h2>
+                   <span className="bg-slate-50 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-slate-100">{totalCartItems} ITEMS</span>
                 </div>
 
                 {cart.length === 0 ? (
-                  <div className="py-16 text-center opacity-15">
-                     <ShoppingBag className="w-16 h-16 mx-auto mb-5" />
-                     <p className="text-[11px] font-black uppercase tracking-widest">No delicacies added yet</p>
+                  <div className="py-20 text-center opacity-10 flex flex-col items-center">
+                     <ShoppingBag className="w-16 h-16 mb-4" />
+                     <p className="text-[11px] font-black uppercase tracking-widest">Cart is empty</p>
                   </div>
                 ) : (
-                  <div className="space-y-8">
-                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-5">
+                  <div className="space-y-10">
+                     <div className="max-h-[350px] overflow-y-auto no-scrollbar pr-3 space-y-6">
                         {cart.map(ci => (
-                          <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-2">
-                             <div className="flex-1 text-left">
-                                <p className="text-[12px] font-black text-slate-800 leading-tight mb-1 uppercase line-clamp-1">{ci.product_name}</p>
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{symbol}{ci.price} x {ci.qty}</p>
-                             </div>
-                             <div className="flex items-center gap-3 bg-slate-50 rounded-2xl p-1.5 border border-slate-100 shadow-sm">
-                                <button onClick={() => removeFromCart(ci.id)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-red-500 transition-colors"><Minus className="w-4 h-4" /></button>
+                          <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
+                             <div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-800 leading-tight mb-1 uppercase line-clamp-1">{ci.product_name}</p><p className="text-[10px] font-bold text-slate-400 uppercase tracking-wide">{symbol}{ci.price} x {ci.qty}</p></div>
+                             <div className="flex items-center gap-2 bg-slate-50 rounded-2xl p-1.5 border border-slate-100">
+                                <button onClick={() => removeFromCart(ci.id)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-colors"><Minus className="w-3.5 h-3.5" /></button>
                                 <span className="text-[11px] font-black text-slate-800 min-w-[12px] text-center">{ci.qty}</span>
-                                <button onClick={() => addToCart(ci)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-colors"><Plus className="w-4 h-4" /></button>
+                                <button onClick={() => addToCart(ci)} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-colors"><Plus className="w-3.5 h-3.5" /></button>
                              </div>
                           </div>
                         ))}
                      </div>
 
                      <div className="border-t-2 border-slate-50 pt-8 space-y-4">
-                        <div className="flex justify-between text-[12px] items-center text-slate-400 font-bold uppercase tracking-[0.1em]">
-                           <span>Subtotal</span>
-                           <span>{symbol}{subtotal.toFixed(2)}</span>
-                        </div>
-                        {taxData.totalTax > 0 && (
-                           <div className="flex justify-between text-[12px] items-center text-slate-400 font-bold uppercase tracking-[0.1em]">
-                              <span>Taxes (GST)</span>
-                              <span>{symbol}{taxData.totalTax.toFixed(2)}</span>
-                           </div>
-                        )}
-                        <div className="flex justify-between text-2xl items-center text-slate-900 font-black pt-5 tracking-tighter uppercase">
-                           <span>Payable</span>
-                           <span>{symbol}{finalTotal.toFixed(0)}</span>
-                        </div>
+                        <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-widest"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
+                        <div className="flex justify-between text-2xl items-center text-slate-900 font-black pt-6 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
 
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-900 hover:bg-black text-white py-6 rounded-[2rem] font-black text-xs uppercase tracking-[0.25em] shadow-2xl shadow-slate-900/20 active:scale-[0.98] transition-all flex items-center justify-center gap-4 mt-6">
-                        {placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Send to Kitchen <Utensils className="w-4 h-4 text-emerald-400" /></>}
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-900 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-4">
+                        {placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Send to Kitchen <ArrowRight className="w-4 h-4 text-emerald-400" /></>}
                      </button>
                   </div>
                 )}
@@ -482,30 +417,17 @@ function CustomerMenu() {
       </main>
 
       {/* Floating Bottom Cart (Mobile Only) */}
-      {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-8 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 duration-700">
-           <button 
-             onClick={placeOrder} 
-             disabled={placing}
-             className="w-full bg-slate-900 text-white rounded-[3rem] p-4.5 flex items-center justify-between shadow-2xl shadow-slate-900/50 border border-white/10 active:scale-[0.96] transition-all"
-           >
+      {cart.length > 0 && view === "menu" && (
+        <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 duration-700">
+           <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-900 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-900/50 border border-white/10 active:scale-95 transition-all">
               <div className="flex items-center gap-4 pl-3">
                  <div className="relative">
-                   <div className="w-12 h-12 bg-white/10 rounded-[1.2rem] flex items-center justify-center">
-                      <ShoppingBag className="w-6 h-6 text-emerald-400" />
-                   </div>
-                   <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-lg">
-                      <span className="text-[10px] font-black text-white leading-none">{totalCartItems}</span>
-                   </div>
+                   <div className="w-14 h-14 bg-white/10 rounded-[1.5rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div>
+                   <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-slate-900 shadow-xl"><span className="text-[10px] font-black text-white leading-none">{totalCartItems}</span></div>
                  </div>
-                 <div className="text-left">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-0.5">Bill Estimate</p>
-                    <p className="text-lg font-black tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p>
-                 </div>
+                 <div className="text-left"><p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-0.5">Payable</p><p className="text-xl font-black tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p></div>
               </div>
-              <div className="bg-emerald-500 text-slate-900 px-8 py-4 rounded-[1.8rem] flex items-center gap-2.5 font-black text-[11px] uppercase tracking-widest shadow-xl">
-                 Order <Utensils className="w-4 h-4" />
-              </div>
+              <div className="bg-emerald-500 text-slate-900 px-10 py-5 rounded-[2rem] flex items-center gap-3 font-black text-[12px] uppercase tracking-widest shadow-xl">Order <ArrowRight className="w-5 h-5" /></div>
            </button>
         </div>
       )}
