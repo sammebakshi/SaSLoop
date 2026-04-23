@@ -140,6 +140,10 @@ async function initializeDatabase() {
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS points_to_amount_ratio DECIMAL(10,2) DEFAULT 10.00`,
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS min_redeem_points INTEGER DEFAULT 300`,
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS max_redeem_per_order INTEGER DEFAULT 300`,
+            `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS delivery_tiers JSONB DEFAULT '[]'`,
+            `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS is_auth_required BOOLEAN DEFAULT false`,
+            `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS fulfillment_options JSONB DEFAULT '{"dinein": true, "pickup": true, "delivery": true}'`,
+,
 
             // 7b. business_items enhancements
             `ALTER TABLE business_items ADD COLUMN IF NOT EXISTS stock_count INTEGER`,

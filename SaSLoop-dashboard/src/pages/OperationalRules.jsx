@@ -222,11 +222,11 @@ function OperationalRules() {
                  <div className="grid grid-cols-2 gap-4">
                     <div>
                        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Display Name</label>
-                       <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="e.g. Shahe Tehzeeb" className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all" />
+                       <input type="text" value={formData.name} onChange={e => setFormData(prev => ({...prev, name: e.target.value}))} placeholder="e.g. Shahe Tehzeeb" className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white focus:ring-4 focus:ring-emerald-500/10 outline-none transition-all" />
                     </div>
                     <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Primary Type</label>
-                        <select className="w-full bg-slate-55 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white outline-none" value={formData.businessType} onChange={(e) => setFormData({...formData, businessType: e.target.value})}>
+                        <select className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white outline-none" value={formData.businessType} onChange={(e) => setFormData(prev => ({...prev, businessType: e.target.value}))}>
                             <option value="restaurant_cafe">Restaurant / Cafe</option>
                             <option value="healthcare_clinic">Health / Clinic</option>
                             <option value="salon_spa">Beauty / Salon</option>
@@ -237,7 +237,7 @@ function OperationalRules() {
                  </div>
                  <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Physical Address (Shown to customer)</label>
-                    <textarea rows="2" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} placeholder="Full location for pickup..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white outline-none resize-none" />
+                    <textarea rows="2" value={formData.address} onChange={e => setFormData(prev => ({...prev, address: e.target.value}))} placeholder="Full location for pickup..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl focus:bg-white outline-none resize-none" />
                  </div>
               </div>
            </div>
@@ -252,7 +252,7 @@ function OperationalRules() {
                     <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter italic">"Train your AI bot on your unique logic"</p>
                  </div>
               </div>
-              <textarea value={formData.bot_knowledge} onChange={e => setFormData({...formData, bot_knowledge: e.target.value})} placeholder="Example: We provide free extra sauce. No delivery for orders under Rs 500. Special discounts on Fridays..." className="w-full h-40 bg-slate-800/50 border border-slate-700 p-6 text-sm font-medium text-slate-200 rounded-3xl focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all relative z-10" />
+              <textarea value={formData.bot_knowledge} onChange={e => setFormData(prev => ({...prev, bot_knowledge: e.target.value}))} placeholder="Example: We provide free extra sauce. No delivery for orders under Rs 500. Special discounts on Fridays..." className="w-full h-40 bg-slate-800/50 border border-slate-700 p-6 text-sm font-medium text-slate-200 rounded-3xl focus:bg-slate-800 focus:ring-4 focus:ring-emerald-500/20 outline-none transition-all relative z-10" />
               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl" />
            </div>
         </div>
@@ -285,11 +285,11 @@ function OperationalRules() {
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Latitude</label>
-                           <input type="number" step="any" value={formData.latitude} onChange={e => setFormData({...formData, latitude: e.target.value})} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                           <input type="number" step="any" value={formData.latitude} onChange={e => setFormData(prev => ({...prev, latitude: e.target.value}))} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                         </div>
                         <div>
                            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Longitude</label>
-                           <input type="number" step="any" value={formData.longitude} onChange={e => setFormData({...formData, longitude: e.target.value})} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                           <input type="number" step="any" value={formData.longitude} onChange={e => setFormData(prev => ({...prev, longitude: e.target.value}))} placeholder="Detecting..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                         </div>
                     </div>
                     <div>
@@ -297,7 +297,7 @@ function OperationalRules() {
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest ">Service Radius (KM)</label>
                             <span className="text-[10px] font-black text-emerald-600">{formData.delivery_radius_km} KM</span>
                         </div>
-                        <input type="range" min="1" max="50" value={formData.delivery_radius_km} onChange={e => setFormData({...formData, delivery_radius_km: e.target.value})} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
+                        <input type="range" min="1" max="50" value={formData.delivery_radius_km} onChange={e => setFormData(prev => ({...prev, delivery_radius_km: e.target.value}))} className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600" />
                     </div>
                 </div>
 
@@ -319,31 +319,42 @@ function OperationalRules() {
                                     <div>
                                         <label className="text-[8px] font-black text-slate-400 uppercase">Min km</label>
                                         <input type="number" placeholder="0" value={tier.min} onChange={e => {
-                                            const newTiers = [...formData.delivery_tiers];
-                                            newTiers[idx].min = parseFloat(e.target.value);
-                                            setFormData({...formData, delivery_tiers: newTiers});
+                                            const val = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => {
+                                                const newTiers = [...prev.delivery_tiers];
+                                                newTiers[idx] = { ...newTiers[idx], min: val };
+                                                return { ...prev, delivery_tiers: newTiers };
+                                            });
                                         }} className="w-full bg-white border border-slate-100 px-2 py-1.5 text-xs font-bold rounded-lg" />
                                     </div>
                                     <div>
                                         <label className="text-[8px] font-black text-slate-400 uppercase">Max km</label>
                                         <input type="number" placeholder="5" value={tier.max} onChange={e => {
-                                            const newTiers = [...formData.delivery_tiers];
-                                            newTiers[idx].max = parseFloat(e.target.value);
-                                            setFormData({...formData, delivery_tiers: newTiers});
+                                            const val = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => {
+                                                const newTiers = [...prev.delivery_tiers];
+                                                newTiers[idx] = { ...newTiers[idx], max: val };
+                                                return { ...prev, delivery_tiers: newTiers };
+                                            });
                                         }} className="w-full bg-white border border-slate-100 px-2 py-1.5 text-xs font-bold rounded-lg" />
                                     </div>
                                     <div>
                                         <label className="text-[8px] font-black text-slate-400 uppercase">Charge</label>
                                         <input type="number" placeholder="0" value={tier.charge} onChange={e => {
-                                            const newTiers = [...formData.delivery_tiers];
-                                            newTiers[idx].charge = parseFloat(e.target.value);
-                                            setFormData({...formData, delivery_tiers: newTiers});
+                                            const val = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => {
+                                                const newTiers = [...prev.delivery_tiers];
+                                                newTiers[idx] = { ...newTiers[idx], charge: val };
+                                                return { ...prev, delivery_tiers: newTiers };
+                                            });
                                         }} className="w-full bg-white border border-emerald-100 px-2 py-1.5 text-xs font-bold rounded-lg text-emerald-600" />
                                     </div>
                                 </div>
                                 <button type="button" onClick={() => {
-                                    const newTiers = formData.delivery_tiers.filter((_, i) => i !== idx);
-                                    setFormData({...formData, delivery_tiers: newTiers});
+                                    setFormData(prev => ({
+                                        ...prev,
+                                        delivery_tiers: prev.delivery_tiers.filter((_, i) => i !== idx)
+                                    }));
                                 }} className="p-2 text-slate-300 hover:text-rose-500 transition-colors"><X className="w-4 h-4" /></button>
                             </div>
                         ))}
@@ -370,11 +381,11 @@ function OperationalRules() {
                 <div className="space-y-4">
                     <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Kitchen WhatsApp (KOT)</label>
-                        <input type="text" value={formData.kitchen_number} onChange={e => setFormData({...formData, kitchen_number: e.target.value})} placeholder="91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                        <input type="text" value={formData.kitchen_number} onChange={e => setFormData(prev => ({...prev, kitchen_number: e.target.value}))} placeholder="91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                     </div>
                     <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 shadow-sm">Staff Alerts (Comma Separated)</label>
-                        <input type="text" value={formData.notification_numbers.join(", ")} onChange={e => setFormData({...formData, notification_numbers: e.target.value.split(",").map(n => n.trim())})} placeholder="91..., 91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
+                        <input type="text" value={formData.notification_numbers.join(", ")} onChange={e => setFormData(prev => ({...prev, notification_numbers: e.target.value.split(",").map(n => n.trim())}))} placeholder="91..., 91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-3 text-sm font-bold text-slate-700 rounded-xl" />
                     </div>
                 </div>
                 
@@ -410,11 +421,11 @@ function OperationalRules() {
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 shadow-sm pl-1">SGST (%)</label>
-                    <input type="number" step="0.01" value={formData.sgst_percent} onChange={e => setFormData({...formData, sgst_percent: parseFloat(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
+                    <input type="number" step="0.01" value={formData.sgst_percent} onChange={e => setFormData(prev => ({...prev, sgst_percent: parseFloat(e.target.value) || 0}))} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                 </div>
                 <div className="flex flex-col justify-center gap-2">
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent">
-                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.gst_included} onChange={e => { setFormData({...formData, gst_included: e.target.checked}); }} />
+                        <input type="checkbox" className="w-4 h-4 text-emerald-600 rounded border-slate-300" checked={formData.gst_included} onChange={e => { setFormData(prev => ({...prev, gst_included: e.target.checked})); }} />
                         <span className="text-xs font-black text-slate-700 uppercase">GST Included in Price</span>
                     </label>
                     <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer hover:bg-slate-100 transition-colors border border-transparent">
@@ -437,7 +448,7 @@ function OperationalRules() {
                     </div>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={formData.loyalty_enabled} onChange={e => setFormData({...formData, loyalty_enabled: e.target.checked})} />
+                    <input type="checkbox" className="sr-only peer" checked={formData.loyalty_enabled} onChange={e => setFormData(prev => ({...prev, loyalty_enabled: e.target.checked}))} />
                     <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </label>
             </div>
@@ -445,22 +456,22 @@ function OperationalRules() {
             <div className={`grid grid-cols-1 md:grid-cols-4 gap-6 transition-all duration-500 ${formData.loyalty_enabled ? 'opacity-100 pointer-events-auto' : 'opacity-30 pointer-events-none grayscale'}`}>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Earn (Points per Rs 100)</label>
-                    <input type="number" value={formData.points_per_100} onChange={e => setFormData({...formData, points_per_100: parseInt(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
+                    <input type="number" value={formData.points_per_100} onChange={e => setFormData(prev => ({...prev, points_per_100: parseInt(e.target.value) || 0}))} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Redeem (Pts : Rs 1)</label>
                     <div className="flex items-center gap-2">
-                        <input type="number" value={formData.points_to_amount_ratio} onChange={e => setFormData({...formData, points_to_amount_ratio: parseFloat(e.target.value) || 1})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
+                        <input type="number" value={formData.points_to_amount_ratio} onChange={e => setFormData(prev => ({...prev, points_to_amount_ratio: parseFloat(e.target.value) || 1}))} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                         <span className="text-xs font-bold text-slate-400 whitespace-nowrap">Pts = Rs 1</span>
                     </div>
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Min Pts to Redeem</label>
-                    <input type="number" value={formData.min_redeem_points} onChange={e => setFormData({...formData, min_redeem_points: parseInt(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
+                    <input type="number" value={formData.min_redeem_points} onChange={e => setFormData(prev => ({...prev, min_redeem_points: parseInt(e.target.value) || 0}))} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                 </div>
                 <div>
                     <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1">Max Redeem per Order</label>
-                    <input type="number" value={formData.max_redeem_per_order} onChange={e => setFormData({...formData, max_redeem_per_order: parseInt(e.target.value) || 0})} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
+                    <input type="number" value={formData.max_redeem_per_order} onChange={e => setFormData(prev => ({...prev, max_redeem_per_order: parseInt(e.target.value) || 0}))} className="w-full bg-slate-50 border border-slate-100 px-4 py-3.5 text-sm font-bold text-slate-700 rounded-xl" />
                 </div>
             </div>
             {!formData.loyalty_enabled && <div className="mt-4 p-4 bg-amber-50 rounded-2xl border border-amber-100"><p className="text-[10px] font-bold text-amber-700 uppercase tracking-wide">Program Disabled: Customers will not earn or redeem points until enabled.</p></div>}
@@ -494,7 +505,7 @@ function OperationalRules() {
               <div className="space-y-3">
                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pl-1">Commerce Features</label>
                  <label className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer hover:bg-indigo-100 transition-colors border border-transparent active:scale-98">
-                     <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-slate-300" checked={formData.is_auth_required} onChange={e => setFormData({...formData, is_auth_required: e.target.checked})} />
+                     <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded border-slate-300" checked={formData.is_auth_required} onChange={e => setFormData(prev => ({...prev, is_auth_required: e.target.checked}))} />
                      <span className="text-xs font-black text-indigo-700 uppercase">Mandatory Mobile Login First</span>
                   </label>
                  {[
