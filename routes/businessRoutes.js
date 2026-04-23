@@ -54,7 +54,7 @@ router.post("/setup", authMiddleware, async (req, res) => {
           phone !== undefined ? phone : e.phone, 
           address !== undefined ? address : e.address, 
           businessType !== undefined ? businessType : e.business_type, 
-          settings !== undefined ? { ...(e.settings || {}), ...settings } : e.settings,
+          JSON.stringify(settings !== undefined ? { ...(e.settings || {}), ...settings } : (e.settings || {})),
           (latitude !== undefined && latitude !== "") ? latitude : (latitude === "" ? null : e.latitude), 
           (longitude !== undefined && longitude !== "") ? longitude : (longitude === "" ? null : e.longitude), 
           delivery_radius_km !== undefined ? delivery_radius_km : e.delivery_radius_km,
@@ -79,9 +79,9 @@ router.post("/setup", authMiddleware, async (req, res) => {
           points_to_amount_ratio !== undefined ? parseFloat(points_to_amount_ratio) : e.points_to_amount_ratio,
           min_redeem_points !== undefined ? parseInt(min_redeem_points) : e.min_redeem_points,
           max_redeem_per_order !== undefined ? parseInt(max_redeem_per_order) : e.max_redeem_per_order,
-          delivery_tiers !== undefined ? delivery_tiers : (e.delivery_tiers || []),
+          JSON.stringify(delivery_tiers !== undefined ? delivery_tiers : (e.delivery_tiers || [])),
           is_auth_required !== undefined ? !!is_auth_required : e.is_auth_required,
-          fulfillment_options !== undefined ? fulfillment_options : (e.fulfillment_options || {dinein: true, pickup: true, delivery: true}),
+          JSON.stringify(fulfillment_options !== undefined ? fulfillment_options : (e.fulfillment_options || {dinein: true, pickup: true, delivery: true})),
           userId
         ]
       );
@@ -108,9 +108,9 @@ router.post("/setup", authMiddleware, async (req, res) => {
             parseFloat(points_to_amount_ratio) || 10.00,
             parseInt(min_redeem_points) || 300,
             parseInt(max_redeem_per_order) || 300,
-            delivery_tiers || [],
+            JSON.stringify(delivery_tiers || []),
             !!is_auth_required,
-            fulfillment_options || {dinein: true, pickup: true, delivery: true}
+            JSON.stringify(fulfillment_options || {dinein: true, pickup: true, delivery: true})
         ]
       );
       console.log(`✨ NEW BUSINESS CREATED FOR ${userId}:`, result.rows[0]);
