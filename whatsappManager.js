@@ -127,11 +127,20 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         }
 
         // 🚛 RELAY TO STAFF
-        if (biz.notification_numbers && Array.isArray(biz.notification_numbers)) {
-            console.log(`[NOTIFY-STAFF] Relaying to ${biz.notification_numbers.length} staff numbers...`);
-            for (let num of biz.notification_numbers) {
-                const res = await sendOfficialMessage(num, staffMsg, userId);
-                if (!res.success) console.error(`[NOTIFY-STAFF-FAIL] Number: ${num} | Reason:`, res.error);
+        if (biz.notification_numbers) {
+            let staffNums = [];
+            if (Array.isArray(biz.notification_numbers)) {
+                staffNums = biz.notification_numbers;
+            } else if (typeof biz.notification_numbers === 'string') {
+                staffNums = biz.notification_numbers.split(/[,|\s]+/).filter(n => n.trim().length > 5);
+            }
+
+            if (staffNums.length > 0) {
+                console.log(`[NOTIFY-STAFF] Relaying to ${staffNums.length} staff numbers...`);
+                for (let num of staffNums) {
+                    const res = await sendOfficialMessage(num.trim(), staffMsg, userId);
+                    if (!res.success) console.error(`[NOTIFY-STAFF-FAIL] Number: ${num} | Reason:`, res.error);
+                }
             }
         }
     } catch (e) { 

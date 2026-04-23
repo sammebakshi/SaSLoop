@@ -1,15 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import API_BASE from "../config";
-import {
-  Plus, Minus, CheckCircle, Utensils, Search,
-  X, MapPin, ArrowRight, RefreshCw, ShoppingBag,
-  Bike, Store, Clock, Phone, User, Package,
-  ChevronLeft, Sparkles, AlertCircle,
-  MessageCircle, Activity, Globe
+import { 
+  Plus, Minus, ShoppingBag, Utensils, Search, 
+  X, MapPin, ChevronRight, Clock, RefreshCw, 
+  CheckCircle2, Package, History, Bike, Store, Activity, Sparkles, AlertCircle
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
-import { MapContainer, TileLayer, Marker, useMapEvents, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -48,11 +46,10 @@ function OnlineOrder() {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [loyaltyOtp, setLoyaltyOtp] = useState("");
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [checkingLoyalty, setCheckingLoyalty] = useState(false);
-
+  
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
+  const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
   
   const [view, setView] = useState("auth"); 
   const [deliveryCoords, setDeliveryCoords] = useState(null);
@@ -61,17 +58,13 @@ function OnlineOrder() {
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
 
-  // 🌍 STANDARDIZED PHONE LOGIC (+91...)
   const getStandardPhone = () => {
-    const cleanPhone = customerPhone.replace(/\D/g, "");
+    const cleanPhone = (customerPhone || "").replace(/\D/g, "");
     const cleanCode = countryCode.replace(/\D/g, "");
-    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) {
-      return "+" + cleanPhone;
-    }
+    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) return "+" + cleanPhone;
     return "+" + cleanCode + cleanPhone;
   };
 
-  // LIFTS & CALCULATIONS
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
@@ -105,10 +98,9 @@ function OnlineOrder() {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
+    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
   }, [bizId]);
 
-  // Amazon-style Polling
   useEffect(() => {
     if (view !== "auth") {
       fetchActiveOrders();
@@ -117,21 +109,17 @@ function OnlineOrder() {
     }
   }, [view, customerPhone]);
 
-  const checkLoyalty = async () => { 
-    if (!customerPhone || customerPhone.length < 5) return; 
-    setCheckingLoyalty(true); 
-    try { 
-      const stdPhone = getStandardPhone();
-      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(stdPhone)}`); 
-      const d = await res.json(); 
-      setLoyaltyPoints(d.points || 0); 
-    } catch (e) { console.error(e); } 
-    finally { setCheckingLoyalty(false); } 
+  const checkLoyalty = async () => {
+    try {
+      const std = getStandardPhone();
+      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
+      const d = await res.json();
+      setLoyaltyPoints(d.points || 0);
+    } catch (e) {}
   };
 
   const handleVerify = async () => {
-    if (!customerPhone || customerPhone.length < 5) return alert("Valid phone req.");
-    if (!customerName.trim()) return alert("Name is required.");
+    if (!customerPhone || !customerName.trim()) return alert("Name and Phone required.");
     setIsVerifying(true);
     try {
         const fullPhone = getStandardPhone();
@@ -140,15 +128,12 @@ function OnlineOrder() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: bizId, phone: fullPhone })
         });
-        const d = await res.json();
-        if (d.success) setOtpMode(true);
-        else alert(d.error || "Failed to send OTP.");
-    } catch (e) { alert("Something went wrong"); }
-    finally { setIsVerifying(false); }
+        if ((await res.json()).success) setOtpMode(true);
+        else alert("Failed to send code.");
+    } finally { setIsVerifying(false); }
   };
 
   const verifyAuthOtp = async () => {
-    if (authOtp.length < 6) return alert("Enter 6-digit code.");
     setIsVerifying(true);
     try {
         const fullPhone = getStandardPhone();
@@ -157,13 +142,9 @@ function OnlineOrder() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
         });
-        const d = await res.json();
-        if (d.success) {
-            await checkLoyalty();
-            setView("fulfillment");
-        } else alert(d.error || "Invalid OTP");
-    } catch (e) { alert("Verification failed"); }
-    finally { setIsVerifying(false); }
+        if ((await res.json()).success) { await checkLoyalty(); setView("fulfillment"); }
+        else alert("Invalid Code");
+    } finally { setIsVerifying(false); }
   };
 
   const updateMapLocation = async (lat, lng) => {
@@ -181,16 +162,12 @@ function OnlineOrder() {
     const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
     if (matchedTier) charge = parseFloat(matchedTier.charge);
     setDeliveryRadiusStatus({ allowed, charge, distance: dist });
-    try {
-        const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-        const g = await geoRes.json();
-        setCustomerAddress(g.display_name || "Detected Address");
-    } catch (e) {}
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(r => r.json()).then(g => setCustomerAddress(g.display_name));
   };
 
   const placeOrder = async () => {
     setPlacing(true);
-    const fullNumber = getStandardPhone();
+    const fullPhone = getStandardPhone();
     try {
       const res = await fetch(`${API_BASE}/api/public/order`, { 
         method: "POST", 
@@ -198,15 +175,14 @@ function OnlineOrder() {
         body: JSON.stringify({ 
           userId: bizId, 
           tableNumber: "0", 
-          items: cart.map(i => ({ name: i.product_name, qty: i.qty, price: i.price, tax_applicable: i.tax_applicable })), 
+          items: cart, 
           subtotal: taxData.isIncluded ? subtotal : subtotal + taxData.totalTax, 
           cgst: taxData.cgst, 
           sgst: taxData.sgst, 
           totalPrice: finalTotal, 
           customerName, 
-          customerPhone: fullNumber, 
+          customerPhone: fullPhone, 
           pointsToRedeem, 
-          loyaltyOtp,
           address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup", 
           fulfillmentMode, 
           source: "ONLINE_ORDER",
@@ -214,61 +190,32 @@ function OnlineOrder() {
         }) 
       });
       const o = await res.json();
-      if (res.ok) { 
-        setOrderRef(o.orderRef); 
-        setFinalPaidAmount(o.finalPrice || 0); 
-        setView("confirmed"); 
-        setCart([]); 
-        fetchActiveOrders();
-      } else alert(o.error || "Failed to process order.");
-    } catch (err) { alert("Error. Please contact staff."); }
-    finally { setPlacing(false); }
+      if (res.ok) { setOrderRef(o.orderRef); setFinalPaidAmount(o.finalPrice || 0); setView("confirmed"); setCart([]); fetchActiveOrders(); }
+      else alert(o.error || "Failed");
+    } finally { setPlacing(false); }
   };
 
-  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading...</p></div>);
+  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase tracking-widest text-slate-300">Loading Flavors...</p></div>);
 
   if (view === "auth") {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden font-sans">
-        <div className="absolute inset-0 z-0 scale-110 opacity-30">
-          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" />
-        </div>
+        <div className="absolute inset-0 z-0 scale-110 opacity-30"><img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" /><div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" /></div>
         <div className="relative z-10 w-full max-w-[380px] animate-in fade-in zoom-in duration-700">
           <div className="bg-white/10 backdrop-blur-3xl px-8 py-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
-              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                 {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}
-              </div>
+              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">{logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}</div>
               <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">{biz?.name}</h1>
-              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">VIP Concierge</p>
+              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Online Concierge</p>
               <div className="space-y-4 text-left">
                  {!otpMode ? (
                    <>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label>
-                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" autoFocus />
-                      </div>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label>
-                        <div className="flex gap-2">
-                           <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">
-                              {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
-                           </select>
-                           <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" />
-                        </div>
-                      </div>
+                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
+                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label><div className="flex gap-2"><select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none">{countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}</select><input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" /></div></div>
                    </>
                  ) : (
-                   <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4">
-                      <p className="text-[10px] font-black text-white/60 text-center uppercase tracking-widest">Enter the 6-digit code</p>
-                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" />
-                      <button onClick={() => setOtpMode(false)} className="w-full text-[9px] font-black text-white/30 uppercase tracking-[0.2em] transition-all underline underline-offset-4">Change Profile</button>
-                   </div>
+                   <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verification Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" /></div>
                  )}
-                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">
-                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}
-                    {!isVerifying && <ArrowRight className="w-4 h-4" />}
-                 </button>
+                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}</button>
               </div>
           </div>
         </div>
@@ -279,20 +226,14 @@ function OnlineOrder() {
   if (view === "confirmed") {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
-         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl shadow-emerald-500/20">
-            <CheckCircle className="w-10 h-10 text-emerald-600" />
+         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl"><CheckCircle2 className="w-10 h-10 text-emerald-600" /></div>
+         <h1 className="text-3xl font-black text-slate-900 mb-2 uppercase italic">Placed!</h1>
+         <p className="text-xs font-black text-slate-300 uppercase tracking-widest mb-10">We are on it</p>
+         <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
+            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order ID</p>
+            <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono italic">{orderRef}</p>
          </div>
-         <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
-         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Check WhatsApp for confirmation</p>
-         <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-sm mb-10 text-center">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order Reference</p>
-            <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase">{orderRef}</p>
-            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-6">
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Total</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Confirmed</p></div>
-            </div>
-         </div>
-         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Back to Menu</button>
+         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest">Back to Flavors</button>
       </div>
     );
   }
@@ -300,16 +241,12 @@ function OnlineOrder() {
   if (view === "fulfillment") {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-         <div className="w-full max-w-[480px] bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-10 animate-in slide-in-from-bottom-10">
-            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Method</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">Choose how you'd like to receive your treats</p>
-            <div className="grid grid-cols-2 gap-4 mb-10">
-               {[
-                 { id: 'PICKUP', icon: <Store className="w-6 h-6"/> , t: 'Pickup' }, 
-                 { id: 'DELIVERY', icon: <Bike className="w-6 h-6"/> , t: 'Delivery' }
-               ].map(m => (
-                  <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-50 bg-white'}`}>
-                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${fulfillmentMode === m.id ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{m.icon}</div>
+         <div className="w-full max-w-[480px] bg-white rounded-[3.5rem] shadow-2xl p-10">
+            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase italic tracking-tighter">Method</h2>
+            <div className="grid grid-cols-2 gap-4 mb-10 mt-6">
+               {[ { id: 'PICKUP', icon: <Store className="w-6 h-6"/> , t: 'Pickup' }, { id: 'DELIVERY', icon: <Bike className="w-6 h-6"/> , t: 'Delivery' } ].map(m => (
+                  <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-500 bg-emerald-50/20' : 'border-slate-50'}`}>
+                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${fulfillmentMode === m.id ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'}`}>{m.icon}</div>
                      <p className={`font-black uppercase text-xs tracking-widest ${fulfillmentMode === m.id ? 'text-emerald-900' : 'text-slate-500'}`}>{m.t}</p>
                   </button>
                ))}
@@ -321,16 +258,13 @@ function OnlineOrder() {
                        <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution='&copy; Google' />
                        <MapPicker lat={deliveryCoords?.lat} lng={deliveryCoords?.lng} onChange={updateMapLocation} />
                      </MapContainer>
-                     <button onClick={() => navigator.geolocation.getCurrentPosition(p => updateMapLocation(p.coords.latitude, p.coords.longitude))} className="absolute bottom-4 right-4 z-[1000] w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-emerald-500"><MapPin className="w-5 h-5" /></button>
                   </div>
-                  <div className={`p-5 rounded-2xl border-2 transition-all ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
-                     {deliveryRadiusStatus.allowed ? (
-                        <div className="flex justify-between items-center"><p className="text-[10px] font-black text-emerald-900 uppercase truncate flex-1 leading-tight"><MapPin className="w-3 h-3 inline mr-1" /> {customerAddress.substring(0, 40)}...</p><p className="text-[10px] font-black text-emerald-500 bg-white px-2 py-1 rounded-lg">+{symbol}{deliveryRadiusStatus.charge}</p></div>
-                     ) : (<p className="text-[10px] font-black text-rose-600 uppercase flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Outside Range</p>)}
+                  <div className={`p-5 rounded-2xl border-2 ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
+                    <p className="text-[10px] font-black uppercase text-slate-900 truncate"><MapPin className="w-3 h-3 inline mr-1 text-emerald-500" /> {customerAddress || "Detecting..."}</p>
                   </div>
                </div>
             )}
-            <button onClick={() => setView("menu")} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px] active:scale-95 transition-all">Start My Order</button>
+            <button onClick={() => setView("menu")} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px]">Continue to Menu</button>
          </div>
       </div>
     );
@@ -340,60 +274,44 @@ function OnlineOrder() {
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div className="flex items-center gap-3 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
-             <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
-             <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">LOYALTY: {loyaltyPoints} PTS</p>
-           </div>
-           
-           <div className="flex items-center gap-3">
-              {activeOrders.length > 0 && (
-                 <button onClick={() => setShowOrders(true)} className="flex items-center gap-3 bg-slate-950 text-white px-5 py-2.5 rounded-2xl shadow-2xl animate-in zoom-in">
-                    <Package className="w-4 h-4 text-emerald-400" />
-                    <span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'DELIVERED').length} ACTIVE</span>
-                 </button>
-              )}
-              <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-100 items-center px-5 rounded-2xl flex gap-3 text-slate-900 border border-slate-200">
-                 {fulfillmentMode === 'DELIVERY' ? <Bike className="w-4 h-4 text-emerald-500" /> : <Store className="w-4 h-4 text-emerald-500" />}
-                 <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{fulfillmentMode}</span>
-              </button>
+           <div className="flex flex-col"><h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px]">{biz?.name}</h1><p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Points: {loyaltyPoints}</p></div>
+           <div className="flex gap-2">
+              {activeOrders.length > 0 && <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl"><Package className="w-4 h-4 text-emerald-400" /><span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.length} ORDERS</span></button>}
+              <button onClick={() => setView("fulfillment")} className="h-10 bg-slate-100 flex items-center px-4 rounded-2xl text-[10px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest italic">{fulfillmentMode}</button>
            </div>
         </div>
       </header>
 
-      {/* AMAZON-STYLE ORDER DRAWER */}
+      {/* TRACKING & HISTORY HUB */}
       {showOrders && (
-        <div className="fixed inset-0 z-[200] font-sans">
+        <div className="fixed inset-0 z-[200]">
            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
-           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                 <h2 className="text-xl font-black uppercase tracking-tighter">Order Tracking</h2>
-                 <button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button>
+           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col font-sans">
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between"><h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">My Hub <Activity className="w-6 h-6 text-emerald-500" /></h2><button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button></div>
+              <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-[1.5rem] border border-slate-100">
+                 <button onClick={() => setOrderTab("tracking")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Tracking</button>
+                 <button onClick={() => setOrderTab("history")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>History</button>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
-                 {activeOrders.map(order => (
-                    <div key={order.id} className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-2xl">
-                       <div className="flex items-center justify-between mb-6">
-                          <div className="px-4 py-1.5 bg-white border border-slate-100 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-400">{order.order_reference}</div>
-                          <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                             order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                             order.status === 'PREPARING' ? 'bg-blue-100 text-blue-700 animate-pulse' :
-                             order.status === 'DELIVERED' || order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
-                          }`}>● {order.status}</div>
-                       </div>
-                       <div className="space-y-3 mb-8">
-                          {JSON.parse(order.items || '[]').map((it, idx) => (
-                             <div key={idx} className="flex justify-between items-center"><p className="text-[11px] font-black text-slate-900 uppercase">{it.qty}x {it.name}</p></div>
-                          ))}
-                       </div>
-                       <div className="flex justify-between items-center border-t border-slate-200 pt-6">
-                          <div className="flex items-center gap-2 text-slate-400"><Clock className="w-3.5 h-3.5" /><span className="text-[9px] font-black uppercase">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                          <p className="text-lg font-black text-slate-900 tracking-tighter">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
-                       </div>
-                    </div>
-                 ))}
-              </div>
-              <div className="p-8 bg-slate-50 border-t border-white">
-                 <button onClick={() => { setShowOrders(false); setView("menu"); }} className="w-full bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">Continue Selection <ArrowRight className="w-4 h-4" /></button>
+              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                 {orderTab === "tracking" ? (
+                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? <div className="h-40 flex flex-col items-center justify-center opacity-20"><Package className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">No Active Orders</p></div> : 
+                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
+                        <div key={order.id} className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-2xl">
+                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-400 uppercase">{order.order_reference}</span><div className={`px-2 py-1 rounded-full text-[7px] font-black uppercase ${order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700 animate-pulse'}`}>{order.status}</div></div>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate mb-2">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-lg font-black text-slate-900">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
+                        </div>
+                   ))
+                 ) : (
+                   activeOrders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED').length === 0 ? <div className="h-40 flex flex-col items-center justify-center opacity-20"><History className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">No Past Orders</p></div> : 
+                   activeOrders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED').map(order => (
+                        <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm opacity-80">
+                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-300 uppercase">{new Date(order.created_at).toLocaleDateString()}</span><span className={`text-[8px] font-black uppercase ${order.status === 'COMPLETED' ? 'text-emerald-500' : 'text-slate-400'}`}>{order.status}</span></div>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-sm font-black text-slate-400 mt-1">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
+                        </div>
+                   ))
+                 )}
               </div>
            </div>
         </div>
@@ -401,54 +319,30 @@ function OnlineOrder() {
 
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
-             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Menu</h2>
-             {categories.map(cat => (
-               <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
-             ))}
+             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Menu</h2>
+             {categories.map(cat => <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>)}
           </aside>
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
                 {bannerUrl && <div className="w-full h-40 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
                 <div className="px-10 py-4 flex items-center gap-6 relative -mt-10">
-                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
-                     {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}
-                  </div>
-                  <div className="flex-1 min-w-0 pt-10">
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address}</p>
-                  </div>
+                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">{logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}</div>
+                  <div className="flex-1 min-w-0 pt-10"><h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1><p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Fresh Food Daily'}</p></div>
                 </div>
              </div>
-             <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="Search flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} /></div>
-             </div>
+             <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl"><div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all" value={search} onChange={e => setSearch(e.target.value)} /></div></div>
              <div className="px-10 py-4 pb-20">
                 {categories.map(cat => (
-                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-20 scroll-mt-6">
-                    <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em]">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
+                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
+                    <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                       {groupedItems[cat].map(item => {
                         const inCart = cart.find(c => c.id === item.id);
                         return (
                           <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
-                            <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">
-                              {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div>
-                              <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
-                            </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
-                            <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
-                            <div className="px-4 mt-auto">
-                               {inCart ? (
-                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button>
-                                   <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button>
-                                 </div>
-                               ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add Item <Plus className="w-4 h-4" /></button>
-                               )}
-                            </div>
+                            <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">{item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}<div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div></div>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase italic tracking-tight">{item.product_name}</h3>
+                            <div className="px-4 mt-auto">{inCart ? <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl"><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button><span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button></div> : <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2">Add to Cart <Plus className="w-4 h-4" /></button>}</div>
                           </div>
                         );
                       })}
@@ -459,49 +353,18 @@ function OnlineOrder() {
           </div>
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
-                <div className="flex items-center justify-between mb-12">
-                   <h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4"><ShoppingBag className="w-7 h-7 text-emerald-500" /> Order</h2>
-                   <span className="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span>
-                </div>
-                {cart.length === 0 ? (<div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest">Cart is empty</p></div>) : (
+                <div className="flex items-center justify-between mb-12"><h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4"><ShoppingBag className="w-7 h-7 text-emerald-500" /> Checkout</h2><span className="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span></div>
+                {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest italic">Bag is Empty</p></div> : (
                   <div className="space-y-12">
-                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">
-                        {cart.map(ci => (
-                          <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
-                             <div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase line-clamp-1">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div>
-                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100">
-                                <button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button>
-                                <span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span>
-                                <button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button>
-                             </div>
-                          </div>
-                        ))}
-                     </div>
-                     <div className="border-t-2 border-slate-50 pt-10 space-y-5">
-                        <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-[0.2em]"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
-                        {fulfillmentMode === 'DELIVERY' && <div className="flex justify-between text-[11px] items-center text-emerald-600 font-bold uppercase tracking-[0.2em]"><span>Delivery</span><span>{symbol}{deliveryRadiusStatus.charge || 0}</span></div>}
-                        <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
-                     </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Finish & Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">{cart.map(ci => <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4"><div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div><div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button></div></div>)}</div>
+                     <div className="border-t-2 border-slate-50 pt-10 space-y-5"><div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Final</span><span>{symbol}{finalTotal.toFixed(0)}</span></div></div>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Confirm Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>
           </aside>
       </div>
-      {cart.length > 0 && view === "menu" && (
-        <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
-           <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all">
-              <div className="flex items-center gap-5 pl-4">
-                 <div className="relative">
-                   <div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div>
-                   <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div>
-                 </div>
-                 <div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p><p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p></div>
-              </div>
-              <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ArrowRight className="w-5 h-5" /></div>
-           </button>
-        </div>
-      )}
+      {cart.length > 0 && <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 items-center"><button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all"><div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p><p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p></div></div><div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div></button></div>}
     </div>
   );
 }

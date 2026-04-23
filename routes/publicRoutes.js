@@ -117,22 +117,25 @@ router.post("/order", async (req, res) => {
             const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
             const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
             let subtotalCalc = parseFloat(frontendSubtotal) || 0;
-            if (!frontendSubtotal && items) items.forEach(i => subtotalCalc += (i.qty * i.price));
+            if (!frontendSubtotal && items) {
+                const itemsArr = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+                itemsArr.forEach(i => subtotalCalc += ((parseFloat(i.qty) || 0) * (parseFloat(i.price) || 0)));
+            }
             
             await whatsappManager.notifyKitchenAndStaff(
-                userId, currentOrderRef, customerName || "Guest", dbPhone || "Guest", items || [],
+                userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", items || [],
                 subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
-                mode.toLowerCase(), orderAddress, tableNumber && tableNumber !== "0" ? tableNumber : null
+                (fulfillmentMode || "QR").toLowerCase(), orderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
             );
-        } catch (notifErr) { console.error("Notification failed:", notifErr); }
+        } catch (notifErr) { console.error("KITCHEN NOTIF FAIL:", notifErr.message); }
         
         // Notify Customer
-        if (isOnline && dbPhone.startsWith('+')) {
+        if (isOnline && dbPhone && dbPhone.startsWith('+')) {
             try {
                 const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
                 const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\nWe'll update you when it's ready! 🔥`;
                 await whatsappManager.sendOfficialMessage(dbPhone, custMsg, userId);
-            } catch (custErr) { console.error("Customer Msg failed:", custErr); }
+            } catch (custErr) { console.error("Customer Msg failed:", custErr.message); }
         }
         
         // Update Points
