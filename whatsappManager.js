@@ -120,15 +120,16 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         const staffMsg = staffMsgArr.join("\n");
 
         // 🚛 RELAY TO KITCHEN
-        if (biz.kitchen_number) {
-            console.log(`[NOTIFY-KITCHEN] Relaying to Number: ${biz.kitchen_number}`);
-            const res = await sendOfficialMessage(biz.kitchen_number, kot, userId);
+        const kitchenNum = Array.isArray(biz.kitchen_number) ? biz.kitchen_number[0] : biz.kitchen_number;
+        if (kitchenNum && kitchenNum.length > 5) {
+            console.log(`[NOTIFY-KITCHEN] Relaying to Number: ${kitchenNum}`);
+            const res = await sendOfficialMessage(kitchenNum, kot, userId);
             if (!res.success) console.error(`[NOTIFY-KITCHEN-FAIL] Reason:`, res.error);
         }
 
         // 🚛 RELAY TO STAFF
+        let staffNums = [];
         if (biz.notification_numbers) {
-            let staffNums = [];
             if (Array.isArray(biz.notification_numbers)) {
                 staffNums = biz.notification_numbers;
             } else if (typeof biz.notification_numbers === 'string') {
@@ -138,8 +139,11 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
             if (staffNums.length > 0) {
                 console.log(`[NOTIFY-STAFF] Relaying to ${staffNums.length} staff numbers...`);
                 for (let num of staffNums) {
-                    const res = await sendOfficialMessage(num.trim(), staffMsg, userId);
-                    if (!res.success) console.error(`[NOTIFY-STAFF-FAIL] Number: ${num} | Reason:`, res.error);
+                    const cleanNum = (typeof num === 'string') ? num.trim() : num;
+                    if (cleanNum) {
+                        const res = await sendOfficialMessage(cleanNum, staffMsg, userId);
+                        if (!res.success) console.error(`[NOTIFY-STAFF-FAIL] Number: ${cleanNum} | Reason:`, res.error);
+                    }
                 }
             }
         }
