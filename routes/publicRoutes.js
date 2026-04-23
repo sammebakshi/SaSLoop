@@ -32,6 +32,11 @@ router.get("/menu/:userId", async (req, res) => {
 router.post("/order", async (req, res) => {
     try {
         const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, loyaltyOtp, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst, status: customStatus, paymentMethod, paymentStatus, discount_amount, service_charge } = req.body;
+        
+        // 🛡️ SANITIZE PHONE: Global cleaning to only digits
+        const cleanPhone = (customerPhone || "").replace(/\D/g, "");
+        const dbPhone = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+        
         const isOnline = source === "ONLINE_ORDER";
         const isPOS = source === "POS_MANUAL";
         const prefix = isOnline ? "ONL" : (isPOS ? "POS" : "QR");
@@ -43,37 +48,36 @@ router.post("/order", async (req, res) => {
 
         const currSymbol = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
         
-        let finalPrice = totalPrice;
+        let finalPrice = parseFloat(totalPrice) || 0;
         let redeemedPoints = 0;
 
         // Loyalty Redemption Logic
         const ptsRatio = parseFloat(bizData?.points_to_amount_ratio) || 10.00;
         const ptsEnabled = bizData?.loyalty_enabled !== false;
-        const minRedeem = bizData?.min_redeem_points || 300;
+        const minRedeem = parseInt(bizData?.min_redeem_points) || 300;
 
-        if (ptsEnabled && pointsToRedeem && pointsToRedeem >= minRedeem && customerPhone) {
-            // 🛡️ SECURITY: Verify OTP for point redemption
-            const normPhone = customerPhone.replace(/\D/g, "");
-            const otpCheck = await pool.query(
-                "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
-                [userId, normPhone, loyaltyOtp]
-            );
+        if (ptsEnabled && pointsToRedeem && pointsToRedeem >= minRedeem && dbPhone) {
+            try {
+                // 🛡️ SECURITY: Verify OTP for point redemption
+                const otpCheck = await pool.query(
+                    "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
+                    [userId, dbPhone, loyaltyOtp]
+                );
 
-            if (otpCheck.rows.length === 0) {
-                return res.status(401).json({ error: "Invalid or expired Loyalty OTP. Please verify your phone number." });
-            }
-
-            const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, normPhone]);
-            const available = checkPoints.rows[0]?.points || 0;
-            if (available >= pointsToRedeem) {
-                redeemedPoints = pointsToRedeem;
-                // Cleanup OTP after successful entry
-                await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
-            }
+                if (otpCheck.rows.length > 0) {
+                    const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
+                    const available = checkPoints.rows[0]?.points || 0;
+                    if (available >= pointsToRedeem) {
+                        redeemedPoints = pointsToRedeem;
+                        await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
+                    }
+                }
+            } catch (e) { console.error("Redemption logic fail (Safe-Skip):", e); }
         }
+        
         const orderAddress = address || (tableNumber && tableNumber !== "0" ? `Table ${tableNumber}` : "Pickup");
 
-        // SMART UPSERT LOGIC: Check if this table already has an active session
+        // SMART UPSERT LOGIC
         let existingOrder = null;
         if (tableNumber && tableNumber !== "0" && isPOS) {
            const checkRes = await pool.query(
@@ -88,73 +92,70 @@ router.post("/order", async (req, res) => {
         let currentOrderRef = orderRef;
 
         if (existingOrder) {
-           // UPDATE EXISTING SESSION
-           orderId = existingOrder.id;
-           currentOrderRef = existingOrder.order_reference;
-           insertRes = await pool.query(
-             "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7 WHERE id=$8 RETURNING *",
-             [JSON.stringify(items), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, orderId]
-           );
+            orderId = existingOrder.id;
+            currentOrderRef = existingOrder.order_reference;
+            insertRes = await pool.query(
+              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7 WHERE id=$8 RETURNING *",
+              [JSON.stringify(items || []), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, orderId]
+            );
         } else {
-           // NEW SESSION
-           insertRes = await pool.query(
-               "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
-               [userId, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
-           );
-           orderId = insertRes.rows[0].id;
+            insertRes = await pool.query(
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items || []), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
+            );
+            orderId = insertRes.rows[0].id;
         }
         
         // Build notification message
         const mode = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINEIN" : "PICKUP");
-        const modeLabel = mode === "DELIVERY" ? "🚚 Home Delivery" : (mode === "PICKUP" ? "🏪 Pickup" : `🍽️ Dine-In (Table ${tableNumber})`);
-        const itemLines = items.map(i => `• ${i.qty}x ${i.name}`).join("\n");
+        const modeLabel = mode === "DELIVERY" ? "🚚 Delivery" : (mode === "PICKUP" ? "🏪 Pickup" : "🍽️ Table Order");
+        const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
         
-        // Notify Kitchen & Staff
+        // Notify Kitchen & Staff (Non-blocking)
         try {
             const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
             const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
-            let subtotal = frontendSubtotal !== undefined ? frontendSubtotal : 0;
-            if (frontendSubtotal === undefined) items.forEach(i => subtotal += (i.qty * i.price));
-            
-            let cgstAmount = frontendCgst !== undefined ? frontendCgst : 0;
-            let sgstAmount = frontendSgst !== undefined ? frontendSgst : 0;
+            let subtotal = parseFloat(frontendSubtotal) || 0;
+            if (!frontendSubtotal && items) items.forEach(i => subtotal += (i.qty * i.price));
             
             await whatsappManager.notifyKitchenAndStaff(
-                userId, currentOrderRef, customerName || "Guest", customerPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), items,
-                subtotal, finalPrice, cgstAmount, sgstAmount, cgstRate, sgstRate, currSymbol,
-                mode.toLowerCase(), address, tableNumber && tableNumber !== "0" ? tableNumber : null
+                userId, currentOrderRef, customerName || "Guest", dbPhone || "Guest", items || [],
+                subtotal, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
+                mode.toLowerCase(), orderAddress, tableNumber && tableNumber !== "0" ? tableNumber : null
             );
-        } catch (notifErr) { console.error("Staff notification failed:", notifErr); }
+        } catch (notifErr) { console.error("Staff notification failed (Non-critical):", notifErr); }
         
-        // Notify Customer (for online orders)
-        try {
-            if (isOnline && customerPhone && customerPhone !== "QR-ORDER") {
-                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n*Type:* ${modeLabel}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\n⏱️ Estimated: ${mode === 'DELIVERY' ? '30-45 min' : '15-20 min'}\n\nWe'll update you when it's ready! 🔥`;
-                await whatsappManager.sendOfficialMessage(customerPhone, custMsg, userId, `CONFIRM_${orderId}`);
-            }
-        } catch (custErr) { console.error("Customer notification failed:", custErr); }
+        // Notify Customer (Non-blocking)
+        if (isOnline && dbPhone && dbPhone.length >= 10) {
+            try {
+                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n*Type:* ${modeLabel}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\nWe'll update you when it's ready! 🔥`;
+                await whatsappManager.sendOfficialMessage(dbPhone, custMsg, userId);
+            } catch (custErr) { console.error("Customer notification failed (Non-critical):", custErr); }
+        }
         
-        // Update Points (Only for new sales completions)
-        if (customerPhone && customerPhone !== "QR-ORDER" && (customStatus === 'COMPLETED' || !existingOrder)) {
-            const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
-            const earned = Math.floor(finalPrice * ptsEarnRate);
-            await pool.query(
-                `INSERT INTO customer_loyalty (user_id, customer_number, name, total_spent, points, last_visit)
-                 VALUES ($1, $2, $3, $4, $5, NOW())
-                 ON CONFLICT (user_id, customer_number) 
-                 DO UPDATE SET 
-                    name = EXCLUDED.name,
-                    total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
-                    points = (customer_loyalty.points + EXCLUDED.points) - $6,
-                    last_visit = NOW()`,
-                [userId, customerPhone.replace(/\D/g, ""), customerName || "Guest", finalPrice, earned, redeemedPoints]
-            );
+        // Update Points (Only for new sales or completions - with strict safety)
+        if (dbPhone && dbPhone.length >= 10 && (customStatus === 'COMPLETED' || !existingOrder)) {
+            try {
+                const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
+                const earned = Math.floor(finalPrice * ptsEarnRate) || 0;
+                await pool.query(
+                    `INSERT INTO customer_loyalty (user_id, customer_number, name, total_spent, points, last_visit)
+                     VALUES ($1, $2, $3, $4, $5, NOW())
+                     ON CONFLICT (user_id, customer_number) 
+                     DO UPDATE SET 
+                        name = COALESCE(EXCLUDED.name, customer_loyalty.name),
+                        total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
+                        points = COALESCE(customer_loyalty.points, 0) + EXCLUDED.points - $6,
+                        last_visit = NOW()`,
+                    [userId, dbPhone, customerName || "Customer", finalPrice, earned, redeemedPoints]
+                );
+            } catch (pErr) { console.error("Loyalty update failed (Non-critical):", pErr); }
         }
 
         res.json({ success: true, orderId, orderRef: currentOrderRef, finalPrice, redeemedPoints });
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal error" });
+        console.error("CRITICAL ORDER ERROR:", err);
+        res.status(500).json({ error: "Could not process order. Please try again." });
     }
 });
 
@@ -162,47 +163,46 @@ router.post("/order", async (req, res) => {
 router.post("/loyalty/request-otp", async (req, res) => {
     try {
         const { userId, phone, manual } = req.body;
-        const normPhone = phone.replace(/\D/g, "");
+        const normPhone = (phone || "").replace(/\D/g, "");
+        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
         
-        if (!normPhone) return res.status(400).json({ error: "Phone number is required." });
+        if (!dbPhone) return res.status(400).json({ error: "Phone number is required." });
 
-        // Check if customer exists and has points
-        const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, normPhone]);
+        const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
         if (checkPoints.rows.length === 0 || (checkPoints.rows[0]?.points || 0) <= 0) {
             return res.status(400).json({ error: "No loyalty points found for this number." });
         }
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-        // Clear existing OTPs for this number
-        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, normPhone]);
-
+        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, dbPhone]);
         await pool.query(
             "INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)",
-            [userId, normPhone, otp, expiresAt]
+            [userId, dbPhone, otp, expiresAt]
         );
 
-        // If manual is true, we skip sending the chargeble message and let user trigger it via WA Link
         if (!manual) {
             const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
             const bizName = bizRes.rows[0]?.name || "Restaurant";
-            const otpMsg = `🔐 *Verification Code*\n\nYour OTP for redeeming loyalty points at *${bizName}* is: *${otp}*.\n\nValid for 10 minutes. Do not share this with anyone!`;
-            await whatsappManager.sendOfficialMessage(normPhone, otpMsg, userId);
+            const otpMsg = `🔐 *Verification Code*\n\nYour OTP for points redemption at *${bizName}* is: *${otp}*.\n\nValid for 10 minutes.`;
+            await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
         }
         
-        res.json({ success: true, message: "OTP generated successfully." });
+        res.json({ success: true, message: "OTP generated." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to process OTP request" });
     }
 });
 
+// 📋 GET LOYALTY POINTS
 router.get("/loyalty/:userId/:phone", async (req, res) => {
     try {
         const { userId, phone } = req.params;
-        const normPhone = phone.replace(/\D/g, ""); 
-        const result = await pool.query("SELECT points, total_spent FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, normPhone]);
+        const normPhone = (phone || "").replace(/\D/g, ""); 
+        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
+        const result = await pool.query("SELECT points, total_spent FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
         res.json(result.rows[0] || { points: 0, total_spent: 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -214,7 +214,7 @@ router.post("/call-waiter", async (req, res) => {
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
         const bizData = bizRes.rows[0];
 
-        const alert = `🛎️ *WAITER REQUESTED*\n*Table ${tableNumber}* is asking for assistance!`;
+        const alert = `🛎️ *WAITER CALL*\n*Table ${tableNumber}* requested assistance!`;
         
         if (bizData.notification_numbers && Array.isArray(bizData.notification_numbers)) {
             for (let num of bizData.notification_numbers) {
@@ -222,7 +222,6 @@ router.post("/call-waiter", async (req, res) => {
                 if (cleanNum) await whatsappManager.sendOfficialMessage(cleanNum, alert, userId, "WAITER_CALL");
             }
         }
-        
         res.json({ success: true });
     } catch (err) {
         console.error(err);
@@ -234,33 +233,28 @@ router.post("/call-waiter", async (req, res) => {
 router.post("/auth/request-otp", async (req, res) => {
     try {
         const { userId, phone } = req.body;
-        const normPhone = phone.replace(/\D/g, "");
+        const normPhone = (phone || "").replace(/\D/g, "");
+        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
         
-        if (!normPhone) return res.status(400).json({ error: "Phone number is required." });
+        if (!dbPhone) return res.status(400).json({ error: "Phone number required." });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
 
-        // Clear existing OTPs for login
-        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, normPhone]);
-
+        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, dbPhone]);
         await pool.query(
             "INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)",
-            [userId, normPhone, otp, expiresAt]
+            [userId, dbPhone, otp, expiresAt]
         );
 
         const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
         const bizName = bizRes.rows[0]?.name || "Restaurant";
         
-        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.\n\nValid for 5 minutes. Use this code to view our menu and access special rewards! 🎁`;
-        console.log(`[AUTH-OTP] Sending OTP ${otp} to ${normPhone} for User ${userId}`);
-        const sent = await whatsappManager.sendOfficialMessage(normPhone, otpMsg, userId);
+        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.\n\nValid for 5 minutes.`;
+        const sent = await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
         
-        if (!sent) {
-            return res.status(500).json({ error: "WhatsApp service currently unavailable. Please contact the restaurant." });
-        }
-        
-        res.json({ success: true, message: "OTP sent to WhatsApp." });
+        if (!sent) return res.status(500).json({ error: "WhatsApp service unavailable." });
+        res.json({ success: true, message: "OTP sent." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to send OTP" });
@@ -271,21 +265,17 @@ router.post("/auth/request-otp", async (req, res) => {
 router.post("/auth/verify-otp", async (req, res) => {
     try {
         const { userId, phone, otp } = req.body;
-        const normPhone = phone.replace(/\D/g, "");
+        const normPhone = (phone || "").replace(/\D/g, "");
+        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
 
         const otpCheck = await pool.query(
             "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
-            [userId, normPhone, otp]
+            [userId, dbPhone, otp]
         );
 
-        if (otpCheck.rows.length === 0) {
-            return res.status(401).json({ error: "Invalid or expired OTP." });
-        }
-
-        // Cleanup after verification
+        if (otpCheck.rows.length === 0) return res.status(401).json({ error: "Invalid or expired OTP." });
         await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
-        
-        res.json({ success: true, message: "OTP verified." });
+        res.json({ success: true, message: "Verified." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Verification failed" });
