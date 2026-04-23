@@ -143,7 +143,6 @@ async function initializeDatabase() {
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS delivery_tiers JSONB DEFAULT '[]'`,
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS is_auth_required BOOLEAN DEFAULT false`,
             `ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS fulfillment_options JSONB DEFAULT '{"dinein": true, "pickup": true, "delivery": true}'`,
-,
 
             // 7b. business_items enhancements
             `ALTER TABLE business_items ADD COLUMN IF NOT EXISTS stock_count INTEGER`,
@@ -193,6 +192,9 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS status VARCHAR(50) DEFAULT 'pending'`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS table_number VARCHAR(50)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_reference VARCHAR(50)`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_charge NUMERIC DEFAULT 0`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_long NUMERIC`,
 
             // 9. Chat messages table (for Live AI Inbox)
             `CREATE TABLE IF NOT EXISTS chat_messages (
