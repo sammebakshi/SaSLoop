@@ -247,22 +247,80 @@ function OnlineOrder() {
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Store...</p></div>);
 
   if (view === "auth") return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-20 h-20 bg-emerald-50 rounded-[2rem] flex items-center justify-center mb-8">
-         {logoUrl ? <img src={logoUrl} alt="logo" className="w-12 h-12 rounded-xl object-contain" /> : <Utensils className="w-10 h-10 text-emerald-600" />}
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900">
+      {/* Background Graphic */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2070" 
+          alt="background" 
+          className="w-full h-full object-cover opacity-30 grayscale"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" />
       </div>
-      <h1 className="text-3xl font-black text-slate-900 tracking-tight mb-2">Order Online</h1>
-      <p className="text-slate-400 text-sm font-bold max-w-xs mb-8">Enter your mobile number to view our menu and access special rewards.</p>
-      <div className="w-full max-w-sm space-y-4">
-         <div className="flex gap-2">
-            <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-20 bg-slate-50 border border-slate-100 px-2 py-4 rounded-xl text-sm font-bold">
-               {countryCodes.map(c => <option key={c.code} value={c.dial_code}>{c.dial_code}</option>)}
-            </select>
-            <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="00000 00000" className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-xl text-lg font-black tracking-widest" />
-         </div>
-         <button onClick={handleVerify} disabled={isVerifying} className="w-full bg-slate-900 text-white font-black py-5 rounded-[2rem] shadow-xl uppercase tracking-widest flex items-center justify-center gap-2">
-            {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : "Verify & Browse"}
-         </button>
+
+      <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in duration-700">
+        <div className="bg-white/10 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
+            <div className="w-24 h-24 bg-white p-4 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl">
+               {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain rounded-2xl" /> : <Utensils className="w-12 h-12 text-emerald-600" />}
+            </div>
+            
+            <h1 className="text-4xl font-black text-white tracking-tight mb-2">Order Online</h1>
+            <p className="text-emerald-100/60 text-sm font-bold uppercase tracking-widest mb-10">Welcome to {biz?.name || 'our store'}</p>
+
+            <div className="space-y-4">
+               <div className="flex gap-3">
+                  <div className="relative group">
+                    <select 
+                      value={countryCode} 
+                      onChange={e => setCountryCode(e.target.value)} 
+                      className="w-24 bg-white/5 border border-white/10 px-3 py-5 rounded-2xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
+                    >
+                       {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code} ({c.iso})</option>)}
+                    </select>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                      <ChevronLeft className="-rotate-90 w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex-1 relative group">
+                    <input 
+                      type="tel" 
+                      value={customerPhone} 
+                      onChange={e => setCustomerPhone(e.target.value)} 
+                      placeholder="Mobile Number" 
+                      className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl text-lg font-black text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all tracking-[0.2em]" 
+                    />
+                  </div>
+               </div>
+
+               <button 
+                 onClick={handleVerify} 
+                 disabled={isVerifying} 
+                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-500/20 uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 group"
+               >
+                  {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : (
+                    <>
+                      Verify & Browse
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </>
+                  )}
+               </button>
+            </div>
+            
+            <div className="mt-12 flex items-center justify-center gap-6 opacity-40">
+               <div className="flex items-center gap-2">
+                  <Activity className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Secure PIN</span>
+               </div>
+               <div className="w-1 h-1 bg-white/20 rounded-full" />
+               <div className="flex items-center gap-2">
+                  <Sparkles className="w-3 h-3 text-emerald-400" />
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">VIP Rewards</span>
+               </div>
+            </div>
+        </div>
+        
+        <p className="mt-8 text-center text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Powered by SaSLoop Concierge</p>
       </div>
     </div>
   );
