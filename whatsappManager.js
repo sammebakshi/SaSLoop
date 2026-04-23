@@ -650,11 +650,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 totalPrice = subtotal + (subtotal * totalTaxRate / 100);
             }
 
+            const deliveryCharge = parseFloat(session.context.delivery_charge) || 0;
             const cartLines = cart.map(ci => `• ${ci.qty}x ${ci.name}`);
             const discount = (session.context.redeem_points || 0) / 10;
-            const finalGrandDisplay = Math.max(0, totalPrice - discount);
+            const finalGrandDisplay = Math.max(0, totalPrice + deliveryCharge - discount);
 
-            await sendAndLog(customerNumber, `🚚 *Order Summary (Delivery)*\n\n${cartLines.join("\n")}\n\n*Address:* ${address}\n*Total:* ${symbol}${finalGrandDisplay.toFixed(2)}${discount > 0 ? ` (after ${symbol}${discount} loyalty discount)` : ''}\n\nFinalizing your delivery...`, userId);
+            await sendAndLog(customerNumber, `🚚 *Order Summary (Delivery)*\n\n${cartLines.join("\n")}\n\n*Address:* ${address}${parseFloat(session.context.delivery_charge) > 0 ? `\n*Delivery Charge:* ${symbol}${session.context.delivery_charge}` : (session.context.order_type === 'delivery' && !session.context.delivery_charge ? `\n_(Note: Share your Live Location pin next time for automatic delivery charge detection)_` : '')}\n*Total:* ${symbol}${finalGrandDisplay.toFixed(2)}${discount > 0 ? ` (after ${symbol}${discount} loyalty discount)` : ''}\n\nFinalizing your delivery...`, userId);
             await finalizeConversationalOrder(userId, customerNumber, customerName, session, biz, symbol);
             return;
         }
@@ -710,8 +711,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // 2. Detect LOCATION message
-        if (msgType === 'location') {
-            const { latitude, longitude } = msg.location;
+        if (message.type === 'location') {
+            const { latitude, longitude } = message.location;
             const res = calculateDeliveryCharge(biz, latitude, longitude);
             
             if (!res.allowed) {
@@ -725,7 +726,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 : `✅ Great news! You are within our *FREE* delivery zone.`;
             
             const ctx = { ...session.context, delivery_lat: latitude, delivery_long: longitude, delivery_charge: res.charge };
-            await updateSession(userId, customerNumber, ctx);
+            await updateSessionState(userId, customerNumber, session.state, ctx);
             await sendAndLog(customerNumber, chargeMsg, userId);
             return;
         }
@@ -1052,14 +1053,14 @@ const finalizeConversationalOrder = async (userId, customerNumber, customerName,
     const orderType = tableId ? 'table' : (session.context.order_type || 'pickup');
     const address = session.context.delivery_address || (tableId ? `Table ${tableId}` : null);
     const redeem = session.context.redeem_points || 0;
-    
-    await finalizeOrder(userId, customerNumber, customerName, cart, symbol, orderType, address, tableId, redeem);
+    const deliveryCharge = session.context.delivery_charge || 0;
+    await finalizeOrder(userId, customerNumber, customerName, cart, symbol, orderType, address, tableId, redeem, deliveryCharge);
 };
 
 // ----------------------------------------------------------------------------------
 // ✅ Finalize Order (Save to DB + Notify Kitchen & Staff)
 // ----------------------------------------------------------------------------------
-const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol, orderType, address, tableNumber = null, pointsToRedeem = 0) => {
+const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol, orderType, address, tableNumber = null, pointsToRedeem = 0, deliveryCharge = 0) => {
     try {
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
         const biz = bizRes.rows[0];
@@ -1099,6 +1100,10 @@ const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol,
             finalGrandTotal = Math.max(0, finalGrandTotal - discountAmount);
         }
 
+        if (orderType === 'delivery') {
+            finalGrandTotal += parseFloat(deliveryCharge) || 0;
+        }
+
         const cartLines = cart.map(ci => `• ${ci.qty}x ${ci.name}`);
         const orderRef = "WA-" + Math.random().toString(36).substring(7).toUpperCase();
         
@@ -1108,11 +1113,11 @@ const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol,
 
         // 1. Save core order
         await pool.query(
-            `INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number) 
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+            `INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, delivery_charge) 
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
             [userId, customerName, normalizePhone(customerNumber), 
              orderType === 'delivery' ? (address || 'Delivery') : (tableNumber ? `Table ${tableNumber}` : 'Pickup'),
-             JSON.stringify(cart), finalGrandTotal, orderRef, 'PENDING', tableNumber]
+             JSON.stringify(cart), finalGrandTotal, orderRef, 'PENDING', tableNumber, deliveryCharge]
         );
 
         // 2. Marketing / Loyalty
@@ -1151,6 +1156,10 @@ const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol,
 
         if (discountAmount > 0) {
             receiptParts.push(`🎁 Loyalty Discount: -${symbol}${discountAmount.toFixed(2)}`);
+        }
+
+        if (orderType === 'delivery' && deliveryCharge > 0) {
+            receiptParts.push(`🚚 Delivery Charge: +${symbol}${parseFloat(deliveryCharge).toFixed(2)}`);
         }
 
         receiptParts.push(`*Total: ${symbol}${finalGrandTotal.toFixed(2)}*`);
