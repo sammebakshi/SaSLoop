@@ -27,6 +27,8 @@ const sendOfficialMessage = async (to, content, userId) => {
         }
 
         const cleanTo = to.replace(/\D/g, ""); // Meta expects digits only for E.164
+        let payload = { messaging_product: "whatsapp", to: cleanTo };
+        
         if (typeof content === 'string') {
             if (!content) throw new Error("Empty message content");
             payload.type = "text";
