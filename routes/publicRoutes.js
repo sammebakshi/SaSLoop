@@ -230,4 +230,61 @@ router.post("/call-waiter", async (req, res) => {
     }
 });
 
+// 🔑 REQUEST LOGIN OTP (WHATSAPP)
+router.post("/auth/request-otp", async (req, res) => {
+    try {
+        const { userId, phone } = req.body;
+        const normPhone = phone.replace(/\D/g, "");
+        
+        if (!normPhone) return res.status(400).json({ error: "Phone number is required." });
+
+        const otp = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+        // Clear existing OTPs for login
+        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, normPhone]);
+
+        await pool.query(
+            "INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)",
+            [userId, normPhone, otp, expiresAt]
+        );
+
+        const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
+        const bizName = bizRes.rows[0]?.name || "Restaurant";
+        
+        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.\n\nValid for 5 minutes. Use this code to view our menu and access special rewards! 🎁`;
+        await whatsappManager.sendOfficialMessage(normPhone, otpMsg, userId);
+        
+        res.json({ success: true, message: "OTP sent to WhatsApp." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to send OTP" });
+    }
+});
+
+// ✅ VERIFY LOGIN OTP
+router.post("/auth/verify-otp", async (req, res) => {
+    try {
+        const { userId, phone, otp } = req.body;
+        const normPhone = phone.replace(/\D/g, "");
+
+        const otpCheck = await pool.query(
+            "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
+            [userId, normPhone, otp]
+        );
+
+        if (otpCheck.rows.length === 0) {
+            return res.status(401).json({ error: "Invalid or expired OTP." });
+        }
+
+        // Cleanup after verification
+        await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
+        
+        res.json({ success: true, message: "OTP verified." });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Verification failed" });
+    }
+});
+
 module.exports = router;

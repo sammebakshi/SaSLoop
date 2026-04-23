@@ -125,12 +125,43 @@ function OnlineOrder() {
     finally { setCheckingLoyalty(false); } 
   };
 
+  const [authOtp, setAuthOtp] = useState("");
+  const [otpMode, setOtpMode] = useState(false);
+
   const handleVerify = async () => {
     if (!customerPhone || customerPhone.length < 5) return alert("Valid phone req.");
     setIsVerifying(true);
-    await checkLoyalty();
-    setIsVerifying(false);
-    setView("fulfillment");
+    try {
+        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone })
+        });
+        const d = await res.json();
+        if (d.success) setOtpMode(true);
+        else alert(d.error || "Failed to send OTP. Please try again.");
+    } catch (e) { alert("Something went wrong"); }
+    finally { setIsVerifying(false); }
+  };
+
+  const verifyAuthOtp = async () => {
+    if (authOtp.length < 6) return alert("Please enter 6-digit code.");
+    setIsVerifying(true);
+    try {
+        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
+        });
+        const d = await res.json();
+        if (d.success) {
+            await checkLoyalty();
+            setView("fulfillment");
+        } else alert(d.error || "Invalid OTP");
+    } catch (e) { alert("Verification failed"); }
+    finally { setIsVerifying(false); }
   };
 
   const getDistance = (lat1, lon1, lat2, lon2) => {
@@ -268,39 +299,53 @@ function OnlineOrder() {
             <p className="text-emerald-100/60 text-sm font-bold uppercase tracking-widest mb-10">Welcome to {biz?.name || 'our store'}</p>
 
             <div className="space-y-4">
-               <div className="flex gap-3">
-                  <div className="relative group">
-                    <select 
-                      value={countryCode} 
-                      onChange={e => setCountryCode(e.target.value)} 
-                      className="w-24 bg-white/5 border border-white/10 px-3 py-5 rounded-2xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
-                    >
-                       {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code} ({c.iso})</option>)}
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                      <ChevronLeft className="-rotate-90 w-4 h-4 text-white" />
+               {!otpMode ? (
+                 <div className="flex gap-3">
+                    <div className="relative group">
+                      <select 
+                        value={countryCode} 
+                        onChange={e => setCountryCode(e.target.value)} 
+                        className="w-24 bg-white/5 border border-white/10 px-3 py-5 rounded-2xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
+                      >
+                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code} ({c.iso})</option>)}
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                        <ChevronLeft className="-rotate-90 w-4 h-4 text-white" />
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="flex-1 relative group">
+                    
+                    <div className="flex-1 relative group">
+                      <input 
+                        type="tel" 
+                        value={customerPhone} 
+                        onChange={e => setCustomerPhone(e.target.value)} 
+                        placeholder="Mobile Number" 
+                        className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl text-lg font-black text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all tracking-[0.2em]" 
+                      />
+                    </div>
+                 </div>
+               ) : (
+                 <div className="animate-in slide-in-from-bottom-4 duration-500 relative group">
                     <input 
-                      type="tel" 
-                      value={customerPhone} 
-                      onChange={e => setCustomerPhone(e.target.value)} 
-                      placeholder="Mobile Number" 
-                      className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl text-lg font-black text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all tracking-[0.2em]" 
+                      type="text" 
+                      value={authOtp} 
+                      onChange={e => setAuthOtp(e.target.value)} 
+                      placeholder="ENTER 6-DIGIT OTP" 
+                      maxLength={6}
+                      className="w-full bg-white/10 border-2 border-emerald-500/30 px-6 py-6 rounded-3xl text-2xl font-black text-white placeholder:text-white/20 outline-none focus:border-emerald-500 focus:ring-8 focus:ring-emerald-500/10 transition-all tracking-[0.4em] text-center" 
                     />
-                  </div>
-               </div>
+                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline decoration-emerald-500/30">Edit Phone Number</button>
+                 </div>
+               )}
 
                <button 
-                 onClick={handleVerify} 
+                 onClick={otpMode ? verifyAuthOtp : handleVerify} 
                  disabled={isVerifying} 
                  className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-500/20 uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 group"
                >
                   {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : (
                     <>
-                      Verify & Browse
+                      {otpMode ? "Verify & Enter Store" : "Send Verification Code"}
                       <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </>
                   )}
