@@ -110,6 +110,7 @@ const handleMetaWebhook = async (body) => {
                     }
 
                     if (textBody) {
+                        console.log(`[WH-IN] User: ${fromNumber} | Msg: ${textBody}`);
                         await upsertContact(userId, fromNumber, contactName);
                         await logChat(userId, fromNumber, 'customer', textBody, msgId);
                         await processAiAutomations(userId, fromNumber, textBody, contactName, locationData);
@@ -293,6 +294,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const botKnowledge = biz?.bot_knowledge || "";
         const currencyCode = biz?.currency_code || 'INR';
         const symbol = currencyCode === 'INR' ? '₹' : (currencyCode === 'USD' ? '$' : '₹');
+
+        // Show typing indicator
+        await sendOfficialMessage(customerNumber, { sender_action: "typing_on" }, userId);
 
         const msgLower = (msgText || "").toLowerCase().trim();
 
