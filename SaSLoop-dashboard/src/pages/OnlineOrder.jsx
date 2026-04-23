@@ -270,9 +270,35 @@ function OnlineOrder() {
     } catch (err) { console.error(err); alert("Something went wrong."); }
     finally { setPlacing(false); }
   };
-
   const openWhatsApp = () => { 
     if (bizPhone) window.open(`https://wa.me/${bizPhone}?text=Hi!`, "_blank"); 
+  };
+
+  const handleLocationDetection = () => {
+    if (!navigator.geolocation) return alert("Geolocation not supported");
+    setIsVerifying(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setDeliveryCoords({ lat, lng });
+        
+        try {
+            const res = await checkDeliveryServiceable(lat, lng);
+            if (res.allowed) {
+                setDeliveryRadiusStatus({ allowed: true, charge: res.charge, distance: res.distance });
+                // Reverse Geocode
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const g = await geoRes.json();
+                setCustomerAddress(g.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            } else {
+                alert(`Sorry, your location is approx ${res.distance.toFixed(1)}km away, out of our ${biz.delivery_radius_km}km limit.`);
+                setDeliveryRadiusStatus({ allowed: false, charge: 0, distance: res.distance });
+            }
+        } catch (e) { alert("Distance check failed"); }
+        finally { setIsVerifying(false); }
+    }, (err) => { 
+        alert("Please enable location access in your browser settings.");
+        setIsVerifying(false); 
+    }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Store...</p></div>);
@@ -371,37 +397,77 @@ function OnlineOrder() {
   );
 
   if (view === "fulfillment") return (
-    <div className="min-h-screen bg-white p-5 max-w-md mx-auto flex flex-col justify-center">
-       <h2 className="text-xl font-black text-slate-900 mb-1 uppercase tracking-tight">Order Type</h2>
-       <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-6">How would you like your order?</p>
-       
-       <div className="space-y-3 mb-10">
-          {[{ id: 'DINEIN', icon: <Utensils className="w-5 h-5"/> , label: 'Dine-In', sub: 'Eat at restaurant' }, { id: 'PICKUP', icon: <Store className="w-5 h-5"/> , label: 'Pickup', sub: 'Self takeaway' }, { id: 'DELIVERY', icon: <Bike className="w-5 h-5"/> , label: 'Delivery', sub: 'To your doorstep' }].filter(m => (biz?.fulfillment_options ? biz.fulfillment_options[m.id.toLowerCase()] : true)).map(m => (
-             <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`w-full p-4 rounded-3xl border-2 transition-all flex items-center gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-600 bg-emerald-50 shadow-sm' : 'border-slate-100 bg-white'}`}>
-                <div className={`p-3 rounded-2xl ${fulfillmentMode === m.id ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300'}`}>{m.icon}</div>
-                <div>
-                   <h3 className="font-black text-sm text-slate-900">{m.label}</h3>
-                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{m.sub}</p>
-                </div>
-                {fulfillmentMode === m.id && <CheckCircle className="ml-auto w-5 h-5 text-emerald-600" />}
-             </button>
-          ))}
-       </div>
-
-       {fulfillmentMode === 'DELIVERY' && (
-          <div className="mb-10 p-5 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
-             <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Set Delivery Location</h4>
-             <button onClick={handleLocationDetection} className="w-full flex items-center justify-center gap-2 bg-white text-emerald-600 font-black py-3.5 rounded-2xl border border-emerald-100 shadow-sm mb-3">
-                <MapPin className="w-3.5 h-3.5" /> Detect My Location
-             </button>
-             <input type="text" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Or Type Address..." className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-xs font-bold" />
-             {deliveryCoords && <p className="mt-3 text-[9px] font-black text-emerald-600 uppercase tracking-widest">✅ Area Serviceable</p>}
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-8">
+       <div className="w-full max-w-[440px] bg-white rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-white p-6 sm:p-10 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <h2 className="text-2xl font-black text-slate-900 mb-1.5 uppercase tracking-tight">Order Type</h2>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">Select how you'd like to receive your food</p>
+          
+          <div className="space-y-3 mb-10">
+             {[
+               { id: 'DINEIN', icon: <Utensils className="w-5 h-5"/> , label: 'Dine-In', sub: 'Eat at restaurant' }, 
+               { id: 'PICKUP', icon: <Store className="w-5 h-5"/> , label: 'Pickup', sub: 'Self takeaway' }, 
+               { id: 'DELIVERY', icon: <Bike className="w-5 h-5"/> , label: 'Delivery', sub: 'To your doorstep' }
+             ].filter(m => (biz?.fulfillment_options ? biz.fulfillment_options[m.id.toLowerCase()] : true)).map(m => (
+                <button 
+                  key={m.id} 
+                  onClick={() => setFulfillmentMode(m.id)} 
+                  className={`w-full p-4 rounded-3xl border-2 transition-all flex items-center gap-4 text-left group active:scale-[0.98] ${fulfillmentMode === m.id ? 'border-emerald-500 bg-emerald-50/50 shadow-sm' : 'border-slate-100 bg-slate-50/30 hover:border-slate-200'}`}
+                >
+                   <div className={`p-3 rounded-2xl transition-all duration-300 ${fulfillmentMode === m.id ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white text-slate-300 group-hover:text-slate-400 shadow-sm'}`}>{m.icon}</div>
+                   <div className="flex-1">
+                      <h3 className={`font-black text-sm uppercase tracking-tight transition-colors ${fulfillmentMode === m.id ? 'text-emerald-900' : 'text-slate-700'}`}>{m.label}</h3>
+                      <p className={`text-[9px] font-bold uppercase tracking-widest transition-colors ${fulfillmentMode === m.id ? 'text-emerald-600/60' : 'text-slate-400'}`}>{m.sub}</p>
+                   </div>
+                   {fulfillmentMode === m.id && <div className="w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center shadow-lg animate-in zoom-in duration-300"><CheckCircle className="w-4 h-4 text-white" /></div>}
+                </button>
+             ))}
           </div>
-       )}
 
-       <button onClick={proceedToMenu} className="w-full bg-emerald-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-xs tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
-          Browse Menu <ArrowRight className="w-4 h-4" />
-       </button>
+          {fulfillmentMode === 'DELIVERY' && (
+             <div className="mb-10 space-y-4 animate-in slide-in-from-top-4 duration-500">
+                <div className="bg-slate-50/50 rounded-[2rem] p-5 border border-dashed border-slate-200">
+                   <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 text-center">Precise Delivery Location</h4>
+                   
+                   <button 
+                     onClick={handleLocationDetection} 
+                     disabled={isVerifying}
+                     className="w-full flex items-center justify-center gap-2 bg-white text-emerald-600 font-black py-4 rounded-2xl border border-emerald-100 shadow-sm mb-4 hover:bg-emerald-50 active:scale-95 transition-all text-[11px] uppercase tracking-widest disabled:opacity-50"
+                   >
+                      {isVerifying ? <RefreshCw className="animate-spin w-3.5 h-3.5" /> : <><MapPin className="w-3.5 h-3.5" /> Detect Current Location</>}
+                   </button>
+                   
+                   <div className="relative">
+                      <textarea 
+                        value={customerAddress} 
+                        onChange={e => setCustomerAddress(e.target.value)} 
+                        placeholder="Or Type Address Manually..." 
+                        className="w-full bg-white border border-slate-100 px-5 py-4 rounded-2xl text-xs font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:border-emerald-500 transition-all min-h-[80px] resize-none overflow-hidden" 
+                      />
+                   </div>
+
+                   {deliveryRadiusStatus.allowed ? (
+                     <div className="mt-4 flex items-center gap-2 bg-emerald-100/50 p-3 rounded-xl border border-emerald-200 animate-in fade-in duration-500">
+                        <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-tight">Zone Serviced • {deliveryRadiusStatus.distance.toFixed(1)}km</p>
+                     </div>
+                   ) : deliveryRadiusStatus.distance > 0 && (
+                     <div className="mt-4 flex items-center gap-2 bg-red-100/50 p-3 rounded-xl border border-red-200 animate-in shake duration-500">
+                        <X className="w-4 h-4 text-red-600 shrink-0" />
+                        <p className="text-[10px] font-black text-red-700 uppercase tracking-tight">Out of Zone • {deliveryRadiusStatus.distance.toFixed(1)}km</p>
+                     </div>
+                   )}
+                </div>
+             </div>
+          )}
+
+          <button 
+            onClick={proceedToMenu} 
+            disabled={!fulfillmentMode || (fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed)}
+            className="w-full bg-slate-900 hover:bg-black text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-slate-900/20 uppercase text-xs tracking-[0.3em] flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-20 mt-4 group"
+          >
+             Start Ordering <ArrowRight className="w-4 h-4 text-emerald-400 group-hover:translate-x-1 transition-transform" />
+          </button>
+       </div>
     </div>
   );
 

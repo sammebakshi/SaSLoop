@@ -112,12 +112,43 @@ function CustomerMenu() {
     } 
   };
 
+  const [authOtp, setAuthOtp] = useState("");
+  const [otpMode, setOtpMode] = useState(false);
+
   const handleVerify = async () => {
     if (!customerPhone || customerPhone.length < 5) return alert("Please enter a valid phone number.");
     setIsVerifying(true);
-    await checkLoyalty();
-    setIsVerifying(false);
-    setView("menu");
+    try {
+        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone })
+        });
+        const d = await res.json();
+        if (d.success) setOtpMode(true);
+        else alert(d.error || "Failed to send OTP.");
+    } catch (e) { alert("Something went wrong"); }
+    finally { setIsVerifying(false); }
+  };
+
+  const verifyAuthOtp = async () => {
+    if (authOtp.length < 6) return alert("Please enter 6-digit code.");
+    setIsVerifying(true);
+    try {
+        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
+        });
+        const d = await res.json();
+        if (d.success) {
+            await checkLoyalty();
+            setView("menu");
+        } else alert(d.error || "Invalid OTP");
+    } catch (e) { alert("Verification failed"); }
+    finally { setIsVerifying(false); }
   };
 
   const requestLoyaltyOtp = async () => {
@@ -216,17 +247,40 @@ function CustomerMenu() {
         {tableId && tableId !== "0" && <p className="bg-emerald-100 text-emerald-700 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-8">Table No: {tableId}</p>}
         
         <div className="w-full max-w-sm space-y-4">
-           <p className="text-slate-400 text-sm font-bold leading-relaxed">To view our menu and access your loyalty rewards, please enter your mobile number.</p>
-           
-           <div className="flex gap-2">
-              <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-20 bg-slate-50 border border-slate-100 px-2 py-4 rounded-2xl text-sm font-bold outline-none">
-                 {countryCodes.map(c => <option key={c.code} value={c.dial_code}>{c.dial_code}</option>)}
-              </select>
-              <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="00000 00000" className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-lg font-black tracking-widest outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-200" />
-           </div>
+           {!otpMode ? (
+             <>
+               <p className="text-slate-400 text-sm font-bold leading-relaxed mb-6">Enter your mobile number to view our menu and access special rewards.</p>
+               <div className="flex gap-2">
+                  <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-20 bg-slate-50 border border-slate-100 px-2 py-4 rounded-2xl text-sm font-bold outline-none">
+                     {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code}>+{c.code}</option>)}
+                  </select>
+                  <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="00000 00000" className="flex-1 bg-slate-50 border border-slate-100 px-6 py-4 rounded-2xl text-lg font-black tracking-widest outline-none focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-200" />
+               </div>
+             </>
+           ) : (
+             <div className="animate-in slide-in-from-bottom-4 duration-500 text-center">
+                <p className="text-emerald-600 text-[10px] font-black uppercase tracking-widest mb-4 flex items-center justify-center gap-2">
+                   <MessageCircle className="w-3 h-3 fill-current" /> Code sent to WhatsApp
+                </p>
+                <input 
+                  type="text" 
+                  value={authOtp} 
+                  onChange={e => setAuthOtp(e.target.value)} 
+                  placeholder="CODE" 
+                  maxLength={6}
+                  className="w-full bg-slate-50 border-2 border-emerald-500/20 px-4 py-5 rounded-3xl text-3xl font-black text-slate-800 placeholder:text-slate-200 outline-none focus:border-emerald-500/50 transition-all tracking-[0.5em] text-center mb-4" 
+                />
+                <button onClick={() => setOtpMode(false)} className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-emerald-600 transition-all underline underline-offset-4 decoration-emerald-500/20">Change Number</button>
+             </div>
+           )}
 
-           <button onClick={handleVerify} disabled={isVerifying} className="w-full bg-emerald-600 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-600/20 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50">
-              {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : <><Sparkles className="w-5 h-5" /> Let's Go</>}
+           <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-600 text-white font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-600/20 uppercase tracking-[0.2em] flex items-center justify-center gap-3 active:scale-95 transition-all disabled:opacity-50 mt-4">
+              {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : (
+                <>
+                  <Sparkles className="w-5 h-5" /> 
+                  {otpMode ? "Verify & Enter" : "Send OTP"}
+                </>
+              )}
            </button>
         </div>
       </div>
