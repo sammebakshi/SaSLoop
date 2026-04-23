@@ -89,16 +89,11 @@ function OnlineOrder() {
     return raw.replace(/\D/g, "");
   }, [biz]);
 
-  const socialLinks = useMemo(() => {
-    if (!biz) return [];
-    const links = [];
-    if (biz.social_instagram) links.push({ url: biz.social_instagram, icon: <InstagramIcon />, label: 'Instagram' });
-    if (biz.social_facebook) links.push({ url: biz.social_facebook, icon: <FacebookIcon />, label: 'Facebook' });
-    if (biz.social_twitter) links.push({ url: biz.social_twitter, icon: <TwitterIcon />, label: 'X' });
-    if (biz.social_youtube) links.push({ url: biz.social_youtube, icon: <YoutubeIcon />, label: 'YouTube' });
-    if (biz.social_website) links.push({ url: biz.social_website, icon: <Globe className="w-4 h-4" />, label: 'Website' });
-    return links;
-  }, [biz]);
+  const normalizePhone = (code, phone) => {
+    const cleanPhone = phone.replace(/\D/g, "");
+    if (cleanPhone.startsWith(code) && cleanPhone.length > code.length) return cleanPhone;
+    return code + cleanPhone;
+  };
 
   const filteredItems = useMemo(() => {
     return (data?.items || []).filter(i => 
@@ -136,15 +131,14 @@ function OnlineOrder() {
   const ptsRatio = biz?.points_to_amount_ratio || 10;
   const ptsEnabled = biz?.loyalty_enabled !== false;
   const minRedeem = biz?.min_redeem_points || 300;
-  const maxRedeem = biz?.max_redeem_per_order || 300;
-
-  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / ptsRatio) + (fulfillmentMode === 'DELIVERY' ? deliveryRadiusStatus.charge : 0));
+  
+  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / ptsRatio) + (fulfillmentMode === 'DELIVERY' ? (deliveryRadiusStatus.charge || 0) : 0));
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
     setCheckingLoyalty(true); 
     try { 
-      const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+      const fullPhone = normalizePhone(countryCode, customerPhone);
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${fullPhone}`); 
       const d = await res.json(); 
       setLoyaltyPoints(d.points || 0); 
@@ -157,9 +151,10 @@ function OnlineOrder() {
 
   const handleVerify = async () => {
     if (!customerPhone || customerPhone.length < 5) return alert("Valid phone req.");
+    if (!customerName.trim()) return alert("Name is required.");
     setIsVerifying(true);
     try {
-        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const fullPhone = normalizePhone(countryCode, customerPhone);
         const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -176,7 +171,7 @@ function OnlineOrder() {
     if (authOtp.length < 6) return alert("Please enter 6-digit code.");
     setIsVerifying(true);
     try {
-        const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+        const fullPhone = normalizePhone(countryCode, customerPhone);
         const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -244,7 +239,7 @@ function OnlineOrder() {
     if (!customerPhone || customerPhone.length < 5) return;
     setCheckingLoyalty(true);
     try {
-      const fullPhone = countryCode + customerPhone.replace(/\D/g, "");
+      const fullPhone = normalizePhone(countryCode, customerPhone);
       const res = await fetch(`${API_BASE}/api/public/loyalty/request-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -272,9 +267,9 @@ function OnlineOrder() {
   }, [categories.length]);
 
   const placeOrder = async () => {
-    if (!customerName.trim() || !customerPhone.trim()) return alert("Mobile required");
+    if (!customerPhone.trim()) return alert("Mobile required");
     setPlacing(true);
-    const fullNumber = countryCode + customerPhone.replace(/\D/g, "");
+    const fullNumber = normalizePhone(countryCode, customerPhone);
     try {
       const res = await fetch(`${API_BASE}/api/public/order`, { 
         method: "POST", 
@@ -287,13 +282,14 @@ function OnlineOrder() {
           cgst: taxData.cgst, 
           sgst: taxData.sgst, 
           totalPrice: finalTotal, 
-          customerName, 
+          customerName: customerName || "Guest", 
           customerPhone: fullNumber, 
           pointsToRedeem, 
           loyaltyOtp,
           address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup", 
           fulfillmentMode, 
-          source: "ONLINE_ORDER" 
+          source: "ONLINE_ORDER",
+          service_charge: fulfillmentMode === "DELIVERY" ? (deliveryRadiusStatus.charge || 0) : 0
         }) 
       });
       const o = await res.json();
@@ -308,7 +304,7 @@ function OnlineOrder() {
   };
 
   const openWhatsApp = () => { 
-    if (bizPhone) window.open(`https://wa.me/${bizPhone}?text=Hi!`, "_blank"); 
+    if (bizPhone) window.open(`https://wa.me/${bizPhone}?text=Hi My order is ${orderRef}`, "_blank"); 
   };
 
   // Reusable Auth UI
@@ -323,39 +319,37 @@ function OnlineOrder() {
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" />
       </div>
       <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700 px-4">
-        <div className="bg-white/[0.03] backdrop-blur-3xl px-8 py-12 rounded-[3.5rem] border border-white/10 shadow-2xl text-center">
-            <div className="w-20 h-20 bg-white p-3.5 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+        <div className="bg-white/[0.03] backdrop-blur-3xl px-8 py-10 rounded-[3.5rem] border border-white/10 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
                {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain rounded-xl" /> : <Utensils className="w-10 h-10 text-emerald-600" />}
             </div>
-            <h1 className="text-3xl font-black text-white tracking-tighter mb-1.5 uppercase">{biz?.name || 'SaSLoop Store'}</h1>
-            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Digital Concierge</p>
+            <h1 className="text-2xl font-black text-white tracking-tighter mb-1.5 uppercase">{biz?.name || 'SaSLoop Store'}</h1>
+            <p className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.3em] mb-8 opacity-60">Digital Concierge</p>
             <div className="space-y-4">
                {!otpMode ? (
-                 <div className="flex gap-2">
-                    <div className="relative">
-                      <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[75px] bg-white/5 border border-white/10 pl-3 pr-1 py-4.5 rounded-2xl text-xs font-black text-white outline-none appearance-none cursor-pointer">
-                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900">+{c.code}</option>)}
-                      </select>
+                 <>
+                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Full Name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                    <div className="flex gap-2">
+                       <div className="relative">
+                         <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] h-full bg-white/5 border border-white/10 pl-3 pr-1 py-4.5 rounded-2xl text-xs font-black text-white outline-none appearance-none cursor-pointer">
+                            {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900">+{c.code}</option>)}
+                         </select>
+                       </div>
+                       <div className="flex-1">
+                         <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="WhatsApp No." className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-emerald-500/20" />
+                       </div>
                     </div>
-                    <div className="flex-1">
-                      <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="WhatsApp Number" className="w-full bg-white/5 border border-white/10 px-6 py-4.5 rounded-2xl text-base font-black text-white placeholder:text-white/20 outline-none" />
-                    </div>
-                 </div>
+                 </>
                ) : (
                  <div className="animate-in slide-in-from-bottom-4 duration-500">
                     <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white placeholder:text-white/10 outline-none tracking-[0.5em] text-center" />
-                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4">Change Phone Number</button>
+                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4">Change Profile</button>
                  </div>
                )}
                <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-[11px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-2">
-                  {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify & Enter" : "Login with WhatsApp")}
+                  {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify & Continue" : "Send Login Code")}
                   <ArrowRight className="w-4 h-4" />
                </button>
-            </div>
-            <div className="mt-12 flex items-center justify-center gap-6 opacity-30">
-               <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase"><Activity className="w-4 h-4 text-emerald-400" /> Safe</div>
-               <div className="w-1.5 h-1.5 bg-white/20 rounded-full" />
-               <div className="flex items-center gap-2 text-[10px] font-black text-white uppercase"><Sparkles className="w-4 h-4 text-emerald-400" /> VIP</div>
             </div>
         </div>
         <p className="mt-8 text-center text-[9px] font-bold text-white/20 uppercase tracking-[0.5em]">Powered by SaSLoop</p>
@@ -363,65 +357,69 @@ function OnlineOrder() {
     </div>
   );
 
-  // Reusable Confirmed UI
   const ConfirmedPage = () => (
     <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
        <div className="w-20 h-20 bg-emerald-500/10 rounded-[2rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl shadow-emerald-500/20">
           <CheckCircle className="w-10 h-10 text-emerald-600" />
        </div>
-       <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Sent!</h1>
-       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Preparing your delicious meal</p>
+       <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
+       <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">We are processing your order</p>
        <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10">
-          <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 opacity-60">Order Reference</p>
-          <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono">{orderRef}</p>
+          <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2 opacity-60">Reference ID</p>
+          <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase">{orderRef}</p>
           <div className="grid grid-cols-3 gap-3 border-t border-slate-200 pt-6">
-             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Total</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
-             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Live</p></div>
-             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Mode</p><p className="text-xs font-black text-slate-900 uppercase">{fulfillmentMode}</p></div>
+             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Paid</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
+             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase tracking-tight">Active</p></div>
+             <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Type</p><p className="text-xs font-black text-slate-900 uppercase tracking-tight">{fulfillmentMode}</p></div>
           </div>
        </div>
        <div className="flex flex-col gap-3 w-full max-w-[300px]">
-          <button onClick={openWhatsApp} className="flex items-center justify-center gap-2 bg-emerald-500 text-white py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"><MessageCircle className="w-4 h-4 fill-current" /> Updates on WhatsApp</button>
+          <button onClick={openWhatsApp} className="flex items-center justify-center gap-2 bg-emerald-500 text-white py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"><MessageCircle className="w-4 h-4" /> Message Us</button>
           <button onClick={() => { setView("menu"); setPointsToRedeem(0); setLoyaltyPoints(0); }} className="text-slate-400 font-black text-[10px] uppercase tracking-widest py-3">Order More</button>
        </div>
     </div>
   );
 
-  if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading...</p></div>);
+  if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white font-sans"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Authenticating...</p></div>);
   if (view === "auth") return <AuthPage />;
   if (view === "confirmed") return <ConfirmedPage />;
 
   if (view === "fulfillment") return (
-    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6">
-       <div className="w-full max-w-[500px] bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-10 animate-in slide-in-from-bottom-10 duration-700">
-          <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Mode</h2>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">How would you like to receive your food?</p>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
+       <div className="w-full max-w-[500px] bg-white rounded-[3rem] shadow-2xl border border-slate-100 p-8 sm:p-12 animate-in slide-in-from-bottom-10 duration-700">
+          <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Method</h2>
+          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">Select your preferred delivery type</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
              {[
                { id: 'PICKUP', icon: <Store className="w-6 h-6"/> , t: 'Pickup' }, 
                { id: 'DELIVERY', icon: <Bike className="w-6 h-6"/> , t: 'Delivery' }
              ].map(m => (
-                <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-500 bg-emerald-50/30' : 'border-slate-50 bg-white'}`}>
-                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${fulfillmentMode === m.id ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' : 'bg-slate-100 text-slate-400'}`}>{m.icon}</div>
+                <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`p-6 rounded-[2rem] border-2 transition-all flex flex-col gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-500 bg-emerald-50/30 shadow-lg' : 'border-slate-50 bg-white'}`}>
+                   <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${fulfillmentMode === m.id ? 'bg-emerald-500 text-white shadow-lg' : 'bg-slate-100 text-slate-400'}`}>{m.icon}</div>
                    <p className={`font-black uppercase text-xs tracking-widest ${fulfillmentMode === m.id ? 'text-emerald-900' : 'text-slate-500'}`}>{m.t}</p>
                 </button>
              ))}
           </div>
           {fulfillmentMode === 'DELIVERY' && (
              <div className="mb-10 space-y-4">
-                <div className="h-64 rounded-[2rem] overflow-hidden border border-slate-100 relative shadow-inner">
+                <div className="h-64 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl relative">
                    <MapContainer center={deliveryCoords ? [deliveryCoords.lat, deliveryCoords.lng] : [biz?.latitude || 20, biz?.longitude || 77]} zoom={14} style={{ height: '100%', width: '100%' }}>
                      <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution='&copy; Google Maps' />
                      <MapPicker lat={deliveryCoords?.lat} lng={deliveryCoords?.lng} onChange={updateMapLocation} />
                    </MapContainer>
-                   <button onClick={handleLocationDetection} className="absolute bottom-4 right-4 z-[1000] p-4 bg-white rounded-2xl shadow-xl border border-slate-100 text-emerald-500 active:scale-95 transition-all">{isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : <MapPin className="w-5 h-5" />}</button>
+                   <button onClick={handleLocationDetection} className="absolute bottom-4 right-4 z-[1000] w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-emerald-500 active:scale-95 transition-all">{isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : <MapPin className="w-5 h-5" />}</button>
                 </div>
-                <div className={`p-5 rounded-2xl border transition-all ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-red-50/50 border-red-100'}`}>
-                   {deliveryRadiusStatus.allowed ? (<p className="text-[10px] font-black text-emerald-700 uppercase">🏠 Delivering to: {customerAddress.substring(0, 45)}...</p>) : (<p className="text-[10px] font-black text-red-700 uppercase">🚫 Location Out of Range</p>)}
+                <div className={`p-5 rounded-2xl border-2 transition-all ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100 ring-4 ring-emerald-500/5' : 'bg-rose-50 border-rose-100 ring-4 ring-rose-500/5'}`}>
+                   {deliveryRadiusStatus.allowed ? (
+                     <div className="flex justify-between items-center">
+                        <p className="text-[10px] font-black text-emerald-700 uppercase flex-1 truncate"><MapPin className="inline w-3 h-3 mr-1" /> {customerAddress.substring(0, 45)}...</p>
+                        <span className="text-[10px] font-black text-emerald-600 bg-white px-2 py-1 rounded-lg">+{symbol}{deliveryRadiusStatus.charge}</span>
+                     </div>
+                   ) : (<p className="text-[10px] font-black text-rose-600 uppercase flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Outside Delivery Range ({deliveryRadiusStatus.distance?.toFixed(1)} km)</p>)}
                 </div>
              </div>
           )}
-          <button onClick={proceedToMenu} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[11px] tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all disabled:opacity-30">Start Ordering</button>
+          <button onClick={proceedToMenu} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px] tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all disabled:opacity-30">View Menu</button>
        </div>
     </div>
   );
@@ -434,10 +432,10 @@ function OnlineOrder() {
              <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
              <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} LOYALTY PTS</p>
            </div>
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-3 font-black">
               <div className="hidden sm:block text-right">
                 <p className="text-[8px] font-black text-slate-300 uppercase mb-0.5">Mode</p>
-                <p className="text-[10px] font-black text-slate-900 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{fulfillmentMode}</p>
+                <p className="text-[10px] text-slate-900 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">{fulfillmentMode}</p>
               </div>
               <button onClick={() => setView("fulfillment")} className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-all">
                  {fulfillmentMode === 'DELIVERY' ? <Bike className="w-5 h-5 text-emerald-400" /> : <Store className="w-5 h-5 text-emerald-400" />}
@@ -451,41 +449,27 @@ function OnlineOrder() {
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
              <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-6 pl-4">Discover Menu</h2>
              {categories.map(cat => (
-               <button 
-                 key={cat} 
-                 onClick={() => scrollToCategory(cat)} 
-                 className={`w-full text-left px-7 py-4 rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl scale-105 px-8 translate-x-2' : 'text-slate-400 hover:text-slate-900 hover:translate-x-1'}`}
-               >
-                 {cat}
-               </button>
+               <button key={cat} onClick={() => scrollToCategory(cat)} className={`w-full text-left px-7 py-4 rounded-[1.8rem] text-[11px] font-black uppercase tracking-widest transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl scale-105 px-8 translate-x-2' : 'text-slate-400 hover:text-slate-900 hover:translate-x-1'}`}>{cat}</button>
              ))}
           </aside>
 
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen relative">
              <div className="relative">
-                {bannerUrl && (
-                  <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative">
-                    <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" />
-                  </div>
-                )}
+                {bannerUrl && <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
                 <div className="px-8 py-4 flex items-center gap-6 relative -mt-10 sm:-mt-12">
                   <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center overflow-hidden shrink-0">
                      {logoUrl ? <img src={logoUrl} alt="Logo" className="w-full h-full object-cover" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
                   </div>
                   <div className="flex-1 min-w-0 pt-10 sm:pt-14">
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mt-1 truncate">
-                       <MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address}
-                    </p>
+                    <p className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address}</p>
                   </div>
                 </div>
              </div>
 
              <div className="px-8 py-6 sticky top-[80px] lg:top-0 z-[80] bg-white lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group">
-                  <Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
-                  <input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all" value={search} onChange={e => setSearch(e.target.value)} />
+                <div className="relative group"><Search className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
+                  <input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] pl-14 pr-6 py-5 text-sm font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all font-black" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
                 <div className="lg:hidden flex items-center gap-2 mt-6 overflow-x-auto no-scrollbar pb-1">
                    {categories.map(cat => (<button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shrink-0 ${activeCategory === cat ? "bg-slate-900 text-white shadow-xl" : "bg-white text-slate-400 border border-slate-100 shadow-sm"}`}>{cat}</button>))}
@@ -518,7 +502,7 @@ function OnlineOrder() {
                                      <button onClick={() => addToCart(item)} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all active:scale-75"><Plus className="w-5 h-5" /></button>
                                    </div>
                                  ) : (
-                                   <button onClick={() => addToCart(item)} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add to Tray <Plus className="w-4 h-4" /></button>
+                                   <button onClick={() => addToCart(item)} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[1.8rem] font-black text-[11px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95 font-black">Add to Tray <Plus className="w-4 h-4" /></button>
                                  )}
                               </div>
                             </div>
@@ -537,12 +521,7 @@ function OnlineOrder() {
                    <h2 className="text-base font-black text-slate-900 uppercase tracking-tighter flex items-center gap-3"><ShoppingBag className="w-6 h-6 text-emerald-500" /> Cart</h2>
                    <span className="bg-slate-50 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase border border-slate-100">{totalCartItems} ITEMS</span>
                 </div>
-                {cart.length === 0 ? (
-                  <div className="py-20 text-center opacity-10 flex flex-col items-center">
-                     <ShoppingBag className="w-16 h-16 mb-4" />
-                     <p className="text-[11px] font-black uppercase tracking-widest">Your cart is empty</p>
-                  </div>
-                ) : (
+                {cart.length === 0 ? (<div className="py-20 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-4" /><p className="text-[11px] font-black uppercase tracking-widest">Cart is empty</p></div>) : (
                   <div className="space-y-10">
                      <div className="max-h-[350px] overflow-y-auto no-scrollbar pr-3 space-y-6">
                         {cart.map(ci => (
@@ -558,11 +537,10 @@ function OnlineOrder() {
                      </div>
                      <div className="border-t-2 border-slate-50 pt-8 space-y-4">
                         <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-widest"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
+                        {fulfillmentMode === 'DELIVERY' && <div className="flex justify-between text-[11px] items-center text-emerald-600 font-bold uppercase tracking-widest"><span>Delivery</span><span>{symbol}{deliveryRadiusStatus.charge || 0}</span></div>}
                         <div className="flex justify-between text-2xl items-center text-slate-900 font-black pt-6 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-900 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[11px] uppercase tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-4">
-                        {placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Complete Order <ArrowRight className="w-4 h-4 text-emerald-400" /></>}
-                     </button>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-900 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[12px] uppercase tracking-widest shadow-2xl shadow-slate-900/20 active:scale-95 transition-all flex items-center justify-center gap-4">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-4 h-4 text-emerald-400" /></>}</button>
                   </div>
                 )}
              </div>
@@ -581,7 +559,7 @@ function OnlineOrder() {
                  </div>
                  <div className="text-left"><p className="text-[11px] font-black uppercase tracking-widest text-white/40 mb-0.5">Payable</p><p className="text-xl font-black tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p></div>
               </div>
-              <div className="bg-emerald-500 text-slate-900 px-10 py-5 rounded-[2rem] flex items-center gap-3 font-black text-[12px] uppercase tracking-widest shadow-xl">Place <ArrowRight className="w-5 h-5" /></div>
+              <div className="bg-emerald-500 text-slate-900 px-10 py-5 rounded-[2rem] flex items-center gap-3 font-black text-[12px] uppercase tracking-widest shadow-xl">Confirm <ArrowRight className="w-5 h-5" /></div>
            </button>
         </div>
       )}
