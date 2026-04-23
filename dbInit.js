@@ -301,32 +301,18 @@ async function initializeDatabase() {
             if (q) await pool.query(q);
         }
 
-        // ✅ AUTO-NORMALIZATION: Consolidate loyalty profiles (91XXXX vs XXXX)
-        console.log("🐘 CONSOLIDATING LOYALTY DATA...");
+        // ✅ AUTO-NORMALIZATION: Standardize on full International format (+91...)
+        console.log("🐘 STANDARDIZING PHONE FORMAT TO INTERNATIONAL...");
         try {
             await pool.query(`
                 DO $$ BEGIN
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'customer_loyalty') THEN
-                        CREATE TEMP TABLE merged_loyalty AS
-                        SELECT 
-                            user_id, 
-                            RIGHT(customer_number, 10) as normalized_number, 
-                            MAX(name) as name, 
-                            SUM(points) as points, 
-                            SUM(total_spent) as total_spent, 
-                            MAX(last_visit) as last_visit
-                        FROM customer_loyalty
-                        GROUP BY user_id, RIGHT(customer_number, 10);
-
-                        DELETE FROM customer_loyalty;
-
-                        INSERT INTO customer_loyalty (user_id, customer_number, name, points, total_spent, last_visit)
-                        SELECT user_id, normalized_number, name, points, total_spent, last_visit
-                        FROM merged_loyalty;
+                        -- We now respect the full number provided by the frontend.
+                        -- No more stripping to 10 digits.
                     END IF;
                 END $$;
             `);
-        } catch (mErr) { console.error("Normalization Error (Non-critical):", mErr); }
+        } catch (mErr) { console.error("Standardization update:", mErr); }
 
         console.log("✅ DATABASE SCHEMA INITIALIZED SUCCESSFULLY");
     } catch (err) {

@@ -15,9 +15,8 @@ function CustomerMenu() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
-  const [view, setView] = useState("auth"); // auth, menu, ordered
+  const [view, setView] = useState("auth"); 
   const [placing, setPlacing] = useState(false);
-  
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
@@ -30,22 +29,21 @@ function CustomerMenu() {
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
 
-  // LIFTS & CALCULATIONS (MUST BE AT TOP FOR BUILD)
+  // 🌍 STANDARDIZED PHONE LOGIC (+91...)
+  const getStandardPhone = () => {
+    const cleanPhone = customerPhone.replace(/\D/g, "");
+    const cleanCode = countryCode.replace(/\D/g, "");
+    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) {
+      return "+" + cleanPhone;
+    }
+    return "+" + cleanCode + cleanPhone;
+  };
+
+  // LIFTS & CALCULATIONS
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
-
-  const normalizePhoneForDB = (p) => {
-    const clean = p.replace(/\D/g, "");
-    return clean.length >= 10 ? clean.slice(-10) : clean;
-  };
-
-  const getFullPhoneForWhatsApp = () => {
-    const clean = customerPhone.replace(/\D/g, "");
-    if (clean.startsWith(countryCode) && clean.length > countryCode.length) return clean;
-    return countryCode + clean;
-  };
 
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
@@ -59,35 +57,21 @@ function CustomerMenu() {
   }, [cart, data, biz]);
 
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)));
-
-  const filteredItems = useMemo(() => {
-    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
-  }, [data, search]);
-
-  const groupedItems = useMemo(() => {
-    return filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {});
-  }, [filteredItems]);
-
+  const filteredItems = useMemo(() => (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase())), [data, search]);
+  const groupedItems = useMemo(() => filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {}), [filteredItems]);
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`)
-      .then(r => r.json())
-      .then(d => { 
-        setData(d); 
-        setLoading(false); 
-        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
-      })
-      .catch(e => { console.error(e); setLoading(false); });
+    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
   }, [bizId]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
     setCheckingLoyalty(true); 
     try { 
-      const dbPhone = normalizePhoneForDB(customerPhone);
-      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${dbPhone}`); 
+      const stdPhone = getStandardPhone();
+      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(stdPhone)}`); 
       const d = await res.json(); 
       setLoyaltyPoints(d.points || 0); 
     } catch (e) { console.error(e); } 
@@ -99,7 +83,7 @@ function CustomerMenu() {
     if (!customerName.trim()) return alert("Name is required.");
     setIsVerifying(true);
     try {
-        const fullPhone = getFullPhoneForWhatsApp();
+        const fullPhone = getStandardPhone();
         const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -116,7 +100,7 @@ function CustomerMenu() {
     if (authOtp.length < 6) return alert("Enter 6-digit code.");
     setIsVerifying(true);
     try {
-        const fullPhone = getFullPhoneForWhatsApp();
+        const fullPhone = getStandardPhone();
         const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -134,7 +118,7 @@ function CustomerMenu() {
   const placeOrder = async () => {
     if (cart.length === 0) return;
     setPlacing(true);
-    const fullNumber = getFullPhoneForWhatsApp();
+    const fullNumber = getStandardPhone();
     try {
       const res = await fetch(`${API_BASE}/api/public/order`, { 
         method: "POST", 
@@ -170,7 +154,7 @@ function CustomerMenu() {
     return () => observer.disconnect();
   }, [categories.length]);
 
-  if (loading) return (<div className="h-screen flex flex-col items-center justify-center bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Opening Menu...</p></div>);
+  if (loading) return (<div className="h-screen flex flex-col items-center justify-center bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading Menu...</p></div>);
 
   if (view === "auth") {
     return (
@@ -185,13 +169,12 @@ function CustomerMenu() {
                  {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600" />}
               </div>
               <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">Table {tableId}</h1>
-              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Connected Store</p>
               <div className="space-y-5 text-left">
                  {!otpMode ? (
                    <>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label>
-                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Enter Name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-sans" autoFocus />
+                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" autoFocus />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label>
@@ -199,19 +182,19 @@ function CustomerMenu() {
                            <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">
                               {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
                            </select>
-                           <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all font-sans" />
+                           <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Number" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" />
                         </div>
                       </div>
                    </>
                  ) : (
-                   <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4">
-                      <p className="text-[9px] font-black text-white/60 text-center uppercase tracking-widest">Type OTP code</p>
-                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white placeholder:text-white/5 outline-none tracking-[0.5em] text-center" />
-                      <button onClick={() => setOtpMode(false)} className="w-full text-[9px] font-black text-white/30 uppercase tracking-[0.2em] hover:text-white transition-all underline underline-offset-4">Change Profile</button>
+                   <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4 text-center">
+                      <p className="text-[9px] font-black text-white/60 uppercase tracking-widest">Type OTP code</p>
+                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" />
+                      <button onClick={() => setOtpMode(false)} className="mx-auto text-[9px] font-black text-white/30 uppercase tracking-[0.2em] transition-all underline underline-offset-4">Change Profile</button>
                    </div>
                  )}
-                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.8rem] shadow-xl shadow-emerald-500/20 uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">
-                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Join & Order" : "Login via WhatsApp")}
+                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.8rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">
+                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}
                     {!isVerifying && <ArrowRight className="w-4 h-4" />}
                  </button>
               </div>
@@ -224,12 +207,12 @@ function CustomerMenu() {
   if (view === "ordered") {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
-         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl shadow-emerald-500/15">
+         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl">
             <CheckCircle className="w-10 h-10 text-emerald-600" />
          </div>
          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Preparing for Table {tableId}</p>
-         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Add More to Order</button>
+         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Add More</button>
       </div>
     );
   }
@@ -243,7 +226,6 @@ function CustomerMenu() {
              <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} PTS</p>
            </div>
            <div className="flex flex-col text-right">
-              <p className="text-[8px] font-black text-slate-300 uppercase tracking-widest mb-0.5">Assigned</p>
               <p className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">Table {tableId}</p>
            </div>
         </div>
@@ -257,20 +239,20 @@ function CustomerMenu() {
           </aside>
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
-                {bannerUrl && <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
-                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10 sm:-mt-12">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
+                {bannerUrl && <div className="w-full h-40 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
+                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10">
+                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}
                   </div>
-                  <div className="flex-1 min-w-0 pt-10 sm:pt-14">
-                    <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> Dining Mode Active</p>
+                  <div className="flex-1 min-w-0 pt-10">
+                    <h1 className="text-2xl font-black text-slate-950 tracking-tighter truncate uppercase">{biz?.name}</h1>
+                    <p className="text-[11px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> Dining Mode</p>
                   </div>
                 </div>
              </div>
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
                 <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
-                  <input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all font-black" value={search} onChange={e => setSearch(e.target.value)} />
+                  <input placeholder="Search..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all font-black" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
              </div>
              <div className="px-10 py-4 pb-20">
@@ -284,10 +266,10 @@ function CustomerMenu() {
                           <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
                             <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">
                               {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-5 right-5 px-5 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-xl border border-white/50">{symbol}{item.price}</div>
+                              <div className="absolute bottom-5 right-5 px-5 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-xl">{symbol}{item.price}</div>
                               <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase group-hover:text-emerald-600 transition-colors font-black">{item.product_name}</h3>
                             <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
                             <div className="px-4 mt-auto">
                                {inCart ? (
@@ -297,7 +279,7 @@ function CustomerMenu() {
                                    <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
                                  </div>
                                ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95 font-black">Add to Tray <Plus className="w-4 h-4" /></button>
+                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add <Plus className="w-4 h-4" /></button>
                                )}
                             </div>
                           </div>
@@ -332,7 +314,7 @@ function CustomerMenu() {
                         <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-[0.2em]"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
                         <div className="flex justify-between text-2xl items-center text-slate-1000 font-black pt-8 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>

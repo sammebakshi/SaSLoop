@@ -58,22 +58,21 @@ function OnlineOrder() {
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
 
-  // LIFTS & CALCULATIONS (MUST BE AT TOP)
+  // 🌍 STANDARDIZED PHONE LOGIC (+91...)
+  const getStandardPhone = () => {
+    const cleanPhone = customerPhone.replace(/\D/g, "");
+    const cleanCode = countryCode.replace(/\D/g, "");
+    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) {
+      return "+" + cleanPhone;
+    }
+    return "+" + cleanCode + cleanPhone;
+  };
+
+  // LIFTS & CALCULATIONS
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
-
-  const normalizePhoneForDB = (p) => {
-    const clean = p.replace(/\D/g, "");
-    return clean.length >= 10 ? clean.slice(-10) : clean;
-  };
-
-  const getFullPhoneForWhatsApp = () => {
-    const clean = customerPhone.replace(/\D/g, "");
-    if (clean.startsWith(countryCode) && clean.length > countryCode.length) return clean;
-    return countryCode + clean;
-  };
 
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
@@ -87,35 +86,21 @@ function OnlineOrder() {
   }, [cart, data, biz]);
 
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)) + (fulfillmentMode === 'DELIVERY' ? (deliveryRadiusStatus.charge || 0) : 0));
-
-  const filteredItems = useMemo(() => {
-    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
-  }, [data, search]);
-
-  const groupedItems = useMemo(() => {
-    return filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {});
-  }, [filteredItems]);
-
+  const filteredItems = useMemo(() => (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase())), [data, search]);
+  const groupedItems = useMemo(() => filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {}), [filteredItems]);
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`)
-      .then(r => r.json())
-      .then(d => { 
-        setData(d); 
-        setLoading(false); 
-        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
-      })
-      .catch(e => { console.error(e); setLoading(false); });
+    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
   }, [bizId]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
     setCheckingLoyalty(true); 
     try { 
-      const dbPhone = normalizePhoneForDB(customerPhone);
-      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${dbPhone}`); 
+      const stdPhone = getStandardPhone();
+      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(stdPhone)}`); 
       const d = await res.json(); 
       setLoyaltyPoints(d.points || 0); 
     } catch (e) { console.error(e); } 
@@ -127,7 +112,7 @@ function OnlineOrder() {
     if (!customerName.trim()) return alert("Name is required.");
     setIsVerifying(true);
     try {
-        const fullPhone = getFullPhoneForWhatsApp();
+        const fullPhone = getStandardPhone();
         const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -144,7 +129,7 @@ function OnlineOrder() {
     if (authOtp.length < 6) return alert("Enter 6-digit code.");
     setIsVerifying(true);
     try {
-        const fullPhone = getFullPhoneForWhatsApp();
+        const fullPhone = getStandardPhone();
         const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -174,7 +159,6 @@ function OnlineOrder() {
     const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
     if (matchedTier) charge = parseFloat(matchedTier.charge);
     setDeliveryRadiusStatus({ allowed, charge, distance: dist });
-    
     try {
         const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
         const g = await geoRes.json();
@@ -184,7 +168,7 @@ function OnlineOrder() {
 
   const placeOrder = async () => {
     setPlacing(true);
-    const fullNumber = getFullPhoneForWhatsApp();
+    const fullNumber = getStandardPhone();
     try {
       const res = await fetch(`${API_BASE}/api/public/order`, { 
         method: "POST", 
@@ -214,11 +198,11 @@ function OnlineOrder() {
         setView("confirmed"); 
         setCart([]); 
       } else alert(o.error || "Failed to process order.");
-    } catch (err) { alert("Offline error. Please contact staff."); }
+    } catch (err) { alert("Error. Please contact staff."); }
     finally { setPlacing(false); }
   };
 
-  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading Order Portal...</p></div>);
+  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading...</p></div>);
 
   if (view === "auth") {
     return (
@@ -239,7 +223,7 @@ function OnlineOrder() {
                    <>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label>
-                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type your name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all" autoFocus />
+                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" autoFocus />
                       </div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label>
@@ -247,19 +231,19 @@ function OnlineOrder() {
                            <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">
                               {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
                            </select>
-                           <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all" />
+                           <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" />
                         </div>
                       </div>
                    </>
                  ) : (
                    <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-4">
-                      <p className="text-[10px] font-black text-white/60 text-center uppercase tracking-widest">Enter the 6-digit code sent to WhatsApp</p>
-                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white placeholder:text-white/5 outline-none tracking-[0.5em] text-center" />
-                      <button onClick={() => setOtpMode(false)} className="w-full text-[9px] font-black text-white/30 uppercase tracking-[0.2em] hover:text-white transition-all underline underline-offset-4">Change Profile Information</button>
+                      <p className="text-[10px] font-black text-white/60 text-center uppercase tracking-widest">Enter the 6-digit code</p>
+                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" />
+                      <button onClick={() => setOtpMode(false)} className="w-full text-[9px] font-black text-white/30 uppercase tracking-[0.2em] transition-all underline underline-offset-4">Change Profile</button>
                    </div>
                  )}
-                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">
-                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify Code" : "Send Login Code")}
+                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">
+                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}
                     {!isVerifying && <ArrowRight className="w-4 h-4" />}
                  </button>
               </div>
@@ -276,14 +260,13 @@ function OnlineOrder() {
             <CheckCircle className="w-10 h-10 text-emerald-600" />
          </div>
          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
-         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Check WhatsApp for updates</p>
+         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Check WhatsApp for confirmation</p>
          <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order Reference</p>
             <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase">{orderRef}</p>
-            <div className="grid grid-cols-3 gap-3 border-t border-slate-200 pt-6">
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Paid</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Live</p></div>
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Mode</p><p className="text-xs font-black text-slate-900 uppercase">{fulfillmentMode}</p></div>
+            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-6">
+               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Total</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
+               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Confirmed</p></div>
             </div>
          </div>
          <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Back to Menu</button>
@@ -294,9 +277,9 @@ function OnlineOrder() {
   if (view === "fulfillment") {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 font-sans">
-         <div className="w-full max-w-[480px] bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-10 animate-in slide-in-from-bottom-10 duration-700">
+         <div className="w-full max-w-[480px] bg-white rounded-[3.5rem] shadow-2xl border border-slate-100 p-10 animate-in slide-in-from-bottom-10">
             <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tighter">Order Method</h2>
-            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">Hi {customerName.split(' ')[0]}, how should we serve you?</p>
+            <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-10">Choose how you'd like to receive your treats</p>
             <div className="grid grid-cols-2 gap-4 mb-10">
                {[
                  { id: 'PICKUP', icon: <Store className="w-6 h-6"/> , t: 'Pickup' }, 
@@ -315,16 +298,16 @@ function OnlineOrder() {
                        <TileLayer url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}" attribution='&copy; Google' />
                        <MapPicker lat={deliveryCoords?.lat} lng={deliveryCoords?.lng} onChange={updateMapLocation} />
                      </MapContainer>
-                     <button onClick={() => navigator.geolocation.getCurrentPosition(p => updateMapLocation(p.coords.latitude, p.coords.longitude))} className="absolute bottom-4 right-4 z-[1000] w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-emerald-500 active:scale-95 transition-all"><MapPin className="w-5 h-5" /></button>
+                     <button onClick={() => navigator.geolocation.getCurrentPosition(p => updateMapLocation(p.coords.latitude, p.coords.longitude))} className="absolute bottom-4 right-4 z-[1000] w-12 h-12 bg-white rounded-xl shadow-xl flex items-center justify-center text-emerald-500"><MapPin className="w-5 h-5" /></button>
                   </div>
                   <div className={`p-5 rounded-2xl border-2 transition-all ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
                      {deliveryRadiusStatus.allowed ? (
                         <div className="flex justify-between items-center"><p className="text-[10px] font-black text-emerald-900 uppercase truncate flex-1 leading-tight"><MapPin className="w-3 h-3 inline mr-1" /> {customerAddress.substring(0, 40)}...</p><p className="text-[10px] font-black text-emerald-500 bg-white px-2 py-1 rounded-lg">+{symbol}{deliveryRadiusStatus.charge}</p></div>
-                     ) : (<p className="text-[10px] font-black text-rose-600 uppercase flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Outside Range ({deliveryRadiusStatus.distance?.toFixed(1)} km)</p>)}
+                     ) : (<p className="text-[10px] font-black text-rose-600 uppercase flex items-center gap-2"><AlertCircle className="w-4 h-4" /> Outside Range</p>)}
                   </div>
                </div>
             )}
-            <button onClick={() => setView("menu")} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px] tracking-widest shadow-2xl active:scale-95 transition-all disabled:opacity-30">Open Full Menu</button>
+            <button onClick={() => setView("menu")} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px] active:scale-95 transition-all">Start My Order</button>
          </div>
       </div>
     );
@@ -339,67 +322,61 @@ function OnlineOrder() {
              <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">LOYALTY: {loyaltyPoints} PTS</p>
            </div>
            <div className="flex items-center gap-3">
-              <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-900 items-center px-5 rounded-2xl flex gap-3 text-white active:scale-95 transition-all">
+              <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-900 items-center px-5 rounded-2xl flex gap-3 text-white">
                  {fulfillmentMode === 'DELIVERY' ? <Bike className="w-4 h-4 text-emerald-400" /> : <Store className="w-4 h-4 text-emerald-400" />}
                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{fulfillmentMode}</span>
               </button>
            </div>
         </div>
       </header>
-
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
              <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Menu</h2>
              {categories.map(cat => (
-               <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase tracking-[0.1em] transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
+               <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
              ))}
           </aside>
-
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
-                {bannerUrl && <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
-                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10 sm:-mt-12">
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center overflow-hidden shrink-0">
-                     {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
+                {bannerUrl && <div className="w-full h-40 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
+                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10">
+                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
+                     {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}
                   </div>
-                  <div className="flex-1 min-w-0 pt-10 sm:pt-14">
-                    <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address}</p>
+                  <div className="flex-1 min-w-0 pt-10">
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
+                    <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address}</p>
                   </div>
                 </div>
              </div>
-
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
-                  <input placeholder="Search flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
-                </div>
+                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="Search flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} /></div>
              </div>
-
              <div className="px-10 py-4 pb-20">
                 {categories.map(cat => (
-                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-20 scroll-mt-6 hover:translate-x-1 transition-all duration-500">
+                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-20 scroll-mt-6">
                     <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em]">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                       {groupedItems[cat].map(item => {
                         const inCart = cart.find(c => c.id === item.id);
                         return (
-                          <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl hover:shadow-slate-100 hover:-translate-y-2 border border-transparent hover:border-slate-50">
+                          <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
                             <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">
                               {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl border border-white/50">{symbol}{item.price}</div>
+                              <div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div>
                               <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors font-black">{item.product_name}</h3>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
                             <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
                             <div className="px-4 mt-auto">
                                {inCart ? (
                                  <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Minus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button>
                                    <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button>
                                  </div>
                                ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95 font-black">Add Item <Plus className="w-4 h-4" /></button>
+                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add Item <Plus className="w-4 h-4" /></button>
                                )}
                             </div>
                           </div>
@@ -410,7 +387,6 @@ function OnlineOrder() {
                 ))}
              </div>
           </div>
-
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
                 <div className="flex items-center justify-between mb-12">
@@ -442,7 +418,6 @@ function OnlineOrder() {
              </div>
           </aside>
       </div>
-
       {cart.length > 0 && view === "menu" && (
         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
            <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all">

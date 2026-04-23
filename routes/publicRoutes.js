@@ -3,6 +3,13 @@ const router = express.Router();
 const pool = require("../db");
 const whatsappManager = require("../whatsappManager");
 
+// Helper to ensure +CountryCode format
+const formatToInter = (p) => {
+    if (!p) return "";
+    const digits = p.replace(/\D/g, "");
+    return digits ? `+${digits}` : "";
+};
+
 // 📋 GET MENU FOR QR CUSTOMER
 router.get("/menu/:userId", async (req, res) => {
     try {
@@ -33,9 +40,8 @@ router.post("/order", async (req, res) => {
     try {
         const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, loyaltyOtp, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst, status: customStatus, paymentMethod, paymentStatus, discount_amount, service_charge } = req.body;
         
-        // 🛡️ SANITIZE PHONE: Global cleaning to only digits
-        const cleanPhone = (customerPhone || "").replace(/\D/g, "");
-        const dbPhone = cleanPhone.length >= 10 ? cleanPhone.slice(-10) : cleanPhone;
+        // 🌍 STANDARDIZE: Always +91... format
+        const dbPhone = formatToInter(customerPhone);
         
         const isOnline = source === "ONLINE_ORDER";
         const isPOS = source === "POS_MANUAL";
@@ -58,7 +64,7 @@ router.post("/order", async (req, res) => {
 
         if (ptsEnabled && pointsToRedeem && pointsToRedeem >= minRedeem && dbPhone) {
             try {
-                // 🛡️ SECURITY: Verify OTP for point redemption
+                // Verify OTP for point redemption
                 const otpCheck = await pool.query(
                     "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
                     [userId, dbPhone, loyaltyOtp]
@@ -106,35 +112,31 @@ router.post("/order", async (req, res) => {
             orderId = insertRes.rows[0].id;
         }
         
-        // Build notification message
-        const mode = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINEIN" : "PICKUP");
-        const modeLabel = mode === "DELIVERY" ? "🚚 Delivery" : (mode === "PICKUP" ? "🏪 Pickup" : "🍽️ Table Order");
-        const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
-        
-        // Notify Kitchen & Staff (Non-blocking)
+        // Notify Staff (Using standardized phone)
         try {
             const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
             const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
-            let subtotal = parseFloat(frontendSubtotal) || 0;
-            if (!frontendSubtotal && items) items.forEach(i => subtotal += (i.qty * i.price));
+            let subtotalCalc = parseFloat(frontendSubtotal) || 0;
+            if (!frontendSubtotal && items) items.forEach(i => subtotalCalc += (i.qty * i.price));
             
             await whatsappManager.notifyKitchenAndStaff(
                 userId, currentOrderRef, customerName || "Guest", dbPhone || "Guest", items || [],
-                subtotal, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
+                subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
                 mode.toLowerCase(), orderAddress, tableNumber && tableNumber !== "0" ? tableNumber : null
             );
-        } catch (notifErr) { console.error("Staff notification failed (Non-critical):", notifErr); }
+        } catch (notifErr) { console.error("Notification failed:", notifErr); }
         
-        // Notify Customer (Non-blocking)
-        if (isOnline && dbPhone && dbPhone.length >= 10) {
+        // Notify Customer
+        if (isOnline && dbPhone.startsWith('+')) {
             try {
-                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n*Type:* ${modeLabel}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\nWe'll update you when it's ready! 🔥`;
+                const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
+                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\nWe'll update you when it's ready! 🔥`;
                 await whatsappManager.sendOfficialMessage(dbPhone, custMsg, userId);
-            } catch (custErr) { console.error("Customer notification failed (Non-critical):", custErr); }
+            } catch (custErr) { console.error("Customer Msg failed:", custErr); }
         }
         
-        // Update Points (Only for new sales or completions - with strict safety)
-        if (dbPhone && dbPhone.length >= 10 && (customStatus === 'COMPLETED' || !existingOrder)) {
+        // Update Points
+        if (dbPhone.startsWith('+') && (customStatus === 'COMPLETED' || !existingOrder)) {
             try {
                 const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
                 const earned = Math.floor(finalPrice * ptsEarnRate) || 0;
@@ -149,13 +151,13 @@ router.post("/order", async (req, res) => {
                         last_visit = NOW()`,
                     [userId, dbPhone, customerName || "Customer", finalPrice, earned, redeemedPoints]
                 );
-            } catch (pErr) { console.error("Loyalty update failed (Non-critical):", pErr); }
+            } catch (pErr) { console.error("Loyalty update fail:", pErr); }
         }
 
         res.json({ success: true, orderId, orderRef: currentOrderRef, finalPrice, redeemedPoints });
     } catch (err) {
         console.error("CRITICAL ORDER ERROR:", err);
-        res.status(500).json({ error: "Could not process order. Please try again." });
+        res.status(500).json({ error: "Internal Error. Please try again." });
     }
 });
 
@@ -163,8 +165,7 @@ router.post("/order", async (req, res) => {
 router.post("/loyalty/request-otp", async (req, res) => {
     try {
         const { userId, phone, manual } = req.body;
-        const normPhone = (phone || "").replace(/\D/g, "");
-        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
+        const dbPhone = formatToInter(phone);
         
         if (!dbPhone) return res.status(400).json({ error: "Phone number is required." });
 
@@ -200,42 +201,17 @@ router.post("/loyalty/request-otp", async (req, res) => {
 router.get("/loyalty/:userId/:phone", async (req, res) => {
     try {
         const { userId, phone } = req.params;
-        const normPhone = (phone || "").replace(/\D/g, ""); 
-        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
+        const dbPhone = formatToInter(phone);
         const result = await pool.query("SELECT points, total_spent FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
         res.json(result.rows[0] || { points: 0, total_spent: 0 });
     } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-// 🔔 CALL WAITER
-router.post("/call-waiter", async (req, res) => {
-    try {
-        const { userId, tableNumber } = req.body;
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-        const bizData = bizRes.rows[0];
-
-        const alert = `🛎️ *WAITER CALL*\n*Table ${tableNumber}* requested assistance!`;
-        
-        if (bizData.notification_numbers && Array.isArray(bizData.notification_numbers)) {
-            for (let num of bizData.notification_numbers) {
-                const cleanNum = num.replace(/\D/g, "");
-                if (cleanNum) await whatsappManager.sendOfficialMessage(cleanNum, alert, userId, "WAITER_CALL");
-            }
-        }
-        res.json({ success: true });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Internal error" });
-    }
 });
 
 // 🔑 REQUEST LOGIN OTP (WHATSAPP)
 router.post("/auth/request-otp", async (req, res) => {
     try {
         const { userId, phone } = req.body;
-        const normPhone = (phone || "").replace(/\D/g, "");
-        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
-        
+        const dbPhone = formatToInter(phone);
         if (!dbPhone) return res.status(400).json({ error: "Phone number required." });
 
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
@@ -250,7 +226,7 @@ router.post("/auth/request-otp", async (req, res) => {
         const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
         const bizName = bizRes.rows[0]?.name || "Restaurant";
         
-        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.\n\nValid for 5 minutes.`;
+        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.`;
         const sent = await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
         
         if (!sent) return res.status(500).json({ error: "WhatsApp service unavailable." });
@@ -265,8 +241,7 @@ router.post("/auth/request-otp", async (req, res) => {
 router.post("/auth/verify-otp", async (req, res) => {
     try {
         const { userId, phone, otp } = req.body;
-        const normPhone = (phone || "").replace(/\D/g, "");
-        const dbPhone = normPhone.length >= 10 ? normPhone.slice(-10) : normPhone;
+        const dbPhone = formatToInter(phone);
 
         const otpCheck = await pool.query(
             "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
