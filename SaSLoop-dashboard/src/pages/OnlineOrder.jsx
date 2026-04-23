@@ -164,43 +164,66 @@ function OnlineOrder() {
     finally { setIsVerifying(false); }
   };
 
-  const getDistance = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
   const checkServiceability = (lat, lon) => {
-    if (!biz?.latitude || !biz?.longitude) return { allowed: true, charge: 0 };
-    const dist = getDistance(biz.latitude, biz.longitude, lat, lon);
+    if (!biz?.latitude || !biz?.longitude) return { allowed: true, charge: 0, distance: 0 };
+    const R = 6371; // km
+    const dLat = (lat - biz.latitude) * Math.PI / 180;
+    const dLon = (lon - biz.longitude) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(biz.latitude * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const dist = R * c;
+    
     const radius = parseFloat(biz.delivery_radius_km) || 10;
-    if (dist > radius) return { allowed: false, charge: 0 };
+    if (dist > radius) return { allowed: false, charge: 0, distance: dist };
     
     let charge = 0;
     const tiers = biz.delivery_tiers || [];
     const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
     if (matchedTier) charge = parseFloat(matchedTier.charge);
     
-    return { allowed: true, charge };
+    return { allowed: true, charge, distance: dist };
   };
 
   const handleLocationDetection = () => {
-    if (!navigator.geolocation) return alert("Geo not supported.");
-    navigator.geolocation.getCurrentPosition(pos => {
-      const { latitude, longitude } = pos.coords;
-      const res = checkServiceability(latitude, longitude);
-      if (!res.allowed) return alert("Sorry, we don't deliver to your area yet.");
-      setDeliveryCoords({ lat: latitude, lng: longitude });
-      setDeliveryRadiusStatus(res);
-      setCustomerAddress(`Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
-    }, (err) => alert("Failed to get location"));
+    if (!navigator.geolocation) return alert("Geolocation not supported");
+    setIsVerifying(true);
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        setDeliveryCoords({ lat, lng });
+        
+        try {
+            const res = checkServiceability(lat, lng);
+            if (res.allowed) {
+                setDeliveryRadiusStatus({ allowed: true, charge: res.charge, distance: res.distance });
+                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const g = await geoRes.json();
+                setCustomerAddress(g.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            } else {
+                alert(`Sorry, your location is approx ${res.distance.toFixed(1)}km away, out of our ${biz.delivery_radius_km}km limit.`);
+                setDeliveryRadiusStatus({ allowed: false, charge: 0, distance: res.distance });
+            }
+        } catch (e) { alert("Distance check failed"); }
+        finally { setIsVerifying(false); }
+    }, (err) => { 
+        alert("Please enable location access in your browser settings.");
+        setIsVerifying(false); 
+    }, { enableHighAccuracy: true, timeout: 10000 });
   };
 
   const proceedToMenu = () => {
-    if (fulfillmentMode === "DELIVERY" && !deliveryCoords) return alert("Select location first.");
+    if (fulfillmentMode === "DELIVERY") {
+        // 🕒 IST TIMING CHECK
+        const istTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+        const currentStr = `${istTime.getHours().toString().padStart(2, '0')}:${istTime.getMinutes().toString().padStart(2, '0')}`;
+        const open = biz?.settings?.openingTime || "00:00";
+        const close = biz?.settings?.closingTime || "23:59";
+
+        if (currentStr < open || currentStr > close) {
+            return alert(`🕒 Kitchen Closed for Delivery. We are open from ${open} to ${close}.`);
+        }
+        if (!deliveryCoords && !customerAddress) return alert("Select location first.");
+        if (deliveryRadiusStatus.distance > (biz?.delivery_radius_km || 10)) return alert("Location out of delivery zone.");
+    }
     setView("menu");
   };
 
@@ -274,32 +297,6 @@ function OnlineOrder() {
     if (bizPhone) window.open(`https://wa.me/${bizPhone}?text=Hi!`, "_blank"); 
   };
 
-  const handleLocationDetection = () => {
-    if (!navigator.geolocation) return alert("Geolocation not supported");
-    setIsVerifying(true);
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-        const { latitude: lat, longitude: lng } = pos.coords;
-        setDeliveryCoords({ lat, lng });
-        
-        try {
-            const res = await checkDeliveryServiceable(lat, lng);
-            if (res.allowed) {
-                setDeliveryRadiusStatus({ allowed: true, charge: res.charge, distance: res.distance });
-                // Reverse Geocode
-                const geoRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-                const g = await geoRes.json();
-                setCustomerAddress(g.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`);
-            } else {
-                alert(`Sorry, your location is approx ${res.distance.toFixed(1)}km away, out of our ${biz.delivery_radius_km}km limit.`);
-                setDeliveryRadiusStatus({ allowed: false, charge: 0, distance: res.distance });
-            }
-        } catch (e) { alert("Distance check failed"); }
-        finally { setIsVerifying(false); }
-    }, (err) => { 
-        alert("Please enable location access in your browser settings.");
-        setIsVerifying(false); 
-    }, { enableHighAccuracy: true, timeout: 10000 });
-  };
 
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Store...</p></div>);
 

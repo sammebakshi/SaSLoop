@@ -623,6 +623,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
 
             if (isDelivery) {
+                // 🕒 OPERATIONAL TIMING GUARD
+                const istTime = new Date(new Date().toLocaleString("en-US", {timeZone: "Asia/Kolkata"}));
+                const currentStr = `${istTime.getHours().toString().padStart(2, '0')}:${istTime.getMinutes().toString().padStart(2, '0')}`;
+                const open = biz?.settings?.openingTime || "00:00";
+                const close = biz?.settings?.closingTime || "23:59";
+
+                if (currentStr < open || currentStr > close) {
+                    await sendAndLog(customerNumber, `🕒 *Currently Closed*\n\nSorry, our kitchen is closed for delivery right now. We are available from *${open} to ${close}*.\n\nYou can still browse our menu or try a *Pickup* order if you're nearby!`, userId);
+                    return;
+                }
+
                 const ctx = { ...session.context, order_type: 'delivery' };
                 await updateSessionState(userId, customerNumber, 'AWAITING_LOCATION', ctx);
                 await sendAndLog(customerNumber,
