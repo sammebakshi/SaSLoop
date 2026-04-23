@@ -713,8 +713,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // 2. Detect LOCATION message
-        if (message.type === 'location') {
-            const { latitude, longitude } = message.location;
+        if (locationData) {
+            const { latitude, longitude } = locationData;
             const res = calculateDeliveryCharge(biz, latitude, longitude);
             
             if (!res.allowed) {
