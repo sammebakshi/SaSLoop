@@ -4,7 +4,8 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, CheckCircle, Utensils, Search,
   X, MapPin, ArrowRight, RefreshCw, ShoppingBag,
-  Activity, Sparkles, ChevronLeft, Globe, MessageCircle
+  Activity, Sparkles, ChevronLeft, Globe, MessageCircle,
+  Package, Clock, Check
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -16,7 +17,10 @@ function CustomerMenu() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const [view, setView] = useState("auth"); 
+  const [showOrders, setShowOrders] = useState(false);
+  const [activeOrders, setActiveOrders] = useState([]);
   const [placing, setPlacing] = useState(false);
+  
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
@@ -62,9 +66,28 @@ function CustomerMenu() {
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
+  const fetchActiveOrders = async () => {
+    if (!customerPhone) return;
+    try {
+      const std = getStandardPhone();
+      const res = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(std)}`);
+      const d = await res.json();
+      setActiveOrders(d || []);
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
   }, [bizId]);
+
+  // Amazon-style Polling for order tracking
+  useEffect(() => {
+    if (view !== "auth") {
+       fetchActiveOrders();
+       const itv = setInterval(fetchActiveOrders, 10000); // 10 seconds
+       return () => clearInterval(itv);
+    }
+  }, [view, customerPhone]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
@@ -140,7 +163,7 @@ function CustomerMenu() {
           source: "TABLE_QR" 
         }) 
       });
-      if (res.ok) { setView("ordered"); setCart([]); } 
+      if (res.ok) { setView("ordered"); setCart([]); fetchActiveOrders(); } 
       else { alert("Internal Error. Staff notified."); }
     } catch (err) { alert("System busy. Please try again."); }
     finally { setPlacing(false); }
@@ -204,19 +227,6 @@ function CustomerMenu() {
     );
   }
 
-  if (view === "ordered") {
-    return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
-         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl">
-            <CheckCircle className="w-10 h-10 text-emerald-600" />
-         </div>
-         <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
-         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Preparing for Table {tableId}</p>
-         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Add More</button>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
@@ -225,11 +235,75 @@ function CustomerMenu() {
              <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
              <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} PTS</p>
            </div>
-           <div className="flex flex-col text-right">
-              <p className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">Table {tableId}</p>
+           
+           <div className="flex items-center gap-4">
+             {activeOrders.length > 0 && (
+                <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-xl animate-bounce">
+                   <Package className="w-4 h-4 text-emerald-400" />
+                   <span className="text-[9px] font-black uppercase tracking-widest">{activeOrders.filter(o => o.status !== 'COMPLETED').length} ACTIVE</span>
+                </button>
+             )}
+             <div className="flex flex-col text-right">
+                <p className="text-[10px] font-black text-slate-950 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100">Table {tableId}</p>
+             </div>
            </div>
         </div>
       </header>
+
+      {/* AMAZON-STYLE ORDER DRAWER */}
+      {showOrders && (
+        <div className="fixed inset-0 z-[200] font-sans">
+           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
+           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                 <h2 className="text-xl font-black uppercase tracking-tighter">My Tracking</h2>
+                 <button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
+                 {activeOrders.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center text-slate-300">
+                       <Package className="w-12 h-12 mb-4 opacity-20" />
+                       <p className="text-[10px] font-black uppercase tracking-widest">No orders found</p>
+                    </div>
+                 ) : (
+                    activeOrders.map(order => (
+                      <div key={order.id} className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 relative group transition-all hover:bg-white hover:shadow-2xl hover:border-white">
+                         <div className="flex items-center justify-between mb-6">
+                            <div className="px-4 py-1.5 bg-white border border-slate-100 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-400">{order.order_reference}</div>
+                            <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                               order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                               order.status === 'PREPARING' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                               order.status === 'SERVED' || order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                            }`}>● {order.status}</div>
+                         </div>
+                         <div className="space-y-4 mb-8">
+                            {JSON.parse(order.items || '[]').map((it, idx) => (
+                               <div key={idx} className="flex justify-between items-center"><p className="text-[11px] font-black text-slate-900 uppercase">{it.qty}x {it.name}</p></div>
+                            ))}
+                         </div>
+                         <div className="flex justify-between items-center border-t border-slate-200 pt-6">
+                            <div className="flex items-center gap-2 text-slate-400"><Clock className="w-3.5 h-3.5" /><span className="text-[9px] font-black uppercase">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                            <p className="text-lg font-black text-slate-900 tracking-tighter">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
+                         </div>
+                         {order.status !== 'COMPLETED' && order.status !== 'SERVED' && (
+                            <div className="mt-6 flex items-center gap-3">
+                               <div className="flex-1 h-1 bg-slate-200 rounded-full overflow-hidden">
+                                  <div className={`h-full bg-emerald-500 transition-all duration-1000 ${order.status === 'PENDING' ? 'w-1/3' : 'w-2/3'}`} />
+                               </div>
+                               <p className="text-[8px] font-black text-emerald-600 uppercase">Track</p>
+                            </div>
+                         )}
+                      </div>
+                    ))
+                 )}
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-white">
+                 <button onClick={() => { setShowOrders(false); setView("menu"); }} className="w-full bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">Continue Selection <ArrowRight className="w-4 h-4" /></button>
+              </div>
+           </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
              <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Menu</h2>
@@ -237,24 +311,25 @@ function CustomerMenu() {
                <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
              ))}
           </aside>
+          
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
-                {bannerUrl && <div className="w-full h-40 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
-                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10">
-                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
+                {bannerUrl && <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
+                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10 sm:-mt-12">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">
                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}
                   </div>
-                  <div className="flex-1 min-w-0 pt-10">
-                    <h1 className="text-2xl font-black text-slate-950 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[11px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> Dining Mode</p>
+                  <div className="flex-1 min-w-0 pt-10 sm:pt-14 text-left">
+                    <h1 className="text-2xl sm:text-3xl font-black text-slate-950 tracking-tighter truncate uppercase">{biz?.name}</h1>
+                    <p className="text-[11px] font-black text-slate-400 uppercase tracking-[0.1em] flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> Dining Mode Active</p>
                   </div>
                 </div>
              </div>
+             
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
-                  <input placeholder="Search..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all font-black" value={search} onChange={e => setSearch(e.target.value)} />
-                </div>
+                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="Craving something?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} /></div>
              </div>
+
              <div className="px-10 py-4 pb-20">
                 {categories.map(cat => (
                   <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-20 scroll-mt-6">
@@ -269,7 +344,7 @@ function CustomerMenu() {
                               <div className="absolute bottom-5 right-5 px-5 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-xl">{symbol}{item.price}</div>
                               <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase group-hover:text-emerald-600 transition-colors font-black">{item.product_name}</h3>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
                             <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
                             <div className="px-4 mt-auto">
                                {inCart ? (
@@ -290,6 +365,7 @@ function CustomerMenu() {
                 ))}
              </div>
           </div>
+
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
                 <div className="flex items-center justify-between mb-12">
@@ -314,7 +390,7 @@ function CustomerMenu() {
                         <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-[0.2em]"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
                         <div className="flex justify-between text-2xl items-center text-slate-1000 font-black pt-8 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>

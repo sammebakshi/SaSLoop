@@ -201,9 +201,25 @@ router.post("/loyalty/request-otp", async (req, res) => {
 router.get("/loyalty/:userId/:phone", async (req, res) => {
     try {
         const { userId, phone } = req.params;
-        const dbPhone = formatToInter(phone);
+        const digits = (phone || "").replace(/\D/g, "");
+        const dbPhone = digits ? `+${digits}` : "";
         const result = await pool.query("SELECT points, total_spent FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
         res.json(result.rows[0] || { points: 0, total_spent: 0 });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 📋 GET CUSTOMER ORDERS (Amazon-style Tracking)
+router.get("/orders/:userId/:phone", async (req, res) => {
+    try {
+        const { userId, phone } = req.params;
+        const digits = (phone || "").replace(/\D/g, "");
+        const dbPhone = digits ? `+${digits}` : "";
+        
+        const result = await pool.query(
+            "SELECT id, order_reference, items, total_price, status, created_at, table_number, address FROM orders WHERE user_id=$1 AND customer_number=$2 ORDER BY created_at DESC LIMIT 20",
+            [userId, dbPhone]
+        );
+        res.json(result.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

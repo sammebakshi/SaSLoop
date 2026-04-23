@@ -50,6 +50,9 @@ function OnlineOrder() {
   const [loyaltyOtp, setLoyaltyOtp] = useState("");
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [checkingLoyalty, setCheckingLoyalty] = useState(false);
+
+  const [activeOrders, setActiveOrders] = useState([]);
+  const [showOrders, setShowOrders] = useState(false);
   
   const [view, setView] = useState("auth"); 
   const [deliveryCoords, setDeliveryCoords] = useState(null);
@@ -91,9 +94,28 @@ function OnlineOrder() {
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
+  const fetchActiveOrders = async () => {
+    if (!customerPhone) return;
+    try {
+      const std = getStandardPhone();
+      const res = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(std)}`);
+      const d = await res.json();
+      setActiveOrders(d || []);
+    } catch (e) {}
+  };
+
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
   }, [bizId]);
+
+  // Amazon-style Polling
+  useEffect(() => {
+    if (view !== "auth") {
+      fetchActiveOrders();
+      const itv = setInterval(fetchActiveOrders, 10000);
+      return () => clearInterval(itv);
+    }
+  }, [view, customerPhone]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
@@ -197,6 +219,7 @@ function OnlineOrder() {
         setFinalPaidAmount(o.finalPrice || 0); 
         setView("confirmed"); 
         setCart([]); 
+        fetchActiveOrders();
       } else alert(o.error || "Failed to process order.");
     } catch (err) { alert("Error. Please contact staff."); }
     finally { setPlacing(false); }
@@ -261,7 +284,7 @@ function OnlineOrder() {
          </div>
          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Placed!</h1>
          <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Check WhatsApp for confirmation</p>
-         <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
+         <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-sm mb-10 text-center">
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order Reference</p>
             <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase">{orderRef}</p>
             <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-6">
@@ -321,14 +344,61 @@ function OnlineOrder() {
              <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
              <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">LOYALTY: {loyaltyPoints} PTS</p>
            </div>
+           
            <div className="flex items-center gap-3">
-              <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-900 items-center px-5 rounded-2xl flex gap-3 text-white">
-                 {fulfillmentMode === 'DELIVERY' ? <Bike className="w-4 h-4 text-emerald-400" /> : <Store className="w-4 h-4 text-emerald-400" />}
+              {activeOrders.length > 0 && (
+                 <button onClick={() => setShowOrders(true)} className="flex items-center gap-3 bg-slate-950 text-white px-5 py-2.5 rounded-2xl shadow-2xl animate-in zoom-in">
+                    <Package className="w-4 h-4 text-emerald-400" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'DELIVERED').length} ACTIVE</span>
+                 </button>
+              )}
+              <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-100 items-center px-5 rounded-2xl flex gap-3 text-slate-900 border border-slate-200">
+                 {fulfillmentMode === 'DELIVERY' ? <Bike className="w-4 h-4 text-emerald-500" /> : <Store className="w-4 h-4 text-emerald-500" />}
                  <span className="text-[10px] font-black uppercase tracking-widest hidden sm:inline">{fulfillmentMode}</span>
               </button>
            </div>
         </div>
       </header>
+
+      {/* AMAZON-STYLE ORDER DRAWER */}
+      {showOrders && (
+        <div className="fixed inset-0 z-[200] font-sans">
+           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
+           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col">
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                 <h2 className="text-xl font-black uppercase tracking-tighter">Order Tracking</h2>
+                 <button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-8 space-y-8 no-scrollbar">
+                 {activeOrders.map(order => (
+                    <div key={order.id} className="bg-slate-50 rounded-[2.5rem] p-8 border border-slate-100 transition-all hover:bg-white hover:shadow-2xl">
+                       <div className="flex items-center justify-between mb-6">
+                          <div className="px-4 py-1.5 bg-white border border-slate-100 rounded-full text-[8px] font-black uppercase tracking-widest text-slate-400">{order.order_reference}</div>
+                          <div className={`px-4 py-1.5 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                             order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
+                             order.status === 'PREPARING' ? 'bg-blue-100 text-blue-700 animate-pulse' :
+                             order.status === 'DELIVERED' || order.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'
+                          }`}>● {order.status}</div>
+                       </div>
+                       <div className="space-y-3 mb-8">
+                          {JSON.parse(order.items || '[]').map((it, idx) => (
+                             <div key={idx} className="flex justify-between items-center"><p className="text-[11px] font-black text-slate-900 uppercase">{it.qty}x {it.name}</p></div>
+                          ))}
+                       </div>
+                       <div className="flex justify-between items-center border-t border-slate-200 pt-6">
+                          <div className="flex items-center gap-2 text-slate-400"><Clock className="w-3.5 h-3.5" /><span className="text-[9px] font-black uppercase">{new Date(order.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                          <p className="text-lg font-black text-slate-900 tracking-tighter">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
+                       </div>
+                    </div>
+                 ))}
+              </div>
+              <div className="p-8 bg-slate-50 border-t border-white">
+                 <button onClick={() => { setShowOrders(false); setView("menu"); }} className="w-full bg-slate-950 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center justify-center gap-3">Continue Selection <ArrowRight className="w-4 h-4" /></button>
+              </div>
+           </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
              <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Menu</h2>

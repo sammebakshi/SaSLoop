@@ -6,7 +6,16 @@ const path = require("path");
 
 const normalizePhone = (p) => {
     if (!p) return "";
-    return p.replace(/\D/g, ""); // Remove all non-digits, keep full length including country code
+    return p.replace(/\D/g, "");
+};
+
+// Helper: Ensure +CountryCodeNumber for Meta API (Defaults to 91 if missing)
+const formatToInter = (p) => {
+    if (!p) return "";
+    const digits = p.replace(/\D/g, "");
+    if (digits.length === 10) return `+91${digits}`;
+    if (!p.startsWith("+")) return `+${digits}`;
+    return `+${digits}`;
 };
 
 // ----------------------------------------------------------------------------------
@@ -26,7 +35,7 @@ const sendOfficialMessage = async (to, content, userId) => {
             return false;
         }
 
-        const cleanTo = to.replace(/\D/g, ""); // Meta expects digits only for E.164
+        const cleanTo = formatToInter(to).replace(/\D/g, ""); // Meta expects digits only for E.164
         let payload = { messaging_product: "whatsapp", to: cleanTo };
         
         if (typeof content === 'string') {
@@ -1280,10 +1289,10 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
 
         const staffMsg = staffMsgArr.join("\n");
 
-        if (biz.kitchen_number) await sendOfficialMessage(biz.kitchen_number.replace(/\D/g, ""), kot, userId);
+        if (biz.kitchen_number) await sendOfficialMessage(formatToInter(biz.kitchen_number), kot, userId);
         if (biz.notification_numbers) {
             for (let num of biz.notification_numbers) {
-                await sendOfficialMessage(num.replace(/\D/g, ""), staffMsg, userId);
+                await sendOfficialMessage(formatToInter(num), staffMsg, userId);
             }
         }
     } catch (e) { console.error("Staff Notify Error:", e); }
