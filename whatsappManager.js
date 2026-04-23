@@ -18,19 +18,34 @@ const normalizePhone = (p) => {
 // ----------------------------------------------------------------------------------
 const sendOfficialMessage = async (to, content, userId) => {
     try {
-        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
-        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0];
-        let payload = { messaging_product: "whatsapp", to };
+        const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        const { meta_access_token: token, meta_phone_id: phoneId, id: uId } = dbRes.rows[0] || {};
+        
+        if (!token || !phoneId) {
+            console.error(`[META-ERROR] User ${userId} has no Meta credentials configured.`);
+            return false;
+        }
+
+        const cleanTo = to.replace(/\D/g, ""); // Meta expects digits only for E.164
+        let payload = { messaging_product: "whatsapp", to: cleanTo };
         if (typeof content === 'string') {
             payload.type = "text";
             payload.text = { body: content };
         } else {
             Object.assign(payload, content);
         }
-        await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+        
+        const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
             headers: { "Authorization": `Bearer ${token}` }
         });
-    } catch (e) { console.error("Meta Send Error", e.response?.data || e.message); }
+        
+        console.log(`[META-SUC] Message sent to ${cleanTo} (User: ${uId}) - ID: ${response.data.messages?.[0]?.id}`);
+        return true;
+    } catch (e) { 
+        const errorData = e.response?.data || e.message;
+        console.error(`[META-ERR] Failed to send to ${to}:`, JSON.stringify(errorData)); 
+        return false;
+    }
 };
 
 const sendAndLog = async (to, text, userId, waMessageId = null) => {

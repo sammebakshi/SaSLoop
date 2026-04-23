@@ -253,7 +253,12 @@ router.post("/auth/request-otp", async (req, res) => {
         const bizName = bizRes.rows[0]?.name || "Restaurant";
         
         const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.\n\nValid for 5 minutes. Use this code to view our menu and access special rewards! 🎁`;
-        await whatsappManager.sendOfficialMessage(normPhone, otpMsg, userId);
+        console.log(`[AUTH-OTP] Sending OTP ${otp} to ${normPhone} for User ${userId}`);
+        const sent = await whatsappManager.sendOfficialMessage(normPhone, otpMsg, userId);
+        
+        if (!sent) {
+            return res.status(500).json({ error: "WhatsApp service currently unavailable. Please contact the restaurant." });
+        }
         
         res.json({ success: true, message: "OTP sent to WhatsApp." });
     } catch (err) {
