@@ -193,6 +193,10 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS table_number VARCHAR(50)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_reference VARCHAR(50)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_charge NUMERIC DEFAULT 0`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS service_charge NUMERIC DEFAULT 0`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50) DEFAULT 'CASH'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'PENDING'`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC DEFAULT 0`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_long NUMERIC`,
 
