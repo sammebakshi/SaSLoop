@@ -58,24 +58,14 @@ function OnlineOrder() {
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`)
-      .then(r => r.json())
-      .then(d => { 
-        setData(d); 
-        setLoading(false); 
-        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
-      })
-      .catch(e => { console.error(e); setLoading(false); });
-  }, [bizId]);
-
+  // LIFTS & CALCULATIONS (MUST BE AT TOP)
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 
-  const normalizePhoneForDB = (phone) => {
-    const clean = phone.replace(/\D/g, "");
+  const normalizePhoneForDB = (p) => {
+    const clean = p.replace(/\D/g, "");
     return clean.length >= 10 ? clean.slice(-10) : clean;
   };
 
@@ -88,15 +78,37 @@ function OnlineOrder() {
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
     let cgst = 0, sgst = 0;
-    const cgstRate = parseFloat(biz?.cgst_percent) || 0;
-    const sgstRate = parseFloat(biz?.sgst_percent) || 0;
-    const isIncluded = biz?.gst_included === true;
+    const cgstR = parseFloat(biz?.cgst_percent) || 0;
+    const sgstR = parseFloat(biz?.sgst_percent) || 0;
+    const isInc = biz?.gst_included === true;
     if (!data) return { cgst: 0, sgst: 0, totalTax: 0, isIncluded: true };
-    cart.forEach(item => { if (item.tax_applicable === 1 || item.tax_applicable === true) { const t = item.qty * item.price; if (isIncluded) { const r = cgstRate + sgstRate; if (r > 0) { const a = t * (r / (100 + r)); cgst += a * (cgstRate / r); sgst += a * (sgstRate / r); } } else { cgst += (t * cgstRate) / 100; sgst += (t * sgstRate) / 100; } } });
-    return { cgst, sgst, totalTax: cgst + sgst, isIncluded };
+    cart.forEach(item => { if (item.tax_applicable === 1 || item.tax_applicable === true) { const t = item.qty * item.price; if (isInc) { const r = cgstR + sgstR; if (r > 0) { const a = t * (r / (100 + r)); cgst += a * (cgstR / r); sgst += a * (sgstR / r); } } else { cgst += (t * cgstR) / 100; sgst += (t * sgstR) / 100; } } });
+    return { cgst, sgst, totalTax: cgst + sgst, isIncluded: isInc };
   }, [cart, data, biz]);
 
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)) + (fulfillmentMode === 'DELIVERY' ? (deliveryRadiusStatus.charge || 0) : 0));
+
+  const filteredItems = useMemo(() => {
+    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
+  }, [data, search]);
+
+  const groupedItems = useMemo(() => {
+    return filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {});
+  }, [filteredItems]);
+
+  const categories = Object.keys(groupedItems);
+  const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/public/menu/${bizId}`)
+      .then(r => r.json())
+      .then(d => { 
+        setData(d); 
+        setLoading(false); 
+        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
+      })
+      .catch(e => { console.error(e); setLoading(false); });
+  }, [bizId]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
@@ -181,7 +193,7 @@ function OnlineOrder() {
           userId: bizId, 
           tableNumber: "0", 
           items: cart.map(i => ({ name: i.product_name, qty: i.qty, price: i.price, tax_applicable: i.tax_applicable })), 
-          subtotal, 
+          subtotal: taxData.isIncluded ? subtotal : subtotal + taxData.totalTax, 
           cgst: taxData.cgst, 
           sgst: taxData.sgst, 
           totalPrice: finalTotal, 
@@ -206,20 +218,8 @@ function OnlineOrder() {
     finally { setPlacing(false); }
   };
 
-  const filteredItems = useMemo(() => {
-    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
-  }, [data, search]);
+  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading Order Portal...</p></div>);
 
-  const groupedItems = useMemo(() => {
-    return filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {});
-  }, [filteredItems]);
-
-  const categories = Object.keys(groupedItems);
-  const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
-
-  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Loading Menu...</p></div>);
-
-  // RENDER SECTIONS (Defined directly to prevent focus loss)
   if (view === "auth") {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden font-sans">
@@ -234,7 +234,6 @@ function OnlineOrder() {
               </div>
               <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">{biz?.name}</h1>
               <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">VIP Concierge</p>
-
               <div className="space-y-4 text-left">
                  {!otpMode ? (
                    <>
@@ -265,7 +264,6 @@ function OnlineOrder() {
                  </button>
               </div>
           </div>
-          <p className="mt-8 text-center text-[8px] font-bold text-white/20 uppercase tracking-[0.5em]">Secured by SaSLoop</p>
         </div>
       </div>
     );
@@ -283,7 +281,7 @@ function OnlineOrder() {
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order Reference</p>
             <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase">{orderRef}</p>
             <div className="grid grid-cols-3 gap-3 border-t border-slate-200 pt-6">
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Total</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
+               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Paid</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
                <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Live</p></div>
                <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Mode</p><p className="text-xs font-black text-slate-900 uppercase">{fulfillmentMode}</p></div>
             </div>
@@ -332,14 +330,13 @@ function OnlineOrder() {
     );
   }
 
-  // MAIN MENU RENDER
   return (
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
            <div className="flex items-center gap-3 bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-100">
              <Sparkles className="w-4 h-4 text-emerald-500 animate-pulse" />
-             <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">{loyaltyPoints} LOYALTY PTS</p>
+             <p className="text-[11px] font-black text-emerald-700 uppercase tracking-widest">LOYALTY: {loyaltyPoints} PTS</p>
            </div>
            <div className="flex items-center gap-3">
               <button onClick={() => setView("fulfillment")} className="h-11 bg-slate-900 items-center px-5 rounded-2xl flex gap-3 text-white active:scale-95 transition-all">
@@ -374,7 +371,7 @@ function OnlineOrder() {
 
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
                 <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
-                  <input placeholder="Search for flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
+                  <input placeholder="Search flavors..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
              </div>
 
@@ -392,17 +389,17 @@ function OnlineOrder() {
                               <div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl border border-white/50">{symbol}{item.price}</div>
                               <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors font-black">{item.product_name}</h3>
                             <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
                             <div className="px-4 mt-auto">
                                {inCart ? (
                                  <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
-                                   <button onClick={() => setCart(prev => { const ex = prev.find(i => i.id === item.id); if (ex.qty === 1) return prev.filter(i => i.id !== item.id); return prev.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i); })} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Minus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Minus className="w-4 h-4" /></button>
                                    <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
                                  </div>
                                ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add Item <Plus className="w-4 h-4" /></button>
+                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95 font-black">Add Item <Plus className="w-4 h-4" /></button>
                                )}
                             </div>
                           </div>

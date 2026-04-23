@@ -30,24 +30,14 @@ function CustomerMenu() {
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`)
-      .then(r => r.json())
-      .then(d => { 
-        setData(d); 
-        setLoading(false); 
-        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
-      })
-      .catch(e => { console.error(e); setLoading(false); });
-  }, [bizId]);
-
+  // LIFTS & CALCULATIONS (MUST BE AT TOP FOR BUILD)
   const biz = data?.business;
   const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
-  
-  const normalizePhoneForDB = (phone) => {
-    const clean = phone.replace(/\D/g, "");
+
+  const normalizePhoneForDB = (p) => {
+    const clean = p.replace(/\D/g, "");
     return clean.length >= 10 ? clean.slice(-10) : clean;
   };
 
@@ -60,15 +50,37 @@ function CustomerMenu() {
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
     let cgst = 0, sgst = 0;
-    const cgstRate = parseFloat(biz?.cgst_percent) || 0;
-    const sgstRate = parseFloat(biz?.sgst_percent) || 0;
-    const isIncluded = biz?.gst_included === true;
+    const cgstR = parseFloat(biz?.cgst_percent) || 0;
+    const sgstR = parseFloat(biz?.sgst_percent) || 0;
+    const isInc = biz?.gst_included === true;
     if (!data) return { cgst: 0, sgst: 0, totalTax: 0, isIncluded: true };
-    cart.forEach(item => { if (item.tax_applicable === 1 || item.tax_applicable === true) { const t = item.qty * item.price; if (isIncluded) { const r = cgstRate + sgstRate; if (r > 0) { const a = t * (r / (100 + r)); cgst += a * (cgstRate / r); sgst += a * (sgstRate / r); } } else { cgst += (t * cgstRate) / 100; sgst += (t * sgstRate) / 100; } } });
-    return { cgst, sgst, totalTax: cgst + sgst, isIncluded };
+    cart.forEach(item => { if (item.tax_applicable === 1 || item.tax_applicable === true) { const t = item.qty * item.price; if (isInc) { const r = cgstR + sgstR; if (r > 0) { const a = t * (r / (100 + r)); cgst += a * (cgstR / r); sgst += a * (sgstR / r); } } else { cgst += (t * cgstR) / 100; sgst += (t * sgstR) / 100; } } });
+    return { cgst, sgst, totalTax: cgst + sgst, isIncluded: isInc };
   }, [cart, data, biz]);
 
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)));
+
+  const filteredItems = useMemo(() => {
+    return (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
+  }, [data, search]);
+
+  const groupedItems = useMemo(() => {
+    return filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {});
+  }, [filteredItems]);
+
+  const categories = Object.keys(groupedItems);
+  const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/public/menu/${bizId}`)
+      .then(r => r.json())
+      .then(d => { 
+        setData(d); 
+        setLoading(false); 
+        if (d?.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
+      })
+      .catch(e => { console.error(e); setLoading(false); });
+  }, [bizId]);
 
   const checkLoyalty = async () => { 
     if (!customerPhone || customerPhone.length < 5) return; 
@@ -131,7 +143,7 @@ function CustomerMenu() {
           userId: bizId, 
           tableNumber: tableId, 
           items: cart.map(i => ({ name: i.product_name, qty: i.qty, price: i.price, tax_applicable: i.tax_applicable })), 
-          subtotal, 
+          subtotal: taxData.isIncluded ? subtotal : subtotal + taxData.totalTax, 
           cgst: taxData.cgst, 
           sgst: taxData.sgst, 
           totalPrice: finalTotal, 
@@ -160,7 +172,6 @@ function CustomerMenu() {
 
   if (loading) return (<div className="h-screen flex flex-col items-center justify-center bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-[10px] font-black uppercase text-slate-400">Opening Menu...</p></div>);
 
-  // RENDER SECTIONS
   if (view === "auth") {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden font-sans">
@@ -175,7 +186,6 @@ function CustomerMenu() {
               </div>
               <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">Table {tableId}</h1>
               <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Connected Store</p>
-
               <div className="space-y-5 text-left">
                  {!otpMode ? (
                    <>
@@ -238,7 +248,6 @@ function CustomerMenu() {
            </div>
         </div>
       </header>
-
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
              <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Menu</h2>
@@ -246,7 +255,6 @@ function CustomerMenu() {
                <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
              ))}
           </aside>
-
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
                 {bannerUrl && <div className="w-full h-40 sm:h-56 lg:h-64 overflow-hidden bg-slate-100 relative"><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
@@ -260,13 +268,11 @@ function CustomerMenu() {
                   </div>
                 </div>
              </div>
-
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
                 <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300 transition-colors group-focus-within:text-emerald-500" />
                   <input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all font-black" value={search} onChange={e => setSearch(e.target.value)} />
                 </div>
              </div>
-
              <div className="px-10 py-4 pb-20">
                 {categories.map(cat => (
                   <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-20 scroll-mt-6">
@@ -286,9 +292,9 @@ function CustomerMenu() {
                             <div className="px-4 mt-auto">
                                {inCart ? (
                                  <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
-                                   <button onClick={() => setCart(prev => { const ex = prev.find(i => i.id === item.id); if (ex.qty === 1) return prev.filter(i => i.id !== item.id); return prev.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i); })} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Minus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Minus className="w-4 h-4" /></button>
                                    <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(prev => prev.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all active:scale-75"><Plus className="w-4 h-4" /></button>
                                  </div>
                                ) : (
                                  <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95 font-black">Add to Tray <Plus className="w-4 h-4" /></button>
@@ -302,7 +308,6 @@ function CustomerMenu() {
                 ))}
              </div>
           </div>
-
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
                 <div className="flex items-center justify-between mb-12">
@@ -327,13 +332,12 @@ function CustomerMenu() {
                         <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-[0.2em]"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
                         <div className="flex justify-between text-2xl items-center text-slate-1000 font-black pt-8 tracking-tighter uppercase"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-1000 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Place Order <ArrowRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>
           </aside>
       </div>
-
       {cart.length > 0 && view === "menu" && (
         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
            <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all">
