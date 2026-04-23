@@ -638,7 +638,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 };
                 
                 // Final check: Calculate distance one last time before allowing
-                const res = calculateDeliveryCharge(biz, locationData.latitude, locationData.longitude);
+                const res = await calculateDeliveryCharge(biz, locationData.latitude, locationData.longitude);
                 if (!res.allowed) {
                     await sendAndLog(customerNumber, `📍 I notice this location is approx ${res.distance.toFixed(1)}km away, which is outside our delivery zone (${biz.delivery_radius_km}km).\n\nWould you like to change this to a *Pickup* order instead?`, userId);
                     return;
@@ -727,7 +727,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // 2. Detect LOCATION message
         if (locationData) {
             const { latitude, longitude } = locationData;
-            const res = calculateDeliveryCharge(biz, latitude, longitude);
+            const res = await calculateDeliveryCharge(biz, latitude, longitude);
             
             if (!res.allowed) {
                 const resp = `📍 I see your location is approx ${res.distance.toFixed(1)}km away. Unfortunately, we currently only deliver within a *${biz.delivery_radius_km}km* radius. \n\nYou can still order for *Pickup*!`;
@@ -1304,23 +1304,43 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
     return R * c;
 };
 
-const calculateDeliveryCharge = (biz, customerLat, customerLon) => {
+const calculateDeliveryCharge = async (biz, customerLat, customerLon) => {
     if (!biz.latitude || !biz.longitude) {
         console.warn(`[GEO] Missing restaurant location for ${biz.name}. Delivery blocked.`);
         return { allowed: false, charge: 0, distance: 0 };
     }
     
-    const dist = getDistance(biz.latitude, biz.longitude, customerLat, customerLon);
+    let roadDist = 0;
+    const straightDist = getDistance(biz.latitude, biz.longitude, customerLat, customerLon);
+    
+    try {
+        // Fetch actual road distance from OSRM (Free)
+        const osrmUrl = `http://router.project-osrm.org/route/v1/driving/${biz.longitude},${biz.latitude};${customerLon},${customerLat}?overview=false`;
+        const response = await fetch(osrmUrl);
+        const data = await response.json();
+        
+        if (data.code === 'Ok' && data.routes && data.routes[0]) {
+            roadDist = data.routes[0].distance / 1000; // Convert meters to km
+            console.log(`[GEO] OSRM Road Distance: ${roadDist.toFixed(2)}km (vs Straight: ${straightDist.toFixed(2)}km)`);
+        } else {
+            throw new Error("OSRM Invalid Response");
+        }
+    } catch (e) {
+        // Fallback to 1.3x straight line distance if OSRM fails
+        roadDist = straightDist * 1.3;
+        console.warn(`[GEO] OSRM Failed. Using estimated Road Distance: ${roadDist.toFixed(2)}km`);
+    }
+
     const radius = parseFloat(biz.delivery_radius_km) || 10;
     
-    if (dist > radius) return { allowed: false, charge: 0, distance: dist };
+    if (roadDist > radius) return { allowed: false, charge: 0, distance: roadDist };
     
     let charge = 0;
     const tiers = biz.delivery_tiers || []; 
-    const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
+    const matchedTier = tiers.find(t => roadDist >= (parseFloat(t.min) || 0) && roadDist <= (parseFloat(t.max) || 999));
     if (matchedTier) charge = parseFloat(matchedTier.charge);
     
-    return { allowed: true, charge, distance: dist };
+    return { allowed: true, charge, distance: roadDist };
 };
 
 module.exports = {
