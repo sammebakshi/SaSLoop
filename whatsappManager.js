@@ -295,9 +295,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const currencyCode = biz?.currency_code || 'INR';
         const symbol = currencyCode === 'INR' ? '₹' : (currencyCode === 'USD' ? '$' : '₹');
 
-        // Show typing indicator
-        await sendOfficialMessage(customerNumber, { sender_action: "typing_on" }, userId);
-
         const msgLower = (msgText || "").toLowerCase().trim();
 
         // 🛡️ NEW CUSTOMER IDENTITY PUSH
@@ -517,6 +514,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // 2. FETCH MENU ITEMS (Enhanced to include Category, Sub-Category, Description, and Veg status)
         const itemsRes = await pool.query("SELECT product_name, price, category, sub_category, description, is_veg FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
         const items = itemsRes.rows;
+        console.log(`[MENU] Fetched ${items.length} items for User ${userId}`);
 
         if (items.length === 0) {
             await sendAndLog(customerNumber, `Sorry, our menu is currently being updated. Please try again later!`, userId);
@@ -1045,7 +1043,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await sendAndLog(customerNumber, "I'm here! What would you like to order?", userId);
         }
     } catch (err) {
-        console.error("AI FAIL:", err);
+        console.error("AI MASTER FAIL:", err);
+        // Debug: Send the error message directly to WhatsApp
+        try {
+            await sendOfficialMessage(customerNumber, { type: "text", text: { body: `⚠️ BOT ERROR: ${err.message}\n\nPlease check logs.` } }, userId);
+        } catch (e) {}
     }
 };
 
