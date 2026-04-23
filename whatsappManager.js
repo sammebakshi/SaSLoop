@@ -89,7 +89,7 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         const kot = [
             `🍽️ *====== KITCHEN ORDER TICKET ======*`,
             `*Ref:* ${orderRef}`,
-            `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : orderType.toUpperCase()}`,
+            `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP / TAKEAWAY' : orderType.toUpperCase())}`,
             `*Customer:* ${customerName}${customerNumber && customerNumber !== 'QR-ORDER' ? `\n*Phone:* ${customerNumber}` : ''}${orderType === 'delivery' && address ? `\n*Address:* ${address}` : ''}`,
             ``,
             `--- ITEMS ---`,
@@ -98,9 +98,9 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         ].join("\n");
 
         const staffMsgArr = [
-            `🔔 *NEW ORDER RECEIVED!*`,
+            `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
             `*Ref:* ${orderRef}`,
-            `*Type:* ${tableNumber ? 'Table ' + tableNumber : (orderType === 'delivery' ? 'Delivery' : 'Pickup')}`,
+            `*Type:* ${tableNumber ? '🪑 Table ' + tableNumber : (orderType.toLowerCase() === 'delivery' ? '🛵 Delivery' : '🥡 Pickup / Takeaway')}`,
             `*Customer:* ${customerName}${customerNumber && customerNumber !== 'QR-ORDER' ? `\n*Phone:* ${customerNumber}` : ''}${orderType === 'delivery' && address ? `\n*Address:* ${address}` : ''}`,
             ``,
             `--- ORDER DETAILS ---`,
