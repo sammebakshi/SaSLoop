@@ -442,15 +442,15 @@ function OnlineOrder() {
                       />
                    </div>
 
-                   {deliveryRadiusStatus.allowed ? (
+                   {deliveryRadiusStatus.allowed && deliveryRadiusStatus.distance !== undefined ? (
                      <div className="mt-4 flex items-center gap-2 bg-emerald-100/50 p-3 rounded-xl border border-emerald-200 animate-in fade-in duration-500">
                         <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-tight">Zone Serviced • {deliveryRadiusStatus.distance.toFixed(1)}km</p>
+                        <p className="text-[10px] font-black text-emerald-700 uppercase tracking-tight">Zone Serviced • {deliveryRadiusStatus.distance?.toFixed(1)}km</p>
                      </div>
                    ) : deliveryRadiusStatus.distance > 0 && (
                      <div className="mt-4 flex items-center gap-2 bg-red-100/50 p-3 rounded-xl border border-red-200 animate-in shake duration-500">
                         <X className="w-4 h-4 text-red-600 shrink-0" />
-                        <p className="text-[10px] font-black text-red-700 uppercase tracking-tight">Out of Zone • {deliveryRadiusStatus.distance.toFixed(1)}km</p>
+                        <p className="text-[10px] font-black text-red-700 uppercase tracking-tight">Out of Zone • {deliveryRadiusStatus.distance?.toFixed(1)}km</p>
                      </div>
                    )}
                 </div>
