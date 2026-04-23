@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History
+  RefreshCw, CheckCircle2, Package, History, Activity
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -16,7 +16,6 @@ function CustomerMenu() {
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("");
   const categoryRefs = useRef({});
-  const [showCart, setShowCart] = useState(false);
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
@@ -26,13 +25,15 @@ function CustomerMenu() {
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
   const [loyaltyOtp, setLoyaltyOtp] = useState("");
-  const [showOtpInput, setShowOtpInput] = useState(false);
-  const [checkingLoyalty, setCheckingLoyalty] = useState(false);
   
   const [view, setView] = useState("auth"); 
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
+
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [authOtp, setAuthOtp] = useState("");
+  const [otpMode, setOtpMode] = useState(false);
 
   const getStandardPhone = () => {
     const cleanPhone = (customerPhone || "").replace(/\D/g, "");
@@ -88,28 +89,53 @@ function CustomerMenu() {
   }, [bizId]);
 
   useEffect(() => {
-    if (view === "menu") {
+    if (view !== "auth") {
       fetchActiveOrders();
       const itv = setInterval(fetchActiveOrders, 10000);
       return () => clearInterval(itv);
     }
   }, [view, customerPhone]);
 
-  const handleLogin = async () => {
+  const handleRequestOtp = async () => {
     if (!customerName.trim() || !customerPhone.trim()) return alert("Name and Phone are required.");
-    setView("menu");
-    checkLoyalty();
+    setIsVerifying(true);
+    try {
+        const fullPhone = getStandardPhone();
+        const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone })
+        });
+        const d = await res.json();
+        if (d.success) setOtpMode(true);
+        else alert(d.error || "Failed to send code.");
+    } finally { setIsVerifying(false); }
+  };
+
+  const handleVerifyOtp = async () => {
+    setIsVerifying(true);
+    try {
+        const fullPhone = getStandardPhone();
+        const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
+        });
+        const d = await res.json();
+        if (d.success) {
+            checkLoyalty();
+            setView("menu");
+        } else alert(d.error || "Invalid Code");
+    } finally { setIsVerifying(false); }
   };
 
   const checkLoyalty = async () => {
-    setCheckingLoyalty(true);
     try {
       const std = getStandardPhone();
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
       const d = await res.json();
       setLoyaltyPoints(d.points || 0);
-    } catch (e) { console.error(e); }
-    finally { setCheckingLoyalty(false); }
+    } catch (e) {}
   };
 
   const placeOrder = async () => {
@@ -121,7 +147,6 @@ function CustomerMenu() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: bizId,
-          tableId: tableId || "0",
           tableNumber: tableId || "0",
           items: cart,
           subtotal: taxData.isIncluded ? subtotal : subtotal + taxData.totalTax,
@@ -136,15 +161,9 @@ function CustomerMenu() {
         })
       });
       const o = await res.json();
-      if (res.ok) {
-        setOrderRef(o.orderRef);
-        setFinalPaidAmount(o.finalPrice || 0);
-        setView("confirmed");
-        setCart([]);
-        fetchActiveOrders();
-      } else alert(o.error || "Failed to place order.");
-    } catch (err) { alert("Error connecting to server."); }
-    finally { setPlacing(false); }
+      if (res.ok) { setOrderRef(o.orderRef); setFinalPaidAmount(o.finalPrice || 0); setView("confirmed"); setCart([]); fetchActiveOrders(); }
+      else alert(o.error || "Failed");
+    } finally { setPlacing(false); }
   };
 
   if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><RefreshCw className="animate-spin w-10 h-10 text-emerald-500" /><p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Synchronizing Menu...</p></div>);
@@ -158,26 +177,19 @@ function CustomerMenu() {
         </div>
         <div className="relative z-10 w-full max-w-[380px] animate-in fade-in zoom-in duration-700">
            <div className="bg-white/10 backdrop-blur-3xl px-8 py-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
-              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
-                 {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}
-              </div>
-              <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">{biz?.name}</h1>
+              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">{logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}</div>
+              <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase italic">{biz?.name}</h1>
               <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Digital Concierge</p>
               <div className="space-y-4 text-left">
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label>
-                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" autoFocus />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label>
-                    <div className="flex gap-2">
-                       <select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">
-                          {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
-                       </select>
-                       <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white placeholder:text-white/10 outline-none" />
-                    </div>
-                  </div>
-                  <button onClick={handleLogin} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">Explore Menu <ChevronRight className="w-4 h-4" /></button>
+                  {!otpMode ? (
+                    <>
+                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
+                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label><div className="flex gap-2"><select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">{countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}</select><input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" /></div></div>
+                    </>
+                  ) : (
+                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" /></div>
+                  )}
+                  <button onClick={otpMode ? handleVerifyOtp : handleRequestOtp} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Confirm Code" : "Request Access")}</button>
               </div>
            </div>
         </div>
@@ -188,18 +200,14 @@ function CustomerMenu() {
   if (view === "confirmed") {
     return (
       <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
-         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 border border-emerald-100 shadow-2xl shadow-emerald-500/20"><CheckCircle2 className="w-10 h-10 text-emerald-600" /></div>
+         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl"><CheckCircle2 className="w-10 h-10 text-emerald-600" /></div>
          <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase italic">Success!</h1>
-         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">Your treats are being prepared</p>
+         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">We're fulfilling your order</p>
          <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order Reference</p>
-            <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono uppercase italic">{orderRef}</p>
-            <div className="grid grid-cols-2 gap-3 border-t border-slate-200 pt-6">
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Total Paid</p><p className="text-xs font-black text-slate-900">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
-               <div><p className="text-[8px] font-black text-slate-300 uppercase mb-1">Status</p><p className="text-xs font-black text-emerald-600 uppercase">Fulfilling</p></div>
-            </div>
+            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Reference</p>
+            <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono italic">{orderRef}</p>
          </div>
-         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Back to Menu</button>
+         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest">Back to Flavors</button>
       </div>
     );
   }
@@ -208,20 +216,10 @@ function CustomerMenu() {
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div className="flex flex-col">
-              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px]">{biz?.name}</h1>
-              <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Points: {loyaltyPoints}</p>
-           </div>
+           <div className="flex flex-col"><h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1><p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Rewards: {loyaltyPoints}</p></div>
            <div className="flex gap-2">
-              {activeOrders.length > 0 && (
-                <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl animate-in zoom-in">
-                  <Package className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.length} ORDERS</span>
-                </button>
-              )}
-              {tableId && (
-                <div className="h-10 bg-slate-100 flex items-center px-4 rounded-2xl text-[10px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest italic">Table {tableId}</div>
-              )}
+              {activeOrders.length > 0 && <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl animate-bounce-short"><Package className="w-4 h-4 text-emerald-400" /><span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.length} ORDERS</span></button>}
+              {tableId && <div className="h-10 bg-slate-100 flex items-center px-4 rounded-2xl text-[10px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest italic">Table {tableId}</div>}
            </div>
         </div>
       </header>
@@ -231,65 +229,39 @@ function CustomerMenu() {
         <div className="fixed inset-0 z-[200]">
            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
            <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col font-sans">
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                 <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">My Hub <ShoppingBag className="w-6 h-6 text-emerald-500" /></h2>
-                 <button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button>
-              </div>
-              
+              <div className="p-8 border-b border-slate-50 flex items-center justify-between"><h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">My Hub <Activity className="w-6 h-6 text-emerald-500" /></h2><button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button></div>
               <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-[1.5rem] border border-slate-100">
                  <button onClick={() => setOrderTab("tracking")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Tracking</button>
                  <button onClick={() => setOrderTab("history")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>History</button>
               </div>
-
               <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
                  {orderTab === "tracking" ? (
-                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? (
-                      <div className="h-40 flex flex-col items-center justify-center opacity-20"><Package className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">No Active Orders</p></div>
-                   ) : (
-                      activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
-                        <div key={order.id} className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 transition-all hover:bg-white hover:shadow-2xl group">
-                           <div className="flex items-center justify-between mb-4">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{order.order_reference}</span>
-                              <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
-                                order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' :
-                                order.status === 'PROCESSING' || order.status === 'PREPARING' ? 'bg-blue-100 text-blue-700 animate-pulse' :
-                                order.status === 'DISPATCHED' ? 'bg-indigo-100 text-indigo-700 animate-pulse' : 'bg-slate-200 text-slate-400'
-                              }`}>● {order.status}</div>
-                           </div>
-                           <div className="space-y-1 mb-6">
-                              {JSON.parse(order.items || '[]').map((it, idx) => (
-                                 <p key={idx} className="text-[11px] font-black text-slate-600 uppercase">{it.qty}x {it.name}</p>
-                              ))}
-                           </div>
-                           <div className="border-t border-slate-200 pt-4 flex justify-between items-center"><p className="text-[9px] font-black text-slate-400 uppercase">{new Date(order.created_at).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</p><p className="text-lg font-black text-slate-900">{symbol}{parseFloat(order.total_price).toFixed(0)}</p></div>
+                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? <div className="h-44 flex flex-col items-center justify-center opacity-20"><Package className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest text-center">No Active Orders<br/>Start Ordering!</p></div> : 
+                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
+                        <div key={order.id} className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-2xl">
+                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-400 uppercase">{order.order_reference}</span><div className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700 animate-pulse'}`}>{order.status}</div></div>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate mb-1">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-lg font-black text-slate-950 uppercase italic">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
                         </div>
-                      ))
-                   )
+                   ))
                  ) : (
-                   activeOrders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED').length === 0 ? (
-                      <div className="h-40 flex flex-col items-center justify-center opacity-20"><History className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">History is Empty</p></div>
-                   ) : (
-                      activeOrders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED').map(order => (
-                        <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm opacity-80">
-                           <div className="flex items-center justify-between mb-2">
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">{new Date(order.created_at).toLocaleDateString()}</span>
-                              <span className={`text-[8px] font-black uppercase ${order.status === 'COMPLETED' ? 'text-emerald-500' : 'text-slate-400'}`}>{order.status}</span>
-                           </div>
-                           <p className="text-xs font-black text-slate-900 uppercase line-clamp-1">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
-                           <p className="text-lg font-black text-slate-900 mt-2">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
+                   activeOrders.length === 0 ? <div className="h-44 flex flex-col items-center justify-center opacity-20"><History className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">History is Empty</p></div> : 
+                   activeOrders.map(order => (
+                        <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm opacity-90 mb-4">
+                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-300 uppercase">{new Date(order.created_at).toLocaleDateString()}</span><span className={`text-[8px] font-black uppercase tracking-widest ${order.status === 'COMPLETED' ? 'text-emerald-500' : 'text-slate-400'}`}>{order.status}</span></div>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate line-clamp-1">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-sm font-black text-slate-400 mt-1 uppercase italic">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
                         </div>
-                      ))
-                   )
+                   ))
                  )}
               </div>
-              <div className="p-8 bg-slate-50 border-t border-white"><button onClick={() => setShowOrders(false)} className="w-full bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest active:scale-95 transition-all">Continue Selection</button></div>
            </div>
         </div>
       )}
 
       <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
           <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
-             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Discover Flavors</h2>
+             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Explore Flavors</h2>
              {categories.map(cat => (
                <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
              ))}
@@ -303,18 +275,18 @@ function CustomerMenu() {
                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}
                   </div>
                   <div className="flex-1 min-w-0 pt-10">
-                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase">{biz?.name}</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Scan QR for Table Service'}</p>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
+                    <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Scan QR for Service'}</p>
                   </div>
                 </div>
              </div>
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="Find your favorite..." className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-300 outline-none focus:bg-white focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} /></div>
+                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What would you like?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-200 outline-none focus:bg-white focus:border-emerald-500 transition-all font-sans" value={search} onChange={e => setSearch(e.target.value)} /></div>
              </div>
-             <div className="px-10 py-4 pb-20">
+             <div className="px-10 py-4 pb-32">
                 {categories.map(cat => (
                   <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
-                    <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em]">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
+                    <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
                       {groupedItems[cat].map(item => {
                         const inCart = cart.find(c => c.id === item.id);
@@ -322,20 +294,19 @@ function CustomerMenu() {
                           <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
                             <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">
                               {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div>
-                              <div className={`absolute top-6 left-6 w-5 h-5 rounded-lg border-2 flex items-center justify-center bg-white/80 ${item.is_veg ? 'border-emerald-500' : 'border-rose-500'}`}><div className={`w-2 h-2 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} /></div>
+                              <div className="absolute bottom-5 right-5 px-5 py-2.5 bg-white shadow-2xl rounded-2xl text-base font-black text-slate-950">{symbol}{item.price}</div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight group-hover:text-emerald-600 transition-colors">{item.product_name}</h3>
+                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight italic">{item.product_name}</h3>
                             <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
                             <div className="px-4 mt-auto">
                                {inCart ? (
-                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl animate-in zoom-in">
+                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[2rem] p-1.5 h-14 shadow-2xl">
                                    <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button>
                                    <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
                                    <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button>
                                  </div>
                                ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 group-active:scale-95">Add to Order <Plus className="w-4 h-4" /></button>
+                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 font-sans active:scale-95">Add to Order <Plus className="w-3.5 h-3.5" /></button>
                                )}
                             </div>
                           </div>
@@ -346,37 +317,36 @@ function CustomerMenu() {
                 ))}
              </div>
           </div>
-          <aside className="hidden lg:block sticky top-32 space-y-8">
+          <aside className="hidden lg:block sticky top-32 space-y-8 font-sans">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
                 <div className="flex items-center justify-between mb-12">
-                   <h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4"><ShoppingBag className="w-7 h-7 text-emerald-500" /> Current</h2>
-                   <span className="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span>
+                   <h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4 italic"><ShoppingBag className="w-7 h-7 text-emerald-500" /> My Bag</h2>
+                   <span className="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span>
                 </div>
-                {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest italic">Order Empty</p></div> : (
+                {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest">Bag is Empty</p></div> : (
                   <div className="space-y-12">
                      <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">
                         {cart.map(ci => (
                           <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
                              <div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div>
-                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button></div>
+                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-all"><Plus className="w-3.5 h-3.5" /></button></div>
                           </div>
                         ))}
                      </div>
                      <div className="border-t-2 border-slate-50 pt-10 space-y-5">
-                        <div className="flex justify-between text-[11px] items-center text-slate-400 font-bold uppercase tracking-[0.2em]"><span>Food Total</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
                         <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Send to Kitchen <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>
           </aside>
       </div>
       {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
+        <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 font-sans">
            <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all">
-              <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p><p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p></div></div>
-              <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Order <ChevronRight className="w-5 h-5" /></div>
+              <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5 font-sans">Final Total</p><p className="text-xl font-black italic">{symbol}{finalTotal.toFixed(0)}</p></div></div>
+              <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
            </button>
         </div>
       )}
