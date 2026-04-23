@@ -272,8 +272,8 @@ function OperationalRules() {
                 <div className="h-64 bg-slate-100 rounded-[2rem] overflow-hidden mb-6 border border-slate-200 relative">
                    <MapContainer center={[formData.latitude || 34.0837, formData.longitude || 74.7973]} zoom={13} style={{ height: '100%', width: '100%' }}>
                       <TileLayer 
-                        url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                        url="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}"
+                        attribution='&copy; Google Maps'
                       />
                       <LocationPicker lat={formData.latitude} lng={formData.longitude} onChange={(lat, lng) => setFormData(prev => ({...prev, latitude: lat, longitude: lng}))} />
                    </MapContainer>
