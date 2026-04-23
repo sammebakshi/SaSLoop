@@ -278,156 +278,239 @@ function OnlineOrder() {
   if (loading) return (<div className="flex flex-col items-center justify-center h-screen bg-white"><Activity className="w-10 h-10 text-emerald-500 animate-spin" /><p className="mt-4 text-slate-400 font-bold text-xs uppercase tracking-widest">Loading Store...</p></div>);
 
   if (view === "auth") return (
-    <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900">
+    <div className="min-h-screen relative flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-900 overflow-hidden">
       {/* Background Graphic */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 scale-110">
         <img 
           src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2070" 
           alt="background" 
-          className="w-full h-full object-cover opacity-30 grayscale"
+          className="w-full h-full object-cover opacity-20 grayscale brightness-50"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/60" />
       </div>
 
-      <div className="relative z-10 w-full max-w-md animate-in fade-in zoom-in duration-700">
-        <div className="bg-white/10 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
-            <div className="w-24 h-24 bg-white p-4 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-2xl">
-               {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain rounded-2xl" /> : <Utensils className="w-12 h-12 text-emerald-600" />}
+      <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700">
+        <div className="bg-white/[0.08] backdrop-blur-2xl px-6 py-10 sm:p-10 rounded-[2.5rem] border border-white/10 shadow-2xl text-center">
+            <div className="w-20 h-20 bg-white p-3.5 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl active:scale-95 transition-transform">
+               {logoUrl ? <img src={logoUrl} alt="logo" className="w-full h-full object-contain rounded-xl" /> : <Utensils className="w-10 h-10 text-emerald-600" />}
             </div>
             
-            <h1 className="text-4xl font-black text-white tracking-tight mb-2">Order Online</h1>
-            <p className="text-emerald-100/60 text-sm font-bold uppercase tracking-widest mb-10">Welcome to {biz?.name || 'our store'}</p>
+            <h1 className="text-3xl font-black text-white tracking-tight mb-1.5 px-2">Order Online</h1>
+            <p className="text-emerald-400/60 text-[10px] font-black uppercase tracking-[0.2em] mb-8 truncate px-4">Welcome to {biz?.name || 'our store'}</p>
 
             <div className="space-y-4">
                {!otpMode ? (
-                 <div className="flex gap-3">
-                    <div className="relative group">
+                 <div className="flex gap-2">
+                    <div className="relative">
                       <select 
                         value={countryCode} 
                         onChange={e => setCountryCode(e.target.value)} 
-                        className="w-24 bg-white/5 border border-white/10 px-3 py-5 rounded-2xl text-sm font-black text-white outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
+                        className="w-[70px] bg-white/5 border border-white/10 pl-3 pr-1 py-4 rounded-2xl text-xs font-black text-white outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all appearance-none cursor-pointer"
                       >
-                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code} ({c.iso})</option>)}
+                         {countryCodes.map(c => <option key={`${c.iso}-${c.code}`} value={c.code} className="text-slate-900 font-bold">+{c.code}</option>)}
                       </select>
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
-                        <ChevronLeft className="-rotate-90 w-4 h-4 text-white" />
+                      <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-40">
+                        <ChevronLeft className="-rotate-90 w-3 h-3 text-white" />
                       </div>
                     </div>
                     
-                    <div className="flex-1 relative group">
+                    <div className="flex-1">
                       <input 
                         type="tel" 
                         value={customerPhone} 
                         onChange={e => setCustomerPhone(e.target.value)} 
                         placeholder="Mobile Number" 
-                        className="w-full bg-white/5 border border-white/10 px-6 py-5 rounded-2xl text-lg font-black text-white placeholder:text-white/20 outline-none focus:ring-4 focus:ring-emerald-500/20 transition-all tracking-[0.2em]" 
+                        className="w-full bg-white/5 border border-white/10 px-5 py-4 rounded-2xl text-base font-black text-white placeholder:text-white/20 outline-none focus:ring-2 focus:ring-emerald-500/20 transition-all tracking-widest" 
                       />
                     </div>
                  </div>
                ) : (
-                 <div className="animate-in slide-in-from-bottom-4 duration-500 relative group">
+                 <div className="animate-in slide-in-from-bottom-4 duration-500 text-center">
                     <input 
                       type="text" 
                       value={authOtp} 
                       onChange={e => setAuthOtp(e.target.value)} 
-                      placeholder="ENTER 6-DIGIT OTP" 
+                      placeholder="CODE" 
                       maxLength={6}
-                      className="w-full bg-white/10 border-2 border-emerald-500/30 px-6 py-6 rounded-3xl text-2xl font-black text-white placeholder:text-white/20 outline-none focus:border-emerald-500 focus:ring-8 focus:ring-emerald-500/10 transition-all tracking-[0.4em] text-center" 
+                      className="w-full bg-white/10 border-2 border-emerald-500/20 px-4 py-5 rounded-3xl text-3xl font-black text-white placeholder:text-white/10 outline-none focus:border-emerald-500/50 transition-all tracking-[0.5em] text-center" 
                     />
-                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[10px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline decoration-emerald-500/30">Edit Phone Number</button>
+                    <button onClick={() => setOtpMode(false)} className="mt-4 text-[9px] font-black text-white/40 uppercase tracking-widest hover:text-white transition-all underline underline-offset-4 decoration-emerald-500/20">Change Phone Number</button>
                  </div>
                )}
 
                <button 
                  onClick={otpMode ? verifyAuthOtp : handleVerify} 
                  disabled={isVerifying} 
-                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-5 rounded-[2rem] shadow-xl shadow-emerald-500/20 uppercase tracking-[0.3em] flex items-center justify-center gap-3 transition-all active:scale-95 group"
+                 className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-slate-950 font-black py-4.5 rounded-[1.5rem] shadow-lg shadow-emerald-500/10 uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-2 group"
                >
-                  {isVerifying ? <RefreshCw className="animate-spin w-5 h-5" /> : (
+                  {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (
                     <>
-                      {otpMode ? "Verify & Enter Store" : "Send Verification Code"}
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      {otpMode ? "Verify & Enter" : "Send WhatsApp OTP"}
+                      <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                     </>
                   )}
                </button>
             </div>
             
-            <div className="mt-12 flex items-center justify-center gap-6 opacity-40">
-               <div className="flex items-center gap-2">
+            <div className="mt-10 flex items-center justify-center gap-5 opacity-30">
+               <div className="flex items-center gap-1.5">
                   <Activity className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Secure PIN</span>
+                  <span className="text-[9px] font-black text-white uppercase tracking-widest">Safe</span>
                </div>
                <div className="w-1 h-1 bg-white/20 rounded-full" />
-               <div className="flex items-center gap-2">
+               <div className="flex items-center gap-1.5">
                   <Sparkles className="w-3 h-3 text-emerald-400" />
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">VIP Rewards</span>
+                  <span className="text-[9px] font-black text-white uppercase tracking-widest">VIP</span>
                </div>
             </div>
         </div>
         
-        <p className="mt-8 text-center text-[10px] font-black text-white/30 uppercase tracking-[0.4em]">Powered by SaSLoop Concierge</p>
+        <p className="mt-8 text-center text-[8px] font-bold text-white/20 uppercase tracking-[0.4em]">Powered by SaSLoop</p>
       </div>
     </div>
   );
 
   if (view === "fulfillment") return (
-    <div className="min-h-screen bg-white p-6 max-w-md mx-auto flex flex-col justify-center">
-       <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">How would you like your order?</h2>
-       <p className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-8">Select fulfillment mode</p>
+    <div className="min-h-screen bg-white p-5 max-w-md mx-auto flex flex-col justify-center">
+       <h2 className="text-xl font-black text-slate-900 mb-1 uppercase tracking-tight">Order Type</h2>
+       <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-6">How would you like your order?</p>
        
-       <div className="space-y-4 mb-12">
-          {[{ id: 'DINEIN', icon: <Utensils /> , label: 'Dine-In', sub: 'Eat at restaurant' }, { id: 'PICKUP', icon: <Store /> , label: 'Pickup', sub: 'Self takeaway' }, { id: 'DELIVERY', icon: <Bike /> , label: 'Delivery', sub: 'To your doorstep' }].filter(m => (biz?.fulfillment_options ? biz.fulfillment_options[m.id.toLowerCase()] : true)).map(m => (
-             <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`w-full p-6 rounded-[2rem] border-2 transition-all flex items-start gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-600 bg-emerald-50' : 'border-slate-100 bg-white hover:border-slate-200'}`}>
-                <div className={`p-4 rounded-2xl ${fulfillmentMode === m.id ? 'bg-emerald-600 text-white' : 'bg-slate-50 text-slate-400'}`}>{m.icon}</div>
+       <div className="space-y-3 mb-10">
+          {[{ id: 'DINEIN', icon: <Utensils className="w-5 h-5"/> , label: 'Dine-In', sub: 'Eat at restaurant' }, { id: 'PICKUP', icon: <Store className="w-5 h-5"/> , label: 'Pickup', sub: 'Self takeaway' }, { id: 'DELIVERY', icon: <Bike className="w-5 h-5"/> , label: 'Delivery', sub: 'To your doorstep' }].filter(m => (biz?.fulfillment_options ? biz.fulfillment_options[m.id.toLowerCase()] : true)).map(m => (
+             <button key={m.id} onClick={() => setFulfillmentMode(m.id)} className={`w-full p-4 rounded-3xl border-2 transition-all flex items-center gap-4 text-left ${fulfillmentMode === m.id ? 'border-emerald-600 bg-emerald-50 shadow-sm' : 'border-slate-100 bg-white'}`}>
+                <div className={`p-3 rounded-2xl ${fulfillmentMode === m.id ? 'bg-emerald-600 text-white shadow-lg' : 'bg-slate-50 text-slate-300'}`}>{m.icon}</div>
                 <div>
-                   <h3 className="font-black text-slate-900">{m.label}</h3>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{m.sub}</p>
+                   <h3 className="font-black text-sm text-slate-900">{m.label}</h3>
+                   <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{m.sub}</p>
                 </div>
+                {fulfillmentMode === m.id && <CheckCircle className="ml-auto w-5 h-5 text-emerald-600" />}
              </button>
           ))}
        </div>
 
        {fulfillmentMode === 'DELIVERY' && (
-          <div className="mb-12 p-6 bg-slate-50 rounded-[2.5rem] border border-dashed border-slate-200">
-             <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4">Set Delivery Location</h4>
-             <button onClick={handleLocationDetection} className="w-full flex items-center justify-center gap-2 bg-white text-emerald-600 font-black py-4 rounded-2xl border border-emerald-100 shadow-sm mb-4 hover:bg-emerald-50 transition-colors">
-                <MapPin className="w-4 h-4" /> Detect My Live Location
+          <div className="mb-10 p-5 bg-slate-50 rounded-[2rem] border border-dashed border-slate-200">
+             <h4 className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-3">Set Delivery Location</h4>
+             <button onClick={handleLocationDetection} className="w-full flex items-center justify-center gap-2 bg-white text-emerald-600 font-black py-3.5 rounded-2xl border border-emerald-100 shadow-sm mb-3">
+                <MapPin className="w-3.5 h-3.5" /> Detect My Location
              </button>
-             <input type="text" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Or Type Address here..." className="w-full bg-white border border-slate-200 px-5 py-4 rounded-2xl text-sm font-bold" />
-             {deliveryCoords && <p className="mt-3 text-[10px] font-black text-emerald-600 uppercase tracking-widest">✅ Location Serviceable (Charge: {symbol}{deliveryRadiusStatus.charge})</p>}
+             <input type="text" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} placeholder="Or Type Address..." className="w-full bg-white border border-slate-200 px-4 py-3.5 rounded-2xl text-xs font-bold" />
+             {deliveryCoords && <p className="mt-3 text-[9px] font-black text-emerald-600 uppercase tracking-widest">✅ Area Serviceable</p>}
           </div>
        )}
 
-       <button onClick={proceedToMenu} className="w-full bg-emerald-600 text-white font-black py-6 rounded-[2rem] shadow-xl shadow-emerald-600/20 uppercase tracking-[0.2em] flex items-center justify-center gap-3">
-          Continue to Menu <ArrowRight className="w-5 h-5" />
+       <button onClick={proceedToMenu} className="w-full bg-emerald-600 text-white font-black py-5 rounded-[1.5rem] shadow-xl shadow-emerald-500/20 uppercase text-xs tracking-widest flex items-center justify-center gap-2 active:scale-95 transition-all">
+          Browse Menu <ArrowRight className="w-4 h-4" />
        </button>
     </div>
   );
 
   if (view === "confirmed") return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center">
-      <div className="w-20 h-20 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 border border-emerald-100"><CheckCircle className="w-10 h-10 text-emerald-500" /></div>
-      <h1 className="text-3xl font-black text-slate-800 tracking-tight mb-1">Order Confirmed</h1>
-      <p className="text-sm text-slate-400 font-medium mb-8">Your food is being prepared</p>
-      <div className="bg-slate-50 rounded-2xl p-6 max-w-sm w-full mb-8 border border-slate-100">
-        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-1">Order Reference</p>
-        <p className="text-2xl font-black text-emerald-600 tracking-tight mb-6">{orderRef}</p>
-        <div className="space-y-4 text-left">
-          <div className="flex items-center gap-3"><div className="w-9 h-9 bg-emerald-50 rounded-xl flex items-center justify-center shrink-0">{fulfillmentMode === "DELIVERY" ? <Bike className="w-4 h-4 text-emerald-600" /> : <Store className="w-4 h-4 text-emerald-600" />}</div><div><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Type</p><p className="text-xs font-black text-slate-800">{fulfillmentMode === "DELIVERY" ? "Home Delivery" : "Pickup"}</p></div></div>
-          <div className="flex items-center gap-3"><div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center shrink-0"><Clock className="w-4 h-4 text-blue-600" /></div><div><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Estimated Time</p><p className="text-xs font-black text-slate-800">{fulfillmentMode === "DELIVERY" ? "30-45 minutes" : "15-20 minutes"}</p></div></div>
-          <div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center shrink-0"><Package className="w-4 h-4 text-indigo-600" /></div><div><p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Total</p><p className="text-xs font-black text-slate-800">{symbol}{finalPaidAmount.toFixed(2)}</p></div></div>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-5 border border-emerald-100 shadow-xl shadow-emerald-500/10"><CheckCircle className="w-8 h-8 text-emerald-500" /></div>
+      <h1 className="text-2xl font-black text-slate-800 tracking-tight mb-0.5">Order Placed</h1>
+      <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-8">Preparing your delicious meal</p>
+      
+      <div className="bg-white rounded-3xl p-6 max-w-sm w-full mb-8 shadow-2xl shadow-slate-200/50 border border-white">
+        <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1.5 opacity-50">Order Reference</p>
+        <p className="text-3xl font-black text-emerald-600 tracking-tighter mb-8 bg-emerald-50/50 py-3 rounded-2xl font-mono">{orderRef}</p>
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="space-y-1"><div className="w-10 h-10 bg-slate-50 mx-auto rounded-xl flex items-center justify-center">{fulfillmentMode === "DELIVERY" ? <Bike className="w-4 h-4 text-slate-400" /> : <Store className="w-4 h-4 text-slate-400" />}</div><p className="text-[7px] font-black text-slate-300 uppercase truncate">Type</p><p className="text-[9px] font-black text-slate-700">{fulfillmentMode === "DELIVERY" ? "Delivery" : "Pickup"}</p></div>
+          <div className="space-y-1"><div className="w-10 h-10 bg-slate-50 mx-auto rounded-xl flex items-center justify-center"><Clock className="w-4 h-4 text-slate-400" /></div><p className="text-[7px] font-black text-slate-300 uppercase truncate">Time</p><p className="text-[9px] font-black text-slate-700">~20 min</p></div>
+          <div className="space-y-1"><div className="w-10 h-10 bg-slate-50 mx-auto rounded-xl flex items-center justify-center"><Package className="w-4 h-4 text-slate-400" /></div><p className="text-[7px] font-black text-slate-300 uppercase truncate">Bill</p><p className="text-[9px] font-black text-slate-700">{symbol}{finalPaidAmount.toFixed(0)}</p></div>
         </div>
       </div>
-      <div className="flex flex-col gap-3 max-w-sm w-full">
-        <button onClick={openWhatsApp} className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white py-4 px-6 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"><MessageCircle className="w-4 h-4 fill-current" /> Chat with Restaurant</button>
-        <button onClick={() => { setView("menu"); setPointsToRedeem(0); setLoyaltyPoints(0); }} className="text-slate-400 font-bold text-[10px] uppercase tracking-widest py-3 hover:text-emerald-500 transition-all">Order Again</button>
+      
+      <div className="flex flex-col gap-3 w-full max-w-xs">
+        <button onClick={openWhatsApp} className="flex items-center justify-center gap-2 bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"><MessageCircle className="w-4 h-4 fill-current" /> Get Updates on WhatsApp</button>
+        <button onClick={() => { setView("menu"); setPointsToRedeem(0); setLoyaltyPoints(0); }} className="text-slate-400 font-black text-[9px] uppercase tracking-widest py-2 hover:text-emerald-500">Order More</button>
       </div>
     </div>
   );
 
-  // ── Main ──
+  // ── Main Menu ──
   return (
     <div className="min-h-screen bg-slate-50/50 relative pb-32 selection:bg-emerald-500/30">
+      <header className="bg-white border-b border-slate-100 sticky top-0 z-[90]">
+        <div className="px-4 py-3.5 flex items-center justify-between">
+          <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-100">
+            <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+            <p className="text-[10px] font-black text-emerald-700 uppercase tracking-tight">{loyaltyPoints} PTS AVAILABLE</p>
+          </div>
+          <div className="flex items-center gap-2">
+             <button onClick={() => setView("fulfillment")} className="w-9 h-9 bg-slate-50 flex items-center justify-center rounded-xl border border-slate-100 active:scale-90 transition-transform">
+                {fulfillmentMode === 'DELIVERY' ? <Bike className="w-4 h-4 text-slate-400" /> : <Store className="w-4 h-4 text-slate-400" />}
+             </button>
+             <div className="w-9 h-9 bg-slate-900 rounded-xl flex items-center justify-center shadow-lg">
+                <User className="w-4 h-4 text-white" />
+             </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="bg-white border-b border-slate-100">
+        {bannerUrl && (
+          <div className="w-full h-24 sm:h-32 overflow-hidden bg-slate-100 relative">
+            <img src={bannerUrl} alt="Store Banner" className="w-full h-full object-cover grayscale-[0.2]" />
+            <div className="absolute inset-0 bg-gradient-to-t from-white/80 via-transparent" />
+          </div>
+        )}
+        <div className="px-4 py-4 flex items-center gap-3">
+          {logoUrl && <img src={logoUrl} alt="Logo" className="w-12 h-12 rounded-xl object-cover border border-slate-100 shadow-xl shrink-0" />}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-lg font-black text-slate-800 tracking-tight truncate">{biz?.name}</h1>
+            <p className="text-[8px] font-black text-slate-300 uppercase tracking-[0.2em] flex items-center gap-1 mt-0.5 truncate"><MapPin className="w-2.5 h-2.5 text-emerald-500 shrink-0" /> {biz?.address || 'Premium Dining'}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky top-[61px] z-[80] bg-white/95 backdrop-blur-md border-b border-slate-100">
+        <div className="flex items-center gap-2 px-4 py-2 overflow-x-auto no-scrollbar">
+          {categories.map(cat => (<button key={cat} onClick={() => scrollToCategory(cat)} className={`whitespace-nowrap px-4 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shrink-0 ${activeCategory === cat ? "bg-emerald-600 text-white shadow-lg shadow-emerald-600/20" : "bg-slate-50 text-slate-400 border border-slate-100"}`}>{cat}</button>))}
+        </div>
+      </div>
+
+      <div className="px-4 pt-3 pb-1">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-300" />
+          <input placeholder="Search delicacies..." className="w-full bg-white border border-slate-100 rounded-2xl pl-9 pr-4 py-3 text-xs font-bold text-slate-700 placeholder:text-slate-300 outline-none focus:border-emerald-500 transition-all shadow-sm" value={search} onChange={e => setSearch(e.target.value)} />
+        </div>
+      </div>
+
+      <div className="px-4 mt-3 pb-40">
+        {categories.map(cat => (
+          <div key={cat} ref={el => { categoryRefs.current[cat] = el; if (el) el.dataset.category = cat; }} className="mb-6 scroll-mt-28">
+            <div className="flex items-center gap-1.5 mb-3"><h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{cat}</h2><div className="flex-1 h-[1px] bg-slate-100" /></div>
+            <div className="grid grid-cols-2 gap-2.5">
+              {groupedItems[cat].map(item => {
+                const inCart = cart.find(c => c.id === item.id);
+                const fullImgUrl = item.image_url?.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`;
+                return (
+                  <div key={item.id} className="bg-white rounded-[1.5rem] overflow-hidden border border-slate-50 shadow-sm flex flex-col p-2 transition-all active:scale-[0.97]">
+                    <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-slate-50 mb-2 cursor-pointer" onClick={() => setExpandedItem(expandedItem === item.id ? null : item.id)}>
+                      {item.image_url ? <img src={fullImgUrl} className="w-full h-full object-cover" alt={item.product_name} loading="lazy" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-6 h-6" /></div>}
+                      <div className="absolute top-1.5 right-1.5 px-1.5 py-0.5 bg-black/60 backdrop-blur-md rounded-lg text-[8px] font-black text-white">{symbol}{item.price}</div>
+                    </div>
+                    <div className="px-1 flex-1">
+                      <h3 className="text-[10px] font-black text-slate-800 leading-tight mb-2 line-clamp-2 tracking-tight h-7">{item.product_name}</h3>
+                      <div className="flex items-center justify-between">
+                         <div className={`w-3 h-3 rounded-sm border-2 flex items-center justify-center ${item.is_veg ? 'border-emerald-500' : 'border-red-500'}`}><div className={`w-1 h-1 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-red-500'}`} /></div>
+                         {inCart ? (
+                           <div className="flex items-center bg-slate-900 text-white rounded-lg overflow-hidden h-6">
+                             <button onClick={() => removeFromCart(item.id)} className="w-5 h-full flex items-center justify-center"><Minus className="w-2.5 h-2.5" /></button>
+                             <span className="w-4 text-center text-[9px] font-black">{inCart.qty}</span>
+                             <button onClick={() => addToCart(item)} className="w-5 h-full flex items-center justify-center"><Plus className="w-2.5 h-2.5" /></button>
+                           </div>
+                         ) : (<button onClick={() => addToCart(item)} className="h-6 bg-emerald-600 text-white px-3 rounded-lg text-[8px] font-black uppercase tracking-tight shadow-md shadow-emerald-600/10 active:scale-90 transition-transform">ADD</button>)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
 
       {/* ─── BANNER WITH LOGO + SOCIAL ─── */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-[90]">
