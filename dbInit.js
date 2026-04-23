@@ -294,7 +294,7 @@ async function initializeDatabase() {
         ];
 
         for (let q of queries) {
-            await pool.query(q);
+            if (q) await pool.query(q);
         }
 
         // ✅ AUTO-NORMALIZATION: Consolidate loyalty profiles (91XXXX vs XXXX)

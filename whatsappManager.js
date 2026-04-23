@@ -27,12 +27,17 @@ const sendOfficialMessage = async (to, content, userId) => {
         }
 
         const cleanTo = to.replace(/\D/g, ""); // Meta expects digits only for E.164
-        let payload = { messaging_product: "whatsapp", to: cleanTo };
         if (typeof content === 'string') {
+            if (!content) throw new Error("Empty message content");
             payload.type = "text";
             payload.text = { body: content };
         } else {
+            // Ensure payload has required structure if passing object
             Object.assign(payload, content);
+            if (payload.type === 'text' && (!payload.text || !payload.text.body)) {
+                console.error("[META-ERR] Attempted to send empty text body", payload);
+                return false;
+            }
         }
         
         const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
