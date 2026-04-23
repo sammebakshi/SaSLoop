@@ -630,15 +630,27 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             let address = msgText;
             if (locationData) {
                 address = locationData.address || locationData.name || `📍 Location [${locationData.latitude}, ${locationData.longitude}]`;
-                const ctx = { ...session.context, delivery_address: address, coordinates: locationData };
-                await updateSessionState(userId, customerNumber, 'IDLE', ctx);
-            } else {
-                if (msgLower.length < 5) {
-                    await sendAndLog(customerNumber, `Please share your full delivery address.`, userId);
+                const ctx = { 
+                    ...session.context, 
+                    delivery_address: address, 
+                    delivery_lat: locationData.latitude, 
+                    delivery_long: locationData.longitude 
+                };
+                
+                // Final check: Calculate distance one last time before allowing
+                const res = calculateDeliveryCharge(biz, locationData.latitude, locationData.longitude);
+                if (!res.allowed) {
+                    await sendAndLog(customerNumber, `📍 I notice this location is approx ${res.distance.toFixed(1)}km away, which is outside our delivery zone (${biz.delivery_radius_km}km).\n\nWould you like to change this to a *Pickup* order instead?`, userId);
                     return;
                 }
-                const ctx = { ...session.context, delivery_address: address };
+                
+                ctx.delivery_charge = res.charge;
                 await updateSessionState(userId, customerNumber, 'IDLE', ctx);
+                session.context = ctx; // Update for final receipt below
+            } else {
+                // If they typed it, we force a PIN for distance verification
+                await sendAndLog(customerNumber, `🚚 To ensure we can deliver to your area, please share your *Live Location Pin* (using the 📎 -> Location button in WhatsApp).`, userId);
+                return;
             }
             
             const subtotal = cart.reduce((sum, ci) => sum + (ci.qty * ci.price), 0);
@@ -1293,7 +1305,10 @@ const getDistance = (lat1, lon1, lat2, lon2) => {
 };
 
 const calculateDeliveryCharge = (biz, customerLat, customerLon) => {
-    if (!biz.latitude || !biz.longitude) return { allowed: true, charge: 0, distance: 0 };
+    if (!biz.latitude || !biz.longitude) {
+        console.warn(`[GEO] Missing restaurant location for ${biz.name}. Delivery blocked.`);
+        return { allowed: false, charge: 0, distance: 0 };
+    }
     
     const dist = getDistance(biz.latitude, biz.longitude, customerLat, customerLon);
     const radius = parseFloat(biz.delivery_radius_km) || 10;
