@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API_BASE from "../config";
-import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag, X, Bike, Utensils, ArrowRight, MousePointer2 } from "lucide-react";
+import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag, X, Bike, Utensils, ArrowRight, MousePointer2, Plus } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -279,6 +279,54 @@ function OperationalRules() {
                             <span className="text-[10px] font-black text-emerald-600">{formData.delivery_radius_km} KM</span>
                         </div>
                         <input type="range" min="1" max="50" value={formData.delivery_radius_km} onChange={e => setFormData(prev => ({...prev, delivery_radius_km: e.target.value}))} className="w-full h-2 bg-slate-100 rounded-lg appearance-none accent-emerald-600" />
+                    </div>
+
+                    <div className="pt-4 mt-4 border-t border-slate-50">
+                        <div className="flex justify-between items-center mb-4">
+                            <h4 className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Delivery Charges (Tiers)</h4>
+                            <button 
+                                onClick={() => setFormData(prev => ({ ...prev, delivery_tiers: [...prev.delivery_tiers, { min: 0, max: 0, charge: 0 }] }))}
+                                className="text-[10px] font-black text-emerald-600 uppercase flex items-center gap-1 hover:underline"
+                            >
+                                <Plus className="w-3 h-3" /> Add Tier
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            {formData.delivery_tiers.map((tier, index) => (
+                                <div key={index} className="grid grid-cols-4 gap-2 items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
+                                    <div>
+                                        <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Min (KM)</label>
+                                        <input type="number" value={tier.min} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[index].min = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => ({ ...prev, delivery_tiers: newTiers }));
+                                        }} className="w-full bg-white border border-slate-200 px-2 py-1.5 text-[10px] font-bold rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Max (KM)</label>
+                                        <input type="number" value={tier.max} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[index].max = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => ({ ...prev, delivery_tiers: newTiers }));
+                                        }} className="w-full bg-white border border-slate-200 px-2 py-1.5 text-[10px] font-bold rounded-lg" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">Charge</label>
+                                        <input type="number" value={tier.charge} onChange={e => {
+                                            const newTiers = [...formData.delivery_tiers];
+                                            newTiers[index].charge = parseFloat(e.target.value) || 0;
+                                            setFormData(prev => ({ ...prev, delivery_tiers: newTiers }));
+                                        }} className="w-full bg-white border border-slate-200 px-2 py-1.5 text-[10px] font-bold rounded-lg" />
+                                    </div>
+                                    <div className="pt-4 flex justify-end">
+                                        <button onClick={() => setFormData(prev => ({ ...prev, delivery_tiers: prev.delivery_tiers.filter((_, i) => i !== index) }))} className="text-rose-500 hover:text-rose-700">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                            {formData.delivery_tiers.length === 0 && <p className="text-[9px] text-slate-400 italic">No custom tiers. Radius based cutoff only.</p>}
+                        </div>
                     </div>
                 </div>
             </div>

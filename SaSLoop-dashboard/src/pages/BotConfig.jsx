@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import API_BASE from "../config";
 import { Bot, Save, FileText, CheckCircle2, MessageSquare, AlertCircle, Zap, Terminal, ArrowLeft } from "lucide-react";
 
 function BotConfig() {
@@ -29,21 +30,39 @@ function BotConfig() {
     }
   }, [location.state]);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
     setIsSaving(true);
-    // Simulate DB save delay
-    setTimeout(() => {
-      setIsSaving(false);
-      setIsSaved(true);
-      setTimeout(() => setIsSaved(false), 3000);
+    try {
+      const token = localStorage.getItem("token");
+      const impersonateId = sessionStorage.getItem("impersonate_id");
+      const body = { 
+        bot_knowledge: knowledge,
+        target_user_id: impersonateId || undefined
+      };
       
-      // Update local storage mock for now
-      if (user) {
-        const updatedUser = { ...user, bot_knowledge: knowledge };
-        localStorage.setItem("user", JSON.stringify(updatedUser));
+      const res = await fetch(`${API_BASE}/api/business/setup`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify(body)
+      });
+      
+      if (res.ok) {
+        setIsSaved(true);
+        setTimeout(() => setIsSaved(false), 3000);
+      } else {
+        const err = await res.json();
+        alert("Error saving: " + err.error);
       }
-    }, 1200);
+    } catch (err) {
+      console.error(err);
+      alert("Network error saving knowledge");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (!user) return <div className="p-8 font-medium text-slate-500">Loading AI Interface...</div>;

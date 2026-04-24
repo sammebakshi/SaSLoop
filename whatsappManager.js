@@ -242,9 +242,75 @@ const getRecentChats = async (userId) => {
 };
 
 const processAiAutomations = async (userId, customerNumber, msgText, customerName) => {
-    // Placeholder for simplified AI logic
-    if (msgText.toLowerCase().includes("hi")) {
-        await sendAndLog(customerNumber, "Hello! How can I assist you with your order today?", userId);
+    try {
+        // 1. Check if bot is paused for this customer
+        const sessionRes = await pool.query(
+            "SELECT is_paused FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2",
+            [userId, normalizePhone(customerNumber)]
+        );
+        if (sessionRes.rows[0]?.is_paused) {
+            console.log(`[AI-SKIP] Bot paused for ${customerNumber}`);
+            return;
+        }
+
+        // 2. Get Business Knowledge & Context
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        const userRes = await pool.query("SELECT bot_knowledge FROM app_users WHERE id = $1", [userId]);
+        const botKnowledge = userRes.rows[0]?.bot_knowledge || "";
+
+        if (!biz) return;
+
+        // 3. Fetch Menu Items for context
+        const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
+        const menuContext = itemsRes.rows.map(i => `${i.product_name} (${i.category}): ${biz.currency_code === 'INR' ? '₹' : '$'}${i.price} - ${i.description}`).join("\n");
+
+        // 4. Initialize Groq
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+        const systemPrompt = `
+You are a professional, friendly, and sales-driven AI Assistant for "${biz.name}".
+Your goal is to help customers browse the menu, answer questions, and guide them to order.
+
+STORE KNOWLEDGE:
+${botKnowledge}
+
+MENU ITEMS:
+${menuContext}
+
+STORE DETAILS:
+Address: ${biz.address}
+Type: ${biz.business_type}
+GST: ${biz.cgst_percent + biz.sgst_percent}% (Included: ${biz.gst_included})
+
+RULES:
+- Be concise and polite.
+- If a customer asks for price, give it.
+- If they want to order, tell them they can order right here by telling you what they want or use the digital menu link: https://sasloop.com/menu/${userId}
+- Always act as a representative of the business.
+- Never mention you are an AI or LLM. You are the digital concierge.
+- Handle greetings warmly.
+`;
+
+        console.log(`[AI-GROQ] Processing for ${customerNumber}...`);
+        
+        const completion = await groq.chat.completions.create({
+            messages: [
+                { role: "system", content: systemPrompt },
+                { role: "user", content: `Customer Name: ${customerName}\nMessage: ${msgText}` }
+            ],
+            model: "llama-3.3-70b-versatile",
+            temperature: 0.7,
+            max_tokens: 500
+        });
+
+        const aiResponse = completion.choices[0]?.message?.content;
+        if (aiResponse) {
+            await sendAndLog(customerNumber, aiResponse, userId);
+        }
+
+    } catch (e) {
+        console.error("[AI-ERROR]", e.message);
     }
 };
 
@@ -254,5 +320,6 @@ module.exports = {
   getRecentChats,
   logChat,
   notifyKitchenAndStaff,
-  syncBusinessProfileToWhatsApp
+  syncBusinessProfileToWhatsApp,
+  processAiAutomations
 };
