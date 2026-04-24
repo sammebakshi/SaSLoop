@@ -11,8 +11,6 @@ const formatToInter = (p) => {
     if (!p) return "";
     const digits = p.replace(/\D/g, "");
     if (digits.length === 10) return `+91${digits}`;
-    if (!p.startsWith("+") && digits.length > 5) return `+${digits}`;
-    if (p.startsWith("+")) return p;
     return `+${digits}`;
 };
 
@@ -277,11 +275,32 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'delivery', `Location [${cLat}, ${cLon}]`, null);
 
             // Update Loyalty
-            const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
-            const earned = Math.floor(total * earnRate);
-            const loyaltyRes = await pool.query(
-                "INSERT INTO customer_loyalty (user_id, customer_number, points) VALUES ($1, $2, $3) ON CONFLICT (user_id, customer_number) DO UPDATE SET points = customer_loyalty.points + EXCLUDED.points RETURNING points",
-                [userId, cleanNum, earned]
+            const ptsEarnRate = (parseFloat(biz.points_per_100) || 5) / 100;
+            const pointsEarned = Math.floor(subtotal * ptsEarnRate) || 0;
+            
+            // Use normalized phone for DB operations
+            const cleanNum = formatToInter(customerNumber);
+
+            await pool.query(
+                `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
+                 VALUES ($1, $2, $3, $4, NOW()) 
+                 ON CONFLICT (user_id, customer_number) 
+                 DO UPDATE SET 
+                    points = customer_loyalty.points + EXCLUDED.points,
+                    total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
+                    last_visit = NOW()`,
+                [userId, cleanNum, pointsEarned, subtotal]
+            );
+
+            await pool.query(
+                `INSERT INTO marketing_contacts (user_id, phone_number, name, total_spent, last_order_at)
+                 VALUES ($1, $2, $3, $4, NOW())
+                 ON CONFLICT (user_id, phone_number)
+                 DO UPDATE SET 
+                    name = EXCLUDED.name,
+                    total_spent = COALESCE(marketing_contacts.total_spent, 0) + EXCLUDED.total_spent,
+                    last_order_at = NOW()`,
+                [userId, cleanNum, customerName || "WhatsApp Customer", subtotal]
             );
 
             const receipt = [
@@ -379,6 +398,33 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             );
 
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
+
+            // Update Loyalty & Contribution
+            const ptsEarnRate = (parseFloat(biz.cgst_percent) || 0) + (parseFloat(biz.sgst_percent) || 0); // reusing tax rates for loyalty? No, use the setting
+            const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
+            const pointsEarned = Math.floor(subtotal * earnRate) || 0;
+
+            await pool.query(
+                `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
+                 VALUES ($1, $2, $3, $4, NOW()) 
+                 ON CONFLICT (user_id, customer_number) 
+                 DO UPDATE SET 
+                    points = customer_loyalty.points + EXCLUDED.points,
+                    total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
+                    last_visit = NOW()`,
+                [userId, cleanNum, pointsEarned, subtotal]
+            );
+
+            await pool.query(
+                `INSERT INTO marketing_contacts (user_id, phone_number, name, total_spent, last_order_at)
+                 VALUES ($1, $2, $3, $4, NOW())
+                 ON CONFLICT (user_id, phone_number)
+                 DO UPDATE SET 
+                    name = EXCLUDED.name,
+                    total_spent = COALESCE(marketing_contacts.total_spent, 0) + EXCLUDED.total_spent,
+                    last_order_at = NOW()`,
+                [userId, cleanNum, customerName || "WhatsApp Customer", subtotal]
+            );
 
             const receipt = [
                 `✅ *Pickup Order Confirmed!*`,
