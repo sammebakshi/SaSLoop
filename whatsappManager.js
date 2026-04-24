@@ -247,7 +247,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             if (biz.latitude && biz.longitude) {
                 distance = calculateDistance(biz.latitude, biz.longitude, cLat, cLon);
-                const tiers = Array.isArray(biz.delivery_tiers) ? biz.delivery_tiers : [];
+                const tiers = typeof biz.delivery_tiers === 'string' ? JSON.parse(biz.delivery_tiers) : (biz.delivery_tiers || []);
                 const matched = tiers.find(t => distance >= t.min && distance <= t.max);
                 deliveryCharge = matched ? parseFloat(matched.charge) : 0;
             }
@@ -359,8 +359,40 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (lower === 'mode_pickup') {
-            await sendOfficialMessage(customerNumber, "Great! Your order will be ready for pickup in 20 minutes. Please confirm to finalize.", userId);
-            // Simpler flow for pickup...
+            const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
+            const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+            
+            const cgstR = parseFloat(biz.cgst_percent) || 0;
+            const sgstR = parseFloat(biz.sgst_percent) || 0;
+            let cgst = 0, sgst = 0;
+            if (biz.gst_included) {
+                const r = cgstR + sgstR;
+                if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
+            } else {
+                cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
+            }
+            const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst));
+
+            await pool.query(
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
+                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, 'PENDING']
+            );
+
+            await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
+
+            const receipt = [
+                `✅ *Pickup Order Confirmed!*`,
+                ``,
+                cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
+                `───────────────`,
+                `*Total: ${symbol}${total.toFixed(2)}*`,
+                `Ref: ${orderRef}`,
+                ``,
+                `Please arrive in 20-30 minutes for pickup. See you soon! 🥡`
+            ].join("\n");
+
+            await sendBrandedText(customerNumber, biz.name, receipt, userId);
+            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             return;
         }
 
