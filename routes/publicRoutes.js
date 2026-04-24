@@ -138,25 +138,7 @@ router.post("/order", async (req, res) => {
             } catch (custErr) { console.error("Customer Msg failed:", custErr.message); }
         }
         
-        // Update Points
-        if (dbPhone.startsWith('+') && (customStatus === 'COMPLETED' || !existingOrder)) {
-            try {
-                const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
-                const earned = Math.floor(finalPrice * ptsEarnRate) || 0;
-                await pool.query(
-                    `INSERT INTO customer_loyalty (user_id, customer_number, name, total_spent, points, last_visit)
-                     VALUES ($1, $2, $3, $4, $5, NOW())
-                     ON CONFLICT (user_id, customer_number) 
-                     DO UPDATE SET 
-                        name = COALESCE(EXCLUDED.name, customer_loyalty.name),
-                        total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
-                        points = COALESCE(customer_loyalty.points, 0) + EXCLUDED.points - $6,
-                        last_visit = NOW()`,
-                    [userId, dbPhone, customerName || "Customer", finalPrice, earned, redeemedPoints]
-                );
-            } catch (pErr) { console.error("Loyalty update fail:", pErr); }
-        }
-
+        // (Loyalty EARNING removed from here - now handled on COMPLETED status in orderRoutes.js)
         res.json({ success: true, orderId, orderRef: currentOrderRef, finalPrice, redeemedPoints });
     } catch (err) {
         console.error("CRITICAL ORDER ERROR:", err);

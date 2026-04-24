@@ -54,6 +54,30 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
         } else if (status === 'DISPATCHED') {
             updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way!`;
         } else if (status === 'COMPLETED') {
+            // 🏆 AWARD LOYALTY POINTS ON COMPLETION
+            try {
+                const bizRes = await pool.query("SELECT points_per_100 FROM restaurants WHERE user_id = $1", [userId]);
+                const bizData = bizRes.rows[0];
+                const cleanPhone = (order.customer_number || "").replace(/\D/g, "");
+                const dbPhone = cleanPhone ? `+${cleanPhone}` : "";
+                
+                if (dbPhone && bizData) {
+                    const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
+                    const earned = Math.floor((parseFloat(order.total_price) || 0) * ptsEarnRate);
+                    
+                    await pool.query(
+                        `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit)
+                         VALUES ($1, $2, $3, $4, NOW())
+                         ON CONFLICT (user_id, customer_number) 
+                         DO UPDATE SET 
+                            total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
+                            points = COALESCE(customer_loyalty.points, 0) + EXCLUDED.points,
+                            last_visit = NOW()`,
+                        [userId, dbPhone, earned, parseFloat(order.total_price) || 0]
+                    );
+                }
+            } catch (loyaltyErr) { console.error("Completion Loyalty Error:", loyaltyErr); }
+
             const isTable = order.table_number ? true : false;
             if (isTable) {
                 updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️\n\nHow was your experience? Reply with a rating (1 to 5)!`;

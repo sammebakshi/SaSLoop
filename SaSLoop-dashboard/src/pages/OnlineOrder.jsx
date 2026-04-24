@@ -50,6 +50,7 @@ function OnlineOrder() {
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
+  const [pollInterval, setPollInterval] = useState(null);
   
   const [view, setView] = useState("auth"); 
   const [deliveryCoords, setDeliveryCoords] = useState(null);

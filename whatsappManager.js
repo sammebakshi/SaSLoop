@@ -274,24 +274,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // Notify Kitchen
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'delivery', `Location [${cLat}, ${cLon}]`, null);
 
-            // 🏆 Update Loyalty & CRM (With Safety Guard)
-            let currentBalance = 0;
+            // 🏆 Update CRM (With Safety Guard)
             try {
-                const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
-                const pointsEarned = Math.floor(subtotal * earnRate) || 0;
-
-                const lRes = await pool.query(
-                    `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
-                     VALUES ($1, $2, $3, $4, NOW()) 
-                     ON CONFLICT (user_id, customer_number) 
-                     DO UPDATE SET 
-                        points = customer_loyalty.points + EXCLUDED.points,
-                        total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
-                        last_visit = NOW() RETURNING points`,
-                    [userId, cleanNum, pointsEarned, subtotal]
-                );
-                currentBalance = lRes.rows[0]?.points || 0;
-
                 await pool.query(
                     `INSERT INTO marketing_contacts (user_id, phone_number, name, total_spent, last_order_at)
                      VALUES ($1, $2, $3, $4, NOW())
@@ -302,7 +286,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                         last_order_at = NOW()`,
                     [userId, cleanNum, customerName || "WhatsApp Customer", subtotal]
                 );
-            } catch (lErr) { console.error("Loyalty/CRM Background Fail:", lErr); }
+            } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
             const receipt = [
                 `✅ *Order Confirmed!*`,
@@ -319,10 +303,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `Type: 🚚 Delivery`,
                 `Ref: ${orderRef}`,
                 ``,
-                currentBalance > 0 ? `🎁 *Loyalty Reward:* You now have *${currentBalance} points*!` : "",
-                ``,
                 `Thank you, ${customerName}! We are preparing your order. 🎉`
-            ].filter(Boolean).join("\n");
+            ].join("\n");
 
             await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
@@ -400,24 +382,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
 
-            // 🏆 Update Loyalty & CRM (With Safety Guard)
-            let currentBalance = 0;
+            // 🏆 Update CRM (With Safety Guard)
             try {
-                const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
-                const pointsEarned = Math.floor(subtotal * earnRate) || 0;
-
-                const lRes = await pool.query(
-                    `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
-                     VALUES ($1, $2, $3, $4, NOW()) 
-                     ON CONFLICT (user_id, customer_number) 
-                     DO UPDATE SET 
-                        points = customer_loyalty.points + EXCLUDED.points,
-                        total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
-                        last_visit = NOW() RETURNING points`,
-                    [userId, cleanNum, pointsEarned, subtotal]
-                );
-                currentBalance = lRes.rows[0]?.points || 0;
-
                 await pool.query(
                     `INSERT INTO marketing_contacts (user_id, phone_number, name, total_spent, last_order_at)
                      VALUES ($1, $2, $3, $4, NOW())
@@ -428,7 +394,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                         last_order_at = NOW()`,
                     [userId, cleanNum, customerName || "WhatsApp Customer", subtotal]
                 );
-            } catch (lErr) { console.error("Loyalty/CRM Background Fail:", lErr); }
+            } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
             const receipt = [
                 `✅ *Pickup Order Confirmed!*`,
@@ -438,10 +404,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `*Total: ${symbol}${total.toFixed(2)}*`,
                 `Ref: ${orderRef}`,
                 ``,
-                currentBalance > 0 ? `🎁 *Loyalty Reward:* You now have *${currentBalance} points*!` : "",
-                ``,
                 `Please arrive in 20-30 minutes for pickup. See you soon! 🥡`
-            ].filter(Boolean).join("\n");
+            ].join("\n");
 
             await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
