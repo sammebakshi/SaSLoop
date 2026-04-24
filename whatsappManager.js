@@ -400,7 +400,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
 
             // Update Loyalty & Contribution
-            const ptsEarnRate = (parseFloat(biz.cgst_percent) || 0) + (parseFloat(biz.sgst_percent) || 0); // reusing tax rates for loyalty? No, use the setting
             const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
             const pointsEarned = Math.floor(subtotal * earnRate) || 0;
 
