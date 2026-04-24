@@ -241,76 +241,265 @@ const getRecentChats = async (userId) => {
     } catch (e) { return []; }
 };
 
+// ----------------------------------------------------------------------------------
+// 🛠️ STATE MANAGEMENT (Sessions)
+// ----------------------------------------------------------------------------------
+const getSession = async (userId, customerNumber) => {
+    try {
+        const cleanNum = normalizePhone(customerNumber);
+        const res = await pool.query(
+            "SELECT * FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2",
+            [userId, cleanNum]
+        );
+        if (res.rows.length > 0) {
+            return {
+                ...res.rows[0],
+                context: typeof res.rows[0].context === 'string' ? JSON.parse(res.rows[0].context) : (res.rows[0].context || {})
+            };
+        }
+        // Create new session
+        const newSession = await pool.query(
+            "INSERT INTO conversation_sessions (user_id, customer_number, state, context) VALUES ($1, $2, $3, $4) RETURNING *",
+            [userId, cleanNum, 'IDLE', JSON.stringify({ cart: [] })]
+        );
+        return { ...newSession.rows[0], context: { cart: [] } };
+    } catch (e) {
+        return { state: 'IDLE', context: { cart: [] } };
+    }
+};
+
+const updateSession = async (userId, customerNumber, state, context) => {
+    try {
+        await pool.query(
+            "UPDATE conversation_sessions SET state = $1, context = $2, updated_at = NOW() WHERE user_id = $3 AND customer_number = $4",
+            [state, JSON.stringify(context), userId, normalizePhone(customerNumber)]
+        );
+    } catch (e) {}
+};
+
+// ----------------------------------------------------------------------------------
+// 📤 Enhanced Message Sending (Buttons/Lists)
+// ----------------------------------------------------------------------------------
+const sendButtons = async (to, text, buttons, userId) => {
+    const formattedButtons = buttons.map((b, i) => ({
+        type: "reply",
+        reply: { id: b.id || `btn_${i}`, title: b.title }
+    }));
+    const payload = {
+        messaging_product: "whatsapp",
+        to: normalizePhone(to),
+        type: "interactive",
+        interactive: {
+            type: "button",
+            body: { text },
+            action: { buttons: formattedButtons }
+        }
+    };
+    return sendOfficialMessage(to, payload, userId);
+};
+
+const sendList = async (to, header, body, buttonTitle, sections, userId) => {
+    const payload = {
+        messaging_product: "whatsapp",
+        to: normalizePhone(to),
+        type: "interactive",
+        interactive: {
+            type: "list",
+            header: { type: "text", text: header },
+            body: { text: body },
+            action: {
+                button: buttonTitle,
+                sections: sections
+            }
+        }
+    };
+    return sendOfficialMessage(to, payload, userId);
+};
+
+// ----------------------------------------------------------------------------------
+// 🛒 ORDER FINALIZATION
+// ----------------------------------------------------------------------------------
+const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol, orderType, address, tableNumber = null) => {
+    try {
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        
+        let subtotal = 0;
+        cart.forEach(i => subtotal += (i.qty * i.price));
+        
+        // Tax calc
+        const cgstR = parseFloat(biz.cgst_percent) || 0;
+        const sgstR = parseFloat(biz.sgst_percent) || 0;
+        let cgst = 0, sgst = 0;
+        if (biz.gst_included) {
+            const r = cgstR + sgstR;
+            if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
+        } else {
+            cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
+        }
+
+        const total = biz.gst_included ? subtotal : (subtotal + cgst + sgst);
+        const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
+
+        await pool.query(
+            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+            [userId, customerName, normalizePhone(customerNumber), address || orderType, JSON.stringify(cart), total, orderRef, 'PENDING', tableNumber]
+        );
+
+        // Notify Kitchen
+        await notifyKitchenAndStaff(userId, orderRef, customerName, customerNumber, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, orderType, address, tableNumber);
+
+        return { orderRef, total };
+    } catch (e) {
+        console.error("Finalize Order Fail:", e);
+        return null;
+    }
+};
+
+// ----------------------------------------------------------------------------------
+// 🧠 CONVERSATIONAL AI ENGINE
+// ----------------------------------------------------------------------------------
 const processAiAutomations = async (userId, customerNumber, msgText, customerName) => {
     try {
-        // 1. Check if bot is paused for this customer
-        const sessionRes = await pool.query(
-            "SELECT is_paused FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2",
-            [userId, normalizePhone(customerNumber)]
-        );
-        if (sessionRes.rows[0]?.is_paused) {
-            console.log(`[AI-SKIP] Bot paused for ${customerNumber}`);
+        const cleanNum = normalizePhone(customerNumber);
+        const session = await getSession(userId, customerNumber);
+        
+        if (session.is_paused) return;
+
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        if (!biz) return;
+        const symbol = biz.currency_code === 'INR' ? '₹' : '$';
+
+        const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
+        const menu = itemsRes.rows;
+        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
+
+        // 1. Handle Numerical Reply (Quantity)
+        const numMatch = msgText.match(/^\d+$/);
+        if (numMatch && session.state === 'AWAITING_QUANTITY' && session.context.pending_item) {
+            const qty = parseInt(numMatch[0]);
+            const item = session.context.pending_item;
+            const cart = session.context.cart || [];
+            
+            // Update cart
+            const existing = cart.find(i => i.name === item.name);
+            if (existing) existing.qty += qty;
+            else cart.push({ ...item, qty });
+
+            session.context.cart = cart;
+            session.context.pending_item = null;
+            
+            let cartText = cart.map(i => `• ${i.qty}x ${i.name}`).join("\n");
+            let subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+            
+            const text = `✅ Added to your bag!\n\n*Current Order:*\n${cartText}\n\n*Subtotal:* ${symbol}${subtotal}\n\nWould you like to add anything else, or should we proceed to checkout?`;
+            await sendButtons(customerNumber, text, [
+                { id: 'view_menu', title: 'Add More' },
+                { id: 'checkout', title: 'Checkout 💳' }
+            ], userId);
+            
+            await updateSession(userId, customerNumber, 'IDLE', session.context);
+            await logChat(userId, customerNumber, 'bot', text);
             return;
         }
 
-        // 2. Get Business Knowledge & Context
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-        const biz = bizRes.rows[0];
-        const userRes = await pool.query("SELECT bot_knowledge FROM app_users WHERE id = $1", [userId]);
-        const botKnowledge = userRes.rows[0]?.bot_knowledge || "";
+        // 2. Handle Direct Button Clicks
+        const lower = msgText.toLowerCase();
+        console.log(`[WA-DEBUG] Handling Input: ${msgText} | State: ${session.state}`);
 
-        if (!biz) return;
-
-        // 3. Fetch Menu Items for context
-        const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
-        const menuContext = itemsRes.rows.map(i => `${i.product_name} (${i.category}): ${biz.currency_code === 'INR' ? '₹' : '$'}${i.price} - ${i.description}`).join("\n");
-
-        // 4. Initialize Groq
-        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
-        const systemPrompt = `
-You are a professional, friendly, and sales-driven AI Assistant for "${biz.name}".
-Your goal is to help customers browse the menu, answer questions, and guide them to order.
-
-STORE KNOWLEDGE:
-${botKnowledge}
-
-MENU ITEMS:
-${menuContext}
-
-STORE DETAILS:
-Address: ${biz.address}
-Type: ${biz.business_type}
-GST: ${biz.cgst_percent + biz.sgst_percent}% (Included: ${biz.gst_included})
-
-RULES:
-- Be concise and polite.
-- If a customer asks for price, give it.
-- If they want to order, tell them they can order right here by telling you what they want or use the digital menu link: https://sasloop.com/menu/${userId}
-- Always act as a representative of the business.
-- Never mention you are an AI or LLM. You are the digital concierge.
-- Handle greetings warmly.
-`;
-
-        console.log(`[AI-GROQ] Processing for ${customerNumber}...`);
-        
-        const completion = await groq.chat.completions.create({
-            messages: [
-                { role: "system", content: systemPrompt },
-                { role: "user", content: `Customer Name: ${customerName}\nMessage: ${msgText}` }
-            ],
-            model: "llama-3.3-70b-versatile",
-            temperature: 0.7,
-            max_tokens: 500
-        });
-
-        const aiResponse = completion.choices[0]?.message?.content;
-        if (aiResponse) {
-            await sendAndLog(customerNumber, aiResponse, userId);
+        if (lower === 'place an order' || lower === 'order now' || lower === 'place_order') {
+            const text = `🤖 *Order Details*\n\nGreat! Please specify the items you would like to order (e.g., '1x Burger' or just tell me what you want).`;
+            await sendAndLog(customerNumber, text, userId);
+            await updateSession(userId, customerNumber, 'IDLE', session.context);
+            return;
         }
 
+        if (lower === 'view_menu' || lower === 'explore menu 📖') {
+            const text = `🍽️ *Our Menu*\n\nYou can browse our full menu here: https://sasloop.com/menu/${userId}\n\nOr just tell me what you're craving!`;
+            await sendButtons(customerNumber, text, [
+                { id: 'place_order', title: 'Place Order 🛍️' },
+                { id: 'checkout', title: 'Checkout 💳' }
+            ], userId);
+            await logChat(userId, customerNumber, 'bot', text);
+            return;
+        }
+
+        if (lower === 'checkout') {
+            const cart = session.context.cart || [];
+            if (cart.length === 0) {
+                await sendAndLog(customerNumber, "Your bag is empty! Tell me what you'd like to eat first. 😋", userId);
+                return;
+            }
+            const text = `🛒 *Checkout*\n\nGreat! How would you like your order?`;
+            await sendButtons(customerNumber, text, [
+                { id: 'mode_delivery', title: '🛵 Delivery' },
+                { id: 'mode_pickup', title: '🥡 Pickup' }
+            ], userId);
+            await updateSession(userId, customerNumber, 'AWAITING_MODE', session.context);
+            await logChat(userId, customerNumber, 'bot', text);
+            return;
+        }
+
+        // 3. AI Intent Extraction
+        console.log(`[AI-GROQ] Calling Groq for: ${msgText}...`);
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const systemPrompt = `
+You are the AI Salesman for "${biz.name}". 
+Analyze the user message and extract intents.
+
+MENU: ${menuContext}
+
+OUTPUT ONLY JSON:
+{
+  "intent": "GREETING" | "ORDER_ITEM" | "CHECKOUT" | "QUESTION" | "OTHER",
+  "detected_item": "Item Name" | null,
+  "quantity": number | null,
+  "response": "Enthusiastic text response"
+}
+
+RULES:
+- If it is a greeting like "Hi", "Hello", "Hey", set intent to GREETING.
+- If they ask for an item, set intent to ORDER_ITEM.
+- Be extremely enthusiastic and sales-driven.
+- If they mention a menu item, ALWAYS confirm the price and ask for quantity.
+`;
+
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: msgText }],
+            model: "llama-3.3-70b-versatile",
+            response_format: { type: "json_object" }
+        });
+
+        const result = JSON.parse(completion.choices[0].message.content);
+        console.log(`[AI-RESULT] Intent: ${result.intent} | Item: ${result.detected_item}`);
+
+        if (result.intent === 'GREETING') {
+            const text = `🍽️ *Welcome to ${biz.name}!*\n\nHello ${customerName}, it is a pleasure to assist you today. How can I help you? You can explore our menu or place an order using the options below.`;
+            await sendButtons(customerNumber, text, [
+                { id: 'view_menu', title: 'Menu Options 📖' },
+                { id: 'place_order', title: 'Place an Order 🛍️' }
+            ], userId);
+            await logChat(userId, customerNumber, 'bot', text);
+            return;
+        }
+
+        if (result.intent === 'ORDER_ITEM' && result.detected_item) {
+            const item = menu.find(i => i.product_name.toLowerCase().includes(result.detected_item.toLowerCase()));
+            if (item) {
+                const text = `Excellent choice! The *${item.product_name}* is one of our favorites. It is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                await sendAndLog(customerNumber, text, userId);
+                session.context.pending_item = { name: item.product_name, price: item.price };
+                await updateSession(userId, customerNumber, 'AWAITING_QUANTITY', session.context);
+                return;
+            }
+        }
+
+        // Default: Natural AI Response
+        await sendAndLog(customerNumber, result.response || "I'm here to help! What can I get for you today?", userId);
+
     } catch (e) {
-        console.error("[AI-ERROR]", e.message);
+        console.error("[AI-ERROR] Critical fail in AI automation:", e);
     }
 };
 
