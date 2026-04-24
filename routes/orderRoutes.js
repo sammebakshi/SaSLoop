@@ -55,6 +55,7 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
             updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way!`;
         } else if (status === 'COMPLETED') {
             // 🏆 AWARD LOYALTY POINTS ON COMPLETION
+            let pointsSummary = "";
             try {
                 const bizRes = await pool.query("SELECT points_per_100 FROM restaurants WHERE user_id = $1", [userId]);
                 const bizData = bizRes.rows[0];
@@ -65,24 +66,28 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
                     const ptsEarnRate = (parseFloat(bizData.points_per_100) || 5) / 100;
                     const earned = Math.floor((parseFloat(order.total_price) || 0) * ptsEarnRate);
                     
-                    await pool.query(
+                    const loyaltyRes = await pool.query(
                         `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit)
                          VALUES ($1, $2, $3, $4, NOW())
                          ON CONFLICT (user_id, customer_number) 
                          DO UPDATE SET 
                             total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
                             points = COALESCE(customer_loyalty.points, 0) + EXCLUDED.points,
-                            last_visit = NOW()`,
+                            last_visit = NOW() RETURNING points`,
                         [userId, dbPhone, earned, parseFloat(order.total_price) || 0]
                     );
+                    
+                    if (earned > 0) {
+                        pointsSummary = `\n🎁 *Loyalty Reward:* You earned *${earned} points*!\n🌟 *New Balance:* *${loyaltyRes.rows[0].points} points*`;
+                    }
                 }
             } catch (loyaltyErr) { console.error("Completion Loyalty Error:", loyaltyErr); }
 
             const isTable = order.table_number ? true : false;
             if (isTable) {
-                updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️\n\nHow was your experience? Reply with a rating (1 to 5)!`;
+                updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5)!`;
             } else {
-                updateMsg = `🏁 *Delivered:* Your order *${ref}* was successful. Enjoy!\n\nHow was your experience? Reply with a rating (1 to 5) and any comments!`;
+                updateMsg = `🏁 *Delivered:* Your order *${ref}* was successful. Enjoy!${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5) and any comments!`;
             }
         } else if (status === 'CANCELLED') {
             updateMsg = `❌ *Cancelled:* Your order *${ref}* has been cancelled.`;
