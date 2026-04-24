@@ -215,7 +215,28 @@ function OnlineOrder() {
                  {!otpMode ? (
                    <>
                       <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
-                       <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label><div className="flex gap-2"><select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[80px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none">{countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}</select><input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="00000 00000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" /></div></div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp Contact</label>
+                        <div className="flex gap-2">
+                          <div className="relative shrink-0">
+                            <select 
+                              value={countryCode} 
+                              onChange={e => setCountryCode(e.target.value)} 
+                              className="appearance-none w-[90px] bg-white/10 border border-white/20 h-[52px] px-4 rounded-2xl text-sm font-black text-white outline-none cursor-pointer hover:bg-white/20 transition-all"
+                            >
+                              {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
+                            </select>
+                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[8px]">▼</div>
+                          </div>
+                          <input 
+                            type="tel" 
+                            value={customerPhone} 
+                            onChange={e => setCustomerPhone(e.target.value)} 
+                            placeholder="Mobile Number" 
+                            className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-500/50 transition-all" 
+                          />
+                        </div>
+                      </div>
                    </>
                  ) : (
                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verification Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" /></div>
