@@ -221,7 +221,7 @@ const sendBrandedText = async (to, title, text, userId) => {
 // ----------------------------------------------------------------------------------
 const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation = false, locationData = null) => {
     try {
-        const cleanNum = normalizePhone(customerNumber);
+        const cleanNum = formatToInter(customerNumber);
         const session = await getSession(userId, customerNumber);
         if (session.is_paused) return;
 
@@ -278,17 +278,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const ptsEarnRate = (parseFloat(biz.points_per_100) || 5) / 100;
             const pointsEarned = Math.floor(subtotal * ptsEarnRate) || 0;
             
-            // Use normalized phone for DB operations
-            const cleanNum = formatToInter(customerNumber);
-
-            await pool.query(
+            const loyaltyRes = await pool.query(
                 `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
                  VALUES ($1, $2, $3, $4, NOW()) 
                  ON CONFLICT (user_id, customer_number) 
                  DO UPDATE SET 
                     points = customer_loyalty.points + EXCLUDED.points,
                     total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
-                    last_visit = NOW()`,
+                    last_visit = NOW() RETURNING points`,
                 [userId, cleanNum, pointsEarned, subtotal]
             );
 
@@ -318,7 +315,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `Type: 🚚 Delivery`,
                 `Ref: ${orderRef}`,
                 ``,
-                `🎁 *Loyalty Reward:* You earned *${earned} points*! New balance: *${loyaltyRes.rows[0].points} points*.`,
+                `🎁 *Loyalty Reward:* You earned *${pointsEarned} points*! New balance: *${loyaltyRes.rows[0].points} points*.`,
                 ``,
                 `Thank you, ${customerName}! We are preparing your order. 🎉`
             ].join("\n");
@@ -403,14 +400,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
             const pointsEarned = Math.floor(subtotal * earnRate) || 0;
 
-            await pool.query(
+            const loyaltyRes = await pool.query(
                 `INSERT INTO customer_loyalty (user_id, customer_number, points, total_spent, last_visit) 
                  VALUES ($1, $2, $3, $4, NOW()) 
                  ON CONFLICT (user_id, customer_number) 
                  DO UPDATE SET 
                     points = customer_loyalty.points + EXCLUDED.points,
                     total_spent = COALESCE(customer_loyalty.total_spent, 0) + EXCLUDED.total_spent,
-                    last_visit = NOW()`,
+                    last_visit = NOW() RETURNING points`,
                 [userId, cleanNum, pointsEarned, subtotal]
             );
 
@@ -432,6 +429,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `───────────────`,
                 `*Total: ${symbol}${total.toFixed(2)}*`,
                 `Ref: ${orderRef}`,
+                ``,
+                `🎁 *Loyalty Reward:* You earned *${pointsEarned} points*! New balance: *${loyaltyRes.rows[0].points} points*.`,
                 ``,
                 `Please arrive in 20-30 minutes for pickup. See you soon! 🥡`
             ].join("\n");
