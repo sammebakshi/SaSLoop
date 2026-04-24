@@ -36,10 +36,17 @@ function CustomerMenu() {
   const [otpMode, setOtpMode] = useState(false);
 
   const getStandardPhone = () => {
-    const cleanPhone = (customerPhone || "").replace(/\D/g, "");
-    const cleanCode = countryCode.replace(/\D/g, "");
-    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) return "+" + cleanPhone;
-    return "+" + cleanCode + cleanPhone;
+    // 1. Strip everything except digits from both parts
+    const rawDigits = (customerPhone || "").replace(/\D/g, "");
+    const codeDigits = (countryCode || "91").replace(/\D/g, "");
+    
+    // 2. If the user already typed the country code into the phone box, don't double it
+    if (rawDigits.startsWith(codeDigits) && rawDigits.length > codeDigits.length) {
+      return "+" + rawDigits;
+    }
+    
+    // 3. Otherwise combine them with a single +
+    return "+" + codeDigits + rawDigits;
   };
 
   const biz = data?.business;
