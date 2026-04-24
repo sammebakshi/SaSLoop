@@ -78,7 +78,8 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
                     );
                     
                     if (earned > 0) {
-                        pointsSummary = `\n🎁 *Loyalty Reward:* You earned *${earned} points*!\n🌟 *New Balance:* *${loyaltyRes.rows[0].points} points*`;
+                        const newBal = loyaltyRes.rows[0]?.points ?? 0;
+                        pointsSummary = `\n🎁 *Loyalty Reward:* You earned *${earned} points*!\n🌟 *New Balance:* *${newBal} points*`;
                     }
                 }
             } catch (loyaltyErr) { console.error("Completion Loyalty Error:", loyaltyErr); }
