@@ -305,7 +305,7 @@ function OnlineOrder() {
                    activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
                         <div key={order.id} className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-2xl">
                            <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-400 uppercase">{order.order_reference}</span><div className={`px-2 py-1 rounded-full text-[7px] font-black uppercase ${order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700 animate-pulse'}`}>{order.status}</div></div>
-                           <p className="text-xs font-black text-slate-900 uppercase truncate mb-2">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate mb-2">{(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || [])).map(i => i.name).join(", ")}</p>
                            <p className="text-lg font-black text-slate-900">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
                         </div>
                    ))
@@ -314,7 +314,7 @@ function OnlineOrder() {
                    activeOrders.filter(o => o.status === 'COMPLETED' || o.status === 'CANCELLED').map(order => (
                         <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm opacity-80">
                            <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-300 uppercase">{new Date(order.created_at).toLocaleDateString()}</span><span className={`text-[8px] font-black uppercase ${order.status === 'COMPLETED' ? 'text-emerald-500' : 'text-slate-400'}`}>{order.status}</span></div>
-                           <p className="text-xs font-black text-slate-900 uppercase truncate">{JSON.parse(order.items || '[]').map(i => i.name).join(", ")}</p>
+                           <p className="text-xs font-black text-slate-900 uppercase truncate">{(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || [])).map(i => i.name).join(", ")}</p>
                            <p className="text-sm font-black text-slate-400 mt-1">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
                         </div>
                    ))
