@@ -1,15 +1,12 @@
 const pool = require("./db");
 const Groq = require("groq-sdk");
 const axios = require("axios");
-const fs = require("fs");
-const path = require("path");
 
 const normalizePhone = (p) => {
     if (!p) return "";
     return p.replace(/\D/g, "");
 };
 
-// Helper: Ensure +CountryCodeNumber for Meta API (Defaults to 91 if missing)
 const formatToInter = (p) => {
     if (!p) return "";
     const digits = p.replace(/\D/g, "");
@@ -19,194 +16,31 @@ const formatToInter = (p) => {
     return `+${digits}`;
 };
 
-// ----------------------------------------------------------------------------------
-// 📤 Send Message + Log to chat_messages
-// ----------------------------------------------------------------------------------
 const sendOfficialMessage = async (to, content, userId) => {
     try {
         const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
         const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
-        
-        if (!token || !phoneId) {
-            console.error(`[META-ERROR] User ${userId} has no Meta credentials configured.`);
-            return { success: false, error: "Missing Meta credentials" };
-        }
+        if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
 
         const formattedTo = formatToInter(to);
-        const cleanTo = formattedTo.replace(/\D/g, ""); // Meta expects digits only for E.164
+        const cleanTo = formattedTo.replace(/\D/g, "");
         let payload = { messaging_product: "whatsapp", to: cleanTo };
         
         if (typeof content === 'string') {
-            if (!content) throw new Error("Empty message content");
             payload.type = "text";
             payload.text = { body: content };
         } else {
             Object.assign(payload, content);
         }
         
-        console.log(`[META-SENDING] To: ${formattedTo} | User: ${userId}`);
-        
         const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
             headers: { "Authorization": `Bearer ${token}` }
         });
-        
-        console.log(`[META-SUCCESS] Sent to ${cleanTo} | ID: ${response.data.messages?.[0]?.id}`);
         return { success: true, data: response.data };
     } catch (e) { 
-        const errorData = e.response?.data || e.message;
-        console.error(`[META-FAILURE] To: ${to} | Error:`, JSON.stringify(errorData, null, 2)); 
-        return { success: false, error: errorData };
+        console.error(`[META-FAILURE] To: ${to} | Error:`, e.response?.data || e.message); 
+        return { success: false, error: e.response?.data || e.message };
     }
-};
-
-const sendAndLog = async (to, text, userId, waMessageId = null) => {
-    try {
-        const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
-        const bizName = bizRes.rows[0]?.name || "Assistant";
-        const brandedText = `🤖 *${bizName}*\n━━━━━━━━━━━━━━\n${text}`;
-        await sendOfficialMessage(to, { type: "text", text: { body: brandedText } }, userId);
-        await logChat(userId, to, 'bot', text, waMessageId);
-    } catch (err) {
-        await sendOfficialMessage(to, text, userId);
-        await logChat(userId, to, 'bot', text, waMessageId);
-    }
-};
-
-const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNumber, cart, subtotal, total, cgst, sgst, cr, sr, symbol, orderType, address, tableNumber, discountAmount = 0) => {
-    try {
-        console.log(`[NOTIFY-START] Processing notifications for Order: ${orderRef} | User: ${userId}`);
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-        const biz = bizRes.rows[0];
-        
-        if (!biz) {
-            console.error(`[NOTIFY-ERROR] No restaurant found for user_id ${userId}`);
-            return;
-        }
-
-        const kotItemLines = cart.map(i => `  • ${i.qty}x ${i.name}`).join("\n");
-        const staffItemLines = cart.map(i => `  • ${i.qty}x ${i.name} — ${symbol}${i.qty * i.price}`).join("\n");
-        
-        const kot = [
-            `🍽️ *====== KITCHEN ORDER TICKET ======*`,
-            `*Ref:* ${orderRef}`,
-            `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP / TAKEAWAY' : orderType.toUpperCase())}`,
-            `*Customer:* ${customerName}${customerNumber && customerNumber !== 'QR-ORDER' ? `\n*Phone:* ${customerNumber}` : ''}${orderType === 'delivery' && address ? `\n*Address:* ${address}` : ''}`,
-            ``,
-            `--- ITEMS ---`,
-            kotItemLines,
-            `────────────────`
-        ].join("\n");
-
-        const staffMsgArr = [
-            `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
-            `*Ref:* ${orderRef}`,
-            `*Type:* ${tableNumber ? '🪑 Table ' + tableNumber : (orderType.toLowerCase() === 'delivery' ? '🛵 Delivery' : '🥡 Pickup / Takeaway')}`,
-            `*Customer:* ${customerName}${customerNumber && customerNumber !== 'QR-ORDER' ? `\n*Phone:* ${customerNumber}` : ''}${orderType === 'delivery' && address ? `\n*Address:* ${address}` : ''}`,
-            ``,
-            `--- ORDER DETAILS ---`,
-            staffItemLines,
-            `───────────────`
-        ];
-
-        if (biz.show_gst_on_receipt) {
-            staffMsgArr.push(`*Breakdown:* Sub: ${symbol}${subtotal.toFixed(2)} | Tax: ${symbol}${(cgst+sgst).toFixed(2)}`);
-        }
-        if (discountAmount > 0) {
-            staffMsgArr.push(`*Discount:* -${symbol}${discountAmount.toFixed(2)}`);
-        }
-        staffMsgArr.push(`*Total:* ${symbol}${total.toFixed(2)}`);
-        staffMsgArr.push(`────────────────`);
-
-        const staffMsg = staffMsgArr.join("\n");
-
-        // 🚛 RELAY TO KITCHEN
-        const kitchenNum = Array.isArray(biz.kitchen_number) ? biz.kitchen_number[0] : biz.kitchen_number;
-        if (kitchenNum && kitchenNum.length > 5) {
-            console.log(`[NOTIFY-KITCHEN] Relaying to Number: ${kitchenNum}`);
-            const res = await sendOfficialMessage(kitchenNum, kot, userId);
-            if (!res.success) console.error(`[NOTIFY-KITCHEN-FAIL] Reason:`, res.error);
-        }
-
-        // 🚛 RELAY TO STAFF
-        let staffNums = [];
-        if (biz.notification_numbers) {
-            if (Array.isArray(biz.notification_numbers)) {
-                staffNums = biz.notification_numbers;
-            } else if (typeof biz.notification_numbers === 'string') {
-                staffNums = biz.notification_numbers.split(/[,|\s]+/).filter(n => n.trim().length > 5);
-            }
-
-            if (staffNums.length > 0) {
-                console.log(`[NOTIFY-STAFF] Relaying to ${staffNums.length} staff numbers...`);
-                for (let num of staffNums) {
-                    const cleanNum = (typeof num === 'string') ? num.trim() : num;
-                    if (cleanNum) {
-                        const res = await sendOfficialMessage(cleanNum, staffMsg, userId);
-                        if (!res.success) console.error(`[NOTIFY-STAFF-FAIL] Number: ${cleanNum} | Reason:`, res.error);
-                    }
-                }
-            }
-        }
-    } catch (e) { 
-        console.error(`[NOTIFY-CRITICAL-FAIL] Order: ${orderRef} | Error:`, e.message); 
-    }
-};
-
-const handleMetaWebhook = async (body) => {
-    try {
-        if (body.object === "whatsapp_business_account") {
-            for (const entry of body.entry) {
-                const changes = entry.changes[0];
-                if (changes.value && changes.value.messages) {
-                    const message = changes.value.messages[0];
-                    const msgId = message.id;
-                    const fromNumber = normalizePhone(message.from);
-                    const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
-                    const metaPhoneId = changes.value.metadata.phone_number_id; 
-
-                    const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
-                    if (userRes.rows.length === 0) return;
-                    const userId = userRes.rows[0].id;
-
-                    const dupCheck = await pool.query("SELECT id FROM chat_messages WHERE wa_message_id = $1", [msgId]);
-                    if (dupCheck.rows.length > 0) return;
-
-                    let textBody = "";
-                    if (message.type === "text") textBody = message.text.body;
-                    else if (message.type === "interactive") {
-                        if (message.interactive.type === "button_reply") textBody = message.interactive.button_reply.title;
-                        else if (message.interactive.type === "list_reply") textBody = message.interactive.list_reply.title;
-                    }
-
-                    if (textBody) {
-                        await upsertContact(userId, fromNumber, contactName);
-                        await logChat(userId, fromNumber, 'customer', textBody, msgId);
-                        await processAiAutomations(userId, fromNumber, textBody, contactName);
-                    }
-                }
-            }
-        }
-    } catch (e) { console.error("Webhook Error", e); }
-};
-
-const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
-    try {
-        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
-        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
-        if (!token || !phoneId) return { success: false, error: "API Config Missing" };
-
-        let payload = {
-            messaging_product: "whatsapp",
-            description: bizData.address || "",
-            about: `Official bot for ${bizData.name}`,
-            address: bizData.address || ""
-        };
-
-        await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile`, payload, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
-        return { success: true };
-    } catch (e) { return { success: false, error: e.message }; }
 };
 
 const upsertContact = async (userId, phone, name) => {
@@ -241,9 +75,71 @@ const getRecentChats = async (userId) => {
     } catch (e) { return []; }
 };
 
-// ----------------------------------------------------------------------------------
-// 🛠️ STATE MANAGEMENT (Sessions)
-// ----------------------------------------------------------------------------------
+const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
+    try {
+        const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        if (!token || !phoneId) return { success: false, error: "API Config Missing" };
+        let payload = {
+            messaging_product: "whatsapp",
+            description: bizData.address || "",
+            about: `Official bot for ${bizData.name}`,
+            address: bizData.address || ""
+        };
+        await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/whatsapp_business_profile`, payload, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        return { success: true };
+    } catch (e) { return { success: false, error: e.message }; }
+};
+
+const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNumber, cart, subtotal, total, cgst, sgst, cr, sr, symbol, orderType, address, tableNumber, discountAmount = 0) => {
+    try {
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        if (!biz) return;
+
+        const kotItemLines = cart.map(i => `  • ${i.qty}x ${i.name}`).join("\n");
+        const staffItemLines = cart.map(i => `  • ${i.qty}x ${i.name} — ${symbol}${i.qty * i.price}`).join("\n");
+        
+        const kot = [
+            `🍽️ *====== KITCHEN ORDER TICKET ======*`,
+            `*Ref:* ${orderRef}`,
+            `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP' : '🛵 DELIVERY')}`,
+            `*Customer:* ${customerName}`,
+            `*Items:*\n${kotItemLines}`
+        ].join("\n");
+
+        const staffMsg = [
+            `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
+            `*Ref:* ${orderRef}`,
+            `*Customer:* ${customerName}`,
+            `───────────────`,
+            staffItemLines,
+            `───────────────`,
+            `*Total: ${symbol}${total.toFixed(2)}*`
+        ].join("\n");
+
+        const kitchenNum = biz.kitchen_number;
+        if (kitchenNum) await sendOfficialMessage(kitchenNum, kot, userId);
+
+        const staffNums = biz.notification_numbers || [];
+        for (let num of staffNums) {
+            await sendOfficialMessage(num, staffMsg, userId);
+        }
+    } catch (e) { console.error("Notify Kitchen Error:", e); }
+};
+const calculateDistance = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
 const getSession = async (userId, customerNumber) => {
     try {
         const cleanNum = normalizePhone(customerNumber);
@@ -252,12 +148,12 @@ const getSession = async (userId, customerNumber) => {
             [userId, cleanNum]
         );
         if (res.rows.length > 0) {
+            const sess = res.rows[0];
             return {
-                ...res.rows[0],
-                context: typeof res.rows[0].context === 'string' ? JSON.parse(res.rows[0].context) : (res.rows[0].context || {})
+                ...sess,
+                context: typeof sess.context === 'string' ? JSON.parse(sess.context) : (sess.context || { cart: [] })
             };
         }
-        // Create new session
         const newSession = await pool.query(
             "INSERT INTO conversation_sessions (user_id, customer_number, state, context) VALUES ($1, $2, $3, $4) RETURNING *",
             [userId, cleanNum, 'IDLE', JSON.stringify({ cart: [] })]
@@ -274,7 +170,7 @@ const updateSession = async (userId, customerNumber, state, context) => {
             "UPDATE conversation_sessions SET state = $1, context = $2, updated_at = NOW() WHERE user_id = $3 AND customer_number = $4",
             [state, JSON.stringify(context), userId, normalizePhone(customerNumber)]
         );
-    } catch (e) {}
+    } catch (e) { console.error("Update Session Error:", e); }
 };
 
 // ----------------------------------------------------------------------------------
@@ -307,6 +203,7 @@ const sendList = async (to, header, body, buttonTitle, sections, userId) => {
             type: "list",
             header: { type: "text", text: header },
             body: { text: body },
+            footer: { text: "Please choose an option from the list below" },
             action: {
                 button: buttonTitle,
                 sections: sections
@@ -316,54 +213,18 @@ const sendList = async (to, header, body, buttonTitle, sections, userId) => {
     return sendOfficialMessage(to, payload, userId);
 };
 
-// ----------------------------------------------------------------------------------
-// 🛒 ORDER FINALIZATION
-// ----------------------------------------------------------------------------------
-const finalizeOrder = async (userId, customerNumber, customerName, cart, symbol, orderType, address, tableNumber = null) => {
-    try {
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-        const biz = bizRes.rows[0];
-        
-        let subtotal = 0;
-        cart.forEach(i => subtotal += (i.qty * i.price));
-        
-        // Tax calc
-        const cgstR = parseFloat(biz.cgst_percent) || 0;
-        const sgstR = parseFloat(biz.sgst_percent) || 0;
-        let cgst = 0, sgst = 0;
-        if (biz.gst_included) {
-            const r = cgstR + sgstR;
-            if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
-        } else {
-            cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
-        }
-
-        const total = biz.gst_included ? subtotal : (subtotal + cgst + sgst);
-        const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-        await pool.query(
-            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-            [userId, customerName, normalizePhone(customerNumber), address || orderType, JSON.stringify(cart), total, orderRef, 'PENDING', tableNumber]
-        );
-
-        // Notify Kitchen
-        await notifyKitchenAndStaff(userId, orderRef, customerName, customerNumber, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, orderType, address, tableNumber);
-
-        return { orderRef, total };
-    } catch (e) {
-        console.error("Finalize Order Fail:", e);
-        return null;
-    }
+const sendBrandedText = async (to, title, text, userId) => {
+    const brandedText = `🤖 *${title}*\n━━━━━━━━━━━━━━\n${text}`;
+    return sendOfficialMessage(to, brandedText, userId);
 };
 
 // ----------------------------------------------------------------------------------
 // 🧠 CONVERSATIONAL AI ENGINE
 // ----------------------------------------------------------------------------------
-const processAiAutomations = async (userId, customerNumber, msgText, customerName) => {
+const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation = false, locationData = null) => {
     try {
         const cleanNum = normalizePhone(customerNumber);
         const session = await getSession(userId, customerNumber);
-        
         if (session.is_paused) return;
 
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
@@ -375,14 +236,85 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const menu = itemsRes.rows;
         const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
 
-        // 1. Handle Numerical Reply (Quantity)
-        const numMatch = msgText.match(/^\d+$/);
+        const cart = session.context.cart || [];
+        const lower = msgText ? msgText.toLowerCase() : "";
+
+        // --- 📍 HANDLE LOCATION PIN ---
+        if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
+            const { latitude: cLat, longitude: cLon } = locationData;
+            let deliveryCharge = 0;
+            let distance = 0;
+
+            if (biz.latitude && biz.longitude) {
+                distance = calculateDistance(biz.latitude, biz.longitude, cLat, cLon);
+                const tiers = Array.isArray(biz.delivery_tiers) ? biz.delivery_tiers : [];
+                const matched = tiers.find(t => distance >= t.min && distance <= t.max);
+                deliveryCharge = matched ? parseFloat(matched.charge) : 0;
+            }
+
+            let subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+            
+            // Tax calc
+            const cgstR = parseFloat(biz.cgst_percent) || 0;
+            const sgstR = parseFloat(biz.sgst_percent) || 0;
+            let cgst = 0, sgst = 0;
+            if (biz.gst_included) {
+                const r = cgstR + sgstR;
+                if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
+            } else {
+                cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
+            }
+            const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge;
+            const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
+
+            // Finalize Order
+            await pool.query(
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                [userId, customerName, cleanNum, `Location [${cLat}, ${cLon}]`, JSON.stringify(cart), total, orderRef, 'PENDING', deliveryCharge]
+            );
+
+            // Notify Kitchen
+            await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'delivery', `Location [${cLat}, ${cLon}]`, null);
+
+            // Update Loyalty
+            const earnRate = (parseFloat(biz.points_per_100) || 5) / 100;
+            const earned = Math.floor(total * earnRate);
+            const loyaltyRes = await pool.query(
+                "INSERT INTO customer_loyalty (user_id, customer_number, points) VALUES ($1, $2, $3) ON CONFLICT (user_id, customer_number) DO UPDATE SET points = customer_loyalty.points + EXCLUDED.points RETURNING points",
+                [userId, cleanNum, earned]
+            );
+
+            const receipt = [
+                `✅ *Order Confirmed!*`,
+                ``,
+                cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
+                `───────────────`,
+                `Subtotal: ${symbol}${subtotal.toFixed(2)}`,
+                `CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`,
+                `SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`,
+                `🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`,
+                `*Total: ${symbol}${total.toFixed(2)}*`,
+                `_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`,
+                `───────────────`,
+                `Type: 🚚 Delivery`,
+                `Ref: ${orderRef}`,
+                ``,
+                `🎁 *Loyalty Reward:* You earned *${earned} points*! New balance: *${loyaltyRes.rows[0].points} points*.`,
+                ``,
+                `Thank you, ${customerName}! We are preparing your order. 🎉`
+            ].join("\n");
+
+            await sendBrandedText(customerNumber, biz.name, receipt, userId);
+            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+            return;
+        }
+
+        // --- 🔢 HANDLE QUANTITY REPLY ---
+        const numMatch = lower.match(/^\d+$/);
         if (numMatch && session.state === 'AWAITING_QUANTITY' && session.context.pending_item) {
             const qty = parseInt(numMatch[0]);
             const item = session.context.pending_item;
-            const cart = session.context.cart || [];
             
-            // Update cart
             const existing = cart.find(i => i.name === item.name);
             if (existing) existing.qty += qty;
             else cart.push({ ...item, qty });
@@ -391,58 +323,55 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             session.context.pending_item = null;
             
             let cartText = cart.map(i => `• ${i.qty}x ${i.name}`).join("\n");
-            let subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+            let total = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
             
-            const text = `✅ Added to your bag!\n\n*Current Order:*\n${cartText}\n\n*Subtotal:* ${symbol}${subtotal}\n\nWould you like to add anything else, or should we proceed to checkout?`;
+            const text = `✅ *Excellent choice!* I've added that to your order.\n\n${cartText}\n\n*Total:* ${symbol}${total}\n\nWould you like to confirm this order or add something else?`;
             await sendButtons(customerNumber, text, [
-                { id: 'view_menu', title: 'Add More' },
-                { id: 'checkout', title: 'Checkout 💳' }
+                { id: 'checkout', title: '✅ Confirm Order' },
+                { id: 'place_order', title: '➕ Add More' }
             ], userId);
             
-            await updateSession(userId, customerNumber, 'IDLE', session.context);
-            await logChat(userId, customerNumber, 'bot', text);
+            await updateSession(userId, cleanNum, 'IDLE', session.context);
+            await logChat(userId, cleanNum, 'bot', text);
             return;
         }
 
-        // 2. Handle Direct Button Clicks
-        const lower = msgText.toLowerCase();
-        console.log(`[WA-DEBUG] Handling Input: ${msgText} | State: ${session.state}`);
-
-        if (lower === 'place an order' || lower === 'order now' || lower === 'place_order') {
+        // --- 🔘 HANDLE BUTTON CLICKS ---
+        if (lower === 'place_order' || lower === 'place an order' || lower === 'order now') {
             const text = `🤖 *Order Details*\n\nGreat! Please specify the items you would like to order (e.g., '1x Burger' or just tell me what you want).`;
-            await sendAndLog(customerNumber, text, userId);
-            await updateSession(userId, customerNumber, 'IDLE', session.context);
+            await sendOfficialMessage(customerNumber, text, userId);
+            await updateSession(userId, cleanNum, 'IDLE', session.context);
             return;
         }
 
-        if (lower === 'view_menu' || lower === 'explore menu 📖') {
-            const text = `🍽️ *Our Menu*\n\nYou can browse our full menu here: https://sasloop.com/menu/${userId}\n\nOr just tell me what you're craving!`;
-            await sendButtons(customerNumber, text, [
-                { id: 'place_order', title: 'Place Order 🛍️' },
-                { id: 'checkout', title: 'Checkout 💳' }
-            ], userId);
-            await logChat(userId, customerNumber, 'bot', text);
-            return;
-        }
-
-        if (lower === 'checkout') {
-            const cart = session.context.cart || [];
+        if (lower === 'checkout' || lower === 'confirm order') {
             if (cart.length === 0) {
-                await sendAndLog(customerNumber, "Your bag is empty! Tell me what you'd like to eat first. 😋", userId);
+                await sendOfficialMessage(customerNumber, "Your bag is empty! Tell me what you'd like to eat first. 😋", userId);
                 return;
             }
-            const text = `🛒 *Checkout*\n\nGreat! How would you like your order?`;
+            const text = `How would you like to receive your delicious meal today?`;
             await sendButtons(customerNumber, text, [
-                { id: 'mode_delivery', title: '🛵 Delivery' },
-                { id: 'mode_pickup', title: '🥡 Pickup' }
+                { id: 'mode_pickup', title: '🥡 Pickup' },
+                { id: 'mode_delivery', title: '🚚 Delivery' }
             ], userId);
-            await updateSession(userId, customerNumber, 'AWAITING_MODE', session.context);
-            await logChat(userId, customerNumber, 'bot', text);
+            await updateSession(userId, cleanNum, 'AWAITING_MODE', session.context);
             return;
         }
 
-        // 3. AI Intent Extraction
-        console.log(`[AI-GROQ] Calling Groq for: ${msgText}...`);
+        if (lower === 'mode_pickup') {
+            await sendOfficialMessage(customerNumber, "Great! Your order will be ready for pickup in 20 minutes. Please confirm to finalize.", userId);
+            // Simpler flow for pickup...
+            return;
+        }
+
+        if (lower === 'mode_delivery') {
+            const text = `🚚 *Delivery selected!*\n\nPlease share your delivery address.\n\n📍 You can type it or share your *Live Location* pin.`;
+            await sendOfficialMessage(customerNumber, text, userId);
+            await updateSession(userId, cleanNum, 'AWAITING_LOCATION', session.context);
+            return;
+        }
+
+        // --- 🧠 AI INTENT DETECTION ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const systemPrompt = `
 You are the AI Salesman for "${biz.name}". 
@@ -454,15 +383,8 @@ OUTPUT ONLY JSON:
 {
   "intent": "GREETING" | "ORDER_ITEM" | "CHECKOUT" | "QUESTION" | "OTHER",
   "detected_item": "Item Name" | null,
-  "quantity": number | null,
   "response": "Enthusiastic text response"
 }
-
-RULES:
-- If it is a greeting like "Hi", "Hello", "Hey", set intent to GREETING.
-- If they ask for an item, set intent to ORDER_ITEM.
-- Be extremely enthusiastic and sales-driven.
-- If they mention a menu item, ALWAYS confirm the price and ask for quantity.
 `;
 
         const completion = await groq.chat.completions.create({
@@ -472,15 +394,25 @@ RULES:
         });
 
         const result = JSON.parse(completion.choices[0].message.content);
-        console.log(`[AI-RESULT] Intent: ${result.intent} | Item: ${result.detected_item}`);
 
-        if (result.intent === 'GREETING') {
-            const text = `🍽️ *Welcome to ${biz.name}!*\n\nHello ${customerName}, it is a pleasure to assist you today. How can I help you? You can explore our menu or place an order using the options below.`;
-            await sendButtons(customerNumber, text, [
-                { id: 'view_menu', title: 'Menu Options 📖' },
-                { id: 'place_order', title: 'Place an Order 🛍️' }
+        if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
+            await sendList(customerNumber, "How can we help?", `Welcome to ${biz.name}\n\nHello ${customerName}, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`, "Menu Options", [
+                {
+                    title: "Ordering",
+                    rows: [
+                        { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
+                        { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog" }
+                    ]
+                },
+                {
+                    title: "Help & Rewards",
+                    rows: [
+                        { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients/price" },
+                        { id: "loyalty", title: "🎁 Loyalty & Points", description: "Check your rewards" },
+                        { id: "support", title: "📞 Contact Support", description: "Speak with our team" }
+                    ]
+                }
             ], userId);
-            await logChat(userId, customerNumber, 'bot', text);
             return;
         }
 
@@ -488,19 +420,56 @@ RULES:
             const item = menu.find(i => i.product_name.toLowerCase().includes(result.detected_item.toLowerCase()));
             if (item) {
                 const text = `Excellent choice! The *${item.product_name}* is one of our favorites. It is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
-                await sendAndLog(customerNumber, text, userId);
+                await sendBrandedText(customerNumber, biz.name, text, userId);
                 session.context.pending_item = { name: item.product_name, price: item.price };
-                await updateSession(userId, customerNumber, 'AWAITING_QUANTITY', session.context);
+                await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
                 return;
             }
         }
 
-        // Default: Natural AI Response
-        await sendAndLog(customerNumber, result.response || "I'm here to help! What can I get for you today?", userId);
+        // Default
+        await sendBrandedText(customerNumber, biz.name, result.response || "I'm here to help! What can I get for you today?", userId);
 
-    } catch (e) {
-        console.error("[AI-ERROR] Critical fail in AI automation:", e);
-    }
+    } catch (e) { console.error("[AI-ERROR]", e); }
+};
+
+const handleMetaWebhook = async (body) => {
+    try {
+        if (body.object === "whatsapp_business_account") {
+            for (const entry of body.entry) {
+                const changes = entry.changes[0];
+                if (changes.value && changes.value.messages) {
+                    const message = changes.value.messages[0];
+                    const fromNumber = normalizePhone(message.from);
+                    const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
+                    const metaPhoneId = changes.value.metadata.phone_number_id; 
+
+                    const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
+                    if (userRes.rows.length === 0) return;
+                    const userId = userRes.rows[0].id;
+
+                    let textBody = "";
+                    let isLocation = false;
+                    let locationData = null;
+
+                    if (message.type === "text") textBody = message.text.body;
+                    else if (message.type === "interactive") {
+                        if (message.interactive.type === "button_reply") textBody = message.interactive.button_reply.id;
+                        else if (message.interactive.type === "list_reply") textBody = message.interactive.list_reply.id;
+                    } else if (message.type === "location") {
+                        isLocation = true;
+                        locationData = message.location;
+                    }
+
+                    if (textBody || isLocation) {
+                        await upsertContact(userId, fromNumber, contactName);
+                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
+                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
+                    }
+                }
+            }
+        }
+    } catch (e) { console.error("Webhook Error", e); }
 };
 
 module.exports = {
