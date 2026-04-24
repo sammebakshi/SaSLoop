@@ -206,8 +206,8 @@ router.get("/loyalty/:userId/:phone", async (req, res) => {
         const { userId, phone } = req.params;
         const digits = (phone || "").replace(/\D/g, "");
         const dbPhone = digits ? `+${digits}` : "";
-        const result = await pool.query("SELECT points, total_spent FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
-        res.json(result.rows[0] || { points: 0, total_spent: 0 });
+        const result = await pool.query("SELECT points, total_spent, name FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
+        res.json(result.rows[0] || { points: 0, total_spent: 0, name: "Guest" });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

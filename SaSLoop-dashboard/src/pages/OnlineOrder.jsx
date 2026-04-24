@@ -324,6 +324,25 @@ function OnlineOrder() {
            <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
            <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col font-sans">
               <div className="p-8 border-b border-slate-50 flex items-center justify-between"><h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">My Hub <Activity className="w-6 h-6 text-emerald-500" /></h2><button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button></div>
+              
+              {/* CUSTOMER PROFILE CARD */}
+              <div className="mx-8 mt-6 p-6 bg-slate-900 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                 <div className="absolute top-0 right-0 p-4 opacity-10"><Utensils className="w-16 h-16 text-white" /></div>
+                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Verified Profile</p>
+                 <h3 className="text-xl font-black text-white uppercase italic">{customerName}</h3>
+                 <p className="text-[11px] font-bold text-slate-400 mt-1">{getStandardPhone()}</p>
+                 <div className="mt-6 flex items-center gap-4">
+                    <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10">
+                       <p className="text-[8px] font-black text-slate-500 uppercase">Loyalty Points</p>
+                       <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
+                    </div>
+                    <div className="bg-white/5 px-4 py-2 rounded-xl">
+                       <p className="text-[8px] font-black text-slate-600 uppercase">Status</p>
+                       <p className="text-[10px] font-black text-white uppercase tracking-widest">{loyaltyPoints > 500 ? '👑 VIP' : '🌟 Member'}</p>
+                    </div>
+                 </div>
+              </div>
+
               <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-[1.5rem] border border-slate-100">
                  <button onClick={() => setOrderTab("tracking")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Tracking</button>
                  <button onClick={() => setOrderTab("history")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>History</button>
