@@ -36,10 +36,16 @@ function CustomerMenu() {
   const [otpMode, setOtpMode] = useState(false);
 
   const getStandardPhone = () => {
-    const cleanPhone = (customerPhone || "").replace(/\D/g, "");
-    const cleanCode = countryCode.replace(/\D/g, "");
-    if (cleanPhone.startsWith(cleanCode) && cleanPhone.length > cleanCode.length) return "+" + cleanPhone;
-    return "+" + cleanCode + cleanPhone;
+    let p = (customerPhone || "").replace(/\s+/g, ""); // Remove spaces
+    if (!p.startsWith("+")) {
+      // If no +, assume it's just the digits. 
+      // If it starts with 91 and is 12 digits, just add +
+      if (p.startsWith("91") && p.length === 12) return "+" + p;
+      // Otherwise prepend +91 (or the business code if we had it)
+      return "+91" + p.replace(/\D/g, "");
+    }
+    // If it has +, just clean other chars
+    return "+" + p.replace(/\D/g, "");
   };
 
   const biz = data?.business;
@@ -185,7 +191,20 @@ function CustomerMenu() {
                   {!otpMode ? (
                     <>
                       <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
-                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp No.</label><div className="flex gap-2"><select value={countryCode} onChange={e => setCountryCode(e.target.value)} className="w-[70px] bg-white/5 border border-white/10 rounded-2xl text-xs font-black text-white outline-none cursor-pointer">{countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}</select><input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="000 000 0000" className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" /></div></div>
+                      <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp Number</label>
+                        <input 
+                          type="tel" 
+                          value={customerPhone} 
+                          onChange={e => {
+                            let val = e.target.value;
+                            if (!val.startsWith("+")) val = "+" + val.replace(/\D/g, "");
+                            setCustomerPhone(val);
+                          }} 
+                          placeholder="+91 00000 00000" 
+                          className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" 
+                        />
+                      </div>
                     </>
                   ) : (
                     <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" /></div>
