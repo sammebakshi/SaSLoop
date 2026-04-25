@@ -572,11 +572,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords) ---
         const simpleLower = lower.trim();
-        const directMatches = menu.filter(i => 
+        const greetings = ['hi', 'hello', 'hey', 'namaste'];
+        
+        // Skip keyword search if it's a simple greeting or too short
+        const isGreeting = greetings.includes(simpleLower);
+        const isTooShort = simpleLower.length < 3;
+
+        const directMatches = (isGreeting || isTooShort) ? [] : menu.filter(i => 
             i.product_name.toLowerCase() === simpleLower || 
             (i.category && i.category.toLowerCase() === simpleLower) || 
             (i.sub_category && i.sub_category.toLowerCase() === simpleLower) ||
-            i.product_name.toLowerCase().includes(simpleLower) // NEW: Partial match support
+            (simpleLower.length >= 3 && i.product_name.toLowerCase().includes(simpleLower))
         );
 
         if (directMatches.length > 0) {
