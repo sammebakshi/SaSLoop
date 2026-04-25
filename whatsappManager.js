@@ -663,17 +663,37 @@ RETURN ONLY JSON:
             const result = JSON.parse(completion.choices[0].message.content);
             console.log("🤖 AI Salesman Result:", result);
 
-            if (result.intent === 'GREETING' && cart.length === 0) {
-                // Check for loyalty welcome
+            if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
+                // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
                 const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
                 if (loyaltyCheck.rows.length === 0) {
-                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* \n\n${result.human_reply}\n\n🎁 *VIP Offer:* Join our club today and get *50 Welcome Points* instantly!`;
+                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* \n\n${result.human_reply || "Hello! It is a pleasure to meet you."}\n\n🎁 *VIP Offer:* Join our club today and get *50 Welcome Points* instantly!`;
                     await sendButtons(customerNumber, welcomeMsg, [
                         { id: 'join_loyalty', title: '🎁 Join & Get 50 pts' },
                         { id: 'place_order', title: '🛍️ Browse Menu' }
                     ], userId);
                     return;
                 }
+
+                // Standard Professional List Menu
+                await sendList(customerNumber, "How can we help?", `Welcome back to ${biz.name}!\n\nHello ${customerName}, how may I assist you today? You can explore our menu or place an order using the options below.`, "Main Menu", [
+                    {
+                        title: "Ordering",
+                        rows: [
+                            { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog" }
+                        ]
+                    },
+                    {
+                        title: "Help & Rewards",
+                        rows: [
+                            { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients/price" },
+                            { id: "loyalty", title: "🎁 Loyalty & Points", description: "Check your rewards" },
+                            { id: "support", title: "📞 Contact Support", description: "Speak with our team" }
+                        ]
+                    }
+                ], userId);
+                return;
             }
 
             if (result.intent === 'ORDER_ITEM' && result.items && result.items.length > 0) {
@@ -698,7 +718,8 @@ RETURN ONLY JSON:
                     session.context.cart = newCart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                    let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}`;
+                    const cartTotal = newCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+                    let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
                     
                     if (result.upsell_suggestion) {
                         responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
