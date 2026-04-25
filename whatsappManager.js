@@ -254,7 +254,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
         const menu = itemsRes.rows;
-        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
+        const menuContext = menu.map(i => `• ${i.product_name} [${i.category}]: ${symbol}${i.price} (${i.description || 'Specialty of the house'})`).join("\n");
 
         const cart = session.context.cart || [];
         const lower = msgText ? msgText.toLowerCase() : "";
@@ -610,128 +610,116 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // --- 🧠 PRO AI INTENT DETECTION ---
+        // --- 🧠 ADVANCED AI SALESMAN ENGINE ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const cartSummary = cart.length > 0 ? cart.map(i => `${i.qty}x ${i.name}`).join(", ") : "Empty";
+        
         const systemPrompt = `
-You are the professional AI Sales Executive for "${biz.name}". 
-Analyze the user message to extract ordering intent.
+You are the "Master Sales Executive" for ${biz.name}. Your goal is to provide a premium, helpful, and sales-driven experience.
+You are talking to ${customerName}.
 
-MENU: ${menuContext}
+CONTEXT:
+- Current Cart: ${cartSummary}
+- Business Knowledge: ${biz.bot_knowledge || 'No specific extra info.'}
+- Menu Items:
+${menuContext}
 
-RULES:
-1. If user specifies a quantity (e.g. "2 burgers", "rista 5"), extract it.
-2. If multiple items match a keyword (e.g. "pizza" matches "Veg Pizza" and "Paneer Pizza"), mark as MULTIPLE.
-3. Be persuasive and professional.
+YOUR PERSONALITY:
+- Enthusiastic, professional, and slightly witty.
+- You are a REALISTIC salesman. If someone orders a main course, suggest a drink or a popular side.
+- Use emojis effectively but professionally.
 
-OUTPUT ONLY JSON:
+YOUR MISSION:
+1. Extract ALL items and quantities mentioned by the user.
+2. If an item matches multiple menu items, pick the closest match or ask for clarification in the human_reply.
+3. If the user is just greeting, welcome them warmly and suggest a best-seller.
+4. If they want to checkout, encourage them but maybe mention a "must-try" dessert first.
+
+RULES for JSON Output:
+- "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", or "UNKNOWN".
+- "items": Array of { "name": "Exact Name from Menu", "quantity": number }. Only include items found in the menu.
+- "human_reply": A conversational, sales-driven response. If you added items, confirm them enthusiastically.
+- "upsell_suggestion": A short, tempting suggestion for one additional item they haven't ordered yet.
+
+RETURN ONLY JSON:
 {
-  "intent": "GREETING" | "ORDER_ITEM" | "CHECKOUT" | "QUESTION" | "OTHER",
-  "detected_item": "Exact Item Name from Menu" | "keyword",
-  "quantity": number | null,
-  "is_multiple": boolean,
-  "matches": ["Item 1", "Item 2"],
-  "response": "Enthusiastic text response"
+  "intent": string,
+  "items": [{ "name": string, "quantity": number }],
+  "human_reply": string,
+  "upsell_suggestion": string
 }
 `;
 
-        const completion = await groq.chat.completions.create({
-            messages: [{ role: "system", content: systemPrompt }, { role: "user", content: msgText }],
-            model: "llama-3.1-8b-instant",
-            response_format: { type: "json_object" }
-        });
+        try {
+            const completion = await groq.chat.completions.create({
+                messages: [
+                    { role: "system", content: systemPrompt },
+                    { role: "user", content: msgText }
+                ],
+                model: "llama-3.3-70b-versatile",
+                response_format: { type: "json_object" }
+            });
 
-        const result = JSON.parse(completion.choices[0].message.content);
+            const result = JSON.parse(completion.choices[0].message.content);
+            console.log("🤖 AI Salesman Result:", result);
 
-        if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
-            // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
-            const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
-            if (loyaltyCheck.rows.length === 0) {
-                const welcomeMsg = `👋 *Welcome to ${biz.name}!*\n\nWe'd love to have you in our VIP Club. Join today and get *50 Welcome Points* instantly! 🎁\n\nYou can use these points for discounts on your future orders.`;
-                await sendButtons(customerNumber, welcomeMsg, [
-                    { id: 'join_loyalty', title: '🎁 Join & Get 50 pts' },
-                    { id: 'place_order', title: '🛍️ Just Order' }
-                ], userId);
-                return;
+            if (result.intent === 'GREETING' && cart.length === 0) {
+                // Check for loyalty welcome
+                const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+                if (loyaltyCheck.rows.length === 0) {
+                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* \n\n${result.human_reply}\n\n🎁 *VIP Offer:* Join our club today and get *50 Welcome Points* instantly!`;
+                    await sendButtons(customerNumber, welcomeMsg, [
+                        { id: 'join_loyalty', title: '🎁 Join & Get 50 pts' },
+                        { id: 'place_order', title: '🛍️ Browse Menu' }
+                    ], userId);
+                    return;
+                }
             }
 
-            await sendList(customerNumber, "How can we help?", `Welcome to ${biz.name}\n\nHello ${customerName}, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`, "Menu Options", [
-                {
-                    title: "Ordering",
-                    rows: [
-                        { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
-                        { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog" }
-                    ]
-                },
-                {
-                    title: "Help & Rewards",
-                    rows: [
-                        { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients/price" },
-                        { id: "loyalty", title: "🎁 Loyalty & Points", description: "Check your rewards" },
-                        { id: "support", title: "📞 Contact Support", description: "Speak with our team" }
-                    ]
+            if (result.intent === 'ORDER_ITEM' && result.items && result.items.length > 0) {
+                let addedSummary = [];
+                let newCart = [...cart];
+
+                for (const aiItem of result.items) {
+                    const item = menu.find(i => i.product_name.toLowerCase() === aiItem.name.toLowerCase());
+                    if (item) {
+                        const qty = aiItem.quantity || 1;
+                        const existing = newCart.find(c => c.name === item.product_name);
+                        if (existing) {
+                            existing.qty += qty;
+                        } else {
+                            newCart.push({ name: item.product_name, qty, price: item.price });
+                        }
+                        addedSummary.push(`${qty}x *${item.product_name}*`);
+                    }
                 }
-            ], userId);
-            return;
-        }
 
-        if (result.intent === 'ORDER_ITEM' && result.detected_item) {
-            // 1. Check for Multiple Matches (Variants)
-            const matches = menu.filter(i => 
-                i.product_name.toLowerCase().includes(result.detected_item.toLowerCase()) ||
-                (result.matches && result.matches.includes(i.product_name))
-            );
-
-            if (matches.length > 1) {
-                if (matches.length <= 3) {
-                    const variantButtons = matches.map(m => ({
-                        id: `order_${m.product_name}`,
-                        title: `${m.product_name.substring(0, 20)}`
-                    }));
-                    const variantText = `We have ${matches.length} variants of *${result.detected_item}*. Which one would you like?`;
-                    await sendButtons(customerNumber, variantText, variantButtons, userId);
-                } else {
-                    const listRows = matches.slice(0, 10).map(m => ({
-                        id: `order_${m.product_name}`,
-                        title: `${m.product_name.substring(0, 24)}`,
-                        description: `${symbol}${m.price}`
-                    }));
-                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} matches for *${result.detected_item}*. Please select your choice:`, "Available Variants", [{ title: "Choices", rows: listRows }], userId);
-                }
-                return;
-            }
-
-            const item = matches[0];
-            if (item) {
-                const qty = result.quantity || 1;
-                
-                if (result.quantity) {
-                    // AUTO-ADD TO CART (Quantity was provided)
-                    const existing = cart.find(i => i.name === item.product_name);
-                    if (existing) existing.qty += qty;
-                    else cart.push({ name: item.product_name, price: item.price, qty });
-
-                    session.context.cart = cart;
+                if (addedSummary.length > 0) {
+                    session.context.cart = newCart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                    const itemTotal = qty * item.price;
-                    const text = `✅ *Got it!* I've added ${qty}x *${item.product_name}* (@${symbol}${item.price} = *${symbol}${itemTotal}*) to your order.\n\nWould you like to add anything else or checkout?`;
-                    await sendButtons(customerNumber, text, [
-                        { id: 'checkout', title: '✅ Checkout' },
+                    let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}`;
+                    
+                    if (result.upsell_suggestion) {
+                        responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
+                    }
+
+                    await sendButtons(customerNumber, responseText, [
+                        { id: 'checkout', title: '🛒 Checkout Now' },
                         { id: 'place_order', title: '➕ Add More' }
                     ], userId);
-                } else {
-                    // ASK FOR QUANTITY
-                    const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
-                    await sendBrandedText(customerNumber, biz.name, text, userId);
-                    session.context.pending_item = { name: item.product_name, price: item.price };
-                    await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                    return;
                 }
-                return;
             }
-        }
 
-        // Default
-        await sendBrandedText(customerNumber, biz.name, result.response || "I'm here to help! What can I get for you today?", userId);
+            // Fallback for ENQUIRY or GREETING (with non-empty cart) or UNKNOWN
+            const finalReply = result.human_reply || "I'm here to help! What can I get for you today?";
+            await sendOfficialMessage(customerNumber, finalReply, userId);
+
+        } catch (aiErr) {
+            console.error("[AI-ERROR]", aiErr);
+            await sendOfficialMessage(customerNumber, "I'm having a bit of trouble processing that, but I'm here! What would you like to order?", userId);
+        }
 
     } catch (e) { console.error("[AI-ERROR]", e); }
 };
