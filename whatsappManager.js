@@ -580,6 +580,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         if (directMatches.length > 0) {
             console.log(`⚡ Fast-Track Match Found for: ${simpleLower}`);
+            
+            // If there's only truly one item, proceed. 
+            // If there are multiple (variants or category match), show the list.
             if (directMatches.length === 1) {
                 const item = directMatches[0];
                 const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
@@ -587,21 +590,21 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 session.context.pending_item = { name: item.product_name, price: item.price };
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
             } else {
-                // Multi-variant Fast-Track
+                // Multi-variant or Category Fast-Track
                 const matches = directMatches;
                 if (matches.length <= 3) {
                     const variantButtons = matches.map(m => ({
                         id: `order_${m.product_name}`,
                         title: `${m.product_name.substring(0, 20)}`
                     }));
-                    await sendButtons(customerNumber, `We have ${matches.length} variants of *${simpleLower}*. Which one would you like?`, variantButtons, userId);
+                    await sendButtons(customerNumber, `We found ${matches.length} types of *${simpleLower}*. Which one would you like?`, variantButtons, userId);
                 } else {
                     const listRows = matches.slice(0, 10).map(m => ({
                         id: `order_${m.product_name}`,
                         title: `${m.product_name.substring(0, 24)}`,
                         description: `${symbol}${m.price}`
                     }));
-                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} matches for *${simpleLower}*. Please select your choice:`, "Available Variants", [{ title: "Choices", rows: listRows }], userId);
+                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} options for *${simpleLower}*. Please select your choice:`, "Available Options", [{ title: "Choices", rows: listRows }], userId);
                 }
             }
             return;
