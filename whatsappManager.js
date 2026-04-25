@@ -282,21 +282,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
             }
             const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge;
-            const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
-
-            // Finalize Order
-            await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                [userId, customerName, cleanNum, `Location [${cLat}, ${cLon}]`, JSON.stringify(cart), total, orderRef, 'PENDING', deliveryCharge]
-            );
-
-            // Notify Kitchen
-            await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'delivery', `Location [${cLat}, ${cLon}]`, null);
-
-            // 🏆 Update CRM (With Safety Guard)
-            try {
-                await pool.query(
             
+            // Calculate bill but DO NOT finalize yet (Wait for confirmation)
+            const customerAddress = `Location [${cLat}, ${cLon}]`;
             const pendingBill = [
                 `📋 *ORDER SUMMARY*`,
                 ``,
