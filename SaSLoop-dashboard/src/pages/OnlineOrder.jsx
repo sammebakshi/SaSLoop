@@ -117,6 +117,23 @@ function OnlineOrder() {
     }
   }, [view, customerPhone]);
 
+  // --- 📍 AUTOMATIC GEOLOCATION ---
+  useEffect(() => {
+    if (fulfillmentMode === 'DELIVERY' && !deliveryCoords) {
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          updateMapLocation(pos.coords.latitude, pos.coords.longitude);
+        }, (err) => {
+          console.warn("Geolocation denied/failed", err);
+          // Fallback to business location
+          if (biz?.latitude && biz?.longitude) {
+            updateMapLocation(biz.latitude, biz.longitude);
+          }
+        });
+      }
+    }
+  }, [fulfillmentMode, biz]);
+
   const checkLoyalty = async () => {
     try {
       const std = getStandardPhone();
@@ -294,9 +311,25 @@ function OnlineOrder() {
                        <MapPicker lat={deliveryCoords?.lat} lng={deliveryCoords?.lng} onChange={updateMapLocation} />
                      </MapContainer>
                   </div>
-                  <div className={`p-5 rounded-2xl border-2 ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}>
-                    <p className="text-[10px] font-black uppercase text-slate-900 truncate"><MapPin className="w-3 h-3 inline mr-1 text-emerald-500" /> {customerAddress || "Detecting..."}</p>
-                  </div>
+                   <div className={`p-5 rounded-2xl border-2 transition-all ${deliveryRadiusStatus.allowed ? 'bg-emerald-50/50 border-emerald-100' : 'bg-rose-50 border-rose-100 shadow-lg shadow-rose-200 animate-pulse'}`}>
+                     <div className="flex items-start gap-3">
+                        {deliveryRadiusStatus.allowed ? <MapPin className="w-5 h-5 text-emerald-500 shrink-0" /> : <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />}
+                        <div className="flex-1 min-w-0">
+                           <p className="text-[10px] font-black uppercase text-slate-900 truncate">{customerAddress || "Detecting location..."}</p>
+                           {!deliveryRadiusStatus.allowed && (
+                              <p className="text-[9px] font-black text-rose-600 uppercase mt-1 leading-tight">
+                                 🚨 Area Not Serviceable. We only deliver within {biz?.delivery_radius_km}km. 
+                                 (You are {deliveryRadiusStatus.distance?.toFixed(1)}km away)
+                              </p>
+                           )}
+                           {deliveryRadiusStatus.allowed && deliveryRadiusStatus.distance > 0 && (
+                              <p className="text-[9px] font-black text-emerald-600 uppercase mt-1">
+                                 ✅ You are in our delivery zone ({deliveryRadiusStatus.distance?.toFixed(1)}km)
+                              </p>
+                           )}
+                        </div>
+                     </div>
+                   </div>
                </div>
             )}
             <button onClick={() => setView("menu")} disabled={fulfillmentMode === 'DELIVERY' && !deliveryRadiusStatus.allowed} className="w-full bg-slate-900 text-white py-6 rounded-[2rem] font-black uppercase text-[12px]">Continue to Menu</button>

@@ -142,7 +142,7 @@ router.post("/order", async (req, res) => {
             await whatsappManager.notifyKitchenAndStaff(
                 userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", items || [],
                 subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
-                (fulfillmentMode || "QR").toLowerCase(), orderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
+                (fulfillmentMode || "QR").toLowerCase(), finalOrderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
             );
         } catch (notifErr) { console.error("KITCHEN NOTIF FAIL:", notifErr.message); }
         
