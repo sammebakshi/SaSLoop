@@ -230,8 +230,8 @@ function OnlineOrder() {
 
   if (view === "auth") {
     return (
-      <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-900 overflow-hidden font-sans">
-        <div className="absolute inset-0 z-0 scale-110 opacity-30"><img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" /><div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40" /></div>
+      <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-800 overflow-hidden font-sans">
+        <div className="absolute inset-0 z-0 scale-110 opacity-50"><img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" /><div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20" /></div>
         <div className="relative z-10 w-full max-w-[380px] animate-in fade-in zoom-in duration-700">
           <div className="bg-white/10 backdrop-blur-3xl px-8 py-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
               <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">{logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}</div>
@@ -243,12 +243,12 @@ function OnlineOrder() {
                       <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
                       <div className="space-y-1.5">
                         <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp Contact</label>
-                        <div className="flex gap-2">
-                          <div className="relative shrink-0">
+                        <div className="flex gap-2 w-full">
+                          <div className="relative shrink-0 w-24">
                             <select 
                               value={countryCode} 
                               onChange={e => setCountryCode(e.target.value)} 
-                              className="appearance-none w-[90px] bg-white/10 border border-white/20 h-[52px] px-4 rounded-2xl text-sm font-black text-white outline-none cursor-pointer hover:bg-white/20 transition-all"
+                              className="w-full bg-white/10 border border-white/20 px-4 py-4 rounded-2xl text-sm font-bold text-white outline-none appearance-none cursor-pointer hover:bg-white/20 transition-all"
                             >
                               {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
                             </select>
