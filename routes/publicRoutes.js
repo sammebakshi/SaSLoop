@@ -99,7 +99,7 @@ router.post("/order", async (req, res) => {
             // If we have coordinates from the frontend, use them for verification
             const { lat, lng } = req.body.deliveryCoords || {};
             if (lat && lng) {
-                const delivery = getDeliveryDetails(bizData, lat, lng);
+                const delivery = await getDeliveryDetails(bizData, lat, lng);
                 if (!delivery.serviceable) {
                     return res.status(400).json({ error: "Location outside delivery radius." });
                 }

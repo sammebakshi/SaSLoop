@@ -256,7 +256,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
             const { latitude: cLat, longitude: cLon } = locationData;
             
-            const delivery = getDeliveryDetails(biz, cLat, cLon);
+            const delivery = await getDeliveryDetails(biz, cLat, cLon);
             if (!delivery.serviceable) {
                 const unserviceableMsg = `📍 *Outside Service Area*\n━━━━━━━━━━━━━━\nSorry! Your location is ${delivery.distance.toFixed(1)}km away, which is outside our ${delivery.radius}km delivery radius.\n\nWould you like to switch to *Pickup* instead?`;
                 await sendButtons(customerNumber, unserviceableMsg, [
@@ -296,19 +296,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🏆 Update CRM (With Safety Guard)
             try {
                 await pool.query(
-                    `INSERT INTO marketing_contacts (user_id, phone_number, name, total_spent, last_order_at)
-                     VALUES ($1, $2, $3, $4, NOW())
-                     ON CONFLICT (user_id, phone_number)
-                     DO UPDATE SET 
-                        name = EXCLUDED.name,
-                        total_spent = COALESCE(marketing_contacts.total_spent, 0) + EXCLUDED.total_spent,
-                        last_order_at = NOW()`,
-                    [userId, cleanNum, customerName || "WhatsApp Customer", subtotal]
-                );
-            } catch (lErr) { console.error("CRM Background Fail:", lErr); }
-
-            const receiptRows = [
-                `✅ *Order Confirmed!*`,
+            
+            const pendingBill = [
+                `📋 *ORDER SUMMARY*`,
                 ``,
                 cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
                 `───────────────`,
@@ -316,27 +306,38 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             ];
 
             if (biz.show_gst_on_receipt) {
-                receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
-                receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+                pendingBill.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                pendingBill.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
             }
 
-            receiptRows.push(`🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`);
-            receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
-            
-            if (biz.show_gst_on_receipt) {
-                receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
-            }
-            
-            receiptRows.push(`───────────────`);
-            receiptRows.push(`Type: 🚚 Delivery`);
-            receiptRows.push(`Ref: ${orderRef}`);
-            receiptRows.push(``);
-            receiptRows.push(`Thank you, ${customerName}! We are preparing your order. 🎉`);
+            pendingBill.push(`🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`);
+            pendingBill.push(`*Total Payable: ${symbol}${total.toFixed(2)}*`);
+            pendingBill.push(`───────────────`);
+            pendingBill.push(`📍 Address: ${customerAddress}`);
+            pendingBill.push(``);
+            pendingBill.push(`Would you like to confirm this order?`);
 
-            const receipt = receiptRows.join("\n");
+            const billText = pendingBill.join("\n");
+            
+            // Store pending details in session
+            await updateSession(userId, cleanNum, 'AWAITING_ORDER_CONFIRMATION', {
+                ...session.context,
+                pendingOrder: {
+                    items: cart,
+                    subtotal,
+                    total,
+                    cgst,
+                    sgst,
+                    deliveryCharge,
+                    address: customerAddress,
+                    type: 'DELIVERY'
+                }
+            });
 
-            await sendBrandedText(customerNumber, biz.name, receipt, userId);
-            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+            await sendButtons(customerNumber, billText, [
+                { id: 'confirm_delivery_order', title: '✅ Confirm Order' },
+                { id: 'place_order', title: '❌ Cancel' }
+            ], userId);
             return;
         }
 
@@ -455,6 +456,35 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const text = `🚚 *Delivery selected!*\n\nPlease share your delivery address.\n\n📍 You can type it or share your *Live Location* pin.`;
             await sendOfficialMessage(customerNumber, text, userId);
             await updateSession(userId, cleanNum, 'AWAITING_LOCATION', session.context);
+            return;
+        }
+
+        if (lower === 'confirm_delivery_order') {
+            const pending = session.context.pendingOrder;
+            if (!pending) return;
+
+            const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+            
+            await pool.query(
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'PENDING', pending.deliveryCharge]
+            );
+
+            try {
+                await notifyKitchenAndStaff(
+                    userId, orderRef, customerName || "WhatsApp Customer", cleanNum, pending.items, pending.subtotal, pending.total, pending.cgst, pending.sgst, 2.5, 2.5, symbol, 'delivery', pending.address, null
+                );
+            } catch (e) { console.error("Notif fail:", e); }
+
+            const receipt = [
+                `✅ *Order Confirmed!*`,
+                `Ref: ${orderRef}`,
+                `───────────────`,
+                `Your order is being prepared. Thank you! 🎉`
+            ].join("\n");
+
+            await sendOfficialMessage(customerNumber, receipt, userId);
+            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             return;
         }
 
