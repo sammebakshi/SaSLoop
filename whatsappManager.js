@@ -364,6 +364,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- 🔘 HANDLE BUTTON CLICKS ---
+        if (lower === 'cancel' || lower === 'clear cart' || lower.includes('cancel')) {
+            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+            await sendOfficialMessage(customerNumber, "🗑️ *Cart Cleared!*\n\nYour session has been reset and your bag is empty. How can I help you today?", userId);
+            return;
+        }
+
         if (lower.startsWith('order_')) {
             const itemName = msgText.substring(6); // Extract name after 'order_'
             const item = menu.find(i => i.product_name === itemName);
@@ -636,11 +642,11 @@ OUTPUT ONLY JSON:
             );
 
             if (matches.length > 1) {
-                const variantButtons = matches.slice(0, 3).map(m => ({
+                const variantButtons = matches.slice(0, 10).map(m => ({
                     id: `order_${m.product_name}`,
-                    title: `${m.product_name}`
+                    title: `${m.product_name.substring(0, 20)}`
                 }));
-                const variantText = `We have a few types of *${result.detected_item}*. Which one would you like?`;
+                const variantText = `We have ${matches.length} variants of *${result.detected_item}*. Which one would you like?`;
                 await sendButtons(customerNumber, variantText, variantButtons, userId);
                 return;
             }

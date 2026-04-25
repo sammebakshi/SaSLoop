@@ -14,7 +14,8 @@ function CustomerMenu() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState("");
-  const [activeCategory, setActiveCategory] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
+  const [showCategories, setShowCategories] = useState(false);
   const categoryRefs = useRef({});
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -329,7 +330,7 @@ function CustomerMenu() {
              </div>
              <div className="px-10 py-4 pb-32">
                 {categories.map(cat => (
-                  <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
+                  <div key={cat} id={`cat-${cat}`} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
                     <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
                     <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-10">
                       {groupedItems[cat].map(item => {
@@ -396,21 +397,16 @@ function CustomerMenu() {
       )}
       
       {/* FLOATING ACTION BUTTONS */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150] lg:hidden">
-         {/* Categories Shortcut */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150]">
          <button 
-           onClick={() => {
-             const firstCat = categories[0];
-             if (firstCat) categoryRefs.current[firstCat]?.scrollIntoView({ behavior: 'smooth' });
-           }}
+           onClick={() => setShowCategories(true)}
            className="w-14 h-14 bg-white text-slate-900 rounded-full shadow-2xl flex items-center justify-center border border-slate-100 active:scale-90 transition-all"
          >
            <LayoutGrid className="w-6 h-6" />
          </button>
 
-         {/* WhatsApp Shortcut */}
          <a 
-           href={`https://wa.me/${biz?.whatsapp_number || biz?.phone || ''}`} 
+           href={`https://wa.me/${biz?.phone || ''}`} 
            target="_blank" 
            rel="noreferrer"
            className="w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
@@ -418,6 +414,42 @@ function CustomerMenu() {
            <MessageCircle className="w-7 h-7" />
          </a>
       </div>
+
+      {/* CATEGORIES MODAL */}
+      {showCategories && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCategories(false)} />
+          <div className="relative w-full max-w-sm bg-white rounded-[3rem] shadow-2xl p-8 pb-12 animate-in slide-in-from-bottom-full duration-500">
+             <div className="flex items-center justify-between mb-8">
+                <div>
+                   <h3 className="text-xl font-black text-slate-900 italic">Menu Sections</h3>
+                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Jump to any category</p>
+                </div>
+                <button onClick={() => setShowCategories(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center active:scale-90 transition-all"><X className="w-5 h-5 text-slate-400" /></button>
+             </div>
+             <div className="grid grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto no-scrollbar pr-1">
+                {categories.map(cat => (
+                  <button 
+                    key={cat} 
+                    onClick={() => {
+                      const el = document.getElementById(`cat-${cat}`);
+                      if (el) {
+                         const offset = 100;
+                         const elementPosition = el.getBoundingClientRect().top;
+                         const offsetPosition = elementPosition + window.pageYOffset - offset;
+                         window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                      }
+                      setShowCategories(false);
+                    }}
+                    className="p-5 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest text-center transition-all border-2 border-transparent hover:border-emerald-100 active:scale-95"
+                  >
+                    {cat}
+                  </button>
+                ))}
+             </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
