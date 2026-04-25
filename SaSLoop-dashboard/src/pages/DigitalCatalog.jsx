@@ -488,8 +488,8 @@ function DigitalCatalog() {
 
       {/* EDIT MODAL */}
       {editingItem && (
-          <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-              <div className="bg-white w-full max-w-2xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="fixed inset-0 z-[300] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 md:p-6 animate-in fade-in duration-300 overflow-y-auto">
+              <div className="bg-white w-full max-w-2xl rounded-[2.5rem] md:rounded-[3rem] overflow-y-auto max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-300 no-scrollbar">
                   <div className="bg-slate-900 p-10 text-white flex justify-between items-center">
                       <div>
                           <h3 className="text-3xl font-black tracking-tighter uppercase italic underline decoration-orange-500">Edit Dish</h3>
