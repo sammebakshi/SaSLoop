@@ -393,6 +393,12 @@ function OperationalRules() {
                         <span className="text-xs font-black text-slate-700 uppercase">GST Included</span>
                     </label>
                 </div>
+                <div className="flex flex-col justify-center gap-2">
+                    <label className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl cursor-pointer">
+                        <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" checked={formData.show_gst_on_receipt} onChange={e => setFormData(prev => ({...prev, show_gst_on_receipt: e.target.checked}))} />
+                        <span className="text-xs font-black text-slate-700 uppercase">Show GST on Receipt</span>
+                    </label>
+                </div>
             </div>
         </div>
 

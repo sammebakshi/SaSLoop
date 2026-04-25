@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const pool = require("../db");
 const whatsappManager = require("../whatsappManager");
+const { isBusinessOpen, getDeliveryDetails } = require("../utils/businessUtils");
 
 // Helper to ensure +CountryCode format
 const formatToInter = (p) => {
@@ -52,6 +53,15 @@ router.post("/order", async (req, res) => {
         const bizData = bizRes.rows[0];
         if (!bizData) return res.status(404).json({ error: "Business details not found" });
 
+        // --- 🕒 CHECK BUSINESS HOURS ---
+        const bizStatus = isBusinessOpen(bizData.settings);
+        if (!bizStatus.isOpen) {
+            return res.status(403).json({ 
+                error: "Business is currently CLOSED.", 
+                details: `Working hours: ${bizStatus.openingTime} - ${bizStatus.closingTime}` 
+            });
+        }
+
         const currSymbol = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
         
         let finalPrice = parseFloat(totalPrice) || 0;
@@ -81,16 +91,23 @@ router.post("/order", async (req, res) => {
             } catch (e) { console.error("Redemption logic fail (Safe-Skip):", e); }
         }
         
-        const orderAddress = address || (tableNumber && tableNumber !== "0" ? `Table ${tableNumber}` : "Pickup");
+        let finalDeliveryCharge = 0;
+        let finalOrderAddress = address || (tableNumber && tableNumber !== "0" ? `Table ${tableNumber}` : "Pickup");
 
-        // SMART UPSERT LOGIC
-        let existingOrder = null;
-        if (tableNumber && tableNumber !== "0" && isPOS) {
-           const checkRes = await pool.query(
-             "SELECT id, order_reference FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
-             [userId, tableNumber]
-           );
-           existingOrder = checkRes.rows[0];
+        // --- 🛵 DELIVERY VALIDATION ---
+        if (fulfillmentMode === "DELIVERY") {
+            // If we have coordinates from the frontend, use them for verification
+            const { lat, lng } = req.body.deliveryCoords || {};
+            if (lat && lng) {
+                const delivery = getDeliveryDetails(bizData, lat, lng);
+                if (!delivery.serviceable) {
+                    return res.status(400).json({ error: "Location outside delivery radius." });
+                }
+                finalDeliveryCharge = delivery.charge;
+            } else {
+                // If no coords, use what frontend sent (trusted for now but less secure)
+                finalDeliveryCharge = parseFloat(service_charge) || 0;
+            }
         }
 
         let insertRes;
@@ -101,13 +118,13 @@ router.post("/order", async (req, res) => {
             orderId = existingOrder.id;
             currentOrderRef = existingOrder.order_reference;
             insertRes = await pool.query(
-              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7 WHERE id=$8 RETURNING *",
-              [JSON.stringify(items || []), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, orderId]
+              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8 WHERE id=$9 RETURNING *",
+              [JSON.stringify(items || []), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, orderId]
             );
         } else {
             insertRes = await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *",
-                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), orderAddress, JSON.stringify(items || []), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0]
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *",
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge]
             );
             orderId = insertRes.rows[0].id;
         }
@@ -133,7 +150,33 @@ router.post("/order", async (req, res) => {
         if (isOnline && dbPhone && dbPhone.startsWith('+')) {
             try {
                 const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
-                const custMsg = `✅ *Order Confirmed!*\n\n*${bizData?.name || 'Restaurant'}* received your order.\n\n*Ref:* ${currentOrderRef}\n───────────────\n${itemLines}\n───────────────\n💰 *Total:* ${currSymbol}${finalPrice}\n\nWe'll update you when it's ready! 🔥`;
+                
+                const receiptRows = [
+                    `✅ *Order Confirmed!*`,
+                    ``,
+                    `*${bizData?.name || 'Restaurant'}* received your order.`,
+                    `*Ref:* ${currentOrderRef}`,
+                    `───────────────`,
+                    itemLines,
+                    `───────────────`
+                ];
+
+                if (bizData?.show_gst_on_receipt) {
+                    const cgst = parseFloat(frontendCgst) || 0;
+                    const sgst = parseFloat(frontendSgst) || 0;
+                    if (cgst > 0) receiptRows.push(`CGST: ${currSymbol}${cgst.toFixed(2)}`);
+                    if (sgst > 0) receiptRows.push(`SGST: ${currSymbol}${sgst.toFixed(2)}`);
+                }
+
+                if (finalDeliveryCharge > 0) {
+                    receiptRows.push(`🚚 Delivery: ${currSymbol}${finalDeliveryCharge.toFixed(2)}`);
+                }
+
+                receiptRows.push(`💰 *Total:* ${currSymbol}${finalPrice}`);
+                receiptRows.push(``);
+                receiptRows.push(`We'll update you when it's ready! 🔥`);
+
+                const custMsg = receiptRows.join("\n");
                 await whatsappManager.sendOfficialMessage(dbPhone, custMsg, userId);
             } catch (custErr) { console.error("Customer Msg failed:", custErr.message); }
         }

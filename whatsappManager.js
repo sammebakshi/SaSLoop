@@ -1,6 +1,7 @@
 const pool = require("./db");
 const Groq = require("groq-sdk");
 const axios = require("axios");
+const { isBusinessOpen, getDeliveryDetails } = require("./utils/businessUtils");
 
 const normalizePhone = (p) => {
     if (!p) return "";
@@ -108,6 +109,8 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
             `*Items:*\n${kotItemLines}`
         ].join("\n");
 
+        // Honor GST visibility setting for staff alerts too if needed, but usually staff need full details.
+        // However, we'll keep it simple for staff.
         const staffMsg = [
             `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
             `*Ref:* ${orderRef}`,
@@ -228,6 +231,15 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
         const biz = bizRes.rows[0];
         if (!biz) return;
+
+        // --- 🕒 CHECK BUSINESS HOURS ---
+        const bizStatus = isBusinessOpen(biz.settings);
+        if (!bizStatus.isOpen) {
+            const closedMsg = `😴 *We are currently CLOSED*\n━━━━━━━━━━━━━━\nOur business hours are *${bizStatus.openingTime}* to *${bizStatus.closingTime}*.\n\nPlease visit us during our working hours. Thank you! 🙏`;
+            await sendOfficialMessage(customerNumber, closedMsg, userId);
+            return;
+        }
+
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
         const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
@@ -240,15 +252,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- 📍 HANDLE LOCATION PIN ---
         if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
             const { latitude: cLat, longitude: cLon } = locationData;
-            let deliveryCharge = 0;
-            let distance = 0;
-
-            if (biz.latitude && biz.longitude) {
-                distance = calculateDistance(biz.latitude, biz.longitude, cLat, cLon);
-                const tiers = typeof biz.delivery_tiers === 'string' ? JSON.parse(biz.delivery_tiers) : (biz.delivery_tiers || []);
-                const matched = tiers.find(t => distance >= t.min && distance <= t.max);
-                deliveryCharge = matched ? parseFloat(matched.charge) : 0;
+            
+            const delivery = getDeliveryDetails(biz, cLat, cLon);
+            if (!delivery.serviceable) {
+                const unserviceableMsg = `📍 *Outside Service Area*\n━━━━━━━━━━━━━━\nSorry! Your location is ${delivery.distance.toFixed(1)}km away, which is outside our ${delivery.radius}km delivery radius.\n\nWould you like to switch to *Pickup* instead?`;
+                await sendButtons(customerNumber, unserviceableMsg, [
+                    { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
+                    { id: 'checkout', title: '❌ Cancel' }
+                ], userId);
+                return;
             }
+
+            const deliveryCharge = delivery.charge;
+            const distance = delivery.distance;
 
             let subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
             
@@ -288,23 +304,33 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
-            const receipt = [
+            const receiptRows = [
                 `✅ *Order Confirmed!*`,
                 ``,
                 cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
                 `───────────────`,
-                `Subtotal: ${symbol}${subtotal.toFixed(2)}`,
-                `CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`,
-                `SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`,
-                `🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`,
-                `*Total: ${symbol}${total.toFixed(2)}*`,
-                `_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`,
-                `───────────────`,
-                `Type: 🚚 Delivery`,
-                `Ref: ${orderRef}`,
-                ``,
-                `Thank you, ${customerName}! We are preparing your order. 🎉`
-            ].join("\n");
+                `Subtotal: ${symbol}${subtotal.toFixed(2)}`
+            ];
+
+            if (biz.show_gst_on_receipt) {
+                receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+            }
+
+            receiptRows.push(`🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`);
+            receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
+            
+            if (biz.show_gst_on_receipt) {
+                receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
+            }
+            
+            receiptRows.push(`───────────────`);
+            receiptRows.push(`Type: 🚚 Delivery`);
+            receiptRows.push(`Ref: ${orderRef}`);
+            receiptRows.push(``);
+            receiptRows.push(`Thank you, ${customerName}! We are preparing your order. 🎉`);
+
+            const receipt = receiptRows.join("\n");
 
             await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
@@ -396,16 +422,26 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
-            const receipt = [
+            const receiptRows = [
                 `✅ *Pickup Order Confirmed!*`,
                 ``,
                 cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
                 `───────────────`,
-                `*Total: ${symbol}${total.toFixed(2)}*`,
-                `Ref: ${orderRef}`,
-                ``,
-                `Please arrive in 20-30 minutes for pickup. See you soon! 🥡`
-            ].join("\n");
+                `Subtotal: ${symbol}${subtotal.toFixed(2)}`
+            ];
+
+            if (biz.show_gst_on_receipt) {
+                receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+                receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
+            }
+
+            receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
+            receiptRows.push(`Ref: ${orderRef}`);
+            receiptRows.push(``);
+            receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
+
+            const receipt = receiptRows.join("\n");
 
             await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
