@@ -110,6 +110,16 @@ router.post("/order", async (req, res) => {
             }
         }
 
+        // SMART UPSERT LOGIC
+        let existingOrder = null;
+        if (tableNumber && tableNumber !== "0" && source === "POS_MANUAL") {
+           const checkRes = await pool.query(
+             "SELECT id, order_reference FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+             [userId, tableNumber]
+           );
+           existingOrder = checkRes.rows[0];
+        }
+
         let insertRes;
         let orderId;
         let currentOrderRef = orderRef;
