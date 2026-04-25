@@ -447,14 +447,47 @@ function OnlineOrder() {
                 {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest italic">Bag is Empty</p></div> : (
                   <div className="space-y-12">
                      <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">{cart.map(ci => <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4"><div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div><div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button></div></div>)}</div>
-                     <div className="border-t-2 border-slate-50 pt-10 space-y-5"><div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Final</span><span>{symbol}{finalTotal.toFixed(0)}</span></div></div>
+                     <div className="border-t-2 border-slate-50 pt-10 space-y-5">
+                        <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest"><span>Subtotal</span><span>{symbol}{subtotal.toFixed(0)}</span></div>
+                        {fulfillmentMode === 'DELIVERY' && (
+                           <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest"><span>Delivery</span><span>+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span></div>
+                        )}
+                        {!taxData.isIncluded && taxData.totalTax > 0 && (
+                           <div className="flex justify-between text-xs font-black text-slate-400 uppercase tracking-widest"><span>Taxes</span><span>+{symbol}{taxData.totalTax.toFixed(0)}</span></div>
+                        )}
+                        <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Final</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
+                     </div>
                      <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Confirm Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
              </div>
           </aside>
       </div>
-      {cart.length > 0 && <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 items-center"><button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all"><div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p><p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p></div></div><div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div></button></div>}
+      {cart.length > 0 && (
+         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 items-center">
+            <div className="bg-slate-950 text-white rounded-[3.5rem] overflow-hidden shadow-2xl shadow-slate-950/50 border border-white/10">
+               {fulfillmentMode === 'DELIVERY' && (
+                  <div className="px-10 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                     <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Delivery Charge Applied</span>
+                     <span className="text-[11px] font-black text-emerald-400">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
+                  </div>
+               )}
+               <button onClick={placeOrder} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
+                  <div className="flex items-center gap-5 pl-4">
+                     <div className="relative">
+                        <div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div>
+                     </div>
+                     <div className="text-left">
+                        <p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p>
+                        <p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p>
+                     </div>
+                  </div>
+                  <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
+               </button>
+            </div>
+         </div>
+      )}
     </div>
   );
 }
