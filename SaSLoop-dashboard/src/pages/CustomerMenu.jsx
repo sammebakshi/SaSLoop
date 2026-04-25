@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History, Activity
+  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -319,26 +319,26 @@ function CustomerMenu() {
                 {categories.map(cat => (
                   <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
                     <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-10">
                       {groupedItems[cat].map(item => {
-                        const inCart = cart.find(c => c.id === item.id);
-                        return (
-                          <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
-                            <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">
+                         const inCart = cart.find(c => c.id === item.id);
+                         return (
+                          <div key={item.id} className="group flex flex-col bg-white rounded-[2rem] sm:rounded-[3rem] p-3 sm:p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
+                            <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">
                               {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-5 right-5 px-5 py-2.5 bg-white shadow-2xl rounded-2xl text-base font-black text-slate-950">{symbol}{item.price}</div>
+                              <div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white shadow-2xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950">{symbol}{item.price}</div>
                             </div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase tracking-tight italic">{item.product_name}</h3>
-                            <p className="px-4 text-[11px] text-slate-400 font-medium mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
-                            <div className="px-4 mt-auto">
+                            <h3 className="px-1 sm:px-4 text-[12px] sm:text-[15px] font-black text-slate-900 leading-tight mb-2 sm:mb-3 uppercase tracking-tight italic line-clamp-2">{item.product_name}</h3>
+                            <p className="px-1 sm:px-4 text-[10px] sm:text-[11px] text-slate-400 font-medium mb-4 sm:mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
+                            <div className="px-1 sm:px-4 mt-auto">
                                {inCart ? (
-                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[2rem] p-1.5 h-14 shadow-2xl">
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button>
-                                   <span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button>
+                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.2rem] sm:rounded-[2rem] p-1 h-10 sm:h-14 shadow-2xl">
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Minus className="w-3 sm:w-4 h-3 sm:h-4" /></button>
+                                   <span className="text-[11px] sm:text-[13px] font-black w-6 sm:w-8 text-center">{inCart.qty}</span>
+                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button>
                                  </div>
                                ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2 font-sans active:scale-95">Add to Order <Plus className="w-3.5 h-3.5" /></button>
+                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-3 sm:py-5 rounded-[1.2rem] sm:rounded-[2rem] font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-1 sm:gap-2 font-sans active:scale-95">Add <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" /></button>
                                )}
                             </div>
                           </div>
@@ -382,6 +382,30 @@ function CustomerMenu() {
            </button>
         </div>
       )}
+      
+      {/* FLOATING ACTION BUTTONS */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150] lg:hidden">
+         {/* Categories Shortcut */}
+         <button 
+           onClick={() => {
+             const firstCat = categories[0];
+             if (firstCat) categoryRefs.current[firstCat]?.scrollIntoView({ behavior: 'smooth' });
+           }}
+           className="w-14 h-14 bg-white text-slate-900 rounded-full shadow-2xl flex items-center justify-center border border-slate-100 active:scale-90 transition-all"
+         >
+           <LayoutGrid className="w-6 h-6" />
+         </button>
+
+         {/* WhatsApp Shortcut */}
+         <a 
+           href={`https://wa.me/${biz?.whatsapp_number || biz?.phone || ''}`} 
+           target="_blank" 
+           rel="noreferrer"
+           className="w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+         >
+           <MessageCircle className="w-7 h-7" />
+         </a>
+      </div>
     </div>
   );
 }

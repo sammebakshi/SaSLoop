@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, RefreshCw, 
-  CheckCircle2, Package, History, Bike, Store, Activity, Sparkles, AlertCircle
+  CheckCircle2, Package, History, Bike, Store, Activity, Sparkles, AlertCircle, MessageCircle, LayoutGrid
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -267,7 +267,7 @@ function OnlineOrder() {
                  ) : (
                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verification Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" /></div>
                  )}
-                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}</button>
+                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.98] mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}</button>
               </div>
           </div>
         </div>
@@ -425,14 +425,14 @@ function OnlineOrder() {
                 {categories.map(cat => (
                   <div key={cat} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
                     <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-10">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-10">
                       {groupedItems[cat].map(item => {
                         const inCart = cart.find(c => c.id === item.id);
                         return (
-                          <div key={item.id} className="group flex flex-col bg-white rounded-[3rem] p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
-                            <div className="relative aspect-[16/11] rounded-[2.5rem] overflow-hidden bg-slate-50 mb-6">{item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}<div className="absolute bottom-5 right-5 px-6 py-3 bg-white/95 backdrop-blur-xl rounded-2xl text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div></div>
-                            <h3 className="px-4 text-[15px] font-black text-slate-900 leading-tight mb-3 uppercase italic tracking-tight">{item.product_name}</h3>
-                            <div className="px-4 mt-auto">{inCart ? <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.8rem] p-1.5 h-14 shadow-2xl"><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Minus className="w-4 h-4" /></button><span className="text-[13px] font-black w-8 text-center">{inCart.qty}</span><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-2xl transition-all"><Plus className="w-4 h-4" /></button></div> : <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-5 rounded-[2rem] font-black text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-2">Add to Cart <Plus className="w-4 h-4" /></button>}</div>
+                          <div key={item.id} className="group flex flex-col bg-white rounded-[2rem] sm:rounded-[3rem] p-3 sm:p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
+                            <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">{item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}<div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-6 sm:py-3 bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div></div>
+                            <h3 className="px-1 sm:px-4 text-[12px] sm:text-[15px] font-black text-slate-900 leading-tight mb-2 sm:mb-3 uppercase italic tracking-tight line-clamp-2">{item.product_name}</h3>
+                            <div className="px-1 sm:px-4 mt-auto">{inCart ? <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.2rem] sm:rounded-[1.8rem] p-1 h-10 sm:h-14 shadow-2xl"><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Minus className="w-3 sm:w-4 h-3 sm:h-4" /></button><span className="text-[11px] sm:text-[13px] font-black w-6 sm:w-8 text-center">{inCart.qty}</span><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button></div> : <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-3 sm:py-5 rounded-[1.2rem] sm:rounded-[2rem] font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-1 sm:gap-2">Add <Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button>}</div>
                           </div>
                         );
                       })}
@@ -488,6 +488,31 @@ function OnlineOrder() {
             </div>
          </div>
       )}
+      
+      {/* FLOATING ACTION BUTTONS */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150] lg:hidden">
+         {/* Categories Shortcut */}
+         <button 
+           onClick={() => {
+             const firstCat = categories[0];
+             if (firstCat) categoryRefs.current[firstCat]?.scrollIntoView({ behavior: 'smooth' });
+             // Alternatively, show a category picker modal
+           }}
+           className="w-14 h-14 bg-white text-slate-900 rounded-full shadow-2xl flex items-center justify-center border border-slate-100 active:scale-90 transition-all"
+         >
+           <LayoutGrid className="w-6 h-6" />
+         </button>
+
+         {/* WhatsApp Shortcut */}
+         <a 
+           href={`https://wa.me/${biz?.whatsapp_number || biz?.phone || ''}`} 
+           target="_blank" 
+           rel="noreferrer"
+           className="w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+         >
+           <MessageCircle className="w-7 h-7" />
+         </a>
+      </div>
     </div>
   );
 }
