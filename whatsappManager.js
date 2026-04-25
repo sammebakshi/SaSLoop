@@ -570,6 +570,43 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords) ---
+        const simpleLower = lower.trim();
+        const directMatches = menu.filter(i => 
+            i.product_name.toLowerCase() === simpleLower || 
+            (i.category && i.category.toLowerCase() === simpleLower) || 
+            (i.sub_category && i.sub_category.toLowerCase() === simpleLower)
+        );
+
+        if (directMatches.length > 0) {
+            console.log(`⚡ Fast-Track Match Found for: ${simpleLower}`);
+            if (directMatches.length === 1) {
+                const item = directMatches[0];
+                const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                await sendBrandedText(customerNumber, biz.name, text, userId);
+                session.context.pending_item = { name: item.product_name, price: item.price };
+                await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+            } else {
+                // Multi-variant Fast-Track
+                const matches = directMatches;
+                if (matches.length <= 3) {
+                    const variantButtons = matches.map(m => ({
+                        id: `order_${m.product_name}`,
+                        title: `${m.product_name.substring(0, 20)}`
+                    }));
+                    await sendButtons(customerNumber, `We have ${matches.length} variants of *${simpleLower}*. Which one would you like?`, variantButtons, userId);
+                } else {
+                    const listRows = matches.slice(0, 10).map(m => ({
+                        id: `order_${m.product_name}`,
+                        title: `${m.product_name.substring(0, 24)}`,
+                        description: `${symbol}${m.price}`
+                    }));
+                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} matches for *${simpleLower}*. Please select your choice:`, "Available Variants", [{ title: "Choices", rows: listRows }], userId);
+                }
+            }
+            return;
+        }
+
         // --- 🧠 PRO AI INTENT DETECTION ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const systemPrompt = `
