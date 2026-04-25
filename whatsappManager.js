@@ -575,7 +575,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const directMatches = menu.filter(i => 
             i.product_name.toLowerCase() === simpleLower || 
             (i.category && i.category.toLowerCase() === simpleLower) || 
-            (i.sub_category && i.sub_category.toLowerCase() === simpleLower)
+            (i.sub_category && i.sub_category.toLowerCase() === simpleLower) ||
+            i.product_name.toLowerCase().includes(simpleLower) // NEW: Partial match support
         );
 
         if (directMatches.length > 0) {
@@ -590,22 +591,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 session.context.pending_item = { name: item.product_name, price: item.price };
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
             } else {
-                // Multi-variant or Category Fast-Track
-                const matches = directMatches;
-                if (matches.length <= 3) {
-                    const variantButtons = matches.map(m => ({
-                        id: `order_${m.product_name}`,
-                        title: `${m.product_name.substring(0, 20)}`
-                    }));
-                    await sendButtons(customerNumber, `We found ${matches.length} types of *${simpleLower}*. Which one would you like?`, variantButtons, userId);
-                } else {
-                    const listRows = matches.slice(0, 10).map(m => ({
-                        id: `order_${m.product_name}`,
-                        title: `${m.product_name.substring(0, 24)}`,
-                        description: `${symbol}${m.price}`
-                    }));
-                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} options for *${simpleLower}*. Please select your choice:`, "Available Options", [{ title: "Choices", rows: listRows }], userId);
-                }
+                // Multi-variant Text List (Bypasses 10-item limit)
+                let responseText = `🤔 *Which ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\n\n`;
+                matches.forEach(m => {
+                    responseText += `• *${m.product_name}* - ${symbol}${m.price}\n`;
+                });
+                responseText += `\n━━━━━━━━━━━━━━\n_Please type the exact name of the dish you'd like to order._`;
+                
+                await sendBrandedText(customerNumber, biz.name, responseText, userId);
             }
             return;
         }
