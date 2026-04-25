@@ -364,6 +364,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- 🔘 HANDLE BUTTON CLICKS ---
+        if (lower.startsWith('order_')) {
+            const itemName = msgText.substring(6); // Extract name after 'order_'
+            const item = menu.find(i => i.product_name === itemName);
+            if (item) {
+                const text = `Perfect! I've selected the *${item.product_name}* for you.\n\nHow many would you like me to add?`;
+                await sendBrandedText(customerNumber, biz.name, text, userId);
+                session.context.pending_item = { name: item.product_name, price: item.price };
+                await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                return;
+            }
+        }
+
         if (lower === 'place_order' || lower === 'place an order' || lower === 'order now') {
             const text = `🤖 *Order Details*\n\nGreat! Please specify the items you would like to order (e.g., '1x Burger' or just tell me what you want).`;
             await sendOfficialMessage(customerNumber, text, userId);
@@ -552,18 +564,26 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // --- 🧠 AI INTENT DETECTION ---
+        // --- 🧠 PRO AI INTENT DETECTION ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const systemPrompt = `
-You are the AI Salesman for "${biz.name}". 
-Analyze the user message and extract intents.
+You are the professional AI Sales Executive for "${biz.name}". 
+Analyze the user message to extract ordering intent.
 
 MENU: ${menuContext}
+
+RULES:
+1. If user specifies a quantity (e.g. "2 burgers", "rista 5"), extract it.
+2. If multiple items match a keyword (e.g. "pizza" matches "Veg Pizza" and "Paneer Pizza"), mark as MULTIPLE.
+3. Be persuasive and professional.
 
 OUTPUT ONLY JSON:
 {
   "intent": "GREETING" | "ORDER_ITEM" | "CHECKOUT" | "QUESTION" | "OTHER",
-  "detected_item": "Item Name" | null,
+  "detected_item": "Exact Item Name from Menu" | "keyword",
+  "quantity": number | null,
+  "is_multiple": boolean,
+  "matches": ["Item 1", "Item 2"],
   "response": "Enthusiastic text response"
 }
 `;
@@ -609,12 +629,47 @@ OUTPUT ONLY JSON:
         }
 
         if (result.intent === 'ORDER_ITEM' && result.detected_item) {
-            const item = menu.find(i => i.product_name.toLowerCase().includes(result.detected_item.toLowerCase()));
+            // 1. Check for Multiple Matches (Variants)
+            const matches = menu.filter(i => 
+                i.product_name.toLowerCase().includes(result.detected_item.toLowerCase()) ||
+                (result.matches && result.matches.includes(i.product_name))
+            );
+
+            if (matches.length > 1) {
+                const variantButtons = matches.slice(0, 3).map(m => ({
+                    id: `order_${m.product_name}`,
+                    title: `${m.product_name}`
+                }));
+                const variantText = `We have a few types of *${result.detected_item}*. Which one would you like?`;
+                await sendButtons(customerNumber, variantText, variantButtons, userId);
+                return;
+            }
+
+            const item = matches[0];
             if (item) {
-                const text = `Excellent choice! The *${item.product_name}* is one of our favorites. It is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
-                await sendBrandedText(customerNumber, biz.name, text, userId);
-                session.context.pending_item = { name: item.product_name, price: item.price };
-                await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                const qty = result.quantity || 1;
+                
+                if (result.quantity) {
+                    // AUTO-ADD TO CART (Quantity was provided)
+                    const existing = cart.find(i => i.name === item.product_name);
+                    if (existing) existing.qty += qty;
+                    else cart.push({ name: item.product_name, price: item.price, qty });
+
+                    session.context.cart = cart;
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                    const text = `✅ *Got it!* I've added ${qty}x *${item.product_name}* to your order.\n\nWould you like to add anything else or checkout?`;
+                    await sendButtons(customerNumber, text, [
+                        { id: 'checkout', title: '✅ Checkout' },
+                        { id: 'place_order', title: '➕ Add More' }
+                    ], userId);
+                } else {
+                    // ASK FOR QUANTITY
+                    const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                    await sendBrandedText(customerNumber, biz.name, text, userId);
+                    session.context.pending_item = { name: item.product_name, price: item.price };
+                    await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                }
                 return;
             }
         }
