@@ -592,6 +592,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
             } else {
                 // Multi-variant Text List (Bypasses 10-item limit)
+                const matches = directMatches;
                 let responseText = `🤔 *Which ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\n\n`;
                 matches.forEach(m => {
                     responseText += `• *${m.product_name}* - ${symbol}${m.price}\n`;
