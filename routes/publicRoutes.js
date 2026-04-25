@@ -149,8 +149,9 @@ router.post("/order", async (req, res) => {
                 itemsArr.forEach(i => subtotalCalc += ((parseFloat(i.qty) || 0) * (parseFloat(i.price) || 0)));
             }
             
+            const itemsArr = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
             await whatsappManager.notifyKitchenAndStaff(
-                userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", items || [],
+                userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", itemsArr,
                 subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
                 (fulfillmentMode || "QR").toLowerCase(), finalOrderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
             );
