@@ -230,44 +230,87 @@ function OnlineOrder() {
 
   if (view === "auth") {
     return (
-      <div className="min-h-screen relative flex flex-col items-center justify-center p-6 bg-slate-800 overflow-hidden font-sans">
-        <div className="absolute inset-0 z-0 scale-110 opacity-50"><img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" /><div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-slate-900/20" /></div>
-        <div className="relative z-10 w-full max-w-[380px] animate-in fade-in zoom-in duration-700">
-          <div className="bg-white/10 backdrop-blur-3xl px-8 py-10 rounded-[3rem] border border-white/10 shadow-2xl text-center">
-              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-2xl">{logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}</div>
-              <h1 className="text-2xl font-black text-white tracking-tighter mb-1 uppercase">{biz?.name}</h1>
-              <p className="text-emerald-400 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Online Concierge</p>
-              <div className="space-y-4 text-left">
+      <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-100 overflow-hidden font-sans">
+        {/* LIGHTER BACKGROUND OVERLAY */}
+        <div className="absolute inset-0 z-0 scale-110 opacity-70">
+          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" />
+          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
+        </div>
+
+        <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700">
+          <div className="bg-white/95 backdrop-blur-3xl px-6 sm:px-8 py-10 rounded-[2.5rem] border border-white shadow-2xl text-center overflow-hidden">
+              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-slate-100">
+                {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter mb-1 uppercase italic">{biz?.name}</h1>
+              <p className="text-emerald-600 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Online Concierge</p>
+              
+              <div className="space-y-5 text-left">
                  {!otpMode ? (
                    <>
-                      <div className="space-y-1.5"><label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">Full Name</label><input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none" autoFocus /></div>
-                      <div className="space-y-1.5">
-                        <label className="text-[9px] font-black text-white/40 uppercase tracking-widest ml-4">WhatsApp Contact</label>
-                        <div className="flex gap-2 w-full">
-                          <div className="relative shrink-0 w-24">
+                      <div className="space-y-1.5 w-full">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
+                        <input 
+                          type="text" 
+                          value={customerName} 
+                          onChange={e => setCustomerName(e.target.value)} 
+                          placeholder="Type name" 
+                          className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" 
+                          autoFocus 
+                        />
+                      </div>
+
+                      <div className="space-y-1.5 w-full">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">WhatsApp Contact</label>
+                        <div className="grid grid-cols-[90px_1fr] gap-2 w-full">
+                          <div className="relative w-full">
                             <select 
                               value={countryCode} 
                               onChange={e => setCountryCode(e.target.value)} 
-                              className="w-full bg-white/10 border border-white/20 px-4 py-4 rounded-2xl text-sm font-bold text-white outline-none appearance-none cursor-pointer hover:bg-white/20 transition-all"
+                              className="w-full bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-all"
                             >
                               {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
                             </select>
-                            <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-white/40 text-[8px]">▼</div>
+                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[8px]">▼</div>
                           </div>
                           <input 
                             type="tel" 
                             value={customerPhone} 
                             onChange={e => setCustomerPhone(e.target.value)} 
                             placeholder="Mobile Number" 
-                            className="flex-1 bg-white/5 border border-white/10 px-6 py-4 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-500/50 transition-all" 
+                            className="w-full min-w-0 bg-slate-50 border border-slate-100 px-4 sm:px-6 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" 
                           />
                         </div>
                       </div>
+
+                      <button 
+                        onClick={handleVerify} 
+                        disabled={isVerifying}
+                        className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[10px] sm:text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4"
+                      >
+                        {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : "Login"}
+                      </button>
                    </>
                  ) : (
-                   <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verification Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center" /></div>
+                   <div className="space-y-4 text-center">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verification Code</p>
+                     <input 
+                       type="text" 
+                       value={authOtp} 
+                       onChange={e => setAuthOtp(e.target.value)} 
+                       placeholder="000000" 
+                       maxLength={6} 
+                       className="w-full min-w-0 bg-slate-50 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-slate-900 tracking-[0.5em] text-center outline-none" 
+                     />
+                     <button 
+                       onClick={verifyAuthOtp} 
+                       disabled={isVerifying} 
+                       className="w-full bg-emerald-500 hover:bg-emerald-400 text-white font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.98] mt-4"
+                     >
+                       {isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : "Verify Code"}
+                     </button>
+                   </div>
                  )}
-                 <button onClick={otpMode ? verifyAuthOtp : handleVerify} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.98] mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Verify" : "Login")}</button>
               </div>
           </div>
         </div>
