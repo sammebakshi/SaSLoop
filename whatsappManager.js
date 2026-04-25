@@ -231,7 +231,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const session = await getSession(userId, customerNumber);
         if (session.is_paused) return;
 
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        // --- 🔍 FETCH BIZ & USER DATA (Including Knowledge Base) ---
+        const bizRes = await pool.query(
+            `SELECT r.*, u.bot_knowledge 
+             FROM restaurants r 
+             JOIN app_users u ON r.user_id = u.id 
+             WHERE r.user_id = $1`, 
+            [userId]
+        );
         const biz = bizRes.rows[0];
         if (!biz) return;
 
@@ -505,7 +512,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         // --- 📋 HANDLE LIST REPLIES ---
         if (lower === 'view_menu') {
-            const menuLink = biz.settings?.menuLink || biz.social_website || `https://sasloop.com/menu/${biz.id}`;
+            let menuLink = biz.settings?.menuLink || biz.social_website;
+            
+            // Fallback to Knowledge Base search if still empty
+            if (!menuLink && biz.bot_knowledge) {
+                const linkMatch = biz.bot_knowledge.match(/https?:\/\/[^\s]+/);
+                if (linkMatch) menuLink = linkMatch[0];
+            }
+            
+            // Final fallback
+            if (!menuLink) menuLink = `https://sasloop.com/menu/${biz.id}`;
+
             const text = `📜 *Our Digital Menu*\n━━━━━━━━━━━━━━\n\nYou can browse our full catalog and see all the latest flavors here:\n\n🔗 ${menuLink}\n\nAnything else I can help you with?`;
             await sendOfficialMessage(customerNumber, text, userId);
             return;
