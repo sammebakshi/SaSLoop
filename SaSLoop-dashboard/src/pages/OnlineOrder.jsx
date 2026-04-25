@@ -199,7 +199,8 @@ function OnlineOrder() {
           address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup", 
           fulfillmentMode, 
           source: "ONLINE_ORDER",
-          service_charge: fulfillmentMode === "DELIVERY" ? (deliveryRadiusStatus.charge || 0) : 0
+          service_charge: fulfillmentMode === "DELIVERY" ? (deliveryRadiusStatus.charge || 0) : 0,
+          deliveryCoords: fulfillmentMode === "DELIVERY" ? deliveryCoords : null
         }) 
       });
       const o = await res.json();

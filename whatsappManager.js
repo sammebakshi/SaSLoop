@@ -114,10 +114,13 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         const staffMsg = [
             `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
             `*Ref:* ${orderRef}`,
-            `*Customer:* ${customerName}`,
+            `*Customer:* ${customerName} (${customerNumber})`,
+            `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP' : '🛵 DELIVERY')}`,
+            `*Address:* ${address || 'N/A'}`,
             `───────────────`,
             staffItemLines,
             `───────────────`,
+            `*Subtotal:* ${symbol}${subtotal.toFixed(2)}`,
             `*Total: ${symbol}${total.toFixed(2)}*`
         ].join("\n");
 
@@ -455,6 +458,25 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        if (lower === 'join_loyalty') {
+            try {
+                await pool.query(
+                    `INSERT INTO customer_loyalty (user_id, customer_number, name, points) 
+                     VALUES ($1, $2, $3, 50) 
+                     ON CONFLICT (user_id, customer_number) DO NOTHING`,
+                    [userId, cleanNum, customerName || "Customer"]
+                );
+                const successMsg = `🎉 *Congratulations!* You've joined our VIP Club.\n\n*50 Points* have been added to your account. 🎊\n\nHow can I help you today?`;
+                await sendButtons(customerNumber, successMsg, [
+                    { id: 'place_order', title: '🛍️ Place an Order' },
+                    { id: 'view_menu', title: '📜 View Menu' }
+                ], userId);
+            } catch (e) {
+                await sendOfficialMessage(customerNumber, "Welcome to the club! How can I help you today?", userId);
+            }
+            return;
+        }
+
         // --- 🧠 AI INTENT DETECTION ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const systemPrompt = `
@@ -480,6 +502,17 @@ OUTPUT ONLY JSON:
         const result = JSON.parse(completion.choices[0].message.content);
 
         if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
+            // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
+            const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            if (loyaltyCheck.rows.length === 0) {
+                const welcomeMsg = `👋 *Welcome to ${biz.name}!*\n\nWe'd love to have you in our VIP Club. Join today and get *50 Welcome Points* instantly! 🎁\n\nYou can use these points for discounts on your future orders.`;
+                await sendButtons(customerNumber, welcomeMsg, [
+                    { id: 'join_loyalty', title: '🎁 Join & Get 50 pts' },
+                    { id: 'place_order', title: '🛍️ Just Order' }
+                ], userId);
+                return;
+            }
+
             await sendList(customerNumber, "How can we help?", `Welcome to ${biz.name}\n\nHello ${customerName}, it is a pleasure to assist you today.\n\nHow may I help you? You can explore our menu or place an order using the options below.`, "Menu Options", [
                 {
                     title: "Ordering",
