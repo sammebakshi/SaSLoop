@@ -223,7 +223,13 @@ function CustomerMenu() {
                   ) : (
                     <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" /></div>
                   )}
-                  <button onClick={otpMode ? handleVerifyOtp : handleRequestOtp} disabled={isVerifying} className="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-5 rounded-[1.5rem] shadow-xl uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-2 transition-all active:scale-[0.97] mt-4">{isVerifying ? <RefreshCw className="animate-spin w-4 h-4" /> : (otpMode ? "Confirm Code" : "Request Access")}</button>
+                  <button 
+                    onClick={otpMode ? handleVerifyOtp : handleRequestOtp} 
+                    disabled={isVerifying} 
+                    className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4"
+                  >
+                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : (otpMode ? "Confirm Code" : "Login")}
+                  </button>
               </div>
            </div>
         </div>
