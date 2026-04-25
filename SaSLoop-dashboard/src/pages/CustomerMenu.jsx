@@ -20,6 +20,7 @@ function CustomerMenu() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
+  
   const [orderRef, setOrderRef] = useState("");
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
   const [placing, setPlacing] = useState(false);

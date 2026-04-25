@@ -642,12 +642,21 @@ OUTPUT ONLY JSON:
             );
 
             if (matches.length > 1) {
-                const variantButtons = matches.slice(0, 10).map(m => ({
-                    id: `order_${m.product_name}`,
-                    title: `${m.product_name.substring(0, 20)}`
-                }));
-                const variantText = `We have ${matches.length} variants of *${result.detected_item}*. Which one would you like?`;
-                await sendButtons(customerNumber, variantText, variantButtons, userId);
+                if (matches.length <= 3) {
+                    const variantButtons = matches.map(m => ({
+                        id: `order_${m.product_name}`,
+                        title: `${m.product_name.substring(0, 20)}`
+                    }));
+                    const variantText = `We have ${matches.length} variants of *${result.detected_item}*. Which one would you like?`;
+                    await sendButtons(customerNumber, variantText, variantButtons, userId);
+                } else {
+                    const listRows = matches.slice(0, 10).map(m => ({
+                        id: `order_${m.product_name}`,
+                        title: `${m.product_name.substring(0, 24)}`,
+                        description: `${symbol}${m.price}`
+                    }));
+                    await sendList(customerNumber, "Select Variant", `We found ${matches.length} matches for *${result.detected_item}*. Please select your choice:`, "Available Variants", [{ title: "Choices", rows: listRows }], userId);
+                }
                 return;
             }
 
