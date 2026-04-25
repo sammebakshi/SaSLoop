@@ -179,12 +179,13 @@ function CustomerMenu() {
   if (view === "auth") {
     return (
       <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-100 overflow-hidden font-sans">
-        <div className="absolute inset-0 z-0 scale-110 opacity-70">
+        {/* VIBRANT GLASS BACKGROUND */}
+        <div className="absolute inset-0 z-0 scale-110 opacity-60">
           <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" />
-          <div className="absolute inset-0 bg-gradient-to-t from-white via-white/40 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-200/80 via-white/20 to-transparent" />
         </div>
         <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700">
-          <div className="bg-white/95 backdrop-blur-3xl px-6 sm:px-8 py-10 rounded-[2.5rem] border border-white shadow-2xl text-center overflow-hidden">
+          <div className="bg-white/30 backdrop-blur-3xl px-6 sm:px-8 py-10 rounded-[2.5rem] border border-white/40 shadow-2xl text-center overflow-hidden">
               <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-slate-100">
                 {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}
               </div>
