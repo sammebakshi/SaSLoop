@@ -658,7 +658,8 @@ OUTPUT ONLY JSON:
                     session.context.cart = cart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                    const text = `✅ *Got it!* I've added ${qty}x *${item.product_name}* to your order.\n\nWould you like to add anything else or checkout?`;
+                    const itemTotal = qty * item.price;
+                    const text = `✅ *Got it!* I've added ${qty}x *${item.product_name}* (@${symbol}${item.price} = *${symbol}${itemTotal}*) to your order.\n\nWould you like to add anything else or checkout?`;
                     await sendButtons(customerNumber, text, [
                         { id: 'checkout', title: '✅ Checkout' },
                         { id: 'place_order', title: '➕ Add More' }
