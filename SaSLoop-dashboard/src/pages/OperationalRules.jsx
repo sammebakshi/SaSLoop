@@ -428,11 +428,29 @@ function OperationalRules() {
               </div>
 
               <div className="space-y-3">
-                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pl-1">Feature Toggles</label>
+                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pl-1">Security & Access</label>
                  <label className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer shadow-sm">
                      <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" checked={formData.is_auth_required} onChange={e => setFormData(prev => ({...prev, is_auth_required: e.target.checked}))} />
                      <span className="text-xs font-black text-indigo-700 uppercase">OTP Login Required First</span>
                   </label>
+              </div>
+           </div>
+
+           <div className="mt-12 pt-12 border-t border-slate-50">
+              <h3 className="text-lg font-black text-slate-900 mb-6 flex items-center gap-2">
+                 <Sparkles className="w-5 h-5 text-amber-500" /> Digital Presence & Support
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1 italic">Digital Menu URL (Catalog)</label>
+                    <input type="url" value={formData.settings.menuLink} onChange={e => handleSettingChange('menuLink', e.target.value)} placeholder="https://..." className="w-full bg-slate-50 border border-slate-100 px-4 py-4 text-sm font-bold text-slate-700 rounded-2xl outline-none focus:bg-white transition-all shadow-sm" />
+                    <p className="mt-2 text-[8px] text-slate-400 uppercase font-black tracking-widest">* Shown when customers select 'View Digital Menu'</p>
+                 </div>
+                 <div>
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 pl-1 italic">Support WhatsApp/Number</label>
+                    <input type="text" value={formData.settings.customerSupport} onChange={e => handleSettingChange('customerSupport', e.target.value)} placeholder="+91..." className="w-full bg-slate-50 border border-slate-100 px-4 py-4 text-sm font-bold text-slate-700 rounded-2xl outline-none focus:bg-white transition-all shadow-sm" />
+                    <p className="mt-2 text-[8px] text-slate-400 uppercase font-black tracking-widest">* Contact given when customers select 'Contact Support'</p>
+                 </div>
               </div>
            </div>
         </div>

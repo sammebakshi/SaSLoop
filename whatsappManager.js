@@ -369,11 +369,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 await sendOfficialMessage(customerNumber, "Your bag is empty! Tell me what you'd like to eat first. 😋", userId);
                 return;
             }
+            
+            const fo = biz.fulfillment_options || { pickup: true, delivery: true };
+            const buttons = [];
+            if (fo.pickup) buttons.push({ id: 'mode_pickup', title: '🥡 Pickup' });
+            if (fo.delivery) buttons.push({ id: 'mode_delivery', title: '🚚 Delivery' });
+            
+            if (buttons.length === 0) {
+                await sendOfficialMessage(customerNumber, "Sorry, we are currently not accepting new orders online. Please contact us for more info.", userId);
+                return;
+            }
+
             const text = `How would you like to receive your delicious meal today?`;
-            await sendButtons(customerNumber, text, [
-                { id: 'mode_pickup', title: '🥡 Pickup' },
-                { id: 'mode_delivery', title: '🚚 Delivery' }
-            ], userId);
+            await sendButtons(customerNumber, text, buttons, userId);
             await updateSession(userId, cleanNum, 'AWAITING_MODE', session.context);
             return;
         }
@@ -492,6 +500,38 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             } catch (e) {
                 await sendOfficialMessage(customerNumber, "Welcome to the club! How can I help you today?", userId);
             }
+            return;
+        }
+
+        // --- 📋 HANDLE LIST REPLIES ---
+        if (lower === 'view_menu') {
+            const menuLink = biz.settings?.menuLink || biz.social_website || `https://sasloop.com/menu/${biz.id}`;
+            const text = `📜 *Our Digital Menu*\n━━━━━━━━━━━━━━\n\nYou can browse our full catalog and see all the latest flavors here:\n\n🔗 ${menuLink}\n\nAnything else I can help you with?`;
+            await sendOfficialMessage(customerNumber, text, userId);
+            return;
+        }
+
+        if (lower === 'loyalty') {
+            const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            const points = loyaltyRes.rows[0]?.points || 0;
+            const text = `🎁 *Your Rewards*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\n\nYou can use these points for discounts on your future orders! 🎊`;
+            await sendButtons(customerNumber, text, [
+                { id: 'place_order', title: '🛍️ Place an Order' },
+                { id: 'view_menu', title: '📜 View Menu' }
+            ], userId);
+            return;
+        }
+
+        if (lower === 'support') {
+            const supportNum = biz.settings?.customerSupport || biz.phone || biz.contact_number;
+            const text = `📞 *Contact Support*\n━━━━━━━━━━━━━━\n\nNeed help? You can speak with our team directly:\n\n📱 Call/WhatsApp: ${supportNum}\n\nWe are here for you! 🙏`;
+            await sendOfficialMessage(customerNumber, text, userId);
+            return;
+        }
+
+        if (lower === 'enquiry') {
+            const text = `❓ *Dish Enquiry*\n━━━━━━━━━━━━━━\n\nSure! Please type the name of the dish or ask me anything about our ingredients and prices. I'm here to help!`;
+            await sendOfficialMessage(customerNumber, text, userId);
             return;
         }
 
