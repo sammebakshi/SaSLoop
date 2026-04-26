@@ -270,10 +270,12 @@ const Layout = ({ children }) => {
           { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
           { name: "Business Data", path: "#", icon: BookOpen, isDropdown: true, isOpenState: businessDataOpen, setOpenState: setBusinessDataOpen, subItems: [
               { name: "Manage Profile", path: "/setup-business" },
+              { name: "AI Bot Setup", path: "/bot-config" },
               { name: "Operational Rules", path: "/business-data/rules" },
               { name: "Freeform Knowledge", path: "/business-data/knowledge" },
               { name: "Menu & Catalog", path: "/business-data/catalog" },
               { name: "QR Code Manager", path: "/business-data/qr" },
+              { name: "Delivery Team", path: "/delivery-team" },
           ]},
           { name: "Live Chats", path: "/chats", icon: MessageSquare },
           { name: "POS Terminal", path: "/pos", icon: Monitor },
@@ -350,6 +352,25 @@ const Layout = ({ children }) => {
                      )}
                   </div>
                );
+            }
+
+            const isPOS = item.name === 'POS Terminal';
+
+            if (isPOS) {
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => {
+                    window.open(item.path, 'SaSLoopPOS', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
+                    setSidebarOpen(false);
+                  }}
+                  title={desktopSidebarCollapsed ? item.name : ""}
+                  className={`group flex items-center py-2 text-[13px] font-medium rounded-lg transition-colors overflow-hidden text-slate-400 hover:bg-slate-100/50 hover:text-slate-700 ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3'}`}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 transition-all duration-300 text-slate-500 group-hover:text-slate-400 ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2.5'}`} />
+                  <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>{item.name}</span>
+                </button>
+              );
             }
 
             return (

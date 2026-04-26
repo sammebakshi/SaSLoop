@@ -24,7 +24,8 @@ import {
   ChevronRight,
   BellDot,
   Bell,
-  BarChart3
+  BarChart3,
+  Monitor
 } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -273,7 +274,9 @@ const MobileLayout = () => {
   // 📋 "More" Menu Items
   // ================================================================
   const moreItems = [
+    { label: "POS Terminal", icon: Monitor, action: () => { window.open("/pos", "SaSLoopPOS"); setMoreMenuOpen(false); } },
     { label: "Business Profile", icon: Store, path: "/setup-business" },
+    { label: "AI Bot Setup", icon: Bot, path: "/bot-config" },
     { label: "Broadcast Hub", icon: Megaphone, path: "/broadcast" },
     { label: "Operational Rules", icon: Settings, path: "/business-data/rules" },
     { label: "Freeform Knowledge", icon: BookOpen, path: "/business-data/knowledge" },

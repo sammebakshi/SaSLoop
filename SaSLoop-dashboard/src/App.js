@@ -33,6 +33,8 @@ import POS from "./pages/POS";
 import KDS from "./pages/KDS";
 import TrackOrder from "./pages/TrackOrder";
 import Reservations from "./pages/Reservations";
+import DeliveryTeam from "./pages/DeliveryTeam";
+import RiderPortal from "./pages/RiderPortal";
 
 // ============================================================
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
@@ -70,6 +72,13 @@ const ProtectedShell = ({ allowedRoles }) => {
   return <AppLayout />;
 };
 
+// Simple guard for POS to open without Layout
+const POSGuard = () => {
+  const user = JSON.parse(localStorage.getItem("user") || "null");
+  if (!user) return <Navigate to="/login" replace />;
+  return <POS />;
+};
+
 function App() {
   return (
     <BrowserRouter>
@@ -80,6 +89,8 @@ function App() {
         <Route path="/menu/:bizId/:tableId" element={<CustomerMenu />} />
         <Route path="/order/:bizId" element={<OnlineOrder />} />
         <Route path="/track/:orderRef" element={<TrackOrder />} />
+        <Route path="/rider/:riderId" element={<RiderPortal />} />
+        <Route path="/pos" element={<POSGuard />} />
 
         {/* Master Admin Routes */}
         <Route element={<ProtectedShell allowedRoles={['master_admin']} />}>
@@ -105,8 +116,9 @@ function App() {
             <Route path="/recharge" element={<RechargeHub />} />
             <Route path="/crm" element={<CRMDashboard />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/pos" element={<POS />} />
+            {/* Removed /pos from here so it doesn't render inside Layout */}
             <Route path="/kds" element={<KDS />} />
+            <Route path="/delivery-team" element={<DeliveryTeam />} />
             <Route path="/mobile-app" element={<AppCenter />} />
         </Route>
         

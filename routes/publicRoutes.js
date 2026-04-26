@@ -335,4 +335,61 @@ router.post("/auth/verify-otp", async (req, res) => {
     }
 });
 
+// ✅ GET RIDER LIVE LOCATION FOR CUSTOMER
+router.get("/track-rider/:orderRef", async (req, res) => {
+    try {
+        const { orderRef } = req.params;
+        const orderRes = await pool.query(
+            `SELECT o.id, o.rider_id, dp.name as rider_name, dp.phone as rider_phone, dp.last_lat, dp.last_lng, dp.updated_at
+             FROM orders o
+             LEFT JOIN delivery_partners dp ON o.rider_id = dp.id
+             WHERE o.order_reference = $1`,
+            [orderRef]
+        );
+
+        if (orderRes.rows.length === 0) return res.status(404).json({ error: "Order not found" });
+        const order = orderRes.rows[0];
+
+        if (!order.rider_id) return res.json({ status: 'waiting_for_rider' });
+
+        res.json({
+            rider_name: order.rider_name,
+            rider_phone: order.rider_phone,
+            lat: order.last_lat,
+            lng: order.last_lng,
+            last_updated: order.updated_at
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Tracking error" });
+    }
+});
+
+// ✅ GET ASSIGNED ORDERS FOR RIDER
+router.get("/rider-orders/:riderId", async (req, res) => {
+    try {
+        const { riderId } = req.params;
+        const dbRes = await pool.query(
+            "SELECT * FROM orders WHERE rider_id = $1 AND status = 'DISPATCHED' ORDER BY created_at ASC",
+            [riderId]
+        );
+        res.json(dbRes.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Fetch error" });
+    }
+});
+
+// ✅ UPDATE ORDER STATUS (Public/Rider)
+router.put("/order-status", async (req, res) => {
+    try {
+        const { orderId, status } = req.body;
+        await pool.query("UPDATE orders SET status = $1 WHERE id = $2", [status, orderId]);
+        res.json({ success: true });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Update error" });
+    }
+});
+
 module.exports = router;

@@ -340,9 +340,19 @@ function OnlineOrder() {
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order ID</p>
             <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono italic">{orderRef}</p>
             {paymentMethod === 'UPI' && (
-               <div className="mb-8 p-6 bg-white rounded-3xl border-2 border-indigo-100 shadow-xl shadow-indigo-100/50">
+               <div className="mb-8 p-6 bg-white rounded-3xl border-2 border-indigo-100 shadow-xl shadow-indigo-100/50 flex flex-col items-center">
                   <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4">Complete Payment</p>
-                  <a href={`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`} className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 mb-3">Pay ₹{finalPaidAmount.toFixed(0)} Now</a>
+                  
+                  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 inline-block">
+                    <img 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`)}`} 
+                      alt="UPI QR Code" 
+                      className="w-40 h-40 object-contain mx-auto"
+                    />
+                    <p className="text-[9px] font-black text-slate-400 mt-3 uppercase tracking-widest">Scan with any UPI App</p>
+                  </div>
+
+                  <a href={`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`} className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 mb-3">Pay ₹{finalPaidAmount.toFixed(0)} on Mobile</a>
                   <p className="text-[8px] font-bold text-slate-400">Or we have sent a payment link to your WhatsApp.</p>
                </div>
             )}

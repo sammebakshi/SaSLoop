@@ -66,6 +66,7 @@ app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
 app.use("/api/reservations", require("./routes/reservationRoutes"));
+app.use("/api/delivery", require("./routes/deliveryRoutes"));
 
 // ======================
 // ✅ HEALTH CHECK
@@ -134,6 +135,7 @@ app.listen(PORT, async () => {
     
     // Start Cron Jobs
     whatsappManager.startCartRecoveryCron();
+    whatsappManager.startAutoFollowupCron();
     
     // Log Restart
     try {

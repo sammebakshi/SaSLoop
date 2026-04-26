@@ -44,6 +44,7 @@ function OrderBoard() {
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("orderBoardSound") === "true");
   const [mobileTab, setMobileTab] = useState("Incoming");
   const [newOrderFlash, setNewOrderFlash] = useState(false);
+  const [riders, setRiders] = useState([]);
   const isMobile = isMobileDevice();
 
   const prevCountRef = useRef(-1);
@@ -83,9 +84,38 @@ function OrderBoard() {
 
   useEffect(() => {
     fetchOrders();
+    fetchRiders();
     const interval = setInterval(fetchOrders, 15000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
+
+  const fetchRiders = async () => {
+    try {
+        const token = localStorage.getItem("token");
+        const targetId = sessionStorage.getItem("impersonate_id");
+        const res = await fetch(`${API_BASE}/api/delivery/partners${targetId ? `?target_user_id=${targetId}` : ""}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+        const data = await res.json();
+        setRiders(data);
+    } catch (err) { console.error(err); }
+  };
+
+  const assignRider = async (orderId, riderId) => {
+    try {
+      const resp = await fetch(`${API_BASE}/api/delivery/assign`, {
+        method: 'PUT',
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ orderId, riderId })
+      });
+      if (resp.ok) {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED', rider_id: riderId } : o));
+      }
+    } catch (err) { console.error(err); }
+  };
 
   const updateStatus = async (orderId, newStatus) => {
     if (newStatus === 'CANCELLED' && !window.confirm("Are you sure you want to REJECT this order? This will notify the customer.")) return;
@@ -103,6 +133,25 @@ function OrderBoard() {
       }
     } catch (err) {
       console.error("Status Update Fail:", err);
+    }
+  };
+
+  const togglePaymentStatus = async (orderId, currentStatus) => {
+    const newStatus = currentStatus === 'PAID' ? 'PENDING' : 'PAID';
+    try {
+      const resp = await fetch(`${API_BASE}/api/orders/${orderId}/payment`, {
+        method: 'PUT',
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ payment_status: newStatus })
+      });
+      if (resp.ok) {
+        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_status: newStatus } : o));
+      }
+    } catch (err) {
+      console.error("Payment Update Fail:", err);
     }
   };
 
@@ -126,6 +175,20 @@ function OrderBoard() {
             {order.customer_number && <p className="text-[8px] font-bold text-indigo-400 mt-0.5 whitespace-nowrap">📞 {order.customer_number}</p>}
           </div>
           <span className="text-[10px] font-black text-slate-900 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg whitespace-nowrap">₹{getPrice(order.total_price)}</span>
+      </div>
+      
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-1.5">
+           <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${order.payment_method === 'UPI' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
+              {order.payment_method || 'CASH'}
+           </span>
+        </div>
+        <button 
+          onClick={() => togglePaymentStatus(order.id, order.payment_status)}
+          className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md transition-all ${order.payment_status === 'PAID' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100'}`}
+        >
+          {order.payment_status === 'PAID' ? '✓ Paid' : 'Unpaid'}
+        </button>
       </div>
       <div className="space-y-1 mb-2 bg-slate-50/50 p-2 rounded-xl">
           {(() => {
@@ -156,9 +219,19 @@ function OrderBoard() {
             </div>
           )}
           {col.title === "Processing" && (
-            <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
-                {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
-            </button>
+            <div className="w-full space-y-2">
+              <select 
+                onChange={(e) => assignRider(order.id, e.target.value)}
+                className="w-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black py-2 rounded-xl uppercase tracking-widest outline-none px-2"
+                defaultValue=""
+              >
+                <option value="" disabled>Assign Rider</option>
+                {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+              <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
+                  {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
           {col.title === "Dispatched" && (
             <button onClick={() => updateStatus(order.id, 'COMPLETED')} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-200">

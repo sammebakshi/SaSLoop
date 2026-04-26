@@ -25,11 +25,38 @@ const sendOfficialMessage = async (to, content, userId) => {
 
         const formattedTo = formatToInter(to);
         const cleanTo = formattedTo.replace(/\D/g, "");
-        let payload = { messaging_product: "whatsapp", to: cleanTo };
+        let payload = { messaging_product: "whatsapp", recipient_type: "individual", to: cleanTo };
         
         if (typeof content === 'string') {
             payload.type = "text";
             payload.text = { body: content };
+        } else if (content.imageUrl && content.button) {
+            // Interactive message with Image header and CTA button
+            payload.type = "interactive";
+            payload.interactive = {
+                type: "button",
+                header: { type: "image", image: { link: content.imageUrl } },
+                body: { text: content.message || "Message from SaSLoop" },
+                action: {
+                    buttons: [
+                        { type: "reply", reply: { id: "cta_btn", title: content.button.text || "Click Here" } }
+                    ]
+                }
+            };
+        } else if (content.imageUrl) {
+            payload.type = "image";
+            payload.image = { link: content.imageUrl, caption: content.message || "" };
+        } else if (content.button) {
+            payload.type = "interactive";
+            payload.interactive = {
+                type: "button",
+                body: { text: content.message || "Message from SaSLoop" },
+                action: {
+                    buttons: [
+                        { type: "reply", reply: { id: "cta_btn", title: content.button.text || "Click Here" } }
+                    ]
+                }
+            };
         } else {
             Object.assign(payload, content);
         }
@@ -962,6 +989,48 @@ const deductWalletCredits = async (userId, amount) => {
     return { success: true, newBalance: credits - amount };
 };
 
+const startAutoFollowupCron = () => {
+    console.log("⏰ AUTO FOLLOW-UP ENGINE STARTED");
+    setInterval(async () => {
+        try {
+            // 1. Send Due Messages
+            const due = await pool.query(
+                "SELECT * FROM scheduled_messages WHERE status = 'PENDING' AND scheduled_for <= NOW() LIMIT 10"
+            );
+
+            for (const row of due.rows) {
+                const sent = await sendOfficialMessage(row.customer_number, row.message, row.user_id);
+                if (sent.success) {
+                    await pool.query("UPDATE scheduled_messages SET status = 'SENT' WHERE id = $1", [row.id]);
+                } else {
+                    await pool.query("UPDATE scheduled_messages SET status = 'FAILED' WHERE id = $1", [row.id]);
+                }
+            }
+
+            // 2. Win-Back logic
+            const stagnant = await pool.query(`
+                SELECT mc.user_id, mc.phone_number, mc.name, r.name as biz_name
+                FROM marketing_contacts mc
+                JOIN restaurants r ON mc.user_id = r.user_id
+                LEFT JOIN scheduled_messages sm ON mc.phone_number = sm.customer_number AND sm.message LIKE '%miss you%'
+                WHERE mc.last_order_at < NOW() - interval '7 days'
+                AND sm.id IS NULL
+                LIMIT 5
+            `);
+
+            for (const c of stagnant.rows) {
+                const msg = `Hi ${c.name || 'there'}! We miss you at *${c.biz_name}* 🍕. It's been a week since your last order. Here is a 10% discount code: *RELAX10* for your next meal!`;
+                await pool.query(
+                    "INSERT INTO scheduled_messages (user_id, customer_number, message, scheduled_for) VALUES ($1, $2, $3, NOW())",
+                    [c.user_id, c.phone_number, msg]
+                );
+            }
+        } catch (e) {
+            console.error("Auto Follow-up Engine Error:", e);
+        }
+    }, 60000);
+};
+
 module.exports = {
   handleMetaWebhook,
   sendOfficialMessage,
@@ -971,6 +1040,7 @@ module.exports = {
   syncBusinessProfileToWhatsApp,
   processAiAutomations,
   startCartRecoveryCron,
+  startAutoFollowupCron,
   getWalletCredits,
   deductWalletCredits
 };

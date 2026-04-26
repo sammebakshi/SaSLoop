@@ -116,6 +116,7 @@ function CRMDashboard() {
                <div className="h-20 px-10 border-b border-slate-100 flex items-center gap-8 shrink-0 bg-slate-50/30">
                   <button onClick={() => setActiveTab('customers')} className={`text-xs font-black uppercase tracking-widest transition-all pb-8 mt-8 border-b-2 ${activeTab === 'customers' ? 'border-indigo-600 text-slate-800' : 'border-transparent text-slate-400'}`}>Top Loyalists</button>
                   <button onClick={() => setActiveTab('feedback')} className={`text-xs font-black uppercase tracking-widest transition-all pb-8 mt-8 border-b-2 ${activeTab === 'feedback' ? 'border-indigo-600 text-slate-800' : 'border-transparent text-slate-400'}`}>Customer Feedback</button>
+                  <button onClick={() => setActiveTab('nurture')} className={`text-xs font-black uppercase tracking-widest transition-all pb-8 mt-8 border-b-2 ${activeTab === 'nurture' ? 'border-indigo-600 text-slate-800' : 'border-transparent text-slate-400'}`}>Auto-Nurture</button>
                   {sessionStorage.getItem("impersonate_id") && (
                      <span className="ml-auto text-[8px] font-black text-slate-300 uppercase tracking-widest pb-8 mt-8">
                        Viewing ID: {sessionStorage.getItem("impersonate_id")}
@@ -156,6 +157,30 @@ function CRMDashboard() {
                            ))}
                         </tbody>
                      </table>
+                  ) : activeTab === 'nurture' ? (
+                    <div className="p-10 space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+                       {[
+                         { title: 'Win-Back Sequence', desc: 'Sends a "We miss you" discount message to customers who haven\'t ordered in 7 days.', status: 'Active', delay: '7 Days' },
+                         { title: 'Post-Purchase Feedback', desc: 'Automatically asks for a rating 2 hours after an order is marked as Completed.', status: 'Active', delay: '2 Hours' },
+                         { title: 'Abandoned Cart Recovery', desc: 'Follows up with customers who left items in their cart without checking out.', status: 'Active', delay: '15 Mins' },
+                       ].map((rule, idx) => (
+                         <div key={idx} className="bg-white border-2 border-slate-50 p-6 rounded-[2rem] flex items-center justify-between hover:border-indigo-100 transition-all group">
+                            <div className="flex gap-5 items-center">
+                               <div className="w-12 h-12 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center">
+                                  <MessageSquare className="w-5 h-5" />
+                               </div>
+                               <div>
+                                  <h4 className="font-black text-slate-800 uppercase italic text-sm">{rule.title}</h4>
+                                  <p className="text-[11px] font-medium text-slate-400 max-w-sm mt-0.5">{rule.desc}</p>
+                               </div>
+                            </div>
+                            <div className="text-right">
+                               <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest">{rule.status}</span>
+                               <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">Delay: {rule.delay}</p>
+                            </div>
+                         </div>
+                       ))}
+                    </div>
                   ) : (
                      <div className="p-10 grid grid-cols-1 md:grid-cols-2 gap-6">
                         {feedbacks.map(f => (

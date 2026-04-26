@@ -106,4 +106,24 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ UPDATE PAYMENT STATUS
+router.put("/:id/payment", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_status } = req.body;
+    const userId = req.user.id;
+
+    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
+    if (checkRes.rows.length === 0) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [payment_status, id]);
+    res.json({ message: "Payment status updated" });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 module.exports = router;

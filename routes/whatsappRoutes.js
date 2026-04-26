@@ -114,9 +114,16 @@ router.post("/broadcast", authMiddleware, async (req, res) => {
 
      // Trigger broadcast in background
      const senderId = `BC_${Date.now()}`;
+     const { imageUrl, button } = req.body;
+
      contacts.forEach(async (contact) => {
          const personalizedMsg = message.replace(/\{\{name\}\}/gi, contact.name || "Customer");
-         await whatsappManager.sendOfficialMessage(contact.phone, personalizedMsg, req.user.id, senderId);
+         const payload = {
+             message: personalizedMsg,
+             imageUrl: imageUrl || null,
+             button: button || null
+         };
+         await whatsappManager.sendOfficialMessage(contact.phone, payload, req.user.id, senderId);
      });
 
      res.json({ 

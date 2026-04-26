@@ -199,6 +199,30 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC DEFAULT 0`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_long NUMERIC`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS rider_id INTEGER`,
+
+            // 20. Delivery Partners
+            `CREATE TABLE IF NOT EXISTS delivery_partners (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
+                name VARCHAR(255) NOT NULL,
+                phone VARCHAR(30) NOT NULL,
+                status VARCHAR(50) DEFAULT 'available',
+                last_lat DECIMAL(10,6),
+                last_lng DECIMAL(10,6),
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+
+            // 21. Rider Locations (History/Live)
+            `CREATE TABLE IF NOT EXISTS rider_locations (
+                id SERIAL PRIMARY KEY,
+                rider_id INTEGER REFERENCES delivery_partners(id) ON DELETE CASCADE,
+                order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
+                lat DECIMAL(10,6) NOT NULL,
+                lng DECIMAL(10,6) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
 
             // 9. Chat messages table (for Live AI Inbox)
             `CREATE TABLE IF NOT EXISTS chat_messages (
@@ -305,6 +329,16 @@ async function initializeDatabase() {
                 reservation_date DATE,
                 reservation_time TIME,
                 status VARCHAR(50) DEFAULT 'confirmed',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 20. Scheduled Messages (for Auto Follow-ups)
+            `CREATE TABLE IF NOT EXISTS scheduled_messages (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
+                customer_number TEXT NOT NULL,
+                message TEXT NOT NULL,
+                scheduled_for TIMESTAMP NOT NULL,
+                status VARCHAR(50) DEFAULT 'PENDING', -- PENDING, SENT, FAILED
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
