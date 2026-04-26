@@ -160,7 +160,7 @@ router.post("/order", async (req, res) => {
         // Notify Customer
         if (isOnline && dbPhone && dbPhone.startsWith('+')) {
             try {
-                const itemLines = (items || []).map(i => `• ${i.qty}x ${i.name}`).join("\n");
+                const itemLines = (items || []).map(i => `• ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
                 
                 const receiptRows = [
                     `✅ *Order Confirmed!*`,

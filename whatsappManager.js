@@ -116,8 +116,8 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         const biz = bizRes.rows[0];
         if (!biz) return;
 
-        const kotItemLines = cart.map(i => `  • ${i.qty}x ${i.product_name || i.name || 'Item'}`).join("\n");
-        const staffItemLines = cart.map(i => `  • ${i.qty}x ${i.product_name || i.name || 'Item'} — ${symbol}${(i.qty * i.price).toFixed(2)}`).join("\n");
+        const kotItemLines = cart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
+        const staffItemLines = cart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'} — ${symbol}${( (i.qty || i.quantity || 1) * (i.price || 0) ).toFixed(2)}`).join("\n");
         
         const kot = [
             `🍽️ *====== KITCHEN ORDER TICKET ======*`,
