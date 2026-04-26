@@ -1,6 +1,8 @@
 const pool = require("./db");
 const Groq = require("groq-sdk");
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 const { isBusinessOpen, getDeliveryDetails } = require("./utils/businessUtils");
 
 const normalizePhone = (p) => {
@@ -775,6 +777,43 @@ RETURN ONLY JSON:
     } catch (e) { console.error("[AI-ERROR]", e); }
 };
 
+const transcribeAudio = async (mediaId, userId) => {
+    try {
+        const tokenRes = await pool.query("SELECT meta_access_token FROM app_users WHERE id = $1", [userId]);
+        const token = tokenRes.rows[0]?.meta_access_token;
+        if (!token) return null;
+
+        const mediaInfo = await axios.get(`https://graph.facebook.com/v21.0/${mediaId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const mediaUrl = mediaInfo.data.url;
+
+        const mediaData = await axios.get(mediaUrl, { headers: { Authorization: `Bearer ${token}` }, responseType: 'stream' });
+        
+        const uploadDir = path.join(__dirname, "uploads");
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
+        
+        const tmpPath = path.join(uploadDir, `tmp_audio_${Date.now()}.ogg`);
+        const writer = fs.createWriteStream(tmpPath);
+        mediaData.data.pipe(writer);
+        
+        await new Promise((resolve, reject) => {
+            writer.on('finish', resolve);
+            writer.on('error', reject);
+        });
+
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const transcription = await groq.audio.transcriptions.create({
+            file: fs.createReadStream(tmpPath),
+            model: "whisper-large-v3"
+        });
+
+        fs.unlinkSync(tmpPath);
+        return transcription.text;
+    } catch (e) {
+        console.error("[WHISPER ERROR]:", e.response?.data || e.message);
+        return null;
+    }
+};
+
 const handleMetaWebhook = async (body) => {
     try {
         if (body.object === "whatsapp_business_account") {
@@ -801,9 +840,21 @@ const handleMetaWebhook = async (body) => {
                     } else if (message.type === "location") {
                         isLocation = true;
                         locationData = message.location;
+                    } else if (message.type === "audio") {
+                        const mediaId = message.audio.id;
+                        const transcript = await transcribeAudio(mediaId, userId);
+                        if (transcript) textBody = transcript;
+                        else textBody = "[Audio message received but transcription failed]";
+                    }
+                    
+                    let adContext = "";
+                    if (message.referral) {
+                        const ref = message.referral;
+                        adContext = `\n[System Note: Customer clicked an ad to get here! Ad Headline: "${ref.headline || ''}", Ad Body: "${ref.body || ''}". Acknowledge their interest subtly.]`;
                     }
 
                     if (textBody || isLocation) {
+                        if (adContext && textBody) textBody += adContext;
                         await upsertContact(userId, fromNumber, contactName);
                         await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
                         await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
@@ -850,6 +901,19 @@ const startCartRecoveryCron = () => {
     }, 5 * 60 * 1000); // Check every 5 mins
 };
 
+const getWalletCredits = async (userId) => {
+    const res = await pool.query("SELECT broadcast_credits FROM app_users WHERE id = $1", [userId]);
+    return res.rows[0]?.broadcast_credits || 0;
+};
+
+const deductWalletCredits = async (userId, amount) => {
+    const credits = await getWalletCredits(userId);
+    if (credits < amount) return { success: false, error: "Insufficient broadcast credits. Please recharge." };
+    
+    await pool.query("UPDATE app_users SET broadcast_credits = broadcast_credits - $1 WHERE id = $2", [amount, userId]);
+    return { success: true, newBalance: credits - amount };
+};
+
 module.exports = {
   handleMetaWebhook,
   sendOfficialMessage,
@@ -858,5 +922,7 @@ module.exports = {
   notifyKitchenAndStaff,
   syncBusinessProfileToWhatsApp,
   processAiAutomations,
-  startCartRecoveryCron
+  startCartRecoveryCron,
+  getWalletCredits,
+  deductWalletCredits
 };
