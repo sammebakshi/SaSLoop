@@ -520,8 +520,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             } catch (e) { console.error("Notif fail:", e); }
 
             const trackingLink = `https://sasloop.com/track/${orderRef}`;
-            const upiRes = await pool.query("SELECT upi_id FROM payment_settings LIMIT 1");
-            const upiId = upiRes.rows[0]?.upi_id || "restaurant@upi";
+            const upiId = biz.settings?.upi_id || "restaurant@upi";
             const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz.name || "Restaurant")}&am=${pending.total.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`;
 
             const receipt = [

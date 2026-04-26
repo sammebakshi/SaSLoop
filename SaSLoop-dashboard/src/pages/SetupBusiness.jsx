@@ -28,17 +28,18 @@ function SetupBusiness() {
     social_twitter: "",
     social_youtube: "",
     social_website: "",
-    settings: {
-      openingTime: "09:00",
-      closingTime: "22:00",
-      homeDelivery: false,
-      dining: false,
-      tableBooking: false,
-      appointments: false,
-      salonBooking: false,
-      statusPrompt: "",
-      customCategoryLabel: "Menu"
-    }
+      settings: {
+        openingTime: "09:00",
+        closingTime: "22:00",
+        homeDelivery: false,
+        dining: false,
+        tableBooking: false,
+        appointments: false,
+        salonBooking: false,
+        statusPrompt: "",
+        customCategoryLabel: "Menu",
+        upi_id: ""
+      }
   });
 
   const [notifInput, setNotifInput] = useState("");
@@ -90,6 +91,7 @@ function SetupBusiness() {
             appointments: false,
             salonBooking: false,
             statusPrompt: "",
+            upi_id: "",
             ...(data.business.settings || {})
           }
         });
@@ -334,6 +336,12 @@ function SetupBusiness() {
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Closing Time</label>
                         <input type="time" className="w-full bg-slate-50 border-2 rounded-2xl px-4 py-3 font-bold" value={formData.settings.closingTime} onChange={e => setFormData({...formData, settings: {...formData.settings, closingTime: e.target.value}})} />
                      </div>
+                  </div>
+                  
+                  <div>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Business UPI ID (For Payments)</label>
+                     <input type="text" placeholder="e.g. yourbusiness@upi" className="w-full bg-slate-50 border-2 rounded-2xl px-4 py-3 font-bold" value={formData.settings.upi_id || ''} onChange={e => setFormData({...formData, settings: {...formData.settings, upi_id: e.target.value}})} />
+                     <p className="text-[8px] text-slate-400 mt-2 italic font-bold">This UPI ID will be sent to customers to collect payments via WhatsApp.</p>
                   </div>
 
                   <div className="space-y-3">
