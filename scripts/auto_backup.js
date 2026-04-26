@@ -31,7 +31,7 @@ async function uploadToTelegram(fileName, filePath) {
         const form = new FormData();
         form.append('chat_id', CHAT_ID);
         form.append('caption', `📦 SaSLoop Database Backup\n🕒 ${new Date().toLocaleString()}\n🗄️ Database: ${DB_NAME}`);
-        form.append('document', fs.createReadStream(filePath), fileName);
+        form.append('document', fs.createReadStream(filePath), { filename: fileName });
 
         const response = await axios.post(url, form, {
             headers: {
@@ -45,7 +45,11 @@ async function uploadToTelegram(fileName, filePath) {
             console.error('❌ Telegram Error:', response.data.description);
         }
     } catch (err) {
-        console.error('❌ Telegram Upload Error:', err.message);
+        if (err.response && err.response.data) {
+            console.error('❌ Telegram API Detailed Error:', err.response.data.description);
+        } else {
+            console.error('❌ Telegram Upload Error:', err.message);
+        }
     }
 }
 
