@@ -39,7 +39,8 @@ function SetupBusiness() {
         statusPrompt: "",
         customCategoryLabel: "Menu",
         upi_id: "",
-        accepted_payment_methods: { cash: true, upi: true }
+        accepted_payment_methods: { cash: true, upi: true },
+        google_review_link: ""
       }
   });
 
@@ -94,6 +95,7 @@ function SetupBusiness() {
             statusPrompt: "",
             upi_id: "",
             accepted_payment_methods: { cash: true, upi: true },
+            google_review_link: "",
             ...(data.business.settings || {})
           }
         });
@@ -487,6 +489,19 @@ function SetupBusiness() {
                            />
                         </div>
                      ))}
+                     <div>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2 flex items-center gap-1.5">
+                           <Globe className="w-3.5 h-3.5 text-emerald-500" /> Google Review Link
+                        </label>
+                        <input 
+                           type="url" 
+                           placeholder="https://g.page/r/..." 
+                           className="w-full bg-slate-50 border-2 rounded-2xl px-6 py-4 font-bold text-slate-800 outline-none focus:border-emerald-500 text-sm" 
+                           value={formData.settings.google_review_link || ''} 
+                           onChange={e => setFormData({...formData, settings: {...formData.settings, google_review_link: e.target.value}})} 
+                        />
+                        <p className="text-[8px] text-slate-400 mt-2 italic font-bold">This link will be sent to customers when they give you a 4 or 5-star rating on WhatsApp.</p>
+                     </div>
                   </div>
 
                   <div className="flex gap-4">
