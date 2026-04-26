@@ -131,6 +131,9 @@ app.listen(PORT, async () => {
     }
     await initializeDatabase();
     
+    // Start Cron Jobs
+    whatsappManager.startCartRecoveryCron();
+    
     // Log Restart
     try {
         await pool.query("UPDATE system_status SET restart_count = restart_count + 1, last_restart_at = NOW() WHERE id = 1");

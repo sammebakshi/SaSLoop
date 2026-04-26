@@ -42,6 +42,22 @@ const sendOfficialMessage = async (to, content, userId) => {
     }
 };
 
+const deductInventory = async (userId, cart) => {
+    try {
+        for (const item of cart) {
+            await pool.query(
+                `UPDATE business_items 
+                 SET stock_count = GREATEST(stock_count - $1, 0),
+                     availability = CASE WHEN GREATEST(stock_count - $1, 0) = 0 THEN false ELSE availability END
+                 WHERE user_id = $2 AND product_name = $3 AND stock_count IS NOT NULL`,
+                [item.qty, userId, item.name || item.product_name]
+            );
+        }
+    } catch (e) {
+        console.error("Failed to deduct inventory:", e);
+    }
+};
+
 const upsertContact = async (userId, phone, name) => {
     try {
         await pool.query(
@@ -431,6 +447,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, 'PENDING']
             );
 
+            await deductInventory(userId, cart);
+
             await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
 
             // 🏆 Update CRM (With Safety Guard)
@@ -490,6 +508,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
                 [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'PENDING', pending.deliveryCharge]
             );
+
+            await deductInventory(userId, pending.items);
 
             try {
                 await notifyKitchenAndStaff(
@@ -557,10 +577,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (lower === 'support') {
+        if (lower === 'support' || lower === 'talk to human' || lower === 'human' || lower === 'agent') {
             const supportNum = biz.settings?.customerSupport || biz.phone || biz.contact_number;
-            const text = `📞 *Contact Support*\n━━━━━━━━━━━━━━\n\nNeed help? You can speak with our team directly:\n\n📱 Call/WhatsApp: ${supportNum}\n\nWe are here for you! 🙏`;
+            const text = `📞 *Connecting to Support...*\n━━━━━━━━━━━━━━\n\nI have paused my automated responses. A member of our team will assist you shortly.\n\nFor immediate help, you can also Call/WhatsApp: ${supportNum}\n\n🙏`;
             await sendOfficialMessage(customerNumber, text, userId);
+            
+            await updateSession(userId, cleanNum, 'PAUSED', { ...session.context, is_paused: true });
+            await pool.query("UPDATE conversation_sessions SET is_paused = true WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            
+            // Notify staff
+            const staffNums = biz.notification_numbers || [];
+            for (let num of staffNums) {
+                await sendOfficialMessage(num, `🚨 *Support Needed!*\nCustomer ${customerName || customerNumber} has requested human assistance. Please check the dashboard.`, userId);
+            }
             return;
         }
 
@@ -785,6 +814,42 @@ const handleMetaWebhook = async (body) => {
     } catch (e) { console.error("Webhook Error", e); }
 };
 
+const startCartRecoveryCron = () => {
+    console.log("⏰ Abandoned Cart Recovery Cron Started");
+    setInterval(async () => {
+        try {
+            const res = await pool.query(`
+                SELECT id, user_id, customer_number, context 
+                FROM conversation_sessions 
+                WHERE is_paused = false 
+                AND updated_at < NOW() - INTERVAL '30 minutes'
+                AND updated_at > NOW() - INTERVAL '24 hours'
+            `);
+            
+            for (const session of res.rows) {
+                const context = typeof session.context === 'string' ? JSON.parse(session.context) : session.context;
+                if (context && context.cart && context.cart.length > 0 && !context.recovery_sent) {
+                    const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [session.user_id]);
+                    const bizName = bizRes.rows[0]?.name || "our restaurant";
+
+                    const text = `🛒 *Left something behind?*\n━━━━━━━━━━━━━━\n\nHey there! We noticed you left some delicious items in your bag at ${bizName}.\n\nWould you like to complete your order before your cart expires?`;
+                    
+                    await sendButtons(session.customer_number, text, [
+                        { id: 'checkout', title: '🛒 Checkout Now' },
+                        { id: 'place_order', title: '➕ Add More' },
+                        { id: 'cancel', title: '🗑️ Clear Cart' }
+                    ], session.user_id);
+                    
+                    context.recovery_sent = true;
+                    await pool.query("UPDATE conversation_sessions SET context = $1, updated_at = NOW() WHERE id = $2", [JSON.stringify(context), session.id]);
+                }
+            }
+        } catch (e) {
+            console.error("Cart Recovery Cron Error:", e);
+        }
+    }, 5 * 60 * 1000); // Check every 5 mins
+};
+
 module.exports = {
   handleMetaWebhook,
   sendOfficialMessage,
@@ -792,5 +857,6 @@ module.exports = {
   logChat,
   notifyKitchenAndStaff,
   syncBusinessProfileToWhatsApp,
-  processAiAutomations
+  processAiAutomations,
+  startCartRecoveryCron
 };
