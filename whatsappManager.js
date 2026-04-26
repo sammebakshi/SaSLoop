@@ -739,29 +739,29 @@ RETURN ONLY JSON:
                 // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
                 const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
                 if (loyaltyCheck.rows.length === 0) {
-                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* \n\n${result.human_reply || "Hello! It is a pleasure to meet you."}\n\n🎁 *VIP Offer:* Join our club today and get *50 Welcome Points* instantly!`;
+                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* ✨\n\n${result.human_reply || "Hello! It is a pleasure to meet you. 😊"}\n\n🎁 *VIP Welcome Gift:* Join our club today and get *50 Points* instantly! 🎈🎊`;
                     await sendButtons(customerNumber, welcomeMsg, [
-                        { id: 'join_loyalty', title: '🎁 Join & Get 50 pts' },
+                        { id: 'join_loyalty', title: '🎁 Claim 50 Points' },
                         { id: 'place_order', title: '🛍️ Browse Menu' }
                     ], userId);
                     return;
                 }
 
                 // Standard Professional List Menu
-                await sendList(customerNumber, "How can we help?", `Welcome back to ${biz.name}!\n\nHello ${customerName}, how may I assist you today? You can explore our menu or place an order using the options below.`, "Main Menu", [
+                await sendList(customerNumber, "How can we help? ✨", `🏠 *Welcome back to ${biz.name}!* \n\nHello ${customerName}, how may I assist you today? 🌟 \n\nYou can explore our menu or place an order using the options below. 👇`, "✨ Open Main Menu ✨", [
                     {
-                        title: "Ordering",
+                        title: "🛒 Ordering Options",
                         rows: [
-                            { id: "place_order", title: "🛍️ Place an Order", description: "Start your meal selection" },
-                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog" }
+                            { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔🥤" },
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕🍰" }
                         ]
                     },
                     {
-                        title: "Help & Rewards",
+                        title: "💎 Help & Rewards",
                         rows: [
-                            { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients/price" },
-                            { id: "loyalty", title: "🎁 Loyalty & Points", description: "Check your rewards" },
-                            { id: "support", title: "📞 Contact Support", description: "Speak with our team" }
+                            { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients or prices 🍲" },
+                            { id: "loyalty", title: "🎁 Loyalty & Points", description: "Check your rewards balance 💎" },
+                            { id: "support", title: "📞 Contact Support", description: "Speak with our friendly team 👩‍💻" }
                         ]
                     }
                 ], userId);
