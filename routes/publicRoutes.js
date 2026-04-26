@@ -186,6 +186,16 @@ router.post("/order", async (req, res) => {
                 receiptRows.push(`💰 *Total:* ${currSymbol}${finalPrice}`);
                 receiptRows.push(``);
                 receiptRows.push(`We'll update you when it's ready! 🔥`);
+                
+                const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+                const trackingLink = `${baseUrl}/track/${currentOrderRef}`;
+                receiptRows.push(`\n📍 *Track Live:* ${trackingLink}`);
+
+                if (paymentMethod === 'UPI') {
+                    const upiId = bizData?.settings?.upi_id || "restaurant@upi";
+                    const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(bizData?.name || "Restaurant")}&am=${finalPrice}&cu=INR&tn=Order%20${currentOrderRef}`;
+                    receiptRows.push(`\n💳 *Pay Online:* ${paymentLink}`);
+                }
 
                 const custMsg = receiptRows.join("\n");
                 await whatsappManager.sendOfficialMessage(dbPhone, custMsg, userId);

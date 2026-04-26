@@ -59,6 +59,7 @@ function OnlineOrder() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [authOtp, setAuthOtp] = useState("");
   const [otpMode, setOtpMode] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("CASH");
 
   const getStandardPhone = () => {
     // 1. Strip everything except digits from both parts
@@ -217,6 +218,7 @@ function OnlineOrder() {
           address: fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup", 
           fulfillmentMode, 
           source: "ONLINE_ORDER",
+          paymentMethod: paymentMethod,
           service_charge: fulfillmentMode === "DELIVERY" ? (deliveryRadiusStatus.charge || 0) : 0,
           deliveryCoords: fulfillmentMode === "DELIVERY" ? deliveryCoords : null
         }) 
@@ -501,6 +503,17 @@ function OnlineOrder() {
                         )}
                         <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Final</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
+                     <div className="space-y-3">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Payment Method</p>
+                        <div className="flex gap-2">
+                           {(!biz?.settings?.accepted_payment_methods || biz?.settings?.accepted_payment_methods?.cash) && (
+                              <button onClick={() => setPaymentMethod('CASH')} className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${paymentMethod === 'CASH' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100'}`}>COD / Cash</button>
+                           )}
+                           {biz?.settings?.accepted_payment_methods?.upi && (
+                              <button onClick={() => setPaymentMethod('UPI')} className={`flex-1 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest border-2 transition-all ${paymentMethod === 'UPI' ? 'border-emerald-500 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-400 bg-slate-50 hover:bg-slate-100'}`}>Pay Online / UPI</button>
+                           )}
+                        </div>
+                     </div>
                      <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Confirm Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}
@@ -516,6 +529,14 @@ function OnlineOrder() {
                      <span className="text-[11px] font-black text-emerald-400">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
                   </div>
                )}
+               <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar">
+                  {(!biz?.settings?.accepted_payment_methods || biz?.settings?.accepted_payment_methods?.cash) && (
+                     <button onClick={() => setPaymentMethod('CASH')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'CASH' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>COD / Cash</button>
+                  )}
+                  {biz?.settings?.accepted_payment_methods?.upi && (
+                     <button onClick={() => setPaymentMethod('UPI')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'UPI' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>Pay Online</button>
+                  )}
+               </div>
                <button onClick={placeOrder} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
                   <div className="flex items-center gap-5 pl-4">
                      <div className="relative">

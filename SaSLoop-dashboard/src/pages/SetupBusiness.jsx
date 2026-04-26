@@ -38,7 +38,8 @@ function SetupBusiness() {
         salonBooking: false,
         statusPrompt: "",
         customCategoryLabel: "Menu",
-        upi_id: ""
+        upi_id: "",
+        accepted_payment_methods: { cash: true, upi: true }
       }
   });
 
@@ -92,6 +93,7 @@ function SetupBusiness() {
             salonBooking: false,
             statusPrompt: "",
             upi_id: "",
+            accepted_payment_methods: { cash: true, upi: true },
             ...(data.business.settings || {})
           }
         });
@@ -342,6 +344,16 @@ function SetupBusiness() {
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Business UPI ID (For Payments)</label>
                      <input type="text" placeholder="e.g. yourbusiness@upi" className="w-full bg-slate-50 border-2 rounded-2xl px-4 py-3 font-bold" value={formData.settings.upi_id || ''} onChange={e => setFormData({...formData, settings: {...formData.settings, upi_id: e.target.value}})} />
                      <p className="text-[8px] text-slate-400 mt-2 italic font-bold">This UPI ID will be sent to customers to collect payments via WhatsApp.</p>
+                  </div>
+
+                  <div className="space-y-3">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Accepted Payment Methods</p>
+                     <button onClick={() => setFormData({...formData, settings: {...formData.settings, accepted_payment_methods: {...(formData.settings.accepted_payment_methods || {}), cash: !(formData.settings.accepted_payment_methods?.cash)}}})} type="button" className={`w-full p-5 rounded-2xl border-2 font-bold text-sm flex justify-between items-center transition-all ${formData.settings.accepted_payment_methods?.cash ? 'border-emerald-600 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-800'}`}>
+                        Cash on Delivery (COD) {formData.settings.accepted_payment_methods?.cash ? <ToggleRight className="w-6 h-6" /> : <Settings className="w-5 h-5 text-slate-300" />}
+                     </button>
+                     <button onClick={() => setFormData({...formData, settings: {...formData.settings, accepted_payment_methods: {...(formData.settings.accepted_payment_methods || {}), upi: !(formData.settings.accepted_payment_methods?.upi)}}})} type="button" className={`w-full p-5 rounded-2xl border-2 font-bold text-sm flex justify-between items-center transition-all ${formData.settings.accepted_payment_methods?.upi ? 'border-emerald-600 bg-emerald-50 text-emerald-600' : 'border-slate-100 text-slate-800'}`}>
+                        Prepaid / UPI / Online {formData.settings.accepted_payment_methods?.upi ? <ToggleRight className="w-6 h-6" /> : <Settings className="w-5 h-5 text-slate-300" />}
+                     </button>
                   </div>
 
                   <div className="space-y-3">

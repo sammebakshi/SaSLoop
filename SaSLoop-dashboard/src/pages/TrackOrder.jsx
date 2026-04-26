@@ -45,9 +45,13 @@ const TrackOrder = () => {
     // Dynamic UI based on status
     const statusMap = {
         'PENDING': { icon: Clock, color: 'text-orange-500', bg: 'bg-orange-500/20', text: 'Waiting for Kitchen', step: 1 },
+        'PROCESSING': { icon: ChefHat, color: 'text-blue-500', bg: 'bg-blue-500/20', text: 'Cooking in Progress', step: 2 },
         'PREPARING': { icon: ChefHat, color: 'text-blue-500', bg: 'bg-blue-500/20', text: 'Cooking in Progress', step: 2 },
-        'READY': { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/20', text: 'Ready for Pickup/Delivery', step: 3 },
-        'DELIVERED': { icon: MapPin, color: 'text-indigo-500', bg: 'bg-indigo-500/20', text: 'Delivered', step: 4 }
+        'DISPATCHED': { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/20', text: 'Dispatched / Ready', step: 3 },
+        'SHIPPED': { icon: CheckCircle2, color: 'text-emerald-500', bg: 'bg-emerald-500/20', text: 'Dispatched / Ready', step: 3 },
+        'COMPLETED': { icon: MapPin, color: 'text-indigo-500', bg: 'bg-indigo-500/20', text: 'Completed / Delivered', step: 4 },
+        'DELIVERED': { icon: MapPin, color: 'text-indigo-500', bg: 'bg-indigo-500/20', text: 'Completed / Delivered', step: 4 },
+        'CANCELLED': { icon: Clock, color: 'text-rose-500', bg: 'bg-rose-500/20', text: 'Order Cancelled', step: 1 }
     };
 
     const currentStatus = statusMap[order.status?.toUpperCase()] || statusMap['PENDING'];
