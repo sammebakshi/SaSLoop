@@ -73,12 +73,12 @@ exec(dumpCmd, async (err, stdout, stderr) => {
     fs.readdir(BACKUP_DIR, (err, files) => {
         if (err) return;
         const now = Date.now();
-        const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
+        const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
 
         files.forEach(file => {
             const fPath = path.join(BACKUP_DIR, file);
             const stats = fs.statSync(fPath);
-            if (now - stats.mtimeMs > sevenDaysMs) {
+            if (now - stats.mtimeMs > thirtyDaysMs) {
                 fs.unlinkSync(fPath);
                 console.log(`🗑️ Deleted old local backup: ${file}`);
             }
