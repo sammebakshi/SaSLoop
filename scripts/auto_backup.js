@@ -2,6 +2,7 @@ const { exec } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 const { google } = require('googleapis');
+require('dotenv').config();
 
 // ⚙️ CONFIGURATION
 const DB_NAME = process.env.DB_NAME || 'sasloop';
