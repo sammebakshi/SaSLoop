@@ -262,6 +262,19 @@ router.get("/orders/:userId/:phone", async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// 🚚 PUBLIC LIVE ORDER TRACKING
+router.get("/order/:orderRef", async (req, res) => {
+    try {
+        const { orderRef } = req.params;
+        const result = await pool.query(
+            "SELECT items, total_price, status FROM orders WHERE order_reference = $1", 
+            [orderRef]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: "Order not found" });
+        res.json(result.rows[0]);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
 // 🔑 REQUEST LOGIN OTP (WHATSAPP)
 router.post("/auth/request-otp", async (req, res) => {
     try {

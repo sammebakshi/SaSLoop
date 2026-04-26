@@ -519,11 +519,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (e) { console.error("Notif fail:", e); }
 
+            const trackingLink = `https://sasloop.com/track/${orderRef}`;
+            const upiRes = await pool.query("SELECT upi_id FROM payment_settings LIMIT 1");
+            const upiId = upiRes.rows[0]?.upi_id || "restaurant@upi";
+            const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz.name || "Restaurant")}&am=${pending.total.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`;
+
             const receipt = [
                 `✅ *Order Confirmed!*`,
                 `Ref: ${orderRef}`,
                 `───────────────`,
-                `Your order is being prepared. Thank you! 🎉`
+                `💳 *Pay Now:* ${paymentLink}`,
+                `📍 *Live Tracking:* ${trackingLink}`,
+                `───────────────`,
+                `Your order is being sent to the kitchen. Thank you! 🎉`
             ].join("\n");
 
             await sendOfficialMessage(customerNumber, receipt, userId);
@@ -666,10 +674,12 @@ YOUR MISSION:
 2. If an item matches multiple menu items, pick the closest match or ask for clarification in the human_reply.
 3. If the user is just greeting, welcome them warmly and suggest a best-seller.
 4. If they want to checkout, encourage them but maybe mention a "must-try" dessert first.
+5. If the user wants to book a table, ask for date, time, and guest count. If they provide it, mark intent as RESERVATION and fill the reservation object.
 
 RULES for JSON Output:
-- "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", or "UNKNOWN".
+- "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", or "UNKNOWN".
 - "items": Array of { "name": "Exact Name from Menu", "quantity": number }. Only include items found in the menu.
+- "reservation": { "date": "YYYY-MM-DD", "time": "HH:MM", "guests": number } (ONLY IF intent is RESERVATION and user provided details)
 - "human_reply": A conversational, sales-driven response. If you added items, confirm them enthusiastically.
 - "upsell_suggestion": A short, tempting suggestion for one additional item they haven't ordered yet.
 
@@ -677,6 +687,7 @@ RETURN ONLY JSON:
 {
   "intent": string,
   "items": [{ "name": string, "quantity": number }],
+  "reservation": { "date": string, "time": string, "guests": number },
   "human_reply": string,
   "upsell_suggestion": string
 }
@@ -725,6 +736,20 @@ RETURN ONLY JSON:
                         ]
                     }
                 ], userId);
+                return;
+            }
+
+            if (result.intent === 'RESERVATION') {
+                if (result.reservation && result.reservation.date && result.reservation.time && result.reservation.guests) {
+                    await pool.query(
+                        "INSERT INTO reservations (user_id, customer_name, customer_number, guests, reservation_date, reservation_time) VALUES ($1, $2, $3, $4, $5, $6)", 
+                        [userId, customerName || "Customer", cleanNum, result.reservation.guests, result.reservation.date, result.reservation.time]
+                    );
+                    const msg = `✅ *Table Reserved!*\n━━━━━━━━━━━━━━\n\nWe have booked a table for *${result.reservation.guests} guests* on *${result.reservation.date}* at *${result.reservation.time}*.\n\nWe look forward to hosting you!`;
+                    await sendOfficialMessage(customerNumber, msg, userId);
+                } else {
+                    await sendOfficialMessage(customerNumber, result.human_reply || "I'd love to help book a table. For what date, time, and how many guests?", userId);
+                }
                 return;
             }
 

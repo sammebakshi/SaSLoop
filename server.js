@@ -65,6 +65,7 @@ app.use("/api/catalog", require("./routes/catalogRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
+app.use("/api/reservations", require("./routes/reservationRoutes"));
 
 // ======================
 // ✅ HEALTH CHECK

@@ -294,6 +294,18 @@ async function initializeDatabase() {
                 otp_code VARCHAR(10) NOT NULL,
                 expires_at TIMESTAMP NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 19. Table Reservations
+            `CREATE TABLE IF NOT EXISTS reservations (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id),
+                customer_name VARCHAR(255),
+                customer_number VARCHAR(50),
+                guests INTEGER,
+                reservation_date DATE,
+                reservation_time TIME,
+                status VARCHAR(50) DEFAULT 'confirmed',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 

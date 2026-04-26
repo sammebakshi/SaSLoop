@@ -29,7 +29,8 @@ import {
   Bell,
   BarChart3,
   Monitor,
-  ChefHat
+  ChefHat,
+  Calendar
 } from "lucide-react";
 
 const SaSLoopLogo = () => (
@@ -278,6 +279,7 @@ const Layout = ({ children }) => {
           { name: "POS Terminal", path: "/pos", icon: Monitor },
           { name: "Order Board", path: "/orders", icon: Package },
           { name: "Kitchen Display (KDS)", path: "/kds", icon: ChefHat },
+          { name: "Table Reservations", path: "/reservations", icon: Calendar },
           { name: "Reports", path: "/reports", icon: BarChart3 },
           { name: "Customer Growth", path: "/crm", icon: Users },
           { name: "Mobile App Hub", path: "/mobile-app", icon: Smartphone },

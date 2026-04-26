@@ -31,6 +31,8 @@ import Reports from "./pages/Reports";
 import OnlineOrder from "./pages/OnlineOrder";
 import POS from "./pages/POS";
 import KDS from "./pages/KDS";
+import TrackOrder from "./pages/TrackOrder";
+import Reservations from "./pages/Reservations";
 
 // ============================================================
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
@@ -77,6 +79,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/menu/:bizId/:tableId" element={<CustomerMenu />} />
         <Route path="/order/:bizId" element={<OnlineOrder />} />
+        <Route path="/track/:orderRef" element={<TrackOrder />} />
 
         {/* Master Admin Routes */}
         <Route element={<ProtectedShell allowedRoles={['master_admin']} />}>
@@ -96,6 +99,7 @@ function App() {
         <Route element={<ProtectedShell allowedRoles={['user']} />}>
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/orders" element={<OrderBoard />} />
+            <Route path="/reservations" element={<Reservations />} />
             <Route path="/chats" element={<LiveChats />} />
             <Route path="/broadcast" element={<BroadcastHub />} />
             <Route path="/recharge" element={<RechargeHub />} />
