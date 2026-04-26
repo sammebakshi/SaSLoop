@@ -707,7 +707,7 @@ RULES for JSON Output:
 - "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
 - "items": Array of { "name": "Exact Name from Menu", "quantity": number }. Only include items found in the menu.
 - "reservation": { "date": "YYYY-MM-DD", "time": "HH:MM", "guests": number } (ONLY IF intent is RESERVATION and user provided details)
-- "feedback": { "rating": number, "comment": string } (ONLY IF intent is FEEDBACK. Extract rating out of 5 if possible)
+- "feedback": { "rating": number, "comment": string } (ONLY IF intent is FEEDBACK. If user didn't give a number but the text is positive like 'Good food', assume rating 5. If negative, assume 1 or 2.)
 - "human_reply": A conversational, sales-driven response. If you added items, confirm them enthusiastically.
 - "upsell_suggestion": A short, tempting suggestion for one additional item they haven't ordered yet.
 
@@ -774,13 +774,13 @@ RETURN ONLY JSON:
                         "INSERT INTO customer_feedback (user_id, customer_number, rating, comment) VALUES ($1, $2, $3, $4)",
                         [userId, cleanNum, result.feedback.rating, result.feedback.comment || result.human_reply || ""]
                     );
-                    const reviewLink = biz.settings?.google_review_link;
+                    const reviewLink = biz.settings?.googleReviewLink;
                     let msg = `Thank you for your rating of ${result.feedback.rating} out of 5! 🌟 We truly appreciate your feedback.`;
                     
-                    if (result.feedback.rating >= 4 && reviewLink) {
-                        msg += `\n\nIf you have a spare moment, we would love it if you could share your experience on Google:\n👉 ${reviewLink}`;
-                    } else if (result.feedback.rating < 4) {
-                        msg += `\n\nWe're sorry we didn't hit the mark this time. We will use your feedback to improve our services! 🙏`;
+                    if ((result.feedback.rating >= 4 || !result.feedback.rating) && reviewLink) {
+                        msg += `\n\n🌟 *Could you help us grow?* \nSince you enjoyed it, we would love a quick review on Google! It takes 10 seconds:\n👉 ${reviewLink}`;
+                    } else if (result.feedback.rating > 0 && result.feedback.rating < 4) {
+                        msg += `\n\n🙏 *We hear you.* We'll share your comments with our kitchen team to improve. Thank you for being honest!`;
                     }
                     await sendOfficialMessage(customerNumber, msg, userId);
                 } else {
