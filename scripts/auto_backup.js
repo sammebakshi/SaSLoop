@@ -42,9 +42,10 @@ async function uploadToDrive(fileName, filePath) {
         };
 
         const response = await drive.files.create({
-            resource: fileMetadata,
+            requestBody: fileMetadata,
             media: media,
             fields: 'id',
+            supportsAllDrives: true
         });
 
         console.log(`☁️ Uploaded to GDrive! File ID: ${response.data.id}`);
