@@ -108,7 +108,16 @@ function OnlineOrder() {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
+    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { 
+        setData(d); 
+        setLoading(false); 
+        if (d.items?.length > 0) setActiveCategory(d.items[0].category || "General"); 
+        if (d.business?.settings?.accepted_payment_methods) {
+            if (!d.business.settings.accepted_payment_methods.cash && d.business.settings.accepted_payment_methods.upi) {
+                setPaymentMethod("UPI");
+            }
+        }
+    });
   }, [bizId]);
 
   useEffect(() => {
@@ -330,6 +339,13 @@ function OnlineOrder() {
          <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
             <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Order ID</p>
             <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono italic">{orderRef}</p>
+            {paymentMethod === 'UPI' && (
+               <div className="mb-8 p-6 bg-white rounded-3xl border-2 border-indigo-100 shadow-xl shadow-indigo-100/50">
+                  <p className="text-[10px] font-black text-indigo-500 uppercase tracking-widest mb-4">Complete Payment</p>
+                  <a href={`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`} className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 mb-3">Pay ₹{finalPaidAmount.toFixed(0)} Now</a>
+                  <p className="text-[8px] font-bold text-slate-400">Or we have sent a payment link to your WhatsApp.</p>
+               </div>
+            )}
          </div>
          <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest">Back to Flavors</button>
       </div>
