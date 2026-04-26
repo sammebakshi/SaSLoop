@@ -55,7 +55,7 @@ async function uploadToDrive(fileName, filePath) {
 console.log(`🚀 Starting daily backup for ${DB_NAME}...`);
 
 // 1. Create SQL Dump
-const dumpCmd = `mysqldump -u ${process.env.DB_USER || 'root'} -p${process.env.DB_PASSWORD || 'your_password'} ${DB_NAME} > ${filePath}`;
+const dumpCmd = `PGPASSWORD='${process.env.DB_PASSWORD || 'your_password'}' pg_dump -h ${process.env.DB_HOST || 'localhost'} -U ${process.env.DB_USER || 'postgres'} ${DB_NAME} > ${filePath}`;
 
 exec(dumpCmd, async (err, stdout, stderr) => {
     if (err) {
