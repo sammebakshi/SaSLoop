@@ -519,7 +519,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (e) { console.error("Notif fail:", e); }
 
-            const trackingLink = `https://sasloop.com/track/${orderRef}`;
+            const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const trackingLink = `${baseUrl}/track/${orderRef}`;
             const upiId = biz.settings?.upi_id || "restaurant@upi";
             const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz.name || "Restaurant")}&am=${pending.total.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`;
 
@@ -567,8 +568,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 if (linkMatch) menuLink = linkMatch[0];
             }
             
-            // Final fallback
-            if (!menuLink) menuLink = `https://sasloop.com/menu/${biz.id}`;
+            const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            if (!menuLink) menuLink = `${baseUrl}/menu/${biz.id}`;
 
             const text = `📜 *Our Digital Menu*\n━━━━━━━━━━━━━━\n\nYou can browse our full catalog and see all the latest flavors here:\n\n🔗 ${menuLink}\n\nAnything else I can help you with?`;
             await sendOfficialMessage(customerNumber, text, userId);
