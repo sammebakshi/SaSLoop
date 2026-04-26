@@ -41,11 +41,11 @@ router.get("/", authMiddleware, async (req, res) => {
 
 // POST new item
 router.post("/", authMiddleware, async (req, res) => {
-    const { code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg } = req.body;
+    const { code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg, stock_count } = req.body;
     try {
         const result = await pool.query(
-            "INSERT INTO business_items (user_id, code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *",
-            [req.user.id, code, product_name, category, sub_category, price, availability, image_url || null, description || null, tax_applicable !== undefined ? tax_applicable : 1, is_veg || false]
+            "INSERT INTO business_items (user_id, code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg, stock_count) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *",
+            [req.user.id, code, product_name, category, sub_category, price, availability, image_url || null, description || null, tax_applicable !== undefined ? tax_applicable : 1, is_veg || false, stock_count !== undefined && stock_count !== '' && stock_count !== null ? parseInt(stock_count) : null]
         );
         res.json(result.rows[0]);
     } catch (err) {
@@ -109,11 +109,11 @@ router.post("/import", authMiddleware, async (req, res) => {
 
 // UPDATE item
 router.put("/:id", authMiddleware, async (req, res) => {
-    const { code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg } = req.body;
+    const { code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable, is_veg, stock_count } = req.body;
     try {
         const result = await pool.query(
-            "UPDATE business_items SET code=$1, product_name=$2, category=$3, sub_category=$4, price=$5, availability=$6, image_url=$7, description=$8, tax_applicable=$9, is_veg=$10 WHERE id=$11 AND user_id=$12 RETURNING *",
-            [code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable !== undefined ? tax_applicable : 1, is_veg || false, req.params.id, req.user.id]
+            "UPDATE business_items SET code=$1, product_name=$2, category=$3, sub_category=$4, price=$5, availability=$6, image_url=$7, description=$8, tax_applicable=$9, is_veg=$10, stock_count=$11 WHERE id=$12 AND user_id=$13 RETURNING *",
+            [code, product_name, category, sub_category, price, availability, image_url, description, tax_applicable !== undefined ? tax_applicable : 1, is_veg || false, stock_count !== undefined && stock_count !== '' && stock_count !== null ? parseInt(stock_count) : null, req.params.id, req.user.id]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: "Item not found" });
         res.json(result.rows[0]);

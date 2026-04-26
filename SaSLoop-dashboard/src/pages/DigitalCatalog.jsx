@@ -29,7 +29,9 @@ function DigitalCatalog() {
       image_url: "",
       description: "",
       tax_applicable: 1,
-      is_veg: false
+      is_veg: false,
+      track_stock: false,
+      stock_count: ""
   });
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -124,7 +126,7 @@ function DigitalCatalog() {
         if (res.ok) {
             const added = await res.json();
             setItems([added, ...items]);
-            setNewItem({ code: "", product_name: "", category: "", sub_category: "", price: "", availability: true, image_url: "", description: "", tax_applicable: 1, is_veg: false });
+            setNewItem({ code: "", product_name: "", category: "", sub_category: "", price: "", availability: true, image_url: "", description: "", tax_applicable: 1, is_veg: false, track_stock: false, stock_count: "" });
             setShowAddForm(false);
             showNotice("success", "Dish added to catalog!");
         }
@@ -424,6 +426,21 @@ function DigitalCatalog() {
                               <button type="button" onClick={() => setNewItem({...newItem, is_veg: false})} className={`flex-1 py-4 rounded-xl font-black text-[10px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 ${!newItem.is_veg ? 'bg-rose-500 border-rose-400 text-white shadow-lg shadow-rose-100' : 'bg-white border-slate-100 text-slate-400'}`}><div className="w-3 h-3 border border-current rounded-sm p-[1px]"><div className="w-full h-full rounded-full bg-current"></div></div> Non-Veg</button>
                            </div>
                          </div>
+                         <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">Live Inventory</label>
+                           <div className="flex items-center justify-between bg-white border border-slate-100 rounded-xl px-5 py-3">
+                              <span className="text-xs font-bold text-slate-600">Track Stock?</span>
+                              <button type="button" onClick={() => setNewItem({...newItem, track_stock: !newItem.track_stock, stock_count: newItem.track_stock ? "" : (newItem.stock_count || "")})} className={`w-10 h-6 rounded-full relative transition-colors ${newItem.track_stock ? 'bg-orange-500' : 'bg-slate-200'}`}>
+                                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${newItem.track_stock ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                              </button>
+                           </div>
+                         </div>
+                         {newItem.track_stock && (
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest pl-1">Current Stock</label>
+                               <input type="number" placeholder="e.g. 50" value={newItem.stock_count} onChange={e => setNewItem({...newItem, stock_count: e.target.value})} className="w-full bg-orange-50 border border-orange-100 rounded-xl px-5 py-4 text-xs font-bold text-orange-600 placeholder-orange-300" />
+                            </div>
+                         )}
                         <div className="col-span-full pt-4">
                             <button type="submit" className="w-full py-5 bg-orange-500 text-white rounded-[2rem] font-black text-[12px] uppercase shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95">Save new dish</button>
                         </div>
@@ -465,16 +482,21 @@ function DigitalCatalog() {
                                     {item.tax_applicable === 1 ? <span className="text-[8px] font-black text-emerald-500 uppercase">GST</span> : <span className="text-[8px] font-black text-slate-300 uppercase">OFF</span>}
                                 </td>
                                 <td className="px-8 py-6 text-center">
-                                    {item.availability ? (
-                                        <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase">In Stock</span>
-                                    ) : (
-                                        <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase">Out of Stock</span>
-                                    )}
+                                    <div className="flex flex-col items-center gap-1">
+                                        {item.availability ? (
+                                            <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase">In Stock</span>
+                                        ) : (
+                                            <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase">Out of Stock</span>
+                                        )}
+                                        {item.stock_count !== null && item.stock_count !== undefined && (
+                                            <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Qty: {item.stock_count}</span>
+                                        )}
+                                    </div>
                                 </td>
                                 <td className="px-8 py-6 text-center font-black text-slate-900 tracking-tighter text-base">{getCurrencySymbol()}{item.price}</td>
                                 <td className="px-8 py-6 text-right">
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                                        <button onClick={() => setEditingItem(item)} className="w-9 h-9 flex items-center justify-center text-slate-400 bg-white border border-slate-100 rounded-xl hover:text-indigo-600 hover:border-indigo-100 shadow-sm"><Settings className="w-4 h-4" /></button>
+                                        <button onClick={() => setEditingItem({...item, track_stock: item.stock_count !== null && item.stock_count !== undefined})} className="w-9 h-9 flex items-center justify-center text-slate-400 bg-white border border-slate-100 rounded-xl hover:text-indigo-600 hover:border-indigo-100 shadow-sm"><Settings className="w-4 h-4" /></button>
                                         <button onClick={() => handleDelete(item.id)} className="w-9 h-9 flex items-center justify-center text-slate-400 bg-white border border-slate-100 rounded-xl hover:text-rose-500 hover:border-rose-100 shadow-sm"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </td>
@@ -558,6 +580,21 @@ function DigitalCatalog() {
                                <button type="button" onClick={() => setEditingItem({...editingItem, is_veg: false})} className={`flex-1 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest border transition-all flex items-center justify-center gap-2 ${!editingItem.is_veg ? 'bg-rose-500 border-rose-400 text-white shadow-xl shadow-rose-100' : 'bg-slate-50 border-slate-100 text-slate-400'}`}><div className="w-3 h-3 border border-current rounded-sm p-[1px]"><div className="w-full h-full rounded-full bg-current"></div></div> Non-Veg</button>
                             </div>
                          </div>
+                         <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">Live Inventory</label>
+                           <div className="flex items-center justify-between bg-slate-50 border-none rounded-2xl px-6 py-3">
+                              <span className="text-xs font-bold text-slate-600">Track Stock?</span>
+                              <button type="button" onClick={() => setEditingItem({...editingItem, track_stock: !editingItem.track_stock, stock_count: editingItem.track_stock ? null : (editingItem.stock_count || 0)})} className={`w-10 h-6 rounded-full relative transition-colors ${editingItem.track_stock ? 'bg-orange-500' : 'bg-slate-300'}`}>
+                                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${editingItem.track_stock ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                              </button>
+                           </div>
+                         </div>
+                         {editingItem.track_stock && (
+                            <div className="space-y-2">
+                               <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest pl-1">Current Stock Qty</label>
+                               <input type="number" value={editingItem.stock_count === null ? '' : editingItem.stock_count} onChange={e => setEditingItem({...editingItem, stock_count: e.target.value})} className="w-full bg-orange-50/50 border-none rounded-2xl px-6 py-4 text-xs font-bold text-orange-600" />
+                            </div>
+                         )}
                       </div>
 
                       <div className="flex gap-4 pt-4">
