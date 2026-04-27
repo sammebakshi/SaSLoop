@@ -342,12 +342,29 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const lower = msgText.trim().toLowerCase();
         const cleanNum = normalizePhone(customerNumber);
         
+        // --- 🔍 FETCH BIZ DATA FIRST (For Hours Check) ---
+        const bizRes = await pool.query(
+            `SELECT r.*, u.bot_knowledge 
+             FROM restaurants r 
+             JOIN app_users u ON r.user_id = u.id 
+             WHERE r.user_id = $1`, 
+            [userId]
+        );
+        const biz = bizRes.rows[0];
+        if (!biz) return;
+
+        // --- 🕒 CHECK BUSINESS HOURS (Mandatory for all messages) ---
+        const bizStatus = isBusinessOpen(biz.settings);
+        if (!bizStatus.isOpen) {
+            const closedMsg = `😴 *We are currently CLOSED*\n━━━━━━━━━━━━━━\nOur business hours are *${bizStatus.openingTime}* to *${bizStatus.closingTime}*.\n\nPlease visit us during our working hours. Thank you! 🙏`;
+            await sendOfficialMessage(customerNumber, closedMsg, userId);
+            return;
+        }
+
         // --- 🏠 HARDCODED GREETING (Save AI Tokens & Promote VIP) ---
         const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab'];
         if (greetings.includes(lower)) {
-            const bizRes = await pool.query("SELECT name, settings FROM restaurants WHERE user_id = $1", [userId]);
-            const biz = bizRes.rows[0];
-            const bizName = biz?.name || "our restaurant";
+            const bizName = biz.name || "our restaurant";
             
             // Check if customer exists in loyalty
             const customerRes = await pool.query("SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
@@ -393,25 +410,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const session = await getSession(userId, cleanNum);
         if (session.is_paused) return;
-
-        // --- 🔍 FETCH BIZ & USER DATA (Including Knowledge Base) ---
-        const bizRes = await pool.query(
-            `SELECT r.*, u.bot_knowledge 
-             FROM restaurants r 
-             JOIN app_users u ON r.user_id = u.id 
-             WHERE r.user_id = $1`, 
-            [userId]
-        );
-        const biz = bizRes.rows[0];
-        if (!biz) return;
-
-        // --- 🕒 CHECK BUSINESS HOURS ---
-        const bizStatus = isBusinessOpen(biz.settings);
-        if (!bizStatus.isOpen) {
-            const closedMsg = `😴 *We are currently CLOSED*\n━━━━━━━━━━━━━━\nOur business hours are *${bizStatus.openingTime}* to *${bizStatus.closingTime}*.\n\nPlease visit us during our working hours. Thank you! 🙏`;
-            await sendOfficialMessage(customerNumber, closedMsg, userId);
-            return;
-        }
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
