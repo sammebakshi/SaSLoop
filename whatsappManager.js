@@ -711,7 +711,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords) ---
         const simpleLower = lower.trim();
-        const greetings = ['hi', 'hello', 'hey', 'namaste'];
         
         // Skip keyword search if it's a simple greeting or too short
         const isGreeting = greetings.includes(simpleLower);
