@@ -324,8 +324,25 @@ const sendBrandedText = async (to, title, text, userId) => {
 // ----------------------------------------------------------------------------------
 const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation = false, locationData = null) => {
     try {
-        const cleanNum = formatToInter(customerNumber);
-        const session = await getSession(userId, customerNumber);
+        const lower = msgText.trim().toLowerCase();
+        const cleanNum = normalizePhone(customerNumber);
+        
+        // --- 🏠 HARDCODED GREETING (Save AI Tokens) ---
+        const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab'];
+        if (greetings.includes(lower)) {
+            const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
+            const bizName = bizRes.rows[0]?.name || "our restaurant";
+            const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n*What would you like to do today?*\n\n1️⃣ *View Menu*\n2️⃣ *Place an Order*\n3️⃣ *Track Order*`;
+            
+            await sendButtons(customerNumber, welcomeText, [
+                { id: 'view_menu', title: '📜 View Menu' },
+                { id: 'place_order', title: '🛍️ Place Order' }
+            ], userId);
+            await logChat(userId, cleanNum, 'bot', welcomeText);
+            return;
+        }
+
+        const session = await getSession(userId, cleanNum);
         if (session.is_paused) return;
 
         // --- 🔍 FETCH BIZ & USER DATA (Including Knowledge Base) ---
@@ -563,7 +580,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
             }
 
-            const baseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const baseUrl = process.env.BACKEND_URL || 'https://sasloop.in';
             const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
 
             receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
@@ -603,8 +620,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // Skip immediate KOT for online payment orders
             // try { ... }
 
-            const frontendBaseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
-            const backendBaseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const frontendBaseUrl = process.env.FRONTEND_URL || 'https://sasloop.in';
+            const backendBaseUrl = process.env.BACKEND_URL || 'https://sasloop.in';
             const trackingLink = `${frontendBaseUrl}/track/${orderRef}`;
             const paymentLink = `${backendBaseUrl}/api/public/payment-redirect/${orderRef}`;
 
