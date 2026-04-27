@@ -60,6 +60,8 @@ app.use("/api/auth/login", authLimiter);
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5000',
+    'https://sasloop.in',
+    'https://www.sasloop.in',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 

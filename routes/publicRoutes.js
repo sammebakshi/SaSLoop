@@ -192,12 +192,12 @@ router.post("/order", async (req, res) => {
                 receiptRows.push(``);
                 receiptRows.push(`We'll update you when it's ready! 🔥`);
                 
-                const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+                const baseUrl = process.env.FRONTEND_URL || 'https://sasloop.in';
                 const trackingLink = `${baseUrl}/track/${currentOrderRef}`;
                 receiptRows.push(`\n📍 *Track Live:* ${trackingLink}`);
 
                 if (paymentMethod === 'UPI') {
-                    const baseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+                        const baseUrl = process.env.BACKEND_URL || 'https://sasloop.in';
                     const paymentLink = `${baseUrl}/api/public/payment-redirect/${currentOrderRef}`;
                     receiptRows.push(`\n💳 *Pay Online:* ${paymentLink}`);
                 }
