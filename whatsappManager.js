@@ -371,7 +371,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const menuContext = menu.map(i => `• ${i.product_name} [${i.category}]: ${symbol}${i.price} (${i.description || 'Specialty of the house'})`).join("\n");
 
         const cart = session.context.cart || [];
-        const lower = msgText ? msgText.toLowerCase() : "";
 
         // --- 📍 HANDLE LOCATION PIN ---
         if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
