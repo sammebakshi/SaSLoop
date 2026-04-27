@@ -104,6 +104,21 @@ const sendOfficialMessage = async (to, content, userId) => {
     }
 };
 
+const sendList = async (to, bodyText, listTitle, sections, userId) => {
+    return await sendOfficialMessage(to, {
+        type: "interactive",
+        interactive: {
+            type: "list",
+            header: { type: "text", text: "How can we help? ✨" },
+            body: { text: bodyText },
+            footer: { text: "Please choose an option from the list below" },
+            action: {
+                button: listTitle,
+                sections: sections
+            }
+        }
+    }, userId);
+};
 const deductInventory = async (userId, cart) => {
     try {
         const bizRes = await pool.query("SELECT name, notification_numbers FROM restaurants WHERE user_id = $1", [userId]);
@@ -330,17 +345,49 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- 🏠 HARDCODED GREETING (Save AI Tokens & Promote VIP) ---
         const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab'];
         if (greetings.includes(lower)) {
-            const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
-            const bizName = bizRes.rows[0]?.name || "our restaurant";
+            const bizRes = await pool.query("SELECT name, settings FROM restaurants WHERE user_id = $1", [userId]);
+            const biz = bizRes.rows[0];
+            const bizName = biz?.name || "our restaurant";
             
-            const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 *SPECIAL OFFER:* Join our *VIP Club* today and get *50 Points* instantly! 🎊\n\n*What would you like to do today?*`;
-            
-            await sendButtons(customerNumber, welcomeText, [
-                { id: 'join_loyalty', title: '🎁 Join VIP (+50 Pts)' },
-                { id: 'view_menu', title: '📜 View Menu' },
-                { id: 'place_order', title: '🛍️ Place Order' }
-            ], userId);
-            await logChat(userId, cleanNum, 'bot', welcomeText);
+            // Check if customer exists in loyalty
+            const customerRes = await pool.query("SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            const existing = customerRes.rows[0];
+
+            if (existing) {
+                // EXISTING CUSTOMER: Show "Welcome Back" + List
+                const welcomeText = `🏠 *Welcome back to ${bizName}!*\n\nHello ${existing.name || 'friend'}, how may I assist you today? 🌟\n\nYou can explore our menu or place an order using the options below. 👇`;
+                
+                const sections = [
+                    {
+                        title: "🛒 Ordering Options",
+                        rows: [
+                            { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔 🥤" },
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕 🍰" }
+                        ]
+                    },
+                    {
+                        title: "💎 Help & Rewards",
+                        rows: [
+                            { id: "enquiry", title: "❓ Dish Enquiry", description: "Ask about ingredients or prices 🍲" },
+                            { id: "loyalty_check", title: "🎁 Loyalty & Points", description: "Check your rewards balance 💎" },
+                            { id: "support", title: "📞 Contact Support", description: "Speak with our friendly team 👷" }
+                        ]
+                    }
+                ];
+
+                await sendList(customerNumber, welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                await logChat(userId, cleanNum, 'bot', welcomeText);
+            } else {
+                // NEW CUSTOMER: Show VIP Offer + Buttons
+                const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 *SPECIAL OFFER:* Join our *VIP Club* today and get *50 Points* instantly! 🎊\n\n*What would you like to do today?*`;
+                
+                await sendButtons(customerNumber, welcomeText, [
+                    { id: 'join_loyalty', title: '🎁 Join VIP (+50 Pts)' },
+                    { id: 'view_menu', title: '📜 View Menu' },
+                    { id: 'place_order', title: '🛍️ Place Order' }
+                ], userId);
+                await logChat(userId, cleanNum, 'bot', welcomeText);
+            }
             return;
         }
 
