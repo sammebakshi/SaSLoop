@@ -16,7 +16,7 @@ router.get("/menu/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
         const bizRes = await pool.query(
-            `SELECT r.*, u.whatsapp_number 
+            `SELECT r.*, u.phone as whatsapp_number 
              FROM restaurants r 
              JOIN app_users u ON u.id = r.user_id 
              WHERE r.user_id = $1`, 

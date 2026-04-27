@@ -13,10 +13,12 @@ router.post("/upload", authMiddleware, async (req, res) => {
         const file = req.files.image;
         const ext = path.extname(file.name);
         const fileName = `item_${Date.now()}${ext}`;
-        const uploadPath = path.join(__dirname, "..", "uploads", fileName);
+        
+        const uploadDir = path.join(process.cwd(), "uploads");
+        const uploadPath = path.join(uploadDir, fileName);
 
-        if (!fs.existsSync(path.join(__dirname, "..", "uploads"))) {
-            fs.mkdirSync(path.join(__dirname, "..", "uploads"));
+        if (!fs.existsSync(uploadDir)) {
+            fs.mkdirSync(uploadDir, { recursive: true });
         }
 
         file.mv(uploadPath, (err) => {
