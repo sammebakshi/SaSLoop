@@ -4,12 +4,13 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { 
-  TrendingUp, Users, ShoppingBag, CreditCard, ArrowUpRight, ArrowDownRight, Package, Clock, Activity, Megaphone
+  TrendingUp, Users, ShoppingBag, CreditCard, ArrowUpRight, ArrowDownRight, Package, Clock, Activity, Megaphone, BellRing, Check
 } from "lucide-react";
 
 function Dashboard() {
   const [business, setBusiness] = useState(null);
   const [orders, setOrders] = useState([]);
+  const [waiterRequests, setWaiterRequests] = useState([]);
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
   const isMobile = isMobileDevice();
@@ -38,6 +39,13 @@ function Dashboard() {
         setOrders(Array.isArray(ordersData) ? ordersData : []);
         const adminUser = JSON.parse(localStorage.getItem("user") || "{}");
         setCredits(impersonateId ? 0 : (adminUser.broadcast_credits || 0));
+
+        // Fetch Waiter Requests
+        const waiterRes = await fetch(`${API_BASE}/api/business/waiter-requests${targetParam}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const waiterData = await waiterRes.json();
+        setWaiterRequests(Array.isArray(waiterData) ? waiterData : []);
       } catch (err) {
         console.error("Dashboard Load Error:", err);
       } finally {
@@ -45,7 +53,26 @@ function Dashboard() {
       }
     };
     fetchData();
+    const itv = setInterval(fetchData, 10000); // Polling for real-time updates
+    return () => clearInterval(itv);
   }, []);
+
+  const resolveWaiter = async (requestId) => {
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`${API_BASE}/api/business/waiter-requests/resolve`, {
+        method: "PUT",
+        headers: { 
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ id: requestId })
+      });
+      setWaiterRequests(prev => prev.filter(r => r.id !== requestId));
+    } catch (err) {
+      console.error("Resolve error:", err);
+    }
+  };
 
   const analytics = useMemo(() => {
     if (!Array.isArray(orders)) return { totalRevenue: 0, avgOrder: 0, chartData: [] };
@@ -156,6 +183,37 @@ function Dashboard() {
                 <div className="py-10 flex flex-col items-center justify-center text-slate-300 opacity-50">
                    <ShoppingBag className="w-8 h-8 mb-2" />
                    <p className="text-[9px] font-black uppercase">Empty</p>
+                </div>
+              )}
+           </div>
+        </div>
+
+        {/* WAITER REQUESTS MINI TABLE */}
+        <div className={`bg-white border-2 border-amber-100 rounded-[2rem] ${isMobile ? 'p-4' : 'p-8'} shadow-xl shadow-amber-50/50 flex flex-col`}>
+           <div className="flex items-center gap-2 mb-4">
+              <BellRing className="w-5 h-5 text-amber-500 animate-bounce" />
+              <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Waiter Calls</h3>
+              {waiterRequests.length > 0 && <span className="bg-amber-500 text-white text-[10px] px-2 py-0.5 rounded-full animate-pulse">{waiterRequests.length}</span>}
+           </div>
+           <div className="space-y-3 flex-1 overflow-y-auto no-scrollbar">
+              {waiterRequests.map((req) => (
+                <div key={req.id} className="flex items-center justify-between p-4 bg-amber-50/50 border border-amber-100 rounded-2xl">
+                   <div className="min-w-0">
+                      <p className="text-[12px] font-black text-slate-900 tracking-tight">Table {req.table_number}</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase">{new Date(req.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                   </div>
+                   <button 
+                    onClick={() => resolveWaiter(req.id)}
+                    className="w-10 h-10 bg-white border border-amber-200 rounded-xl flex items-center justify-center text-amber-600 hover:bg-amber-500 hover:text-white transition-all shadow-sm"
+                   >
+                      <Check className="w-5 h-5" />
+                   </button>
+                </div>
+              ))}
+              {waiterRequests.length === 0 && (
+                <div className="py-12 flex flex-col items-center justify-center text-slate-300 opacity-50">
+                   <Clock className="w-8 h-8 mb-2" />
+                   <p className="text-[9px] font-black uppercase tracking-widest">Quiet Zone</p>
                 </div>
               )}
            </div>

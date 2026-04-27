@@ -13,6 +13,10 @@ function BroadcastHub() {
   const [isSending, setIsSending] = useState(false);
   const [successResponse, setSuccessResponse] = useState(null);
   const [errorResponse, setErrorResponse] = useState(null);
+  const [isTopupModalOpen, setIsTopupModalOpen] = useState(false);
+  const [topupAmount, setTopupAmount] = useState(500);
+  const [systemPayment, setSystemPayment] = useState(null);
+  const [isTopupLoading, setIsTopupLoading] = useState(false);
   const isMobile = isMobileDevice();
 
   useEffect(() => {
@@ -100,6 +104,44 @@ function BroadcastHub() {
     }
   };
 
+  const fetchSystemPayment = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/master/config/payment`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSystemPayment(data);
+      }
+    } catch (e) {}
+  };
+
+  const handleTopupSubmit = async () => {
+     setIsTopupLoading(true);
+     try {
+        const res = await fetch(`${API_BASE}/api/whatsapp/recharge-automatic`, {
+           method: "POST",
+           headers: { 
+             "Content-Type": "application/json",
+             "Authorization": `Bearer ${localStorage.getItem("token")}`
+           },
+           body: JSON.stringify({ amount: topupAmount })
+        });
+        const data = await res.json();
+        if (res.ok) {
+           setSuccessResponse(`Success! ${topupAmount} credits added to your wallet.`);
+           setCredits(data.newCredits);
+           setIsTopupModalOpen(false);
+        } else {
+           setErrorResponse(data.error || "Top-up failed.");
+        }
+     } catch (e) {
+        setErrorResponse("Payment verification failed.");
+     } finally {
+        setIsTopupLoading(false);
+     }
+  };
+
   return (
     <div className="flex flex-col h-full space-y-4 p-2 max-w-7xl mx-auto animate-in fade-in duration-700">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -112,7 +154,13 @@ function BroadcastHub() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">Wallet Power</p>
               <p className="text-lg font-black text-indigo-600">{credits.toLocaleString()} <span className="text-[10px] text-slate-400">CREDITS</span></p>
            </div>
-           <button className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm">
+           <button 
+             onClick={() => {
+                fetchSystemPayment();
+                setIsTopupModalOpen(true);
+             }}
+             className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl hover:bg-indigo-600 hover:text-white transition-all shadow-sm"
+           >
               <Plus className="w-5 h-5" />
            </button>
         </div>
@@ -328,6 +376,69 @@ function BroadcastHub() {
            </div>
         </div>
       </div>
+
+
+      {isTopupModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsTopupModalOpen(false)} />
+           <div className="relative w-full max-w-md bg-white rounded-[3rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="p-8 text-center">
+                 <div className="w-20 h-20 bg-indigo-50 text-indigo-600 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                    <Plus className="w-10 h-10" />
+                 </div>
+                 <h3 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">Recharge Credits</h3>
+                 <p className="text-slate-500 text-sm font-bold uppercase tracking-widest mt-2 opacity-60">Increase your Campaign Reach</p>
+                 
+                 <div className="mt-8 space-y-4">
+                    <div className="flex flex-col gap-2">
+                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Choose Credits</label>
+                       <select 
+                          value={topupAmount} 
+                          onChange={e => setTopupAmount(parseInt(e.target.value))}
+                          className="w-full p-4 bg-slate-50 border-2 border-slate-100 rounded-2xl outline-none focus:border-indigo-500 font-black text-xl"
+                       >
+                          <option value="500">500 Credits (₹499)</option>
+                          <option value="1000">1000 Credits (₹899)</option>
+                          <option value="5000">5000 Credits (₹3999)</option>
+                          <option value="10000">10000 Credits (₹6999)</option>
+                       </select>
+                    </div>
+
+                    {systemPayment && (
+                       <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Pay to Master Admin</p>
+                          {systemPayment.razorpay_link && (
+                             <a 
+                               href={systemPayment.razorpay_link} 
+                               target="_blank" 
+                               rel="noopener noreferrer"
+                               className="block w-full py-3 bg-indigo-600 text-white font-black text-xs uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all text-center"
+                             >
+                                Pay via Razorpay
+                             </a>
+                          )}
+                          {systemPayment.upi && (
+                             <div className="p-3 bg-white border border-slate-200 rounded-xl text-center">
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">UPI ID</p>
+                                <p className="text-sm font-black text-slate-800">{systemPayment.upi}</p>
+                             </div>
+                          )}
+                       </div>
+                    )}
+
+                    <button 
+                       onClick={handleTopupSubmit}
+                       disabled={isTopupLoading}
+                       className="w-full h-16 bg-emerald-600 text-white font-black uppercase tracking-[0.2em] italic rounded-[2rem] shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                    >
+                       {isTopupLoading ? <Loader2 className="animate-spin" /> : "I have Paid • Add Credits"}
+                    </button>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Note: Manual verification may take up to 2 hours.</p>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -41,6 +41,10 @@ router.post("/login", async (req, res) => {
 
     const user = result.rows[0];
 
+    if (user.status && user.status !== 'active') {
+        return res.status(403).json({ error: "Your account is inactive. Please contact the administrator." });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ error: "Invalid password" });

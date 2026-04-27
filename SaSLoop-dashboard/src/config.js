@@ -9,15 +9,15 @@
 // Detect if running inside Capacitor native shell
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
 
-// Ngrok tunnel URL — update this whenever your tunnel restarts
-const NGROK_URL = "https://comply-lagged-concave.ngrok-free.dev";
+// Ngrok or Production URL — update this whenever your tunnel restarts or domain changes
+const PRODUCTION_URL = "https://sasloop.in";
 
 const API_BASE =
   isCapacitor
-    ? NGROK_URL
+    ? PRODUCTION_URL
     : window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:5000"
-      : ""; // In production/ngrok, use relative paths (/api/...)
+      : ""; // In production, use relative paths (/api/...)
 
 export default API_BASE;
 
@@ -29,21 +29,3 @@ export const isMobileDevice = () => {
   return /android|iphone|ipad|ipod|mobile/i.test(ua) || window.innerWidth <= 768;
 };
 
-// Global Fetch Patch: Bypass Ngrok Free Tier HTML Interstitial Warning
-if (typeof window !== 'undefined') {
-  const originalFetch = window.fetch;
-  window.fetch = async function () {
-    let [resource, config] = arguments;
-    if (!config) config = {};
-    if (!config.headers) config.headers = {};
-    
-    // Convert Headers object to normal object if necessary
-    if (config.headers instanceof Headers) {
-      config.headers.append('ngrok-skip-browser-warning', 'true');
-    } else {
-      config.headers['ngrok-skip-browser-warning'] = 'true';
-    }
-    
-    return originalFetch.apply(this, [resource, config]);
-  };
-}

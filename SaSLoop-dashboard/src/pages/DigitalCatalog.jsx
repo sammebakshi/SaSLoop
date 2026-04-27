@@ -197,13 +197,15 @@ function DigitalCatalog() {
   };
 
   const handleExport = () => {
-    const headers = ["SL", "Product Name", "Category", "Sub Category", "Price", "Tax Applicable", "Availability"];
+    const headers = ["SL", "Product Name", "Category", "Sub Category", "Price", "Description", "Image URL", "Tax Applicable", "Availability"];
     const rows = items.map((i, idx) => [
         i.code || `ITM${String(idx + 1).padStart(3, '0')}`,
         i.product_name,
         i.category,
         i.sub_category || "",
         i.price,
+        i.description || "",
+        i.image_url || "",
         i.tax_applicable === 1 ? 1 : 0,
         i.availability ? "TRUE" : "FALSE"
     ]);
@@ -220,17 +222,14 @@ function DigitalCatalog() {
   };
 
   const getCurrencySymbol = () => {
-    const country = formData.settings?.country;
-    if (country === 'India') return '₹';
-    if (country === 'UAE') return 'AED ';
     return '₹';
   };
 
   const handleDownloadTemplate = () => {
-    const headers = ["SL", "Product Name", "Category", "Sub Category", "Price", "Tax Applicable (1/0)", "Availability (TRUE/FALSE)"];
+    const headers = ["SL", "Product Name", "Category", "Sub Category", "Price", "Description", "Image URL", "Tax Applicable (1/0)", "Availability (TRUE/FALSE)"];
     const rows = [
-        ["ITM001", "Butter Chicken", "Main Course", "Spicy", "450", "1", "TRUE"],
-        ["ITM002", "Garlic Naan", "Breads", "Fresh", "40", "1", "TRUE"],
+        ["ITM001", "Butter Chicken", "Main Course", "Spicy", "450", "Classic buttery tomato gravy with tender chicken", "", "1", "TRUE"],
+        ["ITM002", "Garlic Naan", "Breads", "Fresh", "40", "Oven fresh bread with garlic and butter", "", "1", "TRUE"],
     ];
     const csvContent = [headers, ...rows].map(e => e.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -318,8 +317,10 @@ function DigitalCatalog() {
                                     category: cols[2]?.replace(/^"|"$/g, '') || "", 
                                     sub_category: cols[3]?.replace(/^"|"$/g, '') || "", 
                                     price: parseFloat(cols[4]?.replace(/^"|"$/g, '')) || 0, 
-                                    tax_applicable: parseInt(cols[5]?.replace(/^"|"$/g, '')) || 0,
-                                    availability: cols[6]?.replace(/^"|"$/g, '').toUpperCase() !== 'FALSE' 
+                                    description: cols[5]?.replace(/^"|"$/g, '') || "",
+                                    image_url: cols[6]?.replace(/^"|"$/g, '') || "",
+                                    tax_applicable: parseInt(cols[7]?.replace(/^"|"$/g, '')) || 0,
+                                    availability: cols[8]?.replace(/^"|"$/g, '').toUpperCase() !== 'FALSE' 
                                 };
                             }).filter(i => i.product_name && i.product_name.length > 1);
 
@@ -441,9 +442,13 @@ function DigitalCatalog() {
                                <input type="number" placeholder="e.g. 50" value={newItem.stock_count} onChange={e => setNewItem({...newItem, stock_count: e.target.value})} className="w-full bg-orange-50 border border-orange-100 rounded-xl px-5 py-4 text-xs font-bold text-orange-600 placeholder-orange-300" />
                             </div>
                          )}
-                        <div className="col-span-full pt-4">
+                         <div className="space-y-2 col-span-full">
+                            <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">Short Description</label>
+                            <input type="text" placeholder="e.g. Traditional spicy curry with roasted spices..." value={newItem.description} onChange={e => setNewItem({...newItem, description: e.target.value})} className="w-full bg-white border border-slate-100 rounded-xl px-5 py-4 text-xs font-bold" />
+                         </div>
+                         <div className="col-span-full pt-4">
                             <button type="submit" className="w-full py-5 bg-orange-500 text-white rounded-[2rem] font-black text-[12px] uppercase shadow-xl shadow-orange-100 hover:bg-orange-600 transition-all active:scale-95">Save new dish</button>
-                        </div>
+                         </div>
                     </form>
                 </div>
             )}

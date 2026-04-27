@@ -40,7 +40,8 @@ function SetupBusiness() {
         customCategoryLabel: "Menu",
         upi_id: "",
         accepted_payment_methods: { cash: true, upi: true },
-        google_review_link: ""
+        google_review_link: "",
+        custom_payment_link: ""
       }
   });
 
@@ -96,6 +97,7 @@ function SetupBusiness() {
             upi_id: "",
             accepted_payment_methods: { cash: true, upi: true },
             google_review_link: "",
+            custom_payment_link: "",
             ...(data.business.settings || {})
           }
         });
@@ -346,6 +348,12 @@ function SetupBusiness() {
                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Business UPI ID (For Payments)</label>
                      <input type="text" placeholder="e.g. yourbusiness@upi" className="w-full bg-slate-50 border-2 rounded-2xl px-4 py-3 font-bold" value={formData.settings.upi_id || ''} onChange={e => setFormData({...formData, settings: {...formData.settings, upi_id: e.target.value}})} />
                      <p className="text-[8px] text-slate-400 mt-2 italic font-bold">This UPI ID will be sent to customers to collect payments via WhatsApp.</p>
+                  </div>
+                  
+                  <div>
+                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Custom Payment Link (Razorpay, Stripe, etc.)</label>
+                     <input type="url" placeholder="https://rzp.io/l/..." className="w-full bg-slate-50 border-2 rounded-2xl px-4 py-3 font-bold" value={formData.settings.custom_payment_link || ''} onChange={e => setFormData({...formData, settings: {...formData.settings, custom_payment_link: e.target.value}})} />
+                     <p className="text-[8px] text-slate-400 mt-2 italic font-bold">If provided, this link will be used instead of UPI for online payments.</p>
                   </div>
 
                   <div className="space-y-3">

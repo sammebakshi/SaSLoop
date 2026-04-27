@@ -226,10 +226,15 @@ function Login() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (token && user.role) {
+    if (token && user?.id && user?.role) {
       if (user.role === "master_admin") window.location.href = "/master-dashboard";
       else if (user.role.startsWith("admin")) window.location.href = "/admin-dashboard";
       else window.location.href = "/dashboard";
+    } else if (token) {
+      // Clear stale/incomplete sessions
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.clear();
     }
   }, []);
 

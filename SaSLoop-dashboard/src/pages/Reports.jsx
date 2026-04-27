@@ -69,7 +69,7 @@ function Reports() {
     const win = window.open("", "_blank");
     let items = order.items;
     if (typeof items === 'string') items = JSON.parse(items);
-    const currency = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
+    const currency = '₹';
     
     win.document.write(`
       <html>

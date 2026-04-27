@@ -30,7 +30,8 @@ import {
   BarChart3,
   Monitor,
   ChefHat,
-  Calendar
+  Calendar,
+  IndianRupee
 } from "lucide-react";
 
 const SaSLoopLogo = () => (
@@ -284,6 +285,8 @@ const Layout = ({ children }) => {
           { name: "Table Reservations", path: "/reservations", icon: Calendar },
           { name: "Reports", path: "/reports", icon: BarChart3 },
           { name: "Customer Growth", path: "/crm", icon: Users },
+          { name: "Expense Tracker", path: "/expenses", icon: IndianRupee },
+          { name: "Staff Management", path: "/staff", icon: Shield },
           { name: "Mobile App Hub", path: "/mobile-app", icon: Smartphone },
           { name: "Help & Support", path: "/support", icon: LifeBuoy },
         ];

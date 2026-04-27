@@ -85,6 +85,33 @@ router.post("/recharge", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ Automatic Recharge (For Demo/Instant Flow)
+router.post("/recharge-automatic", authMiddleware, async (req, res) => {
+  try {
+    const { amount } = req.body;
+    if (!amount) return res.status(400).json({ error: "Amount is required" });
+
+    // Add credits to wallet
+    const currentBal = await whatsappManager.getWalletCredits(req.user.id);
+    const newBal = currentBal + parseInt(amount);
+
+    await pool.query(
+      "INSERT INTO app_wallets (user_id, balance) VALUES ($1, $2) ON CONFLICT (user_id) DO UPDATE SET balance = app_wallets.balance + EXCLUDED.balance, updated_at = CURRENT_TIMESTAMP",
+      [req.user.id, parseInt(amount)]
+    );
+
+    // Log the transaction
+    await pool.query(
+      "INSERT INTO recharge_requests (user_id, plan_amount, credits_requested, transaction_id, status) VALUES ($1, $2, $3, $4, 'APPROVED')",
+      [req.user.id, 0, amount, "AUTO_" + Date.now()]
+    );
+
+    res.json({ success: true, newCredits: newBal });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ✅ Get User's Recharge History
 router.get("/recharge-history", authMiddleware, async (req, res) => {
   try {

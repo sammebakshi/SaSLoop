@@ -25,6 +25,7 @@ app.use((req, res, next) => {
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
+const xss = require("xss-clean");
 
 // ======================
 // ✅ SECURITY MIDDLEWARE
@@ -34,6 +35,7 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 app.use(hpp());
+app.use(xss());
 
 // Global Rate Limiter: 2000 requests per 15 minutes per IP (Dashboard Polling requires higher limits)
 const limiter = rateLimit({
@@ -48,7 +50,30 @@ const limiter = rateLimit({
 });
 app.use("/api/", limiter); // Apply to all API routes
 
-app.use(cors({ origin: true, credentials: true }));
+// Brute Force Protection for Auth
+const authLimiter = rateLimit({
+    windowMs: 60 * 60 * 1000, // 1 hour
+    max: 20, // Limit each IP to 20 login attempts per hour
+    message: "Too many login attempts. Please try again in an hour."
+});
+app.use("/api/auth/login", authLimiter);
+
+const allowedOrigins = [
+    'http://localhost:3000',
+    'http://localhost:5000',
+    process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+            callback(null, true);
+        } else {
+            callback(new Error('Blocked by CORS Security Policy'));
+        }
+    },
+    credentials: true
+}));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(fileUpload());

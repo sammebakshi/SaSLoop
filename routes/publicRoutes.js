@@ -124,38 +124,43 @@ router.post("/order", async (req, res) => {
         let orderId;
         let currentOrderRef = orderRef;
 
+        const isCOD = paymentMethod === 'CASH' || !paymentMethod;
+        const initialStatus = customStatus || (isCOD ? 'PENDING' : 'AWAITING_PAYMENT');
+
         if (existingOrder) {
             orderId = existingOrder.id;
             currentOrderRef = existingOrder.order_reference;
             insertRes = await pool.query(
               "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8 WHERE id=$9 RETURNING *",
-              [JSON.stringify(items || []), finalPrice, customStatus || 'PENDING', paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, orderId]
+              [JSON.stringify(items || []), finalPrice, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, orderId]
             );
         } else {
             insertRes = await pool.query(
                 "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *",
-                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, customStatus || 'PENDING', tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge]
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge]
             );
             orderId = insertRes.rows[0].id;
         }
         
-        // Notify Staff (Using standardized phone)
-        try {
-            const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
-            const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
-            let subtotalCalc = parseFloat(frontendSubtotal) || 0;
-            if (!frontendSubtotal && items) {
+        // Notify Staff ONLY IF COD (Online orders wait for redirect click)
+        if (isCOD) {
+            try {
+                const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
+                const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
+                let subtotalCalc = parseFloat(frontendSubtotal) || 0;
+                if (!frontendSubtotal && items) {
+                    const itemsArr = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+                    itemsArr.forEach(i => subtotalCalc += ((parseFloat(i.qty) || 0) * (parseFloat(i.price) || 0)));
+                }
+                
                 const itemsArr = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
-                itemsArr.forEach(i => subtotalCalc += ((parseFloat(i.qty) || 0) * (parseFloat(i.price) || 0)));
-            }
-            
-            const itemsArr = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
-            await whatsappManager.notifyKitchenAndStaff(
-                userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", itemsArr,
-                subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
-                (fulfillmentMode || "QR").toLowerCase(), finalOrderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
-            );
-        } catch (notifErr) { console.error("KITCHEN NOTIF FAIL:", notifErr.message); }
+                await whatsappManager.notifyKitchenAndStaff(
+                    userId, currentOrderRef, customerName || "Guest", dbPhone || "QR-Customer", itemsArr,
+                    subtotalCalc, finalPrice, parseFloat(frontendCgst) || 0, parseFloat(frontendSgst) || 0, cgstRate, sgstRate, currSymbol,
+                    (fulfillmentMode || "QR").toLowerCase(), finalOrderAddress, (tableNumber && tableNumber !== "0") ? tableNumber : null
+                );
+            } catch (notifErr) { console.error("KITCHEN NOTIF FAIL:", notifErr.message); }
+        }
         
         // Notify Customer
         if (isOnline && dbPhone && dbPhone.startsWith('+')) {
@@ -192,8 +197,8 @@ router.post("/order", async (req, res) => {
                 receiptRows.push(`\n📍 *Track Live:* ${trackingLink}`);
 
                 if (paymentMethod === 'UPI') {
-                    const upiId = bizData?.settings?.upi_id || "restaurant@upi";
-                    const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(bizData?.name || "Restaurant")}&am=${finalPrice}&cu=INR&tn=Order%20${currentOrderRef}`;
+                    const baseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+                    const paymentLink = `${baseUrl}/api/public/payment-redirect/${currentOrderRef}`;
                     receiptRows.push(`\n💳 *Pay Online:* ${paymentLink}`);
                 }
 
@@ -389,6 +394,76 @@ router.put("/order-status", async (req, res) => {
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Update error" });
+    }
+});
+
+// ✅ PAYMENT REDIRECT & KOT TRIGGER
+router.get("/payment-redirect/:orderRef", async (req, res) => {
+    try {
+        const { orderRef } = req.params;
+        
+        // 1. Fetch Order & Business Data
+        const orderRes = await pool.query("SELECT * FROM orders WHERE order_reference = $1", [orderRef]);
+        if (orderRes.rows.length === 0) return res.status(404).send("Order not found");
+        const order = orderRes.rows[0];
+        
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [order.user_id]);
+        const biz = bizRes.rows[0];
+
+        // 2. Only trigger if it's currently awaiting payment
+        if (order.status === 'AWAITING_PAYMENT') {
+            await pool.query("UPDATE orders SET status = 'PENDING' WHERE id = $1", [order.id]);
+            
+            // Trigger KOT
+            const itemsArr = Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : []);
+            const symbol = biz?.currency_code === 'USD' ? '$' : '₹';
+            
+            await whatsappManager.notifyKitchenAndStaff(
+                order.user_id, order.order_reference, order.customer_name, order.customer_number, itemsArr,
+                parseFloat(order.total_price), parseFloat(order.total_price), 0, 0, 0, 0, symbol,
+                'online', order.address, order.table_number
+            );
+        }
+
+        // 3. Redirect to actual payment link
+        const customLink = biz?.settings?.custom_payment_link;
+        const upiId = biz?.settings?.upi_id || "restaurant@upi";
+        const finalRedirect = customLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}`;
+        
+        res.redirect(finalRedirect);
+    } catch (err) {
+        console.error("Redirect Error:", err);
+        res.status(500).send("Error processing payment link");
+    }
+});
+
+// ✅ CALL WAITER (QR / TABLE)
+router.post("/call-waiter", async (req, res) => {
+    try {
+        const { userId, tableNumber } = req.body;
+        
+        // 1. Log in DB
+        await pool.query(
+            "INSERT INTO waiter_requests (user_id, table_number) VALUES ($1, $2)",
+            [userId, tableNumber]
+        );
+
+        // 2. Notify Staff via WhatsApp
+        const bizRes = await pool.query("SELECT name, notification_numbers FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        
+        if (biz && biz.notification_numbers) {
+            const msg = `🔔 *WAITER REQUEST!* \n━━━━━━━━━━━━━━\n📍 *Table:* ${tableNumber}\n🏢 *Business:* ${biz.name}\n\nA customer needs assistance. Please attend to them immediately! 🙏`;
+            
+            for (const num of biz.notification_numbers) {
+                await whatsappManager.sendOfficialMessage(num, msg, userId);
+            }
+        }
+
+        res.json({ success: true, message: "Waiter notified!" });
+    } catch (err) {
+        console.error("Call Waiter Error:", err);
+        res.status(500).json({ error: "Failed to notify waiter" });
     }
 });
 

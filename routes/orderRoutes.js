@@ -94,6 +94,20 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
             updateMsg = `❌ *Cancelled:* Your order *${ref}* has been cancelled.`;
         }
 
+        // 🔥 EXTRA: If admin manually moves order from AWAITING_PAYMENT to PENDING/PROCESSING, trigger KOT
+        if (order.status === 'AWAITING_PAYMENT' && (status === 'PENDING' || status === 'PROCESSING')) {
+            const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+            const biz = bizRes.rows[0];
+            const itemsArr = Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : []);
+            const symbol = biz?.currency_code === 'USD' ? '$' : '₹';
+            
+            await whatsappManager.notifyKitchenAndStaff(
+                userId, order.order_reference, order.customer_name, order.customer_number, itemsArr,
+                parseFloat(order.total_price), parseFloat(order.total_price), 0, 0, 0, 0, symbol,
+                'manual-override', order.address, order.table_number
+            );
+        }
+
         if (updateMsg && customerNumber) {
             await whatsappManager.sendOfficialMessage(customerNumber, updateMsg, userId, `STATUS_${id}_${status}`);
         }

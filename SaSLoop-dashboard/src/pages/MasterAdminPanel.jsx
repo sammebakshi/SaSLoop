@@ -2,7 +2,13 @@ import { useEffect, useState } from "react";
 import API_BASE from "../config";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Users, Shield, UserPlus, X, Box, Activity, Edit, Trash2, Mail, Lock, User, Phone, MapPin, Calendar, Building2, HelpCircle, Eye, EyeOff, Bot, Coins, LayoutDashboard } from "lucide-react";
+import { 
+  Users, LayoutDashboard, Building2, User, Mail, 
+  Search, Shield, Coins, Activity, Edit, Trash2, X, 
+  HelpCircle, MoreVertical, CheckCircle2, ChevronRight, Eye,
+  Lock, Key, Phone, Settings, Activity as ActivityIcon, Loader2,
+  DollarSign, Globe, Smartphone, Landmark, QrCode, Link as LinkIcon, Box, MapPin
+} from "lucide-react";
 
 function MasterAdminPanel() {
   const [users, setUsers] = useState([]);
@@ -22,7 +28,8 @@ function MasterAdminPanel() {
   const [viewMode, setViewMode] = useState(null); 
   const [searchQuery, setSearchQuery] = useState("");
   const [editId, setEditId] = useState(null); 
-  const [systemPayment, setSystemPayment] = useState({ upi: "", bank: "", ifsc: "", qr_code_url: "" });
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+  const [systemPayment, setSystemPayment] = useState({ upi: "", bank: "", ifsc: "", qr_code_url: "", razorpay_link: "" });
   const [rechargeRequests, setRechargeRequests] = useState([]);
   const [isRechargeModalOpen, setIsRechargeModalOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -130,6 +137,25 @@ function MasterAdminPanel() {
     } catch (e) {
       errorNotify("Failed to approve recharge: " + e.message);
     }
+  };
+
+  const handleSaveSystemPayment = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await fetch(`${API_BASE}/api/master/config/payment`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}` 
+        },
+        body: JSON.stringify(systemPayment)
+      });
+      if (res.ok) {
+        setSuccessDialog("Platform payment settings updated successfully.");
+        setIsPaymentModalOpen(false);
+        fetchSystemPayment();
+      }
+    } catch (e) { errorNotify("Failed to update: " + e.message); }
   };
 
   const handleRejectRecharge = async (id) => {
@@ -380,6 +406,7 @@ function MasterAdminPanel() {
                  <input type="text" placeholder="UPI ID" value={systemPayment.upi} onChange={e => setSystemPayment({...systemPayment, upi: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
                  <input type="text" placeholder="Account / IFSC" value={systemPayment.bank} onChange={e => setSystemPayment({...systemPayment, bank: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
                  <input type="text" placeholder="QR Image URL" value={systemPayment.qr_code_url} onChange={e => setSystemPayment({...systemPayment, qr_code_url: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
+                 <input type="text" placeholder="Razorpay Link" value={systemPayment.razorpay_link} onChange={e => setSystemPayment({...systemPayment, razorpay_link: e.target.value})} className="bg-slate-50 border border-slate-100 px-3 py-2 text-[10px] font-bold rounded-xl outline-none w-full sm:w-auto" />
                  <div className="flex gap-2">
                     <button 
                       onClick={async () => {
@@ -795,6 +822,16 @@ function MasterAdminPanel() {
                        />
                     </div>
                  </div>
+                 <div className="flex items-center gap-3">
+                    <button 
+                      onClick={() => { setSystemPayment(systemPayment); setIsPaymentModalOpen(true); }}
+                      className="px-6 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-emerald-500 hover:text-emerald-500 transition-all flex items-center gap-2"
+                    >
+                       <Landmark className="w-4 h-4" /> Platform Payment Config
+                    </button>
+                    <button onClick={() => setIsRechargeModalOpen(true)} className="px-8 py-4 bg-white border-2 border-slate-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-slate-500 hover:border-amber-500 hover:text-amber-500 transition-all flex items-center gap-2 relative">
+                    </button>
+                 </div>
                  <div className="flex gap-4">
                     <button onClick={() => setIsCreditModalOpen(false)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black py-5 rounded-3xl transition-all uppercase tracking-widest text-xs">Dismiss</button>
                     <button onClick={handleTopUp} className="flex-1 bg-amber-500 hover:bg-amber-600 shadow-xl shadow-amber-200 text-white font-black py-5 rounded-3xl transition-all uppercase tracking-widest text-xs">Confirm</button>
@@ -847,7 +884,58 @@ function MasterAdminPanel() {
               </div>
            </div>
          </div>
+       , document.body)}
+
+      {isPaymentModalOpen && createPortal(
+         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setIsPaymentModalOpen(false)} />
+           <div className="relative w-full max-w-2xl bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-slate-900">
+              <div className="p-8 border-b border-slate-100 flex justify-between items-center">
+                 <h3 className="text-2xl font-black tracking-tight flex items-center gap-3">
+                    <Landmark className="w-6 h-6 text-emerald-500" /> Platform Payment Config
+                 </h3>
+                 <button onClick={() => setIsPaymentModalOpen(false)} className="p-2 hover:bg-slate-100 rounded-xl"><X /></button>
+              </div>
+              <form onSubmit={handleSaveSystemPayment} className="p-8 space-y-6">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Platform UPI ID</label>
+                       <div className="relative">
+                          <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                          <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold" value={systemPayment.upi} onChange={e => setSystemPayment({...systemPayment, upi: e.target.value})} placeholder="sasloop@upi" />
+                       </div>
+                    </div>
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Razorpay Payment Page</label>
+                       <div className="relative">
+                          <LinkIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                          <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold" value={systemPayment.razorpay_link} onChange={e => setSystemPayment({...systemPayment, razorpay_link: e.target.value})} placeholder="https://rzp.io/l/..." />
+                       </div>
+                    </div>
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Bank Account</label>
+                       <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold" value={systemPayment.bank} onChange={e => setSystemPayment({...systemPayment, bank: e.target.value})} placeholder="Acc No: 1234..." />
+                    </div>
+                    <div className="space-y-1.5">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">IFSC Code</label>
+                       <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold" value={systemPayment.ifsc} onChange={e => setSystemPayment({...systemPayment, ifsc: e.target.value})} placeholder="SBIN00..." />
+                    </div>
+                    <div className="col-span-full space-y-1.5">
+                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Payment QR URL (Direct Image)</label>
+                       <div className="relative">
+                          <QrCode className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
+                          <input className="w-full bg-slate-50 border border-slate-100 rounded-2xl pl-12 pr-4 py-4 text-sm font-bold" value={systemPayment.qr_code_url} onChange={e => setSystemPayment({...systemPayment, qr_code_url: e.target.value})} placeholder="https://..." />
+                       </div>
+                    </div>
+                 </div>
+                 <div className="pt-6">
+                    <button type="submit" className="w-full py-5 bg-emerald-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all">Apply Global Settings</button>
+                 </div>
+              </form>
+           </div>
+         </div>
       , document.body)}
+}
 
     </div>
   );

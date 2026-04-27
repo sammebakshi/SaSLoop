@@ -35,6 +35,8 @@ import TrackOrder from "./pages/TrackOrder";
 import Reservations from "./pages/Reservations";
 import DeliveryTeam from "./pages/DeliveryTeam";
 import RiderPortal from "./pages/RiderPortal";
+import ExpenseTracker from "./pages/ExpenseTracker";
+import StaffManagement from "./pages/StaffManagement";
 
 // ============================================================
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
@@ -119,6 +121,8 @@ function App() {
             {/* Removed /pos from here so it doesn't render inside Layout */}
             <Route path="/kds" element={<KDS />} />
             <Route path="/delivery-team" element={<DeliveryTeam />} />
+            <Route path="/expenses" element={<ExpenseTracker />} />
+            <Route path="/staff" element={<StaffManagement />} />
             <Route path="/mobile-app" element={<AppCenter />} />
         </Route>
         

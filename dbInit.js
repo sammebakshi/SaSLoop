@@ -61,6 +61,8 @@ async function initializeDatabase() {
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS meta_phone_id TEXT`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS meta_account_id TEXT`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+            `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS parent_user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE`,
+            `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS staff_permissions JSONB DEFAULT '{}'`,
 
             // 3. Create business_items table
             `CREATE TABLE IF NOT EXISTS business_items (
@@ -278,6 +280,7 @@ async function initializeDatabase() {
                 bank_account VARCHAR(255),
                 ifsc_code VARCHAR(255),
                 qr_code_url TEXT,
+                razorpay_link TEXT,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
 
@@ -339,6 +342,24 @@ async function initializeDatabase() {
                 message TEXT NOT NULL,
                 scheduled_for TIMESTAMP NOT NULL,
                 status VARCHAR(50) DEFAULT 'PENDING', -- PENDING, SENT, FAILED
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 21. Waiter Requests
+            `CREATE TABLE IF NOT EXISTS waiter_requests (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
+                table_number VARCHAR(50),
+                status VARCHAR(50) DEFAULT 'PENDING',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 22. Business Expenses (Ledger)
+            `CREATE TABLE IF NOT EXISTS business_expenses (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
+                category VARCHAR(255) NOT NULL, -- e.g. Vegetables, Rent, Electricity
+                amount DECIMAL(10,2) NOT NULL,
+                note TEXT,
+                expense_date DATE DEFAULT CURRENT_DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];

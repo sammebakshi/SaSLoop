@@ -118,14 +118,29 @@ router.post("/create-user", authMiddleware, requireCanCreateAccounts, async (req
 router.put("/users/:id/toggle", authMiddleware, requireAdminOrMaster, async (req, res) => {
   try {
     const { id } = req.params;
+    const currentRole = req.user.role;
 
-    const user = await pool.query(
-      "SELECT status FROM app_users WHERE id = $1",
+    // Fetch target user role
+    const targetUser = await pool.query(
+      "SELECT role, status FROM app_users WHERE id = $1",
       [id]
     );
 
-    const newStatus =
-      user.rows[0].status === "active" ? "inactive" : "active";
+    if (targetUser.rows.length === 0) return res.status(404).json({ error: "User not found" });
+    const targetRole = targetUser.rows[0].role;
+
+    // Security Checks
+    if (targetRole === 'master_admin') {
+       return res.status(403).json({ error: "Cannot deactivate a master admin" });
+    }
+
+    if (currentRole.startsWith('admin') && currentRole !== 'master_admin') {
+       if (targetRole !== 'user') {
+          return res.status(403).json({ error: "Admins can only manage regular business users" });
+       }
+    }
+
+    const newStatus = targetUser.rows[0].status === "active" ? "inactive" : "active";
 
     await pool.query(
       "UPDATE app_users SET status = $1 WHERE id = $2",
@@ -133,9 +148,9 @@ router.put("/users/:id/toggle", authMiddleware, requireAdminOrMaster, async (req
     );
 
     await logAudit(req.user.id, 'TOGGLE_STATUS', { targetUserId: id, newStatus });
-    res.json({ message: "Status updated" });
+    res.json({ message: "Status updated successfully", newStatus });
   } catch (err) {
-    console.error(err.message);
+    console.error("Toggle Error:", err.message);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -355,17 +370,17 @@ router.post("/system/flush-sessions", authMiddleware, requireMasterAdmin, async 
 // ✅ SYSTEM PAYMENT CONFIG
 router.post("/config/payment", authMiddleware, requireMasterAdmin, async (req, res) => {
   try {
-    const { upi, bank, ifsc, qr_code_url } = req.body;
+    const { upi, bank, ifsc, qr_code_url, razorpay_link } = req.body;
     const check = await pool.query("SELECT id FROM payment_settings LIMIT 1");
     if (check.rows.length === 0) {
        await pool.query(
-         "INSERT INTO payment_settings (upi_id, bank_account, ifsc_code, qr_code_url) VALUES ($1, $2, $3, $4)",
-         [upi, bank, ifsc, qr_code_url]
+         "INSERT INTO payment_settings (upi_id, bank_account, ifsc_code, qr_code_url, razorpay_link) VALUES ($1, $2, $3, $4, $5)",
+         [upi, bank, ifsc, qr_code_url, razorpay_link]
        );
     } else {
        await pool.query(
-         "UPDATE payment_settings SET upi_id = $1, bank_account = $2, ifsc_code = $3, qr_code_url = $4, updated_at = CURRENT_TIMESTAMP",
-         [upi, bank, ifsc, qr_code_url]
+         "UPDATE payment_settings SET upi_id = $1, bank_account = $2, ifsc_code = $3, qr_code_url = $4, razorpay_link = $5, updated_at = CURRENT_TIMESTAMP",
+         [upi, bank, ifsc, qr_code_url, razorpay_link]
        );
     }
     res.json({ success: true });
@@ -376,11 +391,11 @@ router.post("/config/payment", authMiddleware, requireMasterAdmin, async (req, r
 
 router.get("/config/payment", authMiddleware, async (req, res) => {
   try {
-    const result = await pool.query("SELECT upi_id as upi, bank_account as bank, ifsc_code as ifsc, qr_code_url FROM payment_settings LIMIT 1");
+    const result = await pool.query("SELECT upi_id as upi, bank_account as bank, ifsc_code as ifsc, qr_code_url, razorpay_link FROM payment_settings LIMIT 1");
     if (result.rows.length > 0) {
        res.json(result.rows[0]);
     } else {
-       res.json({ upi: "", bank: "", ifsc: "", qr_code_url: "" });
+       res.json({ upi: "", bank: "", ifsc: "", qr_code_url: "", razorpay_link: "" });
     }
   } catch (err) {
     res.status(500).json({ error: err.message });

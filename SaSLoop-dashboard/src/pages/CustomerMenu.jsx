@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid
+  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -174,6 +174,22 @@ function CustomerMenu() {
       if (res.ok) { setOrderRef(o.orderRef); setFinalPaidAmount(o.finalPrice || 0); setView("confirmed"); setCart([]); fetchActiveOrders(); }
       else alert(o.error || "Failed");
     } finally { setPlacing(false); }
+  };
+
+  const callWaiter = async () => {
+    if (!tableId || tableId === "0") return alert("Please scan the QR code on your table to call a waiter.");
+    try {
+      const res = await fetch(`${API_BASE}/api/public/call-waiter`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: bizId, tableNumber: tableId })
+      });
+      const d = await res.json();
+      if (d.success) alert("🛎️ Waiter notified! Someone will be with you shortly.");
+      else alert(d.error || "Failed to notify waiter.");
+    } catch (e) {
+      alert("Something went wrong. Please try again.");
+    }
   };
 
   if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><RefreshCw className="animate-spin w-10 h-10 text-emerald-500" /><p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Synchronizing Menu...</p></div>);
@@ -375,7 +391,7 @@ function CustomerMenu() {
                         {cart.map(ci => (
                           <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
                              <div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div>
-                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-all"><Plus className="w-3.5 h-3.5" /></button></div>
+                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: ci.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-all"><Plus className="w-3.5 h-3.5" /></button></div>
                           </div>
                         ))}
                      </div>
@@ -406,7 +422,14 @@ function CustomerMenu() {
            <LayoutGrid className="w-6 h-6" />
          </button>
 
-         <a 
+         <button 
+          onClick={callWaiter}
+          className="w-14 h-14 bg-amber-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
+        >
+          <BellRing className="w-7 h-7" />
+        </button>
+
+        <a 
            href={`https://wa.me/${biz?.phone || ''}`} 
            target="_blank" 
            rel="noreferrer"

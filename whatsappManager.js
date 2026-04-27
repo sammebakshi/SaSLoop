@@ -92,14 +92,30 @@ const sendOfficialMessage = async (to, content, userId) => {
 
 const deductInventory = async (userId, cart) => {
     try {
+        const bizRes = await pool.query("SELECT name, notification_numbers FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        const staffNums = biz?.notification_numbers || [];
+
         for (const item of cart) {
-            await pool.query(
+            const itemName = item.name || item.product_name;
+            const res = await pool.query(
                 `UPDATE business_items 
                  SET stock_count = GREATEST(stock_count - $1, 0),
                      availability = CASE WHEN GREATEST(stock_count - $1, 0) = 0 THEN false ELSE availability END
-                 WHERE user_id = $2 AND product_name = $3 AND stock_count IS NOT NULL`,
-                [item.qty, userId, item.name || item.product_name]
+                 WHERE user_id = $2 AND product_name = $3 AND stock_count IS NOT NULL
+                 RETURNING stock_count`,
+                [item.qty || 1, userId, itemName]
             );
+
+            if (res.rows.length > 0) {
+                const newStock = res.rows[0].stock_count;
+                if (newStock < 5 && staffNums.length > 0) {
+                    const alertMsg = `⚠️ *LOW STOCK ALERT!* \n━━━━━━━━━━━━━━\n📦 *Item:* ${itemName}\n📉 *Remaining:* ${newStock} units\n🏢 *Business:* ${biz.name}\n\nPlease restock this item soon!`;
+                    for (const num of staffNums) {
+                        await sendOfficialMessage(num, { text: { body: alertMsg }, skipLog: true }, userId);
+                    }
+                }
+            }
         }
     } catch (e) {
         console.error("Failed to deduct inventory:", e);
@@ -195,6 +211,9 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         for (let num of staffNums) {
             await sendOfficialMessage(num, { text: { body: staffMsg }, skipLog: true }, userId);
         }
+
+        // 📦 Deduct stock on successful notification
+        await deductInventory(userId, cart);
     } catch (e) { console.error("Notify Kitchen Error:", e); }
 };
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
@@ -490,14 +509,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
             const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst));
 
+            const initialStatus = 'AWAITING_PAYMENT'; // Assuming online for now or checking payment method if added to AI later
+
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
-                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, 'PENDING']
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI']
             );
 
             await deductInventory(userId, cart);
 
-            await notifyKitchenAndStaff(userId, orderRef, customerName, cleanNum, cart, subtotal, total, cgst, sgst, cgstR, sgstR, symbol, 'pickup', 'Store Pickup', null);
+            // Skip immediate KOT for online payment orders
+            // if (isCOD) { ... }
 
             // 🏆 Update CRM (With Safety Guard)
             try {
@@ -527,8 +549,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
             }
 
+            const baseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
+
             receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
             receiptRows.push(`Ref: ${orderRef}`);
+            receiptRows.push(``);
+            receiptRows.push(`💳 *Pay Online:* ${paymentLink}`);
             receiptRows.push(``);
             receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
 
@@ -553,22 +580,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
             
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'PENDING', pending.deliveryCharge]
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI']
             );
 
             await deductInventory(userId, pending.items);
 
-            try {
-                await notifyKitchenAndStaff(
-                    userId, orderRef, customerName || "WhatsApp Customer", cleanNum, pending.items, pending.subtotal, pending.total, pending.cgst, pending.sgst, 2.5, 2.5, symbol, 'delivery', pending.address, null
-                );
-            } catch (e) { console.error("Notif fail:", e); }
+            // Skip immediate KOT for online payment orders
+            // try { ... }
 
-            const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
-            const trackingLink = `${baseUrl}/track/${orderRef}`;
-            const upiId = biz.settings?.upi_id || "restaurant@upi";
-            const paymentLink = `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz.name || "Restaurant")}&am=${pending.total.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`;
+            const frontendBaseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const backendBaseUrl = process.env.BACKEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const trackingLink = `${frontendBaseUrl}/track/${orderRef}`;
+            const paymentLink = `${backendBaseUrl}/api/public/payment-redirect/${orderRef}`;
 
             const receipt = [
                 `✅ *Order Confirmed!*`,
@@ -577,7 +601,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `💳 *Pay Now:* ${paymentLink}`,
                 `📍 *Live Tracking:* ${trackingLink}`,
                 `───────────────`,
-                `Your order is being sent to the kitchen. Thank you! 🎉`
+                `Your order is being sent to the kitchen after you click pay. Thank you! 🎉`
             ].join("\n");
 
             await sendOfficialMessage(customerNumber, receipt, userId);

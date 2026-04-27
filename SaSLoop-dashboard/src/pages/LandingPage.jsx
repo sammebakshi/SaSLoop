@@ -241,7 +241,7 @@ function LandingPage() {
                   )}
                   <h4 className={`text-sm font-black uppercase tracking-widest mb-6 ${p.popular ? 'text-emerald-400' : 'text-emerald-600'}`}>{p.title}</h4>
                   <div className="flex items-end gap-1 mb-2">
-                     <span className="text-2xl font-bold opacity-40">$</span>
+                     <span className="text-2xl font-bold opacity-40">₹</span>
                      <span className="text-6xl font-black tracking-tighter">{p.price}</span>
                      <span className="text-sm font-bold opacity-40">/mo</span>
                   </div>
