@@ -103,22 +103,6 @@ const sendOfficialMessage = async (to, content, userId) => {
         return { success: false, error: e.response?.data || e.message };
     }
 };
-
-const sendList = async (to, bodyText, listTitle, sections, userId) => {
-    return await sendOfficialMessage(to, {
-        type: "interactive",
-        interactive: {
-            type: "list",
-            header: { type: "text", text: "How can we help? ✨" },
-            body: { text: bodyText },
-            footer: { text: "Please choose an option from the list below" },
-            action: {
-                button: listTitle,
-                sections: sections
-            }
-        }
-    }, userId);
-};
 const deductInventory = async (userId, cart) => {
     try {
         const bizRes = await pool.query("SELECT name, notification_numbers FROM restaurants WHERE user_id = $1", [userId]);
@@ -392,7 +376,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     }
                 ];
 
-                await sendList(customerNumber, welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
                 await logChat(userId, cleanNum, 'bot', welcomeText);
             } else {
                 // NEW CUSTOMER: Show VIP Offer + Buttons
