@@ -8,24 +8,40 @@ const fs = require("fs");
 // Image Upload
 router.post("/upload", authMiddleware, async (req, res) => {
     try {
-        if (!req.files || !req.files.image) return res.status(400).json({ error: "No image uploaded" });
+        console.log(`[UPLOAD] Starting upload for User ${req.user.id}`);
+        if (!req.files || !req.files.image) {
+            console.error(`[UPLOAD-FAIL] No files in request for User ${req.user.id}`);
+            return res.status(400).json({ error: "No image uploaded" });
+        }
         
         const file = req.files.image;
+        console.log(`[UPLOAD] Received file: ${file.name} (${file.size} bytes)`);
+
         const ext = path.extname(file.name);
         const fileName = `item_${Date.now()}${ext}`;
         
         const uploadDir = path.join(process.cwd(), "uploads");
         const uploadPath = path.join(uploadDir, fileName);
 
+        console.log(`[UPLOAD] Target path: ${uploadPath}`);
+
         if (!fs.existsSync(uploadDir)) {
+            console.log(`[UPLOAD] Creating uploads directory...`);
             fs.mkdirSync(uploadDir, { recursive: true });
         }
 
         file.mv(uploadPath, (err) => {
-            if (err) return res.status(500).json({ error: err.message });
+            if (err) {
+                console.error(`[UPLOAD-MV-FAIL] Error moving file:`, err);
+                return res.status(500).json({ error: err.message });
+            }
+            console.log(`[UPLOAD-SUCCESS] File saved at: ${uploadPath}`);
             res.json({ url: `/uploads/${fileName}` });
         });
-    } catch (e) { res.status(500).json({ error: e.message }); }
+    } catch (e) { 
+        console.error(`[UPLOAD-CRASH]`, e);
+        res.status(500).json({ error: e.message }); 
+    }
 });
 
 // GET all items for the user
