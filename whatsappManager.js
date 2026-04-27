@@ -327,14 +327,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const lower = msgText.trim().toLowerCase();
         const cleanNum = normalizePhone(customerNumber);
         
-        // --- 🏠 HARDCODED GREETING (Save AI Tokens) ---
+        // --- 🏠 HARDCODED GREETING (Save AI Tokens & Promote VIP) ---
         const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab'];
         if (greetings.includes(lower)) {
             const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
             const bizName = bizRes.rows[0]?.name || "our restaurant";
-            const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n*What would you like to do today?*\n\n1️⃣ *View Menu*\n2️⃣ *Place an Order*\n3️⃣ *Track Order*`;
+            
+            const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 *SPECIAL OFFER:* Join our *VIP Club* today and get *50 Points* instantly! 🎊\n\n*What would you like to do today?*`;
             
             await sendButtons(customerNumber, welcomeText, [
+                { id: 'join_loyalty', title: '🎁 Join VIP (+50 Pts)' },
                 { id: 'view_menu', title: '📜 View Menu' },
                 { id: 'place_order', title: '🛍️ Place Order' }
             ], userId);
