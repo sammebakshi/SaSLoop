@@ -25,7 +25,6 @@ app.use((req, res, next) => {
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const hpp = require("hpp");
-const xss = require("xss-clean");
 
 // ======================
 // ✅ SECURITY MIDDLEWARE
@@ -35,7 +34,7 @@ app.use(helmet({
     crossOriginEmbedderPolicy: false
 }));
 app.use(hpp());
-app.use(xss());
+// xss-clean removed due to Express 5 incompatibility
 
 // Global Rate Limiter: 2000 requests per 15 minutes per IP (Dashboard Polling requires higher limits)
 const limiter = rateLimit({
