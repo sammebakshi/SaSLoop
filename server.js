@@ -136,6 +136,7 @@ app.listen(PORT, async () => {
     // Start Cron Jobs
     whatsappManager.startCartRecoveryCron();
     whatsappManager.startAutoFollowupCron();
+    whatsappManager.startBackupCron();
     
     // Log Restart
     try {

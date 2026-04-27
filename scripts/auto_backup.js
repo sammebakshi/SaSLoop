@@ -56,9 +56,10 @@ async function uploadToTelegram(fileName, filePath) {
 console.log(`🚀 Starting daily backup for ${DB_NAME}...`);
 
 // 1. Create SQL Dump (PostgreSQL)
-const dumpCmd = `PGPASSWORD='${process.env.DB_PASSWORD}' pg_dump -h ${process.env.DB_HOST || 'localhost'} -U ${process.env.DB_USER || 'postgres'} ${DB_NAME} > ${filePath}`;
+const pgDumpPath = process.env.PG_DUMP_PATH || 'pg_dump';
+const dumpCmd = `"${pgDumpPath}" -h ${process.env.DB_HOST || 'localhost'} -U ${process.env.DB_USER || 'postgres'} ${DB_NAME} > "${filePath}"`;
 
-exec(dumpCmd, async (err, stdout, stderr) => {
+exec(dumpCmd, { env: { ...process.env, PGPASSWORD: process.env.DB_PASSWORD } }, async (err, stdout, stderr) => {
     if (err) {
         console.error('❌ Backup failed:', stderr || err.message);
         return;

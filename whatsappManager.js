@@ -64,6 +64,25 @@ const sendOfficialMessage = async (to, content, userId) => {
         const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
             headers: { "Authorization": `Bearer ${token}` }
         });
+
+        // --- 📝 LOG OUTGOING BOT MESSAGE ---
+        if (!content.skipLog) {
+            let logText = "";
+            if (typeof content === 'string') logText = content;
+            else if (content.text) logText = content.text.body;
+            else if (content.interactive) {
+                const i = content.interactive;
+                logText = `[Bot Action] ${i.body ? i.body.text : (i.header ? i.header.text : 'Interactive message')}`;
+            }
+
+            if (logText) {
+                await pool.query(
+                    "INSERT INTO chat_messages (user_id, customer_number, role, text) VALUES ($1, $2, $3, $4)",
+                    [userId, normalizePhone(to), 'bot', logText]
+                );
+            }
+        }
+
         return { success: true, data: response.data };
     } catch (e) { 
         console.error(`[META-FAILURE] To: ${to} | Error:`, e.response?.data || e.message); 
@@ -170,11 +189,11 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
         ].join("\n");
 
         const kitchenNum = biz.kitchen_number;
-        if (kitchenNum) await sendOfficialMessage(kitchenNum, kot, userId);
-
+        if (kitchenNum) await sendOfficialMessage(kitchenNum, { text: { body: kot }, skipLog: true }, userId);
+ 
         const staffNums = biz.notification_numbers || [];
         for (let num of staffNums) {
-            await sendOfficialMessage(num, staffMsg, userId);
+            await sendOfficialMessage(num, { text: { body: staffMsg }, skipLog: true }, userId);
         }
     } catch (e) { console.error("Notify Kitchen Error:", e); }
 };
@@ -1031,6 +1050,29 @@ const startAutoFollowupCron = () => {
     }, 60000);
 };
 
+const startBackupCron = () => {
+    const cron = require("node-cron");
+    const { exec } = require("child_process");
+    
+    // Schedule backup for 3:00 AM every day
+    cron.schedule('0 3 * * *', () => {
+        console.log("⏰ [CRON] Starting Scheduled Database Backup (3:00 AM)");
+        const scriptPath = path.join(__dirname, "scripts", "auto_backup.js");
+        
+        exec(`node "${scriptPath}"`, (error, stdout, stderr) => {
+            if (error) {
+                console.error(`❌ [CRON] Backup Script Error: ${error.message}`);
+                return;
+            }
+            if (stderr) {
+                console.error(`⚠️ [CRON] Backup Script Stderr: ${stderr}`);
+            }
+            console.log(`✅ [CRON] Backup Script Output: ${stdout}`);
+        });
+    });
+    console.log("⏰ Database Backup Cron Scheduled (Daily 3:00 AM)");
+};
+
 module.exports = {
   handleMetaWebhook,
   sendOfficialMessage,
@@ -1041,6 +1083,7 @@ module.exports = {
   processAiAutomations,
   startCartRecoveryCron,
   startAutoFollowupCron,
+  startBackupCron,
   getWalletCredits,
   deductWalletCredits
 };
