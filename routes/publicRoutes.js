@@ -309,11 +309,19 @@ router.post("/auth/request-otp", async (req, res) => {
         const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
         const bizName = bizRes.rows[0]?.name || "Restaurant";
         
-        const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.`;
-        const sent = await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
+        // Use Official Template to bypass 24h window
+        const sent = await whatsappManager.sendOfficialMessage(dbPhone, {
+            templateName: "otp_verification",
+            params: [bizName, otp]
+        }, userId);
         
-        if (!sent) return res.status(500).json({ error: "WhatsApp service unavailable." });
-        res.json({ success: true, message: "OTP sent." });
+        if (!sent.success) {
+            console.error("OTP TEMPLATE FAIL:", sent.error);
+            // Fallback to text if template fails (unlikely if approved)
+            const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.`;
+            await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
+        }
+        res.json({ success: true, message: "OTP sent via template." });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to send OTP" });

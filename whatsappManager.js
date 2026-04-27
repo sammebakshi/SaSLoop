@@ -30,6 +30,19 @@ const sendOfficialMessage = async (to, content, userId) => {
         if (typeof content === 'string') {
             payload.type = "text";
             payload.text = { body: content };
+        } else if (content.templateName) {
+            // New Template Support
+            payload.type = "template";
+            payload.template = {
+                name: content.templateName,
+                language: { code: content.lang || "en" },
+                components: [
+                    {
+                        type: "body",
+                        parameters: (content.params || []).map(p => ({ type: "text", text: String(p) }))
+                    }
+                ]
+            };
         } else if (content.imageUrl && content.button) {
             // Interactive message with Image header and CTA button
             payload.type = "interactive";
@@ -69,6 +82,7 @@ const sendOfficialMessage = async (to, content, userId) => {
         if (!content.skipLog) {
             let logText = "";
             if (typeof content === 'string') logText = content;
+            else if (content.templateName) logText = `[Template: ${content.templateName}]`;
             else if (content.text) logText = content.text.body;
             else if (content.interactive) {
                 const i = content.interactive;
