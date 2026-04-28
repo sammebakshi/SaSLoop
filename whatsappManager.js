@@ -1138,14 +1138,24 @@ const handleMetaWebhook = async (body) => {
                 if (changes.value && changes.value.messages) {
                     const message = changes.value.messages[0];
                     const fromNumber = normalizePhone(message.from);
+                    const metaPhoneId = changes.value.metadata?.phone_number_id; 
+
+                    console.log("\n--- ⚡ WHATSAPP WEBHOOK START ⚡ ---");
+                    console.log(`⏰ Time: ${new Date().toISOString()}`);
+                    console.log(`📱 From: ${fromNumber}`);
+                    console.log(`🆔 Phone ID: ${metaPhoneId}`);
                     
                     // CRITICAL ERROR FALLBACK: Wrap everything in another try/catch to always reply
                     try {
                         const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
-                    const metaPhoneId = changes.value.metadata.phone_number_id; 
-                    console.log(`📩 WEBHOOK RECEIVED: From ${fromNumber} | PhoneID: ${metaPhoneId}`);
+                        console.log(`👤 Name: ${contactName}`);
 
-                    const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
+                        if (!metaPhoneId) {
+                            console.error("❌ CRITICAL: No metaPhoneId found in webhook payload!");
+                            return;
+                        }
+
+                        const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
                     if (userRes.rows.length === 0) {
                         console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
                         return;
@@ -1185,12 +1195,12 @@ const handleMetaWebhook = async (body) => {
                         }
                     } catch (innerErr) {
                         console.error("CRITICAL PROCESSING ERROR:", innerErr);
-                        try {
-                            const dbRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [changes.value.metadata.phone_number_id]);
-                            if (dbRes.rows[0]) {
-                                await sendOfficialMessage(fromNumber, "I'm sorry, I encountered a temporary error while processing your request. Please try again in a moment! 🍽️", dbRes.rows[0].id);
+                            if (metaPhoneId) {
+                                const dbRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
+                                if (dbRes.rows[0]) {
+                                    await sendOfficialMessage(fromNumber, "I'm sorry, I encountered a temporary error while processing your request. Please try again in a moment! 🍽️", dbRes.rows[0].id);
+                                }
                             }
-                        } catch (sendErr) {}
                     }
                 }
             }
