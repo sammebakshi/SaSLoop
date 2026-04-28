@@ -376,7 +376,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     }
                 ];
 
-                await sendList(customerNumber, welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
                 await logChat(userId, cleanNum, 'bot', welcomeText);
             } else {
                 // NEW CUSTOMER: Show VIP Offer + Buttons
@@ -707,7 +707,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (lower === 'loyalty') {
+        if (lower === 'loyalty' || lower === 'loyalty_check') {
             const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
             const points = loyaltyRes.rows[0]?.points || 0;
             const text = `🎁 *Your Rewards*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\n\nYou can use these points for discounts on your future orders! 🎊`;
