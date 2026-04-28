@@ -799,11 +799,26 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 matches.forEach(m => {
                     responseText += `• *${m.product_name}* - ${symbol}${m.price}\n`;
                 });
-                responseText += `\n━━━━━━━━━━━━━━\n_Please type the exact name of the dish you'd like to order._`;
-                
                 await sendBrandedText(customerNumber, biz.name, responseText, userId);
             }
             return;
+        }
+
+        // --- ⚡ FAST ENQUIRY (Handles availability and price directly) ---
+        if (lower.includes('available') || lower.includes('price') || lower.includes('cost') || lower.includes('have')) {
+            const query = lower.replace(/is|available|price|of|cost|what|do|you|have/g, '').trim();
+            if (query.length > 2) {
+                const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
+                if (match) {
+                    const status = match.availability ? "✅ *Available*" : "❌ *Currently Out of Stock*";
+                    const reply = `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
+                    await sendButtons(customerNumber, reply, [
+                        { id: `order_${match.product_name}`, title: `🛒 Order ${match.product_name}` },
+                        { id: 'place_order', title: '🛍️ Browse More' }
+                    ], userId);
+                    return;
+                }
+            }
         }
 
         // --- 🧠 ADVANCED AI SALESMAN ENGINE ---
