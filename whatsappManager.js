@@ -805,8 +805,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- ⚡ FAST ENQUIRY (Handles availability and price directly) ---
-        if (lower.includes('available') || lower.includes('price') || lower.includes('cost') || lower.includes('have')) {
-            const query = lower.replace(/is|available|price|of|cost|what|do|you|have/g, '').trim();
+        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate'];
+        if (enquiryWords.some(w => lower.includes(w))) {
+            let query = lower;
+            enquiryWords.forEach(w => { query = query.replace(new RegExp(`\\b${w}\\b`, 'g'), ''); });
+            query = query.replace(/[?]/g, '').trim();
+            
             if (query.length > 2) {
                 const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
                 if (match) {
@@ -1000,8 +1004,13 @@ RETURN ONLY JSON:
             await sendOfficialMessage(customerNumber, finalReply, userId);
 
         } catch (aiErr) {
-            console.error("[AI-ERROR]", aiErr);
-            await sendOfficialMessage(customerNumber, "I'm having a bit of trouble processing that, but I'm here! What would you like to order?", userId);
+            console.error("[AI-LIMIT-HIT]", aiErr.message);
+            // --- 🛡️ ROBUST FALLBACK: Show Menu if AI is Rate Limited ---
+            const fallbackMsg = `🤖 *I'm here!* 🍽️\n\nI'm processing a lot of orders right now, so I'll keep it simple: Would you like to view our menu or place an order? 👇`;
+            await sendButtons(customerNumber, fallbackMsg, [
+                { id: 'place_order', title: '🛍️ Place an Order' },
+                { id: 'view_menu', title: '📜 View Menu' }
+            ], userId);
         }
 
     } catch (e) { console.error("[AI-ERROR]", e); }
