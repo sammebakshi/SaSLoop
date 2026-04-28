@@ -402,6 +402,34 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         const session = await getSession(userId, cleanNum);
+
+        // --- 🧩 HANDLE PENDING DISAMBIGUATION SELECTION ---
+        if (session.context.pending_selection) {
+            const pending = session.context.pending_selection;
+            const selection = menu.find(i => i.product_name.toLowerCase() === lower);
+            if (selection) {
+                const qty = pending.qty || 1;
+                const cart = session.context.cart || [];
+                const existing = cart.find(c => c.name === selection.product_name);
+                if (existing) existing.qty += qty;
+                else cart.push({ name: selection.product_name, qty, price: selection.price });
+                
+                session.context.cart = cart;
+                delete session.context.pending_selection;
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+                
+                const cartTotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+                const msg = `✅ *Added to Bag:*\n${qty}x *${selection.product_name}*\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
+                await sendButtons(customerNumber, msg, [
+                    { id: 'checkout', title: '🛒 Checkout Now' },
+                    { id: 'place_order', title: '➕ Add More' }
+                ], userId);
+                return;
+            }
+            // If they didn't pick an option, clear it and proceed to normal AI (maybe they changed their mind)
+            delete session.context.pending_selection;
+            await updateSession(userId, cleanNum, 'IDLE', session.context);
+        }
         
         const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support', 'get_otp', 'get otp'];
         if (session.is_paused) {
@@ -1005,15 +1033,23 @@ RETURN ONLY JSON:
                     }
                 }
 
-                // If there are ambiguous items, show disambiguation
-                if (ambiguousItems.length > 0 && addedSummary.length === 0) {
+                // --- 🧩 DISAMBIGUATION: IF MULTIPLE MATCHES FOUND ---
+                if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
-                    let text = `🤔 *Which "${amb.keyword}" would you like?*\n━━━━━━━━━━━━━━\n\n`;
-                    amb.matches.slice(0, 10).forEach(m => {
-                        text += `• *${m.product_name}* — ${symbol}${m.price}\n`;
-                    });
-                    text += `\nPlease type the exact dish name to order.`;
-                    await sendBrandedText(customerNumber, biz.name, text, userId);
+                    // Save state so we know what to add once they pick
+                    session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                    const rows = amb.matches.slice(0, 10).map(m => ({
+                        id: m.product_name, 
+                        title: m.product_name.substring(0, 24),
+                        description: `${symbol}${m.price}`
+                    }));
+
+                    const sections = [{ title: "Available Options", rows }];
+                    const body = `🤔 *Multiple matches for "${amb.keyword}"*\n━━━━━━━━━━━━━━\nPlease select the exact item you'd like to order from the list below. 👇`;
+                    
+                    await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", sections, userId);
                     return;
                 }
 
@@ -1161,13 +1197,15 @@ const startCartRecoveryCron = () => {
                 SELECT id, user_id, customer_number, context 
                 FROM conversation_sessions 
                 WHERE is_paused = false 
+                AND (context->>'recovery_sent') IS NULL
                 AND updated_at < NOW() - INTERVAL '30 minutes'
                 AND updated_at > NOW() - INTERVAL '24 hours'
             `);
             
             for (const session of res.rows) {
-                const cart = session.context.cart || [];
-                if (cart.length > 0 && !session.context.recovery_sent) {
+                const ctx = typeof session.context === 'string' ? JSON.parse(session.context) : session.context;
+                const cart = ctx.cart || [];
+                if (cart.length > 0) {
                     console.log(`🛒 Sending recovery to ${session.customer_number}`);
                     const msg = `👋 *Still thinking about your order?*\n\nYour items are still waiting in your bag! 🛒\n\nWould you like to complete your order now? 🍽️`;
                     await sendButtons(session.customer_number, msg, [

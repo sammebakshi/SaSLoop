@@ -35,8 +35,8 @@ router.post("/webhook", async (req, res) => {
   try {
     const payload = req.body;
     console.log("==> WEBHOOK HIT! Payload:", JSON.stringify(payload, null, 2));
-    // Send to processing manager
-    await whatsappManager.handleMetaWebhook(payload);
+    // Send to processing manager (Fire and forget to avoid Meta timeout retries)
+    whatsappManager.handleMetaWebhook(payload).catch(err => console.error("ASYNC WEBHOOK ERROR:", err));
     res.status(200).send("EVENT_RECEIVED");
   } catch (err) {
     console.error("WEBHOOK ERROR:", err);
