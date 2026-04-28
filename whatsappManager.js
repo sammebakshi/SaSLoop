@@ -971,33 +971,66 @@ RETURN ONLY JSON:
             if (result.intent === 'ORDER_ITEM' && result.items && result.items.length > 0) {
                 let addedSummary = [];
                 let newCart = [...cart];
+                let ambiguousItems = [];
 
                 for (const aiItem of result.items) {
-                    // Fuzzy Match: Exact -> Includes -> Partial
-                    const item = menu.find(i => 
-                        i.product_name.toLowerCase() === aiItem.name.toLowerCase() ||
-                        i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
-                        aiItem.name.toLowerCase().includes(i.product_name.toLowerCase())
-                    );
+                    // Step 1: Try exact match first
+                    const exactMatch = menu.find(i => i.product_name.toLowerCase() === aiItem.name.toLowerCase());
                     
-                    if (item) {
+                    if (exactMatch) {
                         const qty = aiItem.quantity || aiItem.qty || 1;
-                        const existing = newCart.find(c => c.name === item.product_name);
-                        if (existing) {
-                            existing.qty += qty;
-                        } else {
-                            newCart.push({ name: item.product_name, qty, price: item.price });
+                        const existing = newCart.find(c => c.name === exactMatch.product_name);
+                        if (existing) existing.qty += qty;
+                        else newCart.push({ name: exactMatch.product_name, qty, price: exactMatch.price });
+                        addedSummary.push(`${qty}x *${exactMatch.product_name}*`);
+                    } else {
+                        // Step 2: Find ALL fuzzy matches
+                        const fuzzyMatches = menu.filter(i => 
+                            i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
+                            aiItem.name.toLowerCase().includes(i.product_name.toLowerCase())
+                        );
+                        
+                        if (fuzzyMatches.length === 1) {
+                            // Only one fuzzy match — safe to auto-select
+                            const item = fuzzyMatches[0];
+                            const qty = aiItem.quantity || aiItem.qty || 1;
+                            const existing = newCart.find(c => c.name === item.product_name);
+                            if (existing) existing.qty += qty;
+                            else newCart.push({ name: item.product_name, qty, price: item.price });
+                            addedSummary.push(`${qty}x *${item.product_name}*`);
+                        } else if (fuzzyMatches.length > 1) {
+                            // Multiple matches — ask user to clarify
+                            ambiguousItems.push({ keyword: aiItem.name, qty: aiItem.quantity || aiItem.qty || 1, matches: fuzzyMatches });
                         }
-                        addedSummary.push(`${qty}x *${item.product_name}*`);
                     }
                 }
 
+                // If there are ambiguous items, show disambiguation
+                if (ambiguousItems.length > 0 && addedSummary.length === 0) {
+                    const amb = ambiguousItems[0];
+                    let text = `🤔 *Which "${amb.keyword}" would you like?*\n━━━━━━━━━━━━━━\n\n`;
+                    amb.matches.slice(0, 10).forEach(m => {
+                        text += `• *${m.product_name}* — ${symbol}${m.price}\n`;
+                    });
+                    text += `\nPlease type the exact dish name to order.`;
+                    await sendBrandedText(customerNumber, biz.name, text, userId);
+                    return;
+                }
+
                 if (addedSummary.length > 0) {
+                    // Show what was added + any ambiguous items that need clarification
                     session.context.cart = newCart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
                     const cartTotal = newCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
                     let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
+                    
+                    if (ambiguousItems.length > 0) {
+                        responseText += `\n\n⚠️ *Could not identify:*`;
+                        ambiguousItems.forEach(a => {
+                            responseText += `\n• "${a.keyword}" — multiple matches found, please type the exact name.`;
+                        });
+                    }
                     
                     if (result.upsell_suggestion) {
                         responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
