@@ -999,8 +999,10 @@ RETURN ONLY JSON:
                 let ambiguousItems = [];
 
                 for (const aiItem of result.items) {
+                    if (!aiItem || !aiItem.name) continue; // Skip malformed items
+                    
                     // Step 1: Try exact match first
-                    const exactMatch = menu.find(i => i.product_name.toLowerCase() === aiItem.name.toLowerCase());
+                    const exactMatch = menu.find(i => i.product_name && i.product_name.toLowerCase() === aiItem.name.toLowerCase());
                     
                     if (exactMatch) {
                         const qty = aiItem.quantity || aiItem.qty || 1;
@@ -1136,7 +1138,10 @@ const handleMetaWebhook = async (body) => {
                 if (changes.value && changes.value.messages) {
                     const message = changes.value.messages[0];
                     const fromNumber = normalizePhone(message.from);
-                    const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
+                    
+                    // CRITICAL ERROR FALLBACK: Wrap everything in another try/catch to always reply
+                    try {
+                        const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
                     const metaPhoneId = changes.value.metadata.phone_number_id; 
                     console.log(`📩 WEBHOOK RECEIVED: From ${fromNumber} | PhoneID: ${metaPhoneId}`);
 
@@ -1177,6 +1182,14 @@ const handleMetaWebhook = async (body) => {
                         await upsertContact(userId, fromNumber, contactName);
                         await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
                         await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
+                    } catch (innerErr) {
+                        console.error("CRITICAL PROCESSING ERROR:", innerErr);
+                        try {
+                            const dbRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [changes.value.metadata.phone_number_id]);
+                            if (dbRes.rows[0]) {
+                                await sendOfficialMessage(fromNumber, "I'm sorry, I encountered a temporary error while processing your request. Please try again in a moment! 🍽️", dbRes.rows[0].id);
+                            }
+                        } catch (sendErr) {}
                     }
                 }
             }
