@@ -814,12 +814,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             if (query.length > 2) {
                 const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
                 if (match) {
-                    const status = match.availability ? "✅ *Available*" : "❌ *Currently Out of Stock*";
+                    // Fix availability logic: Check both boolean and stock_count
+                    const isAvailable = match.availability !== false && (match.stock_count === null || match.stock_count > 0);
+                    const status = isAvailable ? "✅ *Available*" : "❌ *Currently Out of Stock*";
                     const reply = `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
-                    await sendButtons(customerNumber, reply, [
-                        { id: `order_${match.product_name}`, title: `🛒 Order ${match.product_name}` },
-                        { id: 'place_order', title: '🛍️ Browse More' }
-                    ], userId);
+                    
+                    const buttons = [];
+                    if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: `🛒 Order ${match.product_name}` });
+                    buttons.push({ id: 'place_order', title: '🛍️ Browse More' });
+
+                    await sendButtons(customerNumber, reply, buttons, userId);
                     return;
                 }
             }
