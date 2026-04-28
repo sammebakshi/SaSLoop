@@ -806,11 +806,15 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         // --- ⚡ FAST ENQUIRY (Handles availability, price, and delivery directly) ---
         const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
-        if (enquiryWords.some(w => lower.includes(w))) {
+        const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
+        
+        if (enquiryWords.some(w => lower.includes(w)) && !complexWords.some(w => lower.includes(w))) {
             const isUrdu = lower.includes('chahiye') || lower.includes('milega') || lower.includes('hai') || lower.includes('kartay') || lower.includes('kitna');
             
-            // Check for delivery specifically
-            if (lower.includes('delivery')) {
+            // Only trigger if message is reasonably short (to let AI handle complex questions)
+            if (lower.split(' ').length < 8) {
+                // Check for delivery specifically
+                if (lower.includes('delivery')) {
                 const deliveryOk = biz.fulfillment_options?.delivery !== false;
                 const deliveryMsg = deliveryOk 
                     ? (isUrdu 
