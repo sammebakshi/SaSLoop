@@ -7,14 +7,17 @@ const { isBusinessOpen, getDeliveryDetails } = require("./utils/businessUtils");
 
 const normalizePhone = (p) => {
     if (!p) return "";
-    return p.replace(/\D/g, "");
+    let digits = p.replace(/\D/g, "");
+    // If it starts with 91 but has 12 digits, keep it. 
+    // If it has 10 digits, it's a local number, we leave it for formatToInter to handle.
+    return digits;
 };
 
 const formatToInter = (p) => {
     if (!p) return "";
     const digits = p.replace(/\D/g, "");
-    if (digits.length === 10) return `+91${digits}`;
-    return `+${digits}`;
+    if (digits.length === 10) return `91${digits}`;
+    return digits;
 };
 
 const sendOfficialMessage = async (to, content, userId) => {
@@ -23,8 +26,7 @@ const sendOfficialMessage = async (to, content, userId) => {
         const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
         if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
 
-        const formattedTo = formatToInter(to);
-        const cleanTo = formattedTo.replace(/\D/g, "");
+        const cleanTo = formatToInter(to);
         let payload = { messaging_product: "whatsapp", recipient_type: "individual", to: cleanTo };
         
         if (typeof content === 'string') {
@@ -825,11 +827,15 @@ YOUR PERSONALITY:
 - IMPORTANT: Shahe Tehzeeb only serves Mutton, Chicken, and Veg items. We NEVER sell Beef or any other meat. If asked, politely inform the customer about our specialization in Mutton, Chicken, and Veg.
 
 YOUR MISSION:
-1. Extract ALL items and quantities mentioned by the user.
-2. If an item matches multiple menu items, pick the closest match or ask for clarification in the human_reply.
-3. If the user is just greeting, welcome them warmly and suggest a best-seller.
-4. If they want to checkout, encourage them but maybe mention a "must-try" dessert first.
-5. If the user wants to book a table, ask for date, time, and guest count. If they provide it, mark intent as RESERVATION and fill the reservation object.
+1. Extract ALL items and quantities mentioned by the user. 
+   - If the user says "Rista 50", they likely mean 50x Rista.
+   - If they say "1 chicken burger", extract { "name": "Chicken Burger", "quantity": 1 }.
+2. Match items AGAINST the menu list provided. If an item is NOT in the menu, do NOT include it in the "items" array.
+3. If an item matches multiple menu items, pick the closest match.
+4. If the user is just greeting, welcome them warmly and suggest a best-seller.
+5. If they want to checkout, encourage them but maybe mention a "must-try" dessert first.
+6. If the user wants to book a table, ask for date, time, and guest count. If they provide it, mark intent as RESERVATION and fill the reservation object.
+7. DO NOT get confused by point-related keywords. Only handle loyalty if the intent is explicitly CHECK_POINTS.
 
 RULES for JSON Output:
 - "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
@@ -841,7 +847,7 @@ RULES for JSON Output:
 
 RETURN ONLY JSON:
 {
-  "intent": string,
+  "intent": "ORDER_ITEM" | "GREETING" | "CHECKOUT" | "ENQUIRY" | "RESERVATION" | "FEEDBACK" | "UNKNOWN",
   "items": [{ "name": string, "quantity": number }],
   "reservation": { "date": string, "time": string, "guests": number },
   "feedback": { "rating": number, "comment": string },
