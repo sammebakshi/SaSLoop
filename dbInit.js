@@ -252,6 +252,7 @@ async function initializeDatabase() {
             `ALTER TABLE marketing_contacts ADD COLUMN IF NOT EXISTS phone_number TEXT`,
             `ALTER TABLE marketing_contacts ALTER COLUMN phone_number TYPE TEXT`,
             `ALTER TABLE marketing_contacts ADD COLUMN IF NOT EXISTS last_order_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
+            `ALTER TABLE marketing_contacts ADD COLUMN IF NOT EXISTS is_blocked BOOLEAN DEFAULT false`,
 
             // 12. Customer Feedback table
             `CREATE TABLE IF NOT EXISTS customer_feedback (

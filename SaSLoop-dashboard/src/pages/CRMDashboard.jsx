@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import API_BASE from "../config";
 import { 
   Users, Star, QrCode, TrendingUp, Search, Filter, 
-  MessageSquare, Heart, Crown, Award, ExternalLink, Download, Share2
+  MessageSquare, Heart, Crown, Award, ExternalLink, Download, Share2,
+  Ban, Trash2, ShieldAlert, CheckCircle2
 } from "lucide-react";
 
 function CRMDashboard() {
@@ -43,6 +44,32 @@ function CRMDashboard() {
       setFeedbacks(Array.isArray(feedData) ? feedData : []);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  const handleBlockToggle = async (phone, currentStatus) => {
+    if (!window.confirm(`Are you sure you want to ${currentStatus ? 'UNBLOCK' : 'BLOCK'} this customer?`)) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/crm/block-customer`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ phone, isBlocked: !currentStatus })
+      });
+      if (res.ok) fetchData();
+    } catch (e) { console.error(e); }
+  };
+
+  const handleDeleteCustomer = async (phone) => {
+    if (!window.confirm("CRITICAL: This will permanently delete this customer's entire history and loyalty points. Are you absolutely sure?")) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/crm/customer/${phone}`, {
+        method: "DELETE",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      if (res.ok) fetchData();
+    } catch (e) { console.error(e); }
   };
 
   const cleanPhone = (bizInfo.phone || "").replace(/\D/g, "");
@@ -133,13 +160,19 @@ function CRMDashboard() {
                               <th className="px-10 py-6 border-b border-slate-100">Loyalty Level</th>
                               <th className="px-10 py-6 border-b border-slate-100">Total Contribution</th>
                               <th className="px-10 py-6 border-b border-slate-100">Last Seen</th>
+                              <th className="px-10 py-6 border-b border-slate-100 text-right">Actions</th>
                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                            {customers.map((c) => (
-                              <tr key={c.id} className="hover:bg-slate-50 group transition-colors">
+                              <tr key={c.id} className={`hover:bg-slate-50 group transition-colors ${c.is_blocked ? 'bg-red-50/50' : ''}`}>
                                  <td className="px-10 py-6">
-                                    <div className="font-black text-sm text-slate-800 leading-tight">{c.display_name || c.name || 'Customer'}</div>
+                                    <div className="flex items-center gap-3">
+                                      <div className="font-black text-sm text-slate-800 leading-tight">
+                                        {c.display_name || c.name || 'Customer'}
+                                        {c.is_blocked && <span className="ml-2 bg-red-100 text-red-600 text-[8px] px-2 py-0.5 rounded-full uppercase">Blocked</span>}
+                                      </div>
+                                    </div>
                                     <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-wide">
                                        {c.customer_number ? `+${c.customer_number.replace(/^(\d{2})(\d{5})(\d{5})$/, '$1 $2 $3')}` : '—'}
                                     </div>
@@ -153,6 +186,24 @@ function CRMDashboard() {
                                  </td>
                                  <td className="px-10 py-6 font-black text-xs text-emerald-600">₹{parseFloat(c.total_spent).toLocaleString()}</td>
                                  <td className="px-10 py-6 text-[10px] font-bold text-slate-400 uppercase">{new Date(c.last_visit).toLocaleDateString()}</td>
+                                 <td className="px-10 py-6 text-right">
+                                    <div className="flex items-center justify-end gap-2">
+                                       <button 
+                                          onClick={() => handleBlockToggle(c.customer_number, c.is_blocked)}
+                                          title={c.is_blocked ? "Unblock Customer" : "Block Customer"}
+                                          className={`p-2 rounded-xl transition-all ${c.is_blocked ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50'}`}
+                                       >
+                                          {c.is_blocked ? <CheckCircle2 className="w-4 h-4" /> : <Ban className="w-4 h-4" />}
+                                       </button>
+                                       <button 
+                                          onClick={() => handleDeleteCustomer(c.customer_number)}
+                                          title="Delete Customer Forever"
+                                          className="p-2 bg-slate-50 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-xl transition-all"
+                                       >
+                                          <Trash2 className="w-4 h-4" />
+                                       </button>
+                                    </div>
+                                 </td>
                               </tr>
                            ))}
                         </tbody>

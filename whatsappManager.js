@@ -337,6 +337,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const biz = bizRes.rows[0];
         if (!biz) return;
 
+        // --- 🛡️ CHECK IF BLOCKED ---
+        const contactRes = await pool.query("SELECT is_blocked FROM marketing_contacts WHERE user_id = $1 AND phone_number = $2", [userId, cleanNum]);
+        if (contactRes.rows[0]?.is_blocked) {
+            console.log(`🚫 IGNORING BLOCKED CUSTOMER: ${cleanNum}`);
+            return;
+        }
+
         // --- 🕒 CHECK BUSINESS HOURS (Mandatory for all messages) ---
         const bizStatus = isBusinessOpen(biz.settings);
         if (!bizStatus.isOpen) {
