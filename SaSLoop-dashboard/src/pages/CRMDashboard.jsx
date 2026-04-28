@@ -174,7 +174,7 @@ function CRMDashboard() {
                                       </div>
                                     </div>
                                     <div className="text-[10px] font-bold text-slate-400 mt-1 tracking-wide">
-                                       {c.customer_number ? `+${c.customer_number.replace(/^(\d{2})(\d{5})(\d{5})$/, '$1 $2 $3')}` : '—'}
+                                       {c.customer_number ? `+${c.customer_number.replace(/\D/g, '').replace(/^(\d{2})(\d{5})(\d{5})$/, '$1 $2 $3')}` : '—'}
                                     </div>
                                  </td>
                                  <td className="px-10 py-6">

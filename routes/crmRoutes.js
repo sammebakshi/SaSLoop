@@ -9,11 +9,17 @@ router.get("/customers", authMiddleware, async (req, res) => {
     const userId = req.query.target_user_id || req.user.id;
     const uid = parseInt(userId);
     const dbRes = await pool.query(`
-      SELECT cl.*, 
-             COALESCE(NULLIF(cl.name, 'Customer'), mc.name, 'Customer') AS display_name
+      SELECT 
+        REGEXP_REPLACE(cl.customer_number, '\D', '', 'g') as customer_number,
+        cl.points,
+        cl.total_spent,
+        cl.last_visit,
+        COALESCE(NULLIF(cl.name, 'Customer'), mc.name, 'Customer') AS display_name,
+        mc.is_blocked
       FROM customer_loyalty cl
       LEFT JOIN marketing_contacts mc 
-        ON mc.user_id = cl.user_id AND mc.phone_number = cl.customer_number
+        ON REGEXP_REPLACE(mc.phone_number, '\D', '', 'g') = REGEXP_REPLACE(cl.customer_number, '\D', '', 'g')
+        AND mc.user_id = cl.user_id
       WHERE cl.user_id = $1 
       ORDER BY cl.last_visit DESC
     `, [uid]);
