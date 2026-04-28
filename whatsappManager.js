@@ -1182,6 +1182,7 @@ const handleMetaWebhook = async (body) => {
                         await upsertContact(userId, fromNumber, contactName);
                         await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
                         await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
+                        }
                     } catch (innerErr) {
                         console.error("CRITICAL PROCESSING ERROR:", innerErr);
                         try {
