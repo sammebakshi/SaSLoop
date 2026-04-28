@@ -814,8 +814,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             if (query.length > 2) {
                 const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
                 if (match) {
-                    // Fix availability logic: Check both boolean and stock_count
-                    const isAvailable = match.availability !== false && (match.stock_count === null || match.stock_count > 0);
+                    console.log(`🔍 DEBUG ITEM MATCH: ${match.product_name} | Avail: ${match.availability} | Stock: ${match.stock_count}`);
+                    
+                    // Force available if toggle is NOT explicitly false
+                    const isAvailable = match.availability !== false; 
                     const status = isAvailable ? "✅ *Available*" : "❌ *Currently Out of Stock*";
                     const reply = `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
                     
