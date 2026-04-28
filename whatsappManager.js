@@ -1036,7 +1036,6 @@ RETURN ONLY JSON:
             // Fallback for ENQUIRY or GREETING (with non-empty cart) or UNKNOWN
             const finalReply = result.human_reply || "I'm here to help! What can I get for you today?";
             await sendOfficialMessage(customerNumber, finalReply, userId);
-
         } catch (aiErr) {
             console.error("[AI-LIMIT-HIT]", aiErr.message);
             const fallbackMsg = `🤖 *I'm here!* 🍽️\n\nI'm processing a lot of orders right now, so I'll keep it simple: Would you like to view our menu or place an order? 👇`;
@@ -1045,7 +1044,9 @@ RETURN ONLY JSON:
                 { id: 'view_menu', title: '📜 View Menu' }
             ], userId);
         }
-    } catch (e) { console.error("[TOP-LEVEL-AI-ERROR]", e); }
+    } catch (e) { 
+        console.error("[TOP-LEVEL-AI-ERROR]", e); 
+    }
 };
 
 const transcribeAudio = async (mediaId, userId) => {
