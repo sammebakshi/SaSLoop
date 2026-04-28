@@ -942,7 +942,13 @@ RETURN ONLY JSON:
                 let newCart = [...cart];
 
                 for (const aiItem of result.items) {
-                    const item = menu.find(i => i.product_name.toLowerCase() === aiItem.name.toLowerCase());
+                    // Fuzzy Match: Exact -> Includes -> Partial
+                    const item = menu.find(i => 
+                        i.product_name.toLowerCase() === aiItem.name.toLowerCase() ||
+                        i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
+                        aiItem.name.toLowerCase().includes(i.product_name.toLowerCase())
+                    );
+                    
                     if (item) {
                         const qty = aiItem.quantity || 1;
                         const existing = newCart.find(c => c.name === item.product_name);
