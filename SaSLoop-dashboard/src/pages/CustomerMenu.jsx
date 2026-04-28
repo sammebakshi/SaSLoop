@@ -240,14 +240,28 @@ function CustomerMenu() {
                       </div>
                     </>
                   ) : (
-                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" /></div>
+                    <div className="space-y-4 text-center">
+                      <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p>
+                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" />
+                      
+                      {biz?.whatsapp_number && (
+                        <a 
+                          href={`https://wa.me/${biz.whatsapp_number.replace(/\D/g, '')}?text=Get_OTP`} 
+                          target="_blank" 
+                          rel="noreferrer" 
+                          className="block text-[11px] font-bold text-emerald-600 mt-2 underline tracking-wider"
+                        >
+                          Didn't receive the code? Tap here to get it on WhatsApp
+                        </a>
+                      )}
+                    </div>
                   )}
                   <button 
                     onClick={otpMode ? handleVerifyOtp : handleRequestOtp} 
                     disabled={isVerifying} 
                     className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4"
                   >
-                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : (otpMode ? "Confirm Code" : "Login")}
+                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : (otpMode ? "Confirm Code" : "Verify Using WhatsApp")}
                   </button>
               </div>
            </div>

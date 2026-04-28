@@ -394,8 +394,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const session = await getSession(userId, cleanNum);
         
-        // Auto-unpause if the user explicitly interacts with the bot menu
-        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support'];
+        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support', 'get_otp', 'get otp'];
         if (session.is_paused) {
             if (botCommands.includes(lower)) {
                 await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
@@ -403,6 +402,15 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             } else {
                 return;
             }
+        }
+
+        if (lower === 'get_otp' || lower === 'get otp') {
+            const otp = Math.floor(100000 + Math.random() * 900000).toString();
+            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+            await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            await pool.query("INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)", [userId, cleanNum, otp, expiresAt]);
+            await sendOfficialMessage(customerNumber, `🔐 *Your Verification Code*\n\nYour OTP for SaSLoop is: *${otp}*\n\nPlease enter this code on the menu screen.`, userId);
+            return;
         }
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
