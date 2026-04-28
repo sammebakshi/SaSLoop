@@ -1039,15 +1039,13 @@ RETURN ONLY JSON:
 
         } catch (aiErr) {
             console.error("[AI-LIMIT-HIT]", aiErr.message);
-            // --- 🛡️ ROBUST FALLBACK: Show Menu if AI is Rate Limited ---
             const fallbackMsg = `🤖 *I'm here!* 🍽️\n\nI'm processing a lot of orders right now, so I'll keep it simple: Would you like to view our menu or place an order? 👇`;
             await sendButtons(customerNumber, fallbackMsg, [
                 { id: 'place_order', title: '🛍️ Place an Order' },
                 { id: 'view_menu', title: '📜 View Menu' }
             ], userId);
         }
-
-    } catch (e) { console.error("[AI-ERROR]", e); }
+    } catch (e) { console.error("[TOP-LEVEL-AI-ERROR]", e); }
 };
 
 const transcribeAudio = async (mediaId, userId) => {
