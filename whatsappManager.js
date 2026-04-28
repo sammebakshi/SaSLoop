@@ -1033,11 +1033,7 @@ RETURN ONLY JSON:
                 // --- 🧩 DISAMBIGUATION: IF MULTIPLE MATCHES FOUND ---
                 if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
-                    
-                    // CRITICAL: Even if one is ambiguous, SAVE the clear items to the cart first!
                     session.context.cart = newCart;
-
-                    // Save state so we know what to add once they pick
                     session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
@@ -1047,41 +1043,34 @@ RETURN ONLY JSON:
                         description: `${symbol}${m.price}`
                     }));
 
-                    const sections = [{ title: "Available Options", rows }];
-                    
                     let body = "";
-                    if (addedSummary.length > 0) {
-                        body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
-                    }
+                    if (addedSummary.length > 0) body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
                     body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
                     
-                    await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", sections, userId);
+                    await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
                     return;
                 }
 
                 if (addedSummary.length > 0) {
-                    // Show what was added + any ambiguous items that need clarification
                     session.context.cart = newCart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
                     const cartTotal = newCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
                     let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
                     
-                    if (ambiguousItems.length > 0) {
-                        responseText += `\n\n⚠️ *Could not identify:*`;
-                        ambiguousItems.forEach(a => {
-                            responseText += `\n• "${a.keyword}" — multiple matches found, please type the exact name.`;
-                        });
-                    }
-                    
-                    if (result.upsell_suggestion) {
-                        responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
-                    }
+                    if (result.upsell_suggestion) responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
 
                     await sendButtons(customerNumber, responseText, [
                         { id: 'checkout', title: '🛒 Checkout Now' },
                         { id: 'place_order', title: '➕ Add More' }
                     ], userId);
+                    return;
+                }
+
+                // If intent was ORDER_ITEM but we matched NOTHING
+                if (result.items && result.items.length > 0) {
+                    const fallback = `🤔 *I couldn't find those items in our menu.*\n━━━━━━━━━━━━━━\n${result.human_reply || "Please check the spelling or type 'view menu' to see what we have today! 📜"}`;
+                    await sendOfficialMessage(customerNumber, fallback, userId);
                     return;
                 }
             }
