@@ -1054,10 +1054,15 @@ const handleMetaWebhook = async (body) => {
                     const fromNumber = normalizePhone(message.from);
                     const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
                     const metaPhoneId = changes.value.metadata.phone_number_id; 
+                    console.log(`📩 WEBHOOK RECEIVED: From ${fromNumber} | PhoneID: ${metaPhoneId}`);
 
                     const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
-                    if (userRes.rows.length === 0) return;
+                    if (userRes.rows.length === 0) {
+                        console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
+                        return;
+                    }
                     const userId = userRes.rows[0].id;
+                    console.log(`👤 Found UserID: ${userId} for this webhook.`);
 
                     let textBody = "";
                     let isLocation = false;
