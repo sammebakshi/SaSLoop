@@ -339,6 +339,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const biz = bizRes.rows[0];
         if (!biz) return;
 
+        const symbol = biz.currency_code === 'INR' ? '₹' : '$';
+        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
+        const menu = itemsRes.rows;
+        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
+
         // --- 🛡️ CHECK IF BLOCKED ---
         const contactRes = await pool.query("SELECT is_blocked FROM marketing_contacts WHERE user_id = $1 AND phone_number = $2", [userId, cleanNum]);
         if (contactRes.rows[0]?.is_blocked) {
@@ -450,11 +455,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        const symbol = biz.currency_code === 'INR' ? '₹' : '$';
-
-        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
-        const menu = itemsRes.rows;
-        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
 
         const cart = session.context.cart || [];
 
