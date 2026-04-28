@@ -801,11 +801,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // --- ⚡ FAST ENQUIRY ---
-        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
-        const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
-        
-                        await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
+                    if (textBody || isLocation) {
+                        await upsertContact(userId, fromNumber, contactName);
+                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
+                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
                     }
                 }
             }
