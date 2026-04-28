@@ -914,17 +914,50 @@ RETURN ONLY JSON:
 }
 `;
 
+        let result = null;
         try {
+            // --- 🚀 PRIMARY: GROQ (Fast & Reliable) ---
             const chatCompletion = await groq.chat.completions.create({
                 messages: [{ role: "system", content: systemPrompt }, { role: "user", content: msgText }],
-                model: "llama-3.1-70b-versatile",
+                model: "llama-3.1-8b-instant",
                 response_format: { type: "json_object" }
             });
 
             const resultStr = chatCompletion.choices[0]?.message?.content || "{}";
-            console.log(`🤖 AI RAW RESPONSE for "${msgText}":`, resultStr);
-            const result = JSON.parse(resultStr);
+            console.log(`🤖 GROQ RESPONSE for "${msgText}":`, resultStr);
+            result = JSON.parse(resultStr);
+        } catch (groqErr) {
+            console.error("⚠️ Groq Failed, falling back to Gemini:", groqErr.message);
+            
+            // --- 💎 BACKUP: GOOGLE GEMINI ---
+            if (process.env.GEMINI_API_KEY) {
+                try {
+                    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`;
+                    const geminiRes = await axios.post(geminiUrl, {
+                        contents: [{ 
+                            parts: [{ 
+                                text: `${systemPrompt}\n\nUSER MESSAGE: ${msgText}\n\nIMPORTANT: Return ONLY the JSON object. No markdown, no extra text.` 
+                            }] 
+                        }],
+                        generationConfig: { 
+                            responseMimeType: "application/json",
+                            temperature: 0.1 
+                        }
+                    });
 
+                    const geminiText = geminiRes.data.candidates[0].content.parts[0].text;
+                    console.log(`💎 GEMINI RESPONSE for "${msgText}":`, geminiText);
+                    result = JSON.parse(geminiText);
+                } catch (geminiErr) {
+                    console.error("❌ Gemini Fallback also failed:", geminiErr.message);
+                    throw groqErr; // Rethrow original if fallback fails too
+                }
+            } else {
+                throw groqErr;
+            }
+        }
+
+        if (result) {
             if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
                 // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
                 const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
@@ -1080,6 +1113,7 @@ RETURN ONLY JSON:
             // Fallback for ENQUIRY or GREETING (with non-empty cart) or UNKNOWN
             const finalReply = result.human_reply || "I'm here to help! What can I get for you today?";
             await sendOfficialMessage(customerNumber, finalReply, userId);
+            }
         } catch (aiErr) {
             console.error("[AI-LIMIT-HIT]", aiErr.message);
             const fallbackMsg = `🤖 *I'm here!* 🍽️\n\nI'm processing a lot of orders right now, so I'll keep it simple: Would you like to view our menu or place an order? 👇`;
