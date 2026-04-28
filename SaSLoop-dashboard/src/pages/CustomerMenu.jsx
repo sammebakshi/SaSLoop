@@ -249,6 +249,22 @@ function CustomerMenu() {
                   >
                     {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : (otpMode ? "Confirm Code" : "Login")}
                   </button>
+
+                  {!otpMode && (
+                    <div className="mt-6 pt-6 border-t border-slate-200/50 text-center">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Or verify instantly via WhatsApp</p>
+                      <a 
+                        href={`https://wa.me/${biz?.notification_numbers?.[0] || '919906123989'}?text=Hi`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full flex items-center justify-center gap-2 bg-[#25D366]/10 text-[#25D366] border-2 border-[#25D366]/20 font-black py-4 rounded-[1.8rem] text-[11px] uppercase tracking-[0.1em] hover:bg-[#25D366] hover:text-white transition-all group"
+                      >
+                        <MessageCircle className="w-4 h-4 group-hover:scale-110 transition-transform" />
+                        Send "Hi" on WhatsApp
+                      </a>
+                      <p className="text-[9px] font-bold text-slate-400 mt-3 px-4">Send "Hi" to our bot first, then come back and enter your number above to receive your login code for free!</p>
+                    </div>
+                  )}
               </div>
            </div>
         </div>
