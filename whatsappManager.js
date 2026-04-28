@@ -805,18 +805,24 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- ⚡ FAST ENQUIRY (Handles availability, price, and delivery directly) ---
-        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery'];
+        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
         if (enquiryWords.some(w => lower.includes(w))) {
+            const isUrdu = lower.includes('chahiye') || lower.includes('milega') || lower.includes('hai') || lower.includes('kartay') || lower.includes('kitna');
+            
             // Check for delivery specifically
             if (lower.includes('delivery')) {
                 const deliveryOk = biz.fulfillment_options?.delivery !== false;
                 const deliveryMsg = deliveryOk 
-                    ? `🚚 *Home Delivery is Available!* 🏠\n━━━━━━━━━━━━━━\nWe deliver to your doorstep. You can share your location pin during checkout to see delivery charges.\n\nWould you like to start your order?`
-                    : `🥡 *Pickup Only*\n━━━━━━━━━━━━━━\nCurrently, we only support Pickup and Dine-in. Home delivery is not available at this moment.`;
+                    ? (isUrdu 
+                        ? `🚚 *Home Delivery Available hai!* 🏠\n━━━━━━━━━━━━━━\nHum aapke ghar tak deliver karte hain. Checkout ke waqt apna location share karein delivery charges dekhne ke liye.\n\nKya aap order start karna chahenge?`
+                        : `🚚 *Home Delivery is Available!* 🏠\n━━━━━━━━━━━━━━\nWe deliver to your doorstep. You can share your location pin during checkout to see delivery charges.\n\nWould you like to start your order?`)
+                    : (isUrdu
+                        ? `🥡 *Sirf Pickup available hai*\n━━━━━━━━━━━━━━\nAbhi hum sirf Pickup aur Dine-in support karte hain. Home delivery abhi band hai.`
+                        : `🥡 *Pickup Only*\n━━━━━━━━━━━━━━\nCurrently, we only support Pickup and Dine-in. Home delivery is not available at this moment.`);
                 
                 await sendButtons(customerNumber, deliveryMsg, [
-                    { id: 'place_order', title: '🛍️ Place an Order' },
-                    { id: 'view_menu', title: '📜 View Menu' }
+                    { id: 'place_order', title: isUrdu ? '🛍️ Order Karein' : '🛍️ Place an Order' },
+                    { id: 'view_menu', title: isUrdu ? '📜 Menu Dekhein' : '📜 View Menu' }
                 ], userId);
                 return;
             }
@@ -830,14 +836,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 if (match) {
                     console.log(`🔍 DEBUG ITEM MATCH: ${match.product_name} | Avail: ${match.availability} | Stock: ${match.stock_count}`);
                     
-                    // Force available if toggle is NOT explicitly false
                     const isAvailable = match.availability !== false; 
-                    const status = isAvailable ? "✅ *Available*" : "❌ *Currently Out of Stock*";
-                    const reply = `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
+                    let status = isAvailable ? "✅ *Available*" : "❌ *Out of Stock*";
+                    if (isUrdu) status = isAvailable ? "✅ *Available hai*" : "❌ *Abhi khatam hai*";
+
+                    const reply = isUrdu 
+                        ? `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nKya aap ise order mein add karna chahenge?`
+                        : `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
                     
                     const buttons = [];
-                    if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: `🛒 Order ${match.product_name}` });
-                    buttons.push({ id: 'place_order', title: '🛍️ Browse More' });
+                    if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: isUrdu ? `🛒 Add Karein` : `🛒 Order ${match.product_name}` });
+                    buttons.push({ id: 'place_order', title: isUrdu ? '🛍️ Aur Dekhein' : '🛍️ Browse More' });
 
                     await sendButtons(customerNumber, reply, buttons, userId);
                     return;
@@ -863,7 +872,8 @@ YOUR PERSONALITY:
 - Enthusiastic, professional, and slightly witty.
 - You are a REALISTIC salesman. If someone orders a main course, suggest a drink or a popular side.
 - Use emojis effectively but professionally.
-- IMPORTANT: Shahe Tehzeeb only serves Mutton, Chicken, and Veg items. We NEVER sell Beef or any other meat. If asked, politely inform the customer about our specialization in Mutton, Chicken, and Veg.
+- IMPORTANT: Reply in the SAME LANGUAGE as the user. If they use Roman Urdu/Hindi (e.g., "chahiye", "khana"), reply in Roman Urdu/Hindi.
+- Shahe Tehzeeb only serves Mutton, Chicken, and Veg items. We NEVER sell Beef. If asked, politely inform the customer about our specialization.
 
 YOUR MISSION:
 1. Extract ALL items and quantities mentioned by the user. 
