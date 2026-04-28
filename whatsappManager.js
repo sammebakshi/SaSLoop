@@ -805,13 +805,15 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
         const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
         
-        if (enquiryWords.some(w => lower.includes(w)) && !complexWords.some(w => lower.includes(w))) {
-             await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
-             return;
+                        await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
+                    }
+                }
+            }
         }
-
-        await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
+    } catch (e) { 
+        console.error("Webhook Error", e); 
     }
+};
 
 const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation, locationData) => {
     try {
@@ -1087,62 +1089,6 @@ const transcribeAudio = async (mediaId, userId) => {
     }
 };
 
-const handleMetaWebhook = async (body) => {
-    try {
-        if (body.object === "whatsapp_business_account") {
-            for (const entry of body.entry) {
-                const changes = entry.changes[0];
-                if (changes.value && changes.value.messages) {
-                    const message = changes.value.messages[0];
-                    const fromNumber = normalizePhone(message.from);
-                    const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
-                    const metaPhoneId = changes.value.metadata.phone_number_id; 
-                    console.log(`📩 WEBHOOK RECEIVED: From ${fromNumber} | PhoneID: ${metaPhoneId}`);
-
-                    const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
-                    if (userRes.rows.length === 0) {
-                        console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
-                        return;
-                    }
-                    const userId = userRes.rows[0].id;
-                    console.log(`👤 Found UserID: ${userId} for this webhook.`);
-
-                    let textBody = "";
-                    let isLocation = false;
-                    let locationData = null;
-
-                    if (message.type === "text") textBody = message.text.body;
-                    else if (message.type === "interactive") {
-                        if (message.interactive.type === "button_reply") textBody = message.interactive.button_reply.id;
-                        else if (message.interactive.type === "list_reply") textBody = message.interactive.list_reply.id;
-                    } else if (message.type === "location") {
-                        isLocation = true;
-                        locationData = message.location;
-                    } else if (message.type === "audio") {
-                        const mediaId = message.audio.id;
-                        const transcript = await transcribeAudio(mediaId, userId);
-                        if (transcript) textBody = transcript;
-                        else textBody = "[Audio message received but transcription failed]";
-                    }
-                    
-                    let adContext = "";
-                    if (message.referral) {
-                        const ref = message.referral;
-                        adContext = `\n[System Note: Customer clicked an ad to get here! Ad Headline: "${ref.headline || ''}", Ad Body: "${ref.body || ''}". Acknowledge their interest subtly.]`;
-                    }
-
-                    if (textBody || isLocation) {
-                        if (adContext && textBody) textBody += adContext;
-                        await upsertContact(userId, fromNumber, contactName);
-                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
-                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
-                    }
-                }
-            }
-        }
-    } catch (e) { console.error("Webhook Error", e); }
-};
-
 const startCartRecoveryCron = () => {
     console.log("⏰ Abandoned Cart Recovery Cron Started");
     setInterval(async () => {
@@ -1156,27 +1102,20 @@ const startCartRecoveryCron = () => {
             `);
             
             for (const session of res.rows) {
-                const context = typeof session.context === 'string' ? JSON.parse(session.context) : session.context;
-                if (context && context.cart && context.cart.length > 0 && !context.recovery_sent) {
-                    const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [session.user_id]);
-                    const bizName = bizRes.rows[0]?.name || "our restaurant";
-
-                    const text = `🛒 *Left something behind?*\n━━━━━━━━━━━━━━\n\nHey there! We noticed you left some delicious items in your bag at ${bizName}.\n\nWould you like to complete your order before your cart expires?`;
-                    
-                    await sendButtons(session.customer_number, text, [
+                const cart = session.context.cart || [];
+                if (cart.length > 0 && !session.context.recovery_sent) {
+                    console.log(`🛒 Sending recovery to ${session.customer_number}`);
+                    const msg = `👋 *Still thinking about your order?*\n\nYour items are still waiting in your bag! 🛒\n\nWould you like to complete your order now? 🍽️`;
+                    await sendButtons(session.customer_number, msg, [
                         { id: 'checkout', title: '🛒 Checkout Now' },
-                        { id: 'place_order', title: '➕ Add More' },
-                        { id: 'cancel', title: '🗑️ Clear Cart' }
+                        { id: 'place_order', title: '🛍️ Add More' }
                     ], session.user_id);
                     
-                    context.recovery_sent = true;
-                    await pool.query("UPDATE conversation_sessions SET context = $1, updated_at = NOW() WHERE id = $2", [JSON.stringify(context), session.id]);
+                    await pool.query("UPDATE conversation_sessions SET context = jsonb_set(context, '{recovery_sent}', 'true') WHERE id = $1", [session.id]);
                 }
             }
-        } catch (e) {
-            console.error("Cart Recovery Cron Error:", e);
-        }
-    }, 5 * 60 * 1000); // Check every 5 mins
+        } catch (e) { console.error("Cron Error:", e); }
+    }, 15 * 60 * 1000); // Every 15 mins
 };
 
 const getWalletCredits = async (userId) => {
@@ -1187,7 +1126,6 @@ const getWalletCredits = async (userId) => {
 const deductWalletCredits = async (userId, amount) => {
     const credits = await getWalletCredits(userId);
     if (credits < amount) return { success: false, error: "Insufficient broadcast credits. Please recharge." };
-    
     await pool.query("UPDATE app_users SET broadcast_credits = broadcast_credits - $1 WHERE id = $2", [amount, userId]);
     return { success: true, newBalance: credits - amount };
 };
@@ -1196,78 +1134,41 @@ const startAutoFollowupCron = () => {
     console.log("⏰ AUTO FOLLOW-UP ENGINE STARTED");
     setInterval(async () => {
         try {
-            // 1. Send Due Messages
-            const due = await pool.query(
-                "SELECT * FROM scheduled_messages WHERE status = 'PENDING' AND scheduled_for <= NOW() LIMIT 10"
-            );
-
+            const due = await pool.query("SELECT * FROM scheduled_messages WHERE status = 'PENDING' AND scheduled_for <= NOW() LIMIT 10");
             for (const row of due.rows) {
                 const sent = await sendOfficialMessage(row.customer_number, row.message, row.user_id);
-                if (sent.success) {
-                    await pool.query("UPDATE scheduled_messages SET status = 'SENT' WHERE id = $1", [row.id]);
-                } else {
-                    await pool.query("UPDATE scheduled_messages SET status = 'FAILED' WHERE id = $1", [row.id]);
-                }
+                await pool.query("UPDATE scheduled_messages SET status = $1 WHERE id = $2", [sent.success ? 'SENT' : 'FAILED', row.id]);
             }
-
-            // 2. Win-Back logic
-            const stagnant = await pool.query(`
-                SELECT mc.user_id, mc.phone_number, mc.name, r.name as biz_name
-                FROM marketing_contacts mc
-                JOIN restaurants r ON mc.user_id = r.user_id
-                LEFT JOIN scheduled_messages sm ON mc.phone_number = sm.customer_number AND sm.message LIKE '%miss you%'
-                WHERE mc.last_order_at < NOW() - interval '7 days'
-                AND sm.id IS NULL
-                LIMIT 5
-            `);
-
-            for (const c of stagnant.rows) {
-                const msg = `Hi ${c.name || 'there'}! We miss you at *${c.biz_name}* 🍕. It's been a week since your last order. Here is a 10% discount code: *RELAX10* for your next meal!`;
-                await pool.query(
-                    "INSERT INTO scheduled_messages (user_id, customer_number, message, scheduled_for) VALUES ($1, $2, $3, NOW())",
-                    [c.user_id, c.phone_number, msg]
-                );
-            }
-        } catch (e) {
-            console.error("Auto Follow-up Engine Error:", e);
-        }
+        } catch (e) { console.error("Auto Follow-up Engine Error:", e); }
     }, 60000);
 };
 
 const startBackupCron = () => {
     const cron = require("node-cron");
     const { exec } = require("child_process");
-    
-    // Schedule backup for 3:00 AM every day
     cron.schedule('0 3 * * *', () => {
-        console.log("⏰ [CRON] Starting Scheduled Database Backup (3:00 AM)");
         const scriptPath = path.join(__dirname, "scripts", "auto_backup.js");
-        
-        exec(`node "${scriptPath}"`, (error, stdout, stderr) => {
-            if (error) {
-                console.error(`❌ [CRON] Backup Script Error: ${error.message}`);
-                return;
-            }
-            if (stderr) {
-                console.error(`⚠️ [CRON] Backup Script Stderr: ${stderr}`);
-            }
-            console.log(`✅ [CRON] Backup Script Output: ${stdout}`);
+        exec(`node "${scriptPath}"`, (error, stdout) => {
+            if (error) console.error(`❌ [CRON] Backup Error: ${error.message}`);
+            else console.log(`✅ [CRON] Backup Output: ${stdout}`);
         });
     });
     console.log("⏰ Database Backup Cron Scheduled (Daily 3:00 AM)");
 };
 
 module.exports = {
-  handleMetaWebhook,
-  sendOfficialMessage,
-  getRecentChats,
-  logChat,
-  notifyKitchenAndStaff,
-  syncBusinessProfileToWhatsApp,
-  processAiAutomations,
-  startCartRecoveryCron,
-  startAutoFollowupCron,
-  startBackupCron,
-  getWalletCredits,
-  deductWalletCredits
+    handleMetaWebhook,
+    sendOfficialMessage,
+    sendButtons,
+    sendList,
+    getRecentChats,
+    logChat,
+    notifyKitchenAndStaff,
+    syncBusinessProfileToWhatsApp,
+    processAiAutomations,
+    startCartRecoveryCron,
+    startAutoFollowupCron,
+    startBackupCron,
+    getWalletCredits,
+    deductWalletCredits
 };
