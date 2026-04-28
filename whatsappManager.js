@@ -424,9 +424,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
-        const itemsRes = await pool.query("SELECT product_name, price, description, category, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
+        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
         const menu = itemsRes.rows;
-        const menuContext = menu.map(i => `• ${i.product_name} [${i.category}]: ${symbol}${i.price} (${i.description || 'Specialty of the house'})`).join("\n");
+        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
 
         const cart = session.context.cart || [];
 
@@ -804,9 +804,23 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // --- ⚡ FAST ENQUIRY (Handles availability and price directly) ---
-        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate'];
+        // --- ⚡ FAST ENQUIRY (Handles availability, price, and delivery directly) ---
+        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery'];
         if (enquiryWords.some(w => lower.includes(w))) {
+            // Check for delivery specifically
+            if (lower.includes('delivery')) {
+                const deliveryOk = biz.fulfillment_options?.delivery !== false;
+                const deliveryMsg = deliveryOk 
+                    ? `🚚 *Home Delivery is Available!* 🏠\n━━━━━━━━━━━━━━\nWe deliver to your doorstep. You can share your location pin during checkout to see delivery charges.\n\nWould you like to start your order?`
+                    : `🥡 *Pickup Only*\n━━━━━━━━━━━━━━\nCurrently, we only support Pickup and Dine-in. Home delivery is not available at this moment.`;
+                
+                await sendButtons(customerNumber, deliveryMsg, [
+                    { id: 'place_order', title: '🛍️ Place an Order' },
+                    { id: 'view_menu', title: '📜 View Menu' }
+                ], userId);
+                return;
+            }
+
             let query = lower;
             enquiryWords.forEach(w => { query = query.replace(new RegExp(`\\b${w}\\b`, 'g'), ''); });
             query = query.replace(/[?]/g, '').trim();
