@@ -801,8 +801,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 });
                 await sendBrandedText(customerNumber, biz.name, responseText, userId);
             }
-            return;
-        }
+    const processAiAutomations = async (customerNumber, customerName, msgText, userId, biz, menuContext) => {
+    try {
+        const cleanNum = customerNumber.replace(/\D/g, '').slice(-10);
+        const lower = msgText.toLowerCase().trim();
+        const session = await getSession(userId, cleanNum);
+        const cart = session.context.cart || [];
+        const symbol = biz.currency_code === 'INR' ? '₹' : '$';
+
+        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
+        const menu = itemsRes.rows;
 
         // --- ⚡ FAST ENQUIRY (Handles availability, price, and delivery directly) ---
         const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
