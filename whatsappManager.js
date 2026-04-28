@@ -424,7 +424,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
-        const itemsRes = await pool.query("SELECT product_name, price, description, category FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
+        const itemsRes = await pool.query("SELECT product_name, price, description, category, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
         const menu = itemsRes.rows;
         const menuContext = menu.map(i => `• ${i.product_name} [${i.category}]: ${symbol}${i.price} (${i.description || 'Specialty of the house'})`).join("\n");
 
