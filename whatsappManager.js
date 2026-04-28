@@ -784,8 +784,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         if (directMatches.length > 0) {
             console.log(`⚡ Fast-Track Match Found for: ${simpleLower}`);
             
-            // If there's only truly one item, proceed. 
-            // If there are multiple (variants or category match), show the list.
             if (directMatches.length === 1) {
                 const item = directMatches[0];
                 const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
@@ -793,7 +791,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 session.context.pending_item = { name: item.product_name, price: item.price };
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
             } else {
-                // Multi-variant Text List (Bypasses 10-item limit)
                 const matches = directMatches;
                 let responseText = `🤔 *Which ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\n\n`;
                 matches.forEach(m => {
@@ -801,67 +798,83 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 });
                 await sendBrandedText(customerNumber, biz.name, responseText, userId);
             }
-    const processAiAutomations = async (customerNumber, customerName, msgText, userId, biz, menuContext) => {
+            return;
+        }
+
+        // --- ⚡ FAST ENQUIRY ---
+        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
+        const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
+        
+        if (enquiryWords.some(w => lower.includes(w)) && !complexWords.some(w => lower.includes(w))) {
+             await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
+             return;
+        }
+
+        await processAiAutomations(userId, customerNumber, lower, customerName, false, null);
+    }
+
+const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation, locationData) => {
     try {
+        const bizRes = await pool.query("SELECT * FROM app_users WHERE id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        if (!biz) return;
+
         const cleanNum = customerNumber.replace(/\D/g, '').slice(-10);
         const lower = msgText.toLowerCase().trim();
-        const session = await getSession(userId, cleanNum);
-        const cart = session.context.cart || [];
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
         const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
         const menu = itemsRes.rows;
+        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
+        
+        const session = await getSession(userId, cleanNum);
+        const cart = session.context.cart || [];
 
-        // --- ⚡ FAST ENQUIRY (Handles availability, price, and delivery directly) ---
+        // --- ⚡ FAST ENQUIRY ---
         const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
         const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
         
         if (enquiryWords.some(w => lower.includes(w)) && !complexWords.some(w => lower.includes(w))) {
             const isUrdu = lower.includes('chahiye') || lower.includes('milega') || lower.includes('hai') || lower.includes('kartay') || lower.includes('kitna');
-            
-            // Only trigger if message is reasonably short (to let AI handle complex questions)
             if (lower.split(' ').length < 8) {
-                // Check for delivery specifically
                 if (lower.includes('delivery')) {
-                const deliveryOk = biz.fulfillment_options?.delivery !== false;
-                const deliveryMsg = deliveryOk 
-                    ? (isUrdu 
-                        ? `🚚 *Home Delivery Available hai!* 🏠\n━━━━━━━━━━━━━━\nHum aapke ghar tak deliver karte hain. Checkout ke waqt apna location share karein delivery charges dekhne ke liye.\n\nKya aap order start karna chahenge?`
-                        : `🚚 *Home Delivery is Available!* 🏠\n━━━━━━━━━━━━━━\nWe deliver to your doorstep. You can share your location pin during checkout to see delivery charges.\n\nWould you like to start your order?`)
-                    : (isUrdu
-                        ? `🥡 *Sirf Pickup available hai*\n━━━━━━━━━━━━━━\nAbhi hum sirf Pickup aur Dine-in support karte hain. Home delivery abhi band hai.`
-                        : `🥡 *Pickup Only*\n━━━━━━━━━━━━━━\nCurrently, we only support Pickup and Dine-in. Home delivery is not available at this moment.`);
-                
-                await sendButtons(customerNumber, deliveryMsg, [
-                    { id: 'place_order', title: isUrdu ? '🛍️ Order Karein' : '🛍️ Place an Order' },
-                    { id: 'view_menu', title: isUrdu ? '📜 Menu Dekhein' : '📜 View Menu' }
-                ], userId);
-                return;
-            }
-
-            let query = lower;
-            enquiryWords.forEach(w => { query = query.replace(new RegExp(`\\b${w}\\b`, 'g'), ''); });
-            query = query.replace(/[?]/g, '').trim();
-            
-            if (query.length > 2) {
-                const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
-                if (match) {
-                    console.log(`🔍 DEBUG ITEM MATCH: ${match.product_name} | Avail: ${match.availability} | Stock: ${match.stock_count}`);
+                    const deliveryOk = biz.fulfillment_options?.delivery !== false;
+                    const deliveryMsg = deliveryOk 
+                        ? (isUrdu 
+                            ? `🚚 *Home Delivery Available hai!* 🏠\n━━━━━━━━━━━━━━\nHum aapke ghar tak deliver karte hain. Checkout ke waqt apna location share karein delivery charges dekhne ke liye.\n\nKya aap order start karna chahenge?`
+                            : `🚚 *Home Delivery is Available!* 🏠\n━━━━━━━━━━━━━━\nWe deliver to your doorstep. You can share your location pin during checkout to see delivery charges.\n\nWould you like to start your order?`)
+                        : (isUrdu
+                            ? `🥡 *Sirf Pickup available hai*\n━━━━━━━━━━━━━━\nAbhi hum sirf Pickup aur Dine-in support karte hain. Home delivery abhi band hai.`
+                            : `🥡 *Pickup Only*\n━━━━━━━━━━━━━━\nCurrently, we only support Pickup and Dine-in. Home delivery is not available at this moment.`);
                     
-                    const isAvailable = match.availability !== false; 
-                    let status = isAvailable ? "✅ *Available*" : "❌ *Out of Stock*";
-                    if (isUrdu) status = isAvailable ? "✅ *Available hai*" : "❌ *Abhi khatam hai*";
-
-                    const reply = isUrdu 
-                        ? `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nKya aap ise order mein add karna chahenge?`
-                        : `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
-                    
-                    const buttons = [];
-                    if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: isUrdu ? `🛒 Add Karein` : `🛒 Order ${match.product_name}` });
-                    buttons.push({ id: 'place_order', title: isUrdu ? '🛍️ Aur Dekhein' : '🛍️ Browse More' });
-
-                    await sendButtons(customerNumber, reply, buttons, userId);
+                    await sendButtons(customerNumber, deliveryMsg, [
+                        { id: 'place_order', title: isUrdu ? '🛍️ Order Karein' : '🛍️ Place an Order' },
+                        { id: 'view_menu', title: isUrdu ? '📜 Menu Dekhein' : '📜 View Menu' }
+                    ], userId);
                     return;
+                }
+
+                let query = lower;
+                enquiryWords.forEach(w => { query = query.replace(new RegExp(`\\b${w}\\b`, 'g'), ''); });
+                query = query.replace(/[?]/g, '').trim();
+                
+                if (query.length > 2) {
+                    const match = menu.find(i => i.product_name.toLowerCase().includes(query) || query.includes(i.product_name.toLowerCase()));
+                    if (match) {
+                        const isAvailable = match.availability !== false; 
+                        let status = isAvailable ? "✅ *Available*" : "❌ *Out of Stock*";
+                        if (isUrdu) status = isAvailable ? "✅ *Available hai*" : "❌ *Abhi khatam hai*";
+
+                        const reply = isUrdu 
+                            ? `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nKya aap ise order mein add karna chahenge?`
+                            : `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
+                        
+                        const buttons = [];
+                        if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: isUrdu ? `🛒 Add Karein` : `🛒 Order ${match.product_name}` });
+                        buttons.push({ id: 'place_order', title: isUrdu ? '🛍️ Aur Dekhein' : '🛍️ Browse More' });
+                        await sendButtons(customerNumber, reply, buttons, userId);
+                        return;
+                    }
                 }
             }
         }
@@ -871,45 +884,25 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const cartSummary = cart.length > 0 ? cart.map(i => `${i.qty}x ${i.name}`).join(", ") : "Empty";
         
         const systemPrompt = `
-You are the "Master Sales Executive" for ${biz.name}. Your goal is to provide a premium, helpful, and sales-driven experience.
-You are talking to ${customerName}.
-
+You are the Master Sales Executive for ${biz.name}.
 CONTEXT:
-- Current Cart: ${cartSummary}
-- Business Knowledge: ${biz.bot_knowledge || 'No specific extra info.'}
-- Menu Items:
-${menuContext}
+- Cart: ${cartSummary}
+- Menu: ${menuContext}
+- Extra Info: ${biz.bot_knowledge || 'No specific info.'}
 
-YOUR PERSONALITY:
-- Enthusiastic, professional, and slightly witty.
-- You are a REALISTIC salesman. If someone orders a main course, suggest a drink or a popular side.
-- Use emojis effectively but professionally.
-- IMPORTANT: Reply in the SAME LANGUAGE as the user. If they use Roman Urdu/Hindi (e.g., "chahiye", "khana"), reply in Roman Urdu/Hindi.
-- Shahe Tehzeeb only serves Mutton, Chicken, and Veg items. We NEVER sell Beef. If asked, politely inform the customer about our specialization.
+YOUR MISSION: Extract items, quantities, and intent. Match items against the menu list.
+REPLY in the SAME LANGUAGE as the user (English or Roman Urdu).
 
-YOUR MISSION:
-1. Extract ALL items and quantities mentioned by the user. 
-   - If the user says "Rista 50", they likely mean 50x Rista.
-   - If they say "1 chicken burger", extract { "name": "Chicken Burger", "quantity": 1 }.
-2. Match items AGAINST the menu list provided. If an item is NOT in the menu, do NOT include it in the "items" array.
-3. If an item matches multiple menu items, pick the closest match.
-4. If the user is just greeting, welcome them warmly and suggest a best-seller.
-5. If they want to checkout, encourage them but maybe mention a "must-try" dessert first.
-6. If the user wants to book a table, ask for date, time, and guest count. If they provide it, mark intent as RESERVATION and fill the reservation object.
-7. DO NOT get confused by point-related keywords. Only handle loyalty if the intent is explicitly CHECK_POINTS.
-
-RULES for JSON Output:
-- "intent": "ORDER_ITEM" (if they list items), "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
-- "items": Array of { "name": "Exact Name from Menu", "quantity": number }. Only include items found in the menu.
-- "reservation": { "date": "YYYY-MM-DD", "time": "HH:MM", "guests": number } (ONLY IF intent is RESERVATION and user provided details)
-- "feedback": { "rating": number, "comment": string } (ONLY IF intent is FEEDBACK. If user didn't give a number but the text is positive like 'Good food', assume rating 5. If negative, assume 1 or 2.)
-- "human_reply": A conversational, sales-driven response. If you added items, confirm them enthusiastically.
-- "upsell_suggestion": A short, tempting suggestion for one additional item they haven't ordered yet.
+JSON RULES:
+- "intent": "ORDER_ITEM", "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
+- "items": Array of { "name": string, "quantity": number }.
+- "human_reply": A conversational, sales-driven response. Confirm items enthusiastically.
+- "upsell_suggestion": A short, tempting suggestion for one more item.
 
 RETURN ONLY JSON:
 {
-  "intent": "ORDER_ITEM" | "GREETING" | "CHECKOUT" | "ENQUIRY" | "RESERVATION" | "FEEDBACK" | "UNKNOWN",
-  "items": [{ "name": string, "quantity": number }],
+  "intent": string,
+  "items": [],
   "reservation": { "date": string, "time": string, "guests": number },
   "feedback": { "rating": number, "comment": string },
   "human_reply": string,
