@@ -801,35 +801,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-                    if (textBody || isLocation) {
-                        await upsertContact(userId, fromNumber, contactName);
-                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
-                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
-                    }
-                }
-            }
-        }
-    } catch (e) { 
-        console.error("Webhook Error", e); 
-    }
-};
-
-const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation, locationData) => {
-    try {
-        const bizRes = await pool.query("SELECT * FROM app_users WHERE id = $1", [userId]);
-        const biz = bizRes.rows[0];
-        if (!biz) return;
-
-        const cleanNum = customerNumber.replace(/\D/g, '').slice(-10);
-        const lower = msgText.toLowerCase().trim();
-        const symbol = biz.currency_code === 'INR' ? '₹' : '$';
-
-        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
-        const menu = itemsRes.rows;
-        const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
-        
-        const session = await getSession(userId, cleanNum);
-        const cart = session.context.cart || [];
+        // --- 🧠 ADVANCED AI SALESMAN ENGINE (Fallthrough) ---
 
         // --- ⚡ FAST ENQUIRY ---
         const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
@@ -1086,6 +1058,62 @@ const transcribeAudio = async (mediaId, userId) => {
         console.error("[WHISPER ERROR]:", e.response?.data || e.message);
         return null;
     }
+};
+
+const handleMetaWebhook = async (body) => {
+    try {
+        if (body.object === "whatsapp_business_account") {
+            for (const entry of body.entry) {
+                const changes = entry.changes[0];
+                if (changes.value && changes.value.messages) {
+                    const message = changes.value.messages[0];
+                    const fromNumber = normalizePhone(message.from);
+                    const contactName = changes.value.contacts?.[0]?.profile?.name || "Customer";
+                    const metaPhoneId = changes.value.metadata.phone_number_id; 
+                    console.log(`📩 WEBHOOK RECEIVED: From ${fromNumber} | PhoneID: ${metaPhoneId}`);
+
+                    const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
+                    if (userRes.rows.length === 0) {
+                        console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
+                        return;
+                    }
+                    const userId = userRes.rows[0].id;
+                    console.log(`👤 Found UserID: ${userId} for this webhook.`);
+
+                    let textBody = "";
+                    let isLocation = false;
+                    let locationData = null;
+
+                    if (message.type === "text") textBody = message.text.body;
+                    else if (message.type === "interactive") {
+                        if (message.interactive.type === "button_reply") textBody = message.interactive.button_reply.id;
+                        else if (message.interactive.type === "list_reply") textBody = message.interactive.list_reply.id;
+                    } else if (message.type === "location") {
+                        isLocation = true;
+                        locationData = message.location;
+                    } else if (message.type === "audio") {
+                        const mediaId = message.audio.id;
+                        const transcript = await transcribeAudio(mediaId, userId);
+                        if (transcript) textBody = transcript;
+                        else textBody = "[Audio message received but transcription failed]";
+                    }
+                    
+                    let adContext = "";
+                    if (message.referral) {
+                        const ref = message.referral;
+                        adContext = `\n[System Note: Customer clicked an ad to get here! Ad Headline: "${ref.headline || ''}", Ad Body: "${ref.body || ''}". Acknowledge their interest subtly.]`;
+                    }
+
+                    if (textBody || isLocation) {
+                        if (adContext && textBody) textBody += adContext;
+                        await upsertContact(userId, fromNumber, contactName);
+                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
+                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
+                    }
+                }
+            }
+        }
+    } catch (e) { console.error("Webhook Error", e); }
 };
 
 const startCartRecoveryCron = () => {
