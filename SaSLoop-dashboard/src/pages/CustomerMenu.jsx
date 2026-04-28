@@ -7,6 +7,21 @@ import {
   RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
+import { initializeApp } from "firebase/app";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "firebase/auth";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCaCuJkYZoFmHgCqD0ydecItMAfLZNNEgA",
+  authDomain: "sasloop-auth.firebaseapp.com",
+  projectId: "sasloop-auth",
+  storageBucket: "sasloop-auth.firebasestorage.app",
+  messagingSenderId: "206902230261",
+  appId: "1:206902230261:web:76533ef16c51b3c43759bc",
+  measurementId: "G-4E4NES2Z7N"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
 
 function CustomerMenu() {
   const { bizId, tableId } = useParams();
@@ -105,37 +120,37 @@ function CustomerMenu() {
     }
   }, [view, customerPhone]);
 
+  useEffect(() => {
+    if (view === "auth" && !window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        'size': 'invisible'
+      });
+    }
+  }, [view]);
+
   const handleRequestOtp = async () => {
     if (!customerName.trim() || !customerPhone.trim()) return alert("Name and Phone are required.");
     setIsVerifying(true);
     try {
         const fullPhone = getStandardPhone();
-        const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: bizId, phone: fullPhone })
-        });
-        const d = await res.json();
-        if (d.success) setOtpMode(true);
-        else alert(d.error || "Failed to send code.");
+        const confirmationResult = await signInWithPhoneNumber(auth, fullPhone, window.recaptchaVerifier);
+        window.confirmationResult = confirmationResult;
+        setOtpMode(true);
+    } catch (err) {
+        console.error("Firebase SMS Error:", err);
+        alert("Failed to send code via Firebase. Please try again. " + err.message);
     } finally { setIsVerifying(false); }
   };
 
   const handleVerifyOtp = async () => {
     setIsVerifying(true);
     try {
-        const fullPhone = getStandardPhone();
-        const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
-        });
-        const d = await res.json();
-        if (d.success) {
-            checkLoyalty();
-            setView("menu");
-            fetchActiveOrders(); // Immediately fetch orders
-        } else alert(d.error || "Invalid Code");
+        await window.confirmationResult.confirm(authOtp);
+        checkLoyalty();
+        setView("menu");
+        fetchActiveOrders();
+    } catch (err) {
+        alert("Invalid Code");
     } finally { setIsVerifying(false); }
   };
 
@@ -240,8 +255,9 @@ function CustomerMenu() {
                       </div>
                     </>
                   ) : (
-                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" /></div>
+                    <div className="space-y-4 text-center"><p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Verify SMS Code</p><input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-slate-50 border border-slate-100 px-4 py-5 rounded-[2rem] text-3xl font-black text-emerald-500 tracking-[0.5em] text-center outline-none focus:border-emerald-500 transition-all" /></div>
                   )}
+                  <div id="recaptcha-container"></div>
                   <button 
                     onClick={otpMode ? handleVerifyOtp : handleRequestOtp} 
                     disabled={isVerifying} 
