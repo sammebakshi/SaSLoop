@@ -376,7 +376,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     }
                 ];
 
-                await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                await sendList(customerNumber, welcomeText, "✨ Open Main Menu ✨", sections, userId);
                 await logChat(userId, cleanNum, 'bot', welcomeText);
             } else {
                 // NEW CUSTOMER: Show VIP Offer + Buttons
