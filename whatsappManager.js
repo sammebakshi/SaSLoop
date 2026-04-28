@@ -804,10 +804,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- 🧠 ADVANCED AI SALESMAN ENGINE (Fallthrough) ---
 
         // --- ⚡ FAST ENQUIRY ---
-        const enquiryWords = ['available', 'price', 'cost', 'have', 'is', 'what', 'of', 'do', 'you', 'rate', 'delivery', 'milega', 'chahiye', 'price', 'kitna', 'hai', 'kartay'];
+        const enquiryWords = ['available', 'price', 'cost', 'have', 'what', 'rate', 'delivery', 'milega', 'chahiye', 'kitna', 'hai', 'kartay'];
         const complexWords = ['how', 'why', 'banatay', 'recipe', 'tell', 'batao', 'explain', 'detail', 'ingredients'];
+        const hasNumbers = /\d/.test(lower);
+        const words = lower.split(/\s+/);
+        const hasEnquiryWord = words.some(w => enquiryWords.includes(w));
+        const hasComplexWord = words.some(w => complexWords.includes(w));
         
-        if (enquiryWords.some(w => lower.includes(w)) && !complexWords.some(w => lower.includes(w))) {
+        if (hasEnquiryWord && !hasComplexWord && !hasNumbers) {
             const isUrdu = lower.includes('chahiye') || lower.includes('milega') || lower.includes('hai') || lower.includes('kartay') || lower.includes('kitna');
             if (lower.split(' ').length < 8) {
                 if (lower.includes('delivery')) {
