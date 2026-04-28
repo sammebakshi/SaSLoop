@@ -341,7 +341,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
         const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
-        const menu = itemsRes.rows;
+        const allItems = itemsRes.rows;
+
+        // --- 🧠 SMART MENU FILTERING (To save tokens & prevent rate limits) ---
+        // Only show items that are actually relevant to the conversation
+        const searchWords = lower.split(/\s+/).filter(w => w.length > 2);
+        let menu = allItems.filter(item => 
+            searchWords.some(word => item.product_name.toLowerCase().includes(word))
+        );
+        
+        // If no items match, or it's a greeting, show a curated "Featured" or "Popular" subset (top 15)
+        if (menu.length === 0) menu = allItems.slice(0, 15);
+        
         const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
 
         // --- 🛡️ CHECK IF BLOCKED ---
