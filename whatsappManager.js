@@ -883,7 +883,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 }
             }
         }
-
         // --- 🧠 ADVANCED AI SALESMAN ENGINE ---
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const cartSummary = cart.length > 0 ? cart.map(i => `${i.qty}x ${i.name}`).join(", ") : "Empty";
@@ -916,17 +915,15 @@ RETURN ONLY JSON:
 `;
 
         try {
-            const completion = await groq.chat.completions.create({
-                messages: [
-                    { role: "system", content: systemPrompt },
-                    { role: "user", content: msgText }
-                ],
-                model: "llama-3.1-8b-instant",
+            const chatCompletion = await groq.chat.completions.create({
+                messages: [{ role: "system", content: systemPrompt }, { role: "user", content: msgText }],
+                model: "llama-3.1-70b-versatile",
                 response_format: { type: "json_object" }
             });
 
-            const result = JSON.parse(completion.choices[0].message.content);
-            console.log("🤖 AI Salesman Result:", result);
+            const resultStr = chatCompletion.choices[0]?.message?.content || "{}";
+            console.log(`🤖 AI RAW RESPONSE for "${msgText}":`, resultStr);
+            const result = JSON.parse(resultStr);
 
             if (result.intent === 'GREETING' || lower === 'hi' || lower === 'hello' || lower === 'menu') {
                 // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
@@ -1036,6 +1033,10 @@ RETURN ONLY JSON:
                 // --- 🧩 DISAMBIGUATION: IF MULTIPLE MATCHES FOUND ---
                 if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
+                    
+                    // CRITICAL: Even if one is ambiguous, SAVE the clear items to the cart first!
+                    session.context.cart = newCart;
+
                     // Save state so we know what to add once they pick
                     session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
@@ -1047,7 +1048,12 @@ RETURN ONLY JSON:
                     }));
 
                     const sections = [{ title: "Available Options", rows }];
-                    const body = `🤔 *Multiple matches for "${amb.keyword}"*\n━━━━━━━━━━━━━━\nPlease select the exact item you'd like to order from the list below. 👇`;
+                    
+                    let body = "";
+                    if (addedSummary.length > 0) {
+                        body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
+                    }
+                    body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
                     
                     await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", sections, userId);
                     return;
