@@ -1004,7 +1004,7 @@ RETURN ONLY JSON:
                     );
                     
                     if (item) {
-                        const qty = aiItem.quantity || 1;
+                        const qty = aiItem.quantity || aiItem.qty || 1;
                         const existing = newCart.find(c => c.name === item.product_name);
                         if (existing) {
                             existing.qty += qty;
