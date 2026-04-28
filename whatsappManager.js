@@ -393,7 +393,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         const session = await getSession(userId, cleanNum);
-        if (session.is_paused) return;
+        
+        // Auto-unpause if the user explicitly interacts with the bot menu
+        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support'];
+        if (session.is_paused) {
+            if (botCommands.includes(lower)) {
+                await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+                session.is_paused = false;
+            } else {
+                return;
+            }
+        }
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
 
