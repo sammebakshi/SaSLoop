@@ -343,15 +343,20 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
         const allItems = itemsRes.rows;
 
-        // --- 🧠 SMART MENU FILTERING (To save tokens & prevent rate limits) ---
-        // Only show items that are actually relevant to the conversation
-        const searchWords = lower.split(/\s+/).filter(w => w.length > 2);
-        let menu = allItems.filter(item => 
-            searchWords.some(word => item.product_name.toLowerCase().includes(word))
-        );
+        // --- 🧠 SMART MENU FILTERING (Fuzzy & Robust) ---
+        const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
+        let menu = allItems.filter(item => {
+            const pName = item.product_name.toLowerCase();
+            return searchWords.some(word => 
+                pName.includes(word) || 
+                word.includes(pName) ||
+                // Check for 75% character match for fuzzy support
+                (word.length > 4 && pName.split('').filter(c => word.includes(c)).length / word.length > 0.75)
+            );
+        });
         
-        // If no items match, or it's a greeting, show a curated "Featured" or "Popular" subset (top 15)
-        if (menu.length === 0) menu = allItems.slice(0, 15);
+        // If no items match, or it's a greeting, show top 25 items
+        if (menu.length === 0) menu = allItems.slice(0, 25);
         
         const menuContext = menu.map(i => `${i.product_name}: ${symbol}${i.price}`).join(", ");
 
