@@ -216,6 +216,10 @@ function CustomerMenu() {
   };
 
   const placeOrder = async () => {
+    if (!isVerified && (!customerName || !customerPhone)) {
+        alert("Please provide your Name and Phone number to place the order.");
+        return;
+    }
     setPlacing(true);
     const fullPhone = getStandardPhone(customerPhone);
     try {
@@ -541,7 +545,34 @@ function CustomerMenu() {
                     <span className="text-[11px] font-black">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
                 </div>
               )}
-              <button onClick={placeOrder} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
+              {!isVerified && (
+                  <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
+                     <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Guest Details (For Loyalty Points)</p>
+                     <input 
+                       type="text" 
+                       placeholder="Your Name" 
+                       className="w-full bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                       value={customerName}
+                       onChange={e => setCustomerName(e.target.value)}
+                     />
+                     <div className="flex gap-2">
+                       <select className="bg-white/10 border border-white/10 px-3 py-3 rounded-2xl text-[10px] font-bold text-white outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                           {countryCodes.map(c => <option key={c.code} value={c.mobile_code} className="bg-slate-900 text-white">+{c.mobile_code}</option>)}
+                       </select>
+                       <input 
+                         type="tel" 
+                         placeholder="Phone Number" 
+                         className="flex-1 bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                         value={customerPhone}
+                         onChange={e => setCustomerPhone(e.target.value)}
+                       />
+                     </div>
+                  </div>
+               )}
+               <button onClick={() => {
+                  if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                  placeOrder();
+               }} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
                   <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5 font-sans">Final Total</p><p className="text-xl font-black italic">{symbol}{finalTotal.toFixed(0)}</p></div></div>
                   <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
               </button>

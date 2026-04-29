@@ -276,6 +276,10 @@ function OnlineOrder() {
   };
 
   const placeOrder = async () => {
+    if (!isVerified && (!customerName || !customerPhone)) {
+        alert("Please provide your Name and Phone number to place the order.");
+        return;
+    }
     setPlacing(true);
     const fullPhone = getStandardPhone(customerPhone);
     try {
@@ -655,6 +659,30 @@ function OnlineOrder() {
                      <span className="text-[11px] font-black text-emerald-400">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
                   </div>
                )}
+               {!isVerified && (
+                  <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
+                     <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Guest Details (For Loyalty Points)</p>
+                     <input 
+                       type="text" 
+                       placeholder="Your Name" 
+                       className="w-full bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                       value={customerName}
+                       onChange={e => setCustomerName(e.target.value)}
+                     />
+                     <div className="flex gap-2">
+                       <select className="bg-white/10 border border-white/10 px-3 py-3 rounded-2xl text-[10px] font-bold text-white outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                           {countryCodes.map(c => <option key={c.code} value={c.mobile_code} className="bg-slate-900 text-white">+{c.mobile_code}</option>)}
+                       </select>
+                       <input 
+                         type="tel" 
+                         placeholder="Phone Number" 
+                         className="flex-1 bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                         value={customerPhone}
+                         onChange={e => setCustomerPhone(e.target.value)}
+                       />
+                     </div>
+                  </div>
+               )}
                <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar">
                   {(!biz?.settings?.accepted_payment_methods || biz?.settings?.accepted_payment_methods?.cash) && (
                      <button onClick={() => setPaymentMethod('CASH')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'CASH' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>COD / Cash</button>
@@ -663,7 +691,10 @@ function OnlineOrder() {
                      <button onClick={() => setPaymentMethod('UPI')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'UPI' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>Pay Online</button>
                   )}
                </div>
-               <button onClick={placeOrder} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
+               <button onClick={() => {
+                  if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                  placeOrder();
+               }} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
                   <div className="flex items-center gap-5 pl-4">
                      <div className="relative">
                         <div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div>
