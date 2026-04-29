@@ -29,7 +29,8 @@ function CustomerMenu() {
   const [redemptionToken, setRedemptionToken] = useState(null);
   const [redemptionStatus, setRedemptionStatus] = useState("IDLE"); // IDLE, PENDING, SUCCESS
   
-  const [view, setView] = useState("auth"); 
+  const [view, setView] = useState("menu"); 
+  const [isVerified, setIsVerified] = useState(false);
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
@@ -132,7 +133,9 @@ function CustomerMenu() {
             clearInterval(itv);
             const stdPhone = d.phone;
             setCustomerPhone(stdPhone);
+            setIsVerified(true);
             setAuthStatus("SUCCESS");
+            setView("menu");
             
             // Fetch loyalty and orders with the verified phone
             const loyRes = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(stdPhone)}`);
@@ -161,7 +164,11 @@ function CustomerMenu() {
   };
 
   const handleRedeemRequest = async () => {
-    if (!customerPhone) return alert("Please verify your number first.");
+    if (!isVerified) {
+        setView("auth");
+        return;
+    }
+    if (!customerPhone) return alert("Please enter your phone number.");
     const minRedeem = biz?.min_redeem_points || 300;
     const maxRedeem = biz?.max_redeem_per_order || 300;
     
@@ -440,7 +447,43 @@ function CustomerMenu() {
                           </div>
                         ))}
                      </div>
-                     <div className="border-t-2 border-slate-50 pt-10 space-y-5">
+                      <div className="border-t-2 border-slate-50 pt-10 space-y-5">
+                        {!isVerified && (
+                          <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
+                             <input 
+                               type="text" 
+                               placeholder="Your Name" 
+                               className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
+                               value={customerName}
+                               onChange={e => setCustomerName(e.target.value)}
+                             />
+                             <div className="flex gap-2">
+                                <select className="bg-white border border-slate-200 px-3 py-3.5 rounded-2xl text-xs font-bold outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                                   {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                                </select>
+                                <input 
+                                  type="tel" 
+                                  placeholder="Phone Number" 
+                                  className="flex-1 bg-white border border-slate-200 px-5 py-3.5 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
+                                  value={customerPhone}
+                                  onChange={e => setCustomerPhone(e.target.value)}
+                                />
+                             </div>
+                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center mt-2 px-4 italic leading-relaxed">Verification is only required for redeeming rewards.</p>
+                          </div>
+                        )}
+
+                        {isVerified && (
+                           <div className="flex items-center gap-3 bg-emerald-50 px-6 py-4 rounded-[2rem] border border-emerald-100 mb-6 animate-in fade-in duration-500">
+                              <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200"><CheckCircle2 className="w-4 h-4" /></div>
+                              <div>
+                                 <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Verified Customer</p>
+                                 <p className="text-xs font-bold text-slate-500">{customerPhone}</p>
+                              </div>
+                           </div>
+                        )}
+
                         {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
                            <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 mb-4">
                               <div className="flex items-center justify-between mb-4">

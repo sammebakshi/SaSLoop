@@ -56,8 +56,9 @@ function OnlineOrder() {
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
   const [pollInterval, setPollInterval] = useState(null);
   
-  const [view, setView] = useState("auth"); 
-  const [authStatus, setAuthStatus] = useState("IDLE"); // IDLE, PENDING
+  const [view, setView] = useState("menu"); 
+  const [isVerified, setIsVerified] = useState(false);
+  const [authStatus, setAuthStatus] = useState("IDLE"); 
   const [authToken, setAuthToken] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
 
@@ -181,7 +182,9 @@ function OnlineOrder() {
             clearInterval(itv);
             const stdPhone = d.phone;
             setCustomerPhone(stdPhone);
+            setIsVerified(true);
             setAuthStatus("SUCCESS");
+            setView("menu");
             
             // Fetch loyalty and orders
             const std = getStandardPhone(stdPhone);
@@ -221,7 +224,11 @@ function OnlineOrder() {
   };
 
   const handleRedeemRequest = async () => {
-    if (!customerPhone) return alert("Please verify your number first.");
+    if (!isVerified) {
+        setView("auth");
+        return;
+    }
+    if (!customerPhone) return alert("Please enter your phone number.");
     const minRedeem = biz?.min_redeem_points || 300;
     const maxRedeem = biz?.max_redeem_per_order || 300;
     
@@ -538,10 +545,46 @@ function OnlineOrder() {
           </div>
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
-                <div className="flex items-center justify-between mb-12"><h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4"><ShoppingBag className="w-7 h-7 text-emerald-500" /> Checkout</h2><span className="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span></div>
+                {!isVerified && (
+                   <div className="space-y-4 mb-10 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
+                      <input 
+                        type="text" 
+                        placeholder="Full Name" 
+                        className="w-full bg-white border border-slate-200 px-6 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                        value={customerName}
+                        onChange={e => setCustomerName(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                         <select className="bg-white border border-slate-200 px-4 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                            {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                         </select>
+                         <input 
+                           type="tel" 
+                           placeholder="Phone Number" 
+                           className="flex-1 bg-white border border-slate-200 px-6 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                           value={customerPhone}
+                           onChange={e => setCustomerPhone(e.target.value)}
+                         />
+                      </div>
+                      <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center mt-2 px-4 italic leading-relaxed">Verification is only required for redeeming rewards.</p>
+                   </div>
+                )}
+
+                {isVerified && (
+                   <div className="flex items-center gap-4 bg-emerald-50 px-8 py-6 rounded-[2.5rem] border border-emerald-100 mb-10 animate-in fade-in duration-500">
+                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200"><CheckCircle2 className="w-5 h-5" /></div>
+                      <div>
+                         <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Verified Customer</p>
+                         <p className="text-sm font-bold text-slate-500">{customerPhone}</p>
+                      </div>
+                   </div>
+                )}
+
+                <div className="flex items-center justify-between mb-12"><h2 className="text-xl font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4"><ShoppingBag className="w-7 h-7 text-emerald-500" /> Checkout</h2><span className="bg-slate-50 text-slate-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span></div>
                 {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest italic">Bag is Empty</p></div> : (
                   <div className="space-y-12">
-                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">{cart.map(ci => <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4"><div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div><div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: i.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button></div></div>)}</div>
+                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">{cart.map(ci => <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4"><div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div><div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: ci.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500"><Plus className="w-3.5 h-3.5" /></button></div></div>)}</div>
                      <div className="border-t-2 border-slate-50 pt-10 space-y-5">
                         {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
                            <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 mb-4">
@@ -655,12 +698,12 @@ function OnlineOrder() {
            <MessageCircle className="w-7 h-7" />
          </a>
       </div>
-
-      {/* CATEGORIES MODAL */}
+{/* CATEGORIES MODAL */}
       {showCategories && (
         <div className="fixed inset-0 z-[300] flex items-end justify-center p-4 animate-in fade-in duration-300">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCategories(false)} />
           <div className="relative w-full max-w-sm bg-white rounded-[3rem] shadow-2xl p-8 pb-12 animate-in slide-in-from-bottom-full duration-500">
+
              <div className="flex items-center justify-between mb-8">
                 <div>
                    <h3 className="text-xl font-black text-slate-900 italic">Menu Sections</h3>

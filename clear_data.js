@@ -12,7 +12,7 @@ async function clearAllData() {
             "chat_messages",
             "conversation_sessions",
             "customer_feedback",
-            "loyalty_otps",
+
             "audit_logs",
             "system_notifications"
         ];

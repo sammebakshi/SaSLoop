@@ -314,15 +314,7 @@ async function initializeDatabase() {
                 server_uptime_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             `INSERT INTO system_status (id, restart_count) VALUES (1, 0) ON CONFLICT DO NOTHING`,
-            // 18. Loyalty Redemption OTPs
-            `CREATE TABLE IF NOT EXISTS loyalty_otps (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES app_users(id),
-                customer_number TEXT NOT NULL,
-                otp_code VARCHAR(10) NOT NULL,
-                expires_at TIMESTAMP NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )`,
+
             // 19. Table Reservations
             `CREATE TABLE IF NOT EXISTS reservations (
                 id SERIAL PRIMARY KEY,

@@ -486,7 +486,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await updateSession(userId, cleanNum, 'IDLE', session.context);
         }
         
-        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support', 'get_otp', 'get otp'];
+        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support'];
         if (session.is_paused) {
             if (botCommands.includes(lower)) {
                 await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);

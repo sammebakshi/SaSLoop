@@ -431,7 +431,7 @@ function OperationalRules() {
                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block pl-1">Security & Access</label>
                  <label className="flex items-center gap-3 p-4 bg-indigo-50 rounded-2xl cursor-pointer shadow-sm">
                      <input type="checkbox" className="w-4 h-4 text-indigo-600 rounded" checked={formData.is_auth_required} onChange={e => setFormData(prev => ({...prev, is_auth_required: e.target.checked}))} />
-                     <span className="text-xs font-black text-indigo-700 uppercase">OTP Login Required First</span>
+                     <span className="text-xs font-black text-indigo-700 uppercase">WhatsApp Login Required</span>
                   </label>
               </div>
            </div>

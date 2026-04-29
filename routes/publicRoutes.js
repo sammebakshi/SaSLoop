@@ -39,7 +39,7 @@ router.get("/menu/:userId", async (req, res) => {
 // 🚀 PLACE ORDER (QR / ONLINE)
 router.post("/order", async (req, res) => {
     try {
-        const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, loyaltyOtp, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst, status: customStatus, paymentMethod, paymentStatus, discount_amount, service_charge } = req.body;
+        const { userId, tableNumber, items, totalPrice, customerName, customerPhone, pointsToRedeem, address, fulfillmentMode, source, subtotal: frontendSubtotal, cgst: frontendCgst, sgst: frontendSgst, status: customStatus, paymentMethod, paymentStatus, discount_amount, service_charge } = req.body;
         
         // 🌍 STANDARDIZE: Always +91... format
         const dbPhone = formatToInter(customerPhone);
@@ -247,8 +247,6 @@ router.get("/loyalty/redeem/status/:token", async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 🔑 REQUEST LOYALTY OTP (Legacy - keep for backward compat if needed, but UI will use WhatsApp)
-router.post("/loyalty/request-otp", async (req, res) => {
 
 // 📋 GET LOYALTY POINTS
 router.get("/loyalty/:userId/:phone", async (req, res) => {
@@ -289,63 +287,7 @@ router.get("/order/:orderRef", async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// 🔑 REQUEST LOGIN OTP (WHATSAPP)
-router.post("/auth/request-otp", async (req, res) => {
-    try {
-        const { userId, phone } = req.body;
-        const dbPhone = formatToInter(phone);
-        if (!dbPhone) return res.status(400).json({ error: "Phone number required." });
 
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-
-        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, dbPhone]);
-        await pool.query(
-            "INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)",
-            [userId, dbPhone, otp, expiresAt]
-        );
-
-        const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
-        const bizName = bizRes.rows[0]?.name || "Restaurant";
-        
-        // Use Official Template to bypass 24h window
-        const sent = await whatsappManager.sendOfficialMessage(dbPhone, {
-            templateName: "otp_verification",
-            params: [bizName, otp]
-        }, userId);
-        
-        if (!sent.success) {
-            console.error("OTP TEMPLATE FAIL:", sent.error);
-            // Fallback to text if template fails (unlikely if approved)
-            const otpMsg = `🔐 *Verification Code*\n\nYour login code for *${bizName}* is: *${otp}*.`;
-            await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
-        }
-        res.json({ success: true, message: "OTP sent via template." });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Failed to send OTP" });
-    }
-});
-
-// ✅ VERIFY LOGIN OTP
-router.post("/auth/verify-otp", async (req, res) => {
-    try {
-        const { userId, phone, otp } = req.body;
-        const dbPhone = formatToInter(phone);
-
-        const otpCheck = await pool.query(
-            "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
-            [userId, dbPhone, otp]
-        );
-
-        if (otpCheck.rows.length === 0) return res.status(401).json({ error: "Invalid or expired OTP." });
-        await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
-        res.json({ success: true, message: "Verified." });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ error: "Verification failed" });
-    }
-});
 
 // ✅ GET RIDER LIVE LOCATION FOR CUSTOMER
 router.get("/track-rider/:orderRef", async (req, res) => {
