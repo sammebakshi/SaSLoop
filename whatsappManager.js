@@ -339,6 +339,40 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const biz = bizRes.rows[0];
         if (!biz) return;
 
+        // --- 🔐 HANDLE AUTHENTICATION TOKEN (Verify using WhatsApp) ---
+        if (lower.includes('verify my number') || lower.includes('sa-') || lower.includes('red-')) {
+            const tokenMatch = msgText.match(/SA-[A-F0-9]{6}/i);
+            const redemptionMatch = msgText.match(/RED-[A-Z0-9]{6}/i);
+
+            if (tokenMatch) {
+                const token = tokenMatch[0].toUpperCase();
+                const authRes = await pool.query(
+                    "UPDATE pending_auths SET is_verified = TRUE, phone = $1 WHERE token = $2 RETURNING *",
+                    [cleanNum, token]
+                );
+
+                if (authRes.rows.length > 0) {
+                    const welcomeMsg = `✅ *Verification Successful!*\n\nReturn to your browser - you are now securely logged in to *${biz.name}*. 🌟\n\nYou can now view your orders and earn rewards!`;
+                    await sendOfficialMessage(customerNumber, welcomeMsg, userId);
+                    return;
+                }
+            }
+
+            if (redemptionMatch) {
+                const token = redemptionMatch[0].toUpperCase();
+                const redRes = await pool.query(
+                    "UPDATE pending_redemptions SET is_verified = TRUE, phone = $1 WHERE token = $2 RETURNING *",
+                    [cleanNum, token]
+                );
+
+                if (redRes.rows.length > 0) {
+                    const confirmMsg = `✅ *Redemption Verified!*\n\nYour points redemption for *${biz.name}* has been authorized. 🎁\n\nReturn to your browser to complete your order. Your discount will be applied automatically!`;
+                    await sendOfficialMessage(customerNumber, confirmMsg, userId);
+                    return;
+                }
+            }
+        }
+
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
         const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
         const allItems = itemsRes.rows;
@@ -461,16 +495,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 return;
             }
         }
-
-        if (lower === 'get_otp' || lower === 'get otp') {
-            const otp = Math.floor(100000 + Math.random() * 900000).toString();
-            const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-            await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
-            await pool.query("INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)", [userId, cleanNum, otp, expiresAt]);
-            await sendOfficialMessage(customerNumber, `🔐 *Your Verification Code*\n\nYour OTP for SaSLoop is: *${otp}*\n\nPlease enter this code on the menu screen.`, userId);
-            return;
-        }
-
 
         const cart = session.context.cart || [];
 
@@ -781,7 +805,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         if (lower === 'loyalty' || lower === 'loyalty_check') {
             const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
             const points = loyaltyRes.rows[0]?.points || 0;
-            const text = `🎁 *Your Rewards*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\n\nYou can use these points for discounts on your future orders! 🎊`;
+            const text = `🎁 *Your Rewards*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\n\n✨ *How to Redeem:* \nJust click "Redeem via WhatsApp" on our digital menu and send the pre-filled message! No more OTPs needed. 🎊`;
             await sendButtons(customerNumber, text, [
                 { id: 'place_order', title: '🛍️ Place an Order' },
                 { id: 'view_menu', title: '📜 View Menu' }
@@ -909,6 +933,7 @@ CONTEXT:
 - Cart: ${cartSummary}
 - Menu: ${menuContext}
 - Extra Info: ${biz.bot_knowledge || 'No specific info.'}
+- Loyalty Program: Customers can redeem points by clicking "Redeem via WhatsApp" on the digital menu. This sends a unique token (RED-XXXXXX). Once they send it, the discount is applied automatically in their browser. NO OTPs are used.
 
 YOUR MISSION: Extract items, quantities, and intent. Match items against the menu list.
 REPLY in the SAME LANGUAGE as the user (English or Roman Urdu).

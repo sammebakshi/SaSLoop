@@ -4,6 +4,7 @@ const whatsappManager = require("../whatsappManager");
 const authMiddleware = require("../middleware/authMiddleware");
 const { requireWhatsAppAccess } = require("../middleware/authMiddleware");
 const pool = require("../db");
+const crypto = require("crypto");
 
 
 // ============================================
@@ -294,6 +295,57 @@ router.post("/mark-read", authMiddleware, async (req, res) => {
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
+// 🔐 SECURE WHATSAPP AUTHENTICATION (NEW)
+// ============================================
+
+// 1. Request a new login token
+router.post("/auth/request", async (req, res) => {
+  try {
+    const { userId } = req.body; // The business ID
+    if (!userId) return res.status(400).json({ error: "Missing userId" });
+
+    // Generate a unique 5-character token (e.g., SA-123)
+    const token = "SA-" + crypto.randomBytes(3).toString('hex').toUpperCase();
+    
+    await pool.query(
+      "INSERT INTO pending_auths (token, user_id) VALUES ($1, $2)",
+      [token, userId]
+    );
+
+    res.json({ success: true, token });
+  } catch (err) {
+    console.error("AUTH REQUEST ERROR:", err);
+    res.status(500).json({ error: "Failed to initiate login" });
+  }
+});
+
+// 2. Poll for authentication status
+router.get("/auth/status/:token", async (req, res) => {
+  try {
+    const { token } = req.params;
+    const result = await pool.query(
+      "SELECT phone, is_verified FROM pending_auths WHERE token = $1",
+      [token]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Token not found" });
+    }
+
+    const auth = result.rows[0];
+    if (auth.is_verified) {
+      // Once verified, delete it so it can't be reused
+      await pool.query("DELETE FROM pending_auths WHERE token = $1", [token]);
+      res.json({ success: true, verified: true, phone: auth.phone });
+    } else {
+      res.json({ success: true, verified: false });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Polling error" });
   }
 });
 

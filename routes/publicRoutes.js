@@ -67,28 +67,29 @@ router.post("/order", async (req, res) => {
         let finalPrice = parseFloat(totalPrice) || 0;
         let redeemedPoints = 0;
 
-        // Loyalty Redemption Logic
+        // Loyalty Redemption Logic (WhatsApp Verified)
         const ptsRatio = parseFloat(bizData?.points_to_amount_ratio) || 10.00;
         const ptsEnabled = bizData?.loyalty_enabled !== false;
         const minRedeem = parseInt(bizData?.min_redeem_points) || 300;
+        const redemptionToken = req.body.redemptionToken;
 
-        if (ptsEnabled && pointsToRedeem && pointsToRedeem >= minRedeem && dbPhone) {
+        if (ptsEnabled && pointsToRedeem && pointsToRedeem >= minRedeem && dbPhone && redemptionToken) {
             try {
-                // Verify OTP for point redemption
-                const otpCheck = await pool.query(
-                    "SELECT id FROM loyalty_otps WHERE user_id=$1 AND customer_number=$2 AND otp_code=$3 AND expires_at > NOW()",
-                    [userId, dbPhone, loyaltyOtp]
+                // Verify redemption token for point redemption
+                const redemptionCheck = await pool.query(
+                    "SELECT id FROM pending_redemptions WHERE user_id=$1 AND token=$2 AND is_verified=TRUE AND created_at > NOW() - INTERVAL '30 minutes'",
+                    [userId, redemptionToken]
                 );
 
-                if (otpCheck.rows.length > 0) {
+                if (redemptionCheck.rows.length > 0) {
                     const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
                     const available = checkPoints.rows[0]?.points || 0;
                     if (available >= pointsToRedeem) {
                         redeemedPoints = pointsToRedeem;
-                        await pool.query("DELETE FROM loyalty_otps WHERE id = $1", [otpCheck.rows[0].id]);
+                        await pool.query("DELETE FROM pending_redemptions WHERE id = $1", [redemptionCheck.rows[0].id]);
                     }
                 }
-            } catch (e) { console.error("Redemption logic fail (Safe-Skip):", e); }
+            } catch (e) { console.error("Redemption logic fail:", e); }
         }
         
         let finalDeliveryCharge = 0;
@@ -215,41 +216,39 @@ router.post("/order", async (req, res) => {
     }
 });
 
-// 🔑 REQUEST LOYALTY OTP
-router.post("/loyalty/request-otp", async (req, res) => {
+// 🎁 REQUEST LOYALTY REDEMPTION (WHATSAPP)
+router.post("/loyalty/redeem/request", async (req, res) => {
     try {
-        const { userId, phone, manual } = req.body;
+        const { userId, phone, points } = req.body;
         const dbPhone = formatToInter(phone);
+        if (!dbPhone) return res.status(400).json({ error: "Phone number required." });
+
+        const token = `RED-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
         
-        if (!dbPhone) return res.status(400).json({ error: "Phone number is required." });
-
-        const checkPoints = await pool.query("SELECT points FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
-        if (checkPoints.rows.length === 0 || (checkPoints.rows[0]?.points || 0) <= 0) {
-            return res.status(400).json({ error: "No loyalty points found for this number." });
-        }
-
-        const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-        await pool.query("DELETE FROM loyalty_otps WHERE user_id = $1 AND customer_number = $2", [userId, dbPhone]);
         await pool.query(
-            "INSERT INTO loyalty_otps (user_id, customer_number, otp_code, expires_at) VALUES ($1, $2, $3, $4)",
-            [userId, dbPhone, otp, expiresAt]
+            "INSERT INTO pending_redemptions (token, user_id, phone, points) VALUES ($1, $2, $3, $4)",
+            [token, userId, dbPhone, points]
         );
 
-        if (!manual) {
-            const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [userId]);
-            const bizName = bizRes.rows[0]?.name || "Restaurant";
-            const otpMsg = `🔐 *Verification Code*\n\nYour OTP for points redemption at *${bizName}* is: *${otp}*.\n\nValid for 10 minutes.`;
-            await whatsappManager.sendOfficialMessage(dbPhone, otpMsg, userId);
-        }
-        
-        res.json({ success: true, message: "OTP generated." });
+        res.json({ success: true, token });
     } catch (err) {
         console.error(err);
-        res.status(500).json({ error: "Failed to process OTP request" });
+        res.status(500).json({ error: "Failed to request redemption" });
     }
 });
+
+// ✅ CHECK REDEMPTION STATUS
+router.get("/loyalty/redeem/status/:token", async (req, res) => {
+    try {
+        const { token } = req.params;
+        const result = await pool.query("SELECT is_verified, phone FROM pending_redemptions WHERE token = $1", [token]);
+        if (result.rows.length === 0) return res.json({ verified: false });
+        res.json({ verified: result.rows[0].is_verified, phone: result.rows[0].phone });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+// 🔑 REQUEST LOYALTY OTP (Legacy - keep for backward compat if needed, but UI will use WhatsApp)
+router.post("/loyalty/request-otp", async (req, res) => {
 
 // 📋 GET LOYALTY POINTS
 router.get("/loyalty/:userId/:phone", async (req, res) => {

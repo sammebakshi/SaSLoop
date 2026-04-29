@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing
+  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -26,29 +26,20 @@ function CustomerMenu() {
   const [placing, setPlacing] = useState(false);
   const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [pointsToRedeem, setPointsToRedeem] = useState(0);
-  const [loyaltyOtp, setLoyaltyOtp] = useState("");
+  const [redemptionToken, setRedemptionToken] = useState(null);
+  const [redemptionStatus, setRedemptionStatus] = useState("IDLE"); // IDLE, PENDING, SUCCESS
   
   const [view, setView] = useState("auth"); 
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
 
-  const [isVerifying, setIsVerifying] = useState(false);
-  const [authOtp, setAuthOtp] = useState("");
-  const [otpMode, setOtpMode] = useState(false);
+  const [authStatus, setAuthStatus] = useState("IDLE"); // IDLE, PENDING
+  const [authToken, setAuthToken] = useState(null);
 
-  const getStandardPhone = () => {
-    // 1. Strip everything except digits from both parts
-    const rawDigits = (customerPhone || "").replace(/\D/g, "");
-    const codeDigits = (countryCode || "91").replace(/\D/g, "");
-    
-    // 2. If the user already typed the country code into the phone box, don't double it
-    if (rawDigits.startsWith(codeDigits) && rawDigits.length > codeDigits.length) {
-      return "+" + rawDigits;
-    }
-    
-    // 3. Otherwise combine them with a single +
-    return "+" + codeDigits + rawDigits;
+  const getStandardPhone = (p) => {
+    if (!p) return "";
+    return p.startsWith("+") ? p : "+" + p;
   };
 
   const biz = data?.business;
@@ -105,52 +96,121 @@ function CustomerMenu() {
     }
   }, [view, customerPhone]);
 
-  const handleRequestOtp = async () => {
-    if (!customerName.trim() || !customerPhone.trim()) return alert("Name and Phone are required.");
-    setIsVerifying(true);
+  const handleRequestAuth = async () => {
+    if (!customerName.trim()) return alert("Please enter your name first.");
+    setAuthStatus("PENDING");
     try {
-        const fullPhone = getStandardPhone();
-        const res = await fetch(`${API_BASE}/api/public/auth/request-otp`, {
+        const res = await fetch(`${API_BASE}/api/whatsapp/auth/request`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: bizId, phone: fullPhone })
-        });
-        const d = await res.json();
-        if (d.success) setOtpMode(true);
-        else alert(d.error || "Failed to send code.");
-    } finally { setIsVerifying(false); }
-  };
-
-  const handleVerifyOtp = async () => {
-    setIsVerifying(true);
-    try {
-        const fullPhone = getStandardPhone();
-        const res = await fetch(`${API_BASE}/api/public/auth/verify-otp`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ userId: bizId, phone: fullPhone, otp: authOtp })
+            body: JSON.stringify({ userId: bizId })
         });
         const d = await res.json();
         if (d.success) {
-            checkLoyalty();
-            setView("menu");
-            fetchActiveOrders(); // Immediately fetch orders
-        } else alert(d.error || "Invalid Code");
-    } finally { setIsVerifying(false); }
+            setAuthToken(d.token);
+            const waMsg = `🚀 Verify my number for ${biz?.name}! ✨ [ID: ${d.token}]`;
+            const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
+            window.open(waUrl, "_blank");
+        } else {
+            alert(d.error || "Failed to start verification.");
+            setAuthStatus("IDLE");
+        }
+    } catch (e) {
+        setAuthStatus("IDLE");
+        alert("Something went wrong.");
+    }
   };
+
+  useEffect(() => {
+    let itv;
+    if (authStatus === "PENDING" && authToken) {
+      itv = setInterval(async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/whatsapp/auth/status/${authToken}`);
+          const d = await res.json();
+          if (d.verified) {
+            clearInterval(itv);
+            const stdPhone = d.phone;
+            setCustomerPhone(stdPhone);
+            setAuthStatus("SUCCESS");
+            
+            // Fetch loyalty and orders with the verified phone
+            const loyRes = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(stdPhone)}`);
+            const loyData = await loyRes.json();
+            setLoyaltyPoints(loyData.points || 0);
+            
+            const ordRes = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(stdPhone)}`);
+            const ordData = await ordRes.json();
+            setActiveOrders(ordData || []);
+            
+            setView("menu");
+          }
+        } catch (e) {}
+      }, 2500);
+    }
+    return () => clearInterval(itv);
+  }, [authStatus, authToken]);
 
   const checkLoyalty = async () => {
     try {
-      const std = getStandardPhone();
+      const std = getStandardPhone(customerPhone);
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
       const d = await res.json();
       setLoyaltyPoints(d.points || 0);
     } catch (e) {}
   };
 
+  const handleRedeemRequest = async () => {
+    if (!customerPhone) return alert("Please verify your number first.");
+    const minRedeem = biz?.min_redeem_points || 300;
+    const maxRedeem = biz?.max_redeem_per_order || 300;
+    
+    if (loyaltyPoints < minRedeem) {
+        return alert(`Minimum ${minRedeem} points required to redeem.`);
+    }
+
+    const pointsToUse = Math.min(loyaltyPoints, maxRedeem);
+    
+    setRedemptionStatus("PENDING");
+    try {
+        const res = await fetch(`${API_BASE}/api/public/loyalty/redeem/request`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: bizId, phone: customerPhone, points: pointsToUse })
+        });
+        const d = await res.json();
+        if (d.success) {
+            setRedemptionToken(d.token);
+            const waMsg = `🎁 Redeem ${pointsToUse} points for ${biz?.name}! ✨ [ID: ${d.token}]`;
+            const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
+            window.open(waUrl, "_blank");
+            
+            // Start polling
+            const itv = setInterval(async () => {
+                try {
+                    const sRes = await fetch(`${API_BASE}/api/public/loyalty/redeem/status/${d.token}`);
+                    const sData = await sRes.json();
+                    if (sData.verified) {
+                        clearInterval(itv);
+                        setRedemptionStatus("SUCCESS");
+                        setPointsToRedeem(pointsToUse);
+                    }
+                } catch (e) {}
+            }, 2500);
+            setTimeout(() => clearInterval(itv), 300000);
+        } else {
+            alert(d.error || "Failed to start redemption.");
+            setRedemptionStatus("IDLE");
+        }
+    } catch (e) {
+        setRedemptionStatus("IDLE");
+        alert("Something went wrong.");
+    }
+  };
+
   const placeOrder = async () => {
     setPlacing(true);
-    const fullPhone = getStandardPhone();
+    const fullPhone = getStandardPhone(customerPhone);
     try {
       const res = await fetch(`${API_BASE}/api/public/order`, {
         method: "POST",
@@ -166,7 +226,7 @@ function CustomerMenu() {
           customerName,
           customerPhone: fullPhone,
           pointsToRedeem,
-          loyaltyOtp,
+          redemptionToken,
           source: "QR_MENU"
         })
       });
@@ -209,60 +269,31 @@ function CustomerMenu() {
               </div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter mb-1 uppercase italic">{biz?.name}</h1>
               <p className="text-emerald-600 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Digital Concierge</p>
-              <div className="space-y-5 text-left">
-                 {!otpMode ? (
-                   <>
-                      <div className="space-y-1.5 w-full">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Name</label>
-                        <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Type name" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" autoFocus />
+              <div className="space-y-6 text-left">
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
+                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Enter your name" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" autoFocus />
+                  </div>
+
+                  {authStatus === "PENDING" ? (
+                    <div className="py-6 text-center animate-pulse">
+                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <RefreshCw className="animate-spin w-5 h-5 text-emerald-600" />
                       </div>
-                      <div className="space-y-1.5 w-full">
-                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">WhatsApp Contact</label>
-                        <div className="grid grid-cols-[85px_1fr] gap-2 w-full max-w-full overflow-hidden">
-                          <div className="relative w-full">
-                            <select 
-                              value={countryCode} 
-                              onChange={e => setCountryCode(e.target.value)} 
-                              className="w-full bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-xs sm:text-sm font-bold text-slate-800 outline-none appearance-none cursor-pointer hover:bg-slate-100 transition-all"
-                            >
-                              {countryCodes.map(c => <option key={c.iso} value={c.code} className="text-slate-950">+{c.code}</option>)}
-                            </select>
-                            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-[8px]">▼</div>
-                          </div>
-                          <input 
-                            type="tel" 
-                            value={customerPhone} 
-                            onChange={e => setCustomerPhone(e.target.value)} 
-                            placeholder="Mobile Number" 
-                            className="w-full min-w-0 bg-slate-50 border border-slate-100 px-4 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" 
-                          />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="space-y-4 text-center">
-                      <p className="text-[10px] font-black text-white/60 uppercase tracking-widest">Verify WhatsApp Code</p>
-                      <input type="text" value={authOtp} onChange={e => setAuthOtp(e.target.value)} placeholder="000000" maxLength={6} className="w-full bg-white/10 border-2 border-emerald-500/30 px-4 py-5 rounded-[2rem] text-3xl font-black text-white tracking-[0.5em] text-center outline-none" />
-                      
-                      {biz?.whatsapp_number && (
-                        <a 
-                          href={`https://wa.me/${biz.whatsapp_number.replace(/\D/g, '')}?text=Get_OTP`} 
-                          target="_blank" 
-                          rel="noreferrer" 
-                          className="block text-[11px] font-bold text-emerald-600 mt-2 underline tracking-wider"
-                        >
-                          Didn't receive the code? Tap here to get it on WhatsApp
-                        </a>
-                      )}
+                      <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Waiting for Verification...</p>
+                      <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase">Please send the message in WhatsApp</p>
+                      <button onClick={() => setAuthStatus("IDLE")} className="mt-4 text-[9px] font-black text-rose-500 uppercase tracking-widest underline">Cancel</button>
                     </div>
+                  ) : (
+                    <button 
+                      onClick={handleRequestAuth}
+                      className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
+                    >
+                      <MessageCircle className="w-4 h-4 text-emerald-400" />
+                      Verify Using WhatsApp
+                    </button>
                   )}
-                  <button 
-                    onClick={otpMode ? handleVerifyOtp : handleRequestOtp} 
-                    disabled={isVerifying} 
-                    className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4"
-                  >
-                    {isVerifying ? <RefreshCw className="animate-spin w-4 h-4 mx-auto" /> : (otpMode ? "Confirm Code" : "Verify Using WhatsApp")}
-                  </button>
+                  <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-4">Safe & Secure • One-Click Login</p>
               </div>
            </div>
         </div>
@@ -410,6 +441,40 @@ function CustomerMenu() {
                         ))}
                      </div>
                      <div className="border-t-2 border-slate-50 pt-10 space-y-5">
+                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                           <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 mb-4">
+                              <div className="flex items-center justify-between mb-4">
+                                 <div>
+                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Loyalty Rewards</p>
+                                    <p className="text-xs font-bold text-slate-400 uppercase mt-0.5">You have {loyaltyPoints} points</p>
+                                 </div>
+                                 <Sparkles className="w-5 h-5 text-emerald-500" />
+                              </div>
+                              {redemptionStatus === 'PENDING' ? (
+                                 <div className="text-center py-2 animate-pulse">
+                                    <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest flex items-center justify-center gap-2">
+                                       <RefreshCw className="animate-spin w-3 h-3" /> Waiting for WhatsApp...
+                                    </p>
+                                    <button onClick={() => setRedemptionStatus("IDLE")} className="text-[8px] font-bold text-rose-500 uppercase mt-2 underline">Cancel</button>
+                                 </div>
+                              ) : (
+                                 <button 
+                                    onClick={handleRedeemRequest}
+                                    className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95 transition-all"
+                                 >
+                                    <MessageCircle className="w-4 h-4" /> Redeem via WhatsApp
+                                 </button>
+                              )}
+                           </div>
+                        )}
+
+                        {pointsToRedeem > 0 && (
+                           <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-lg">
+                              <span>Points Applied ({pointsToRedeem})</span>
+                              <span>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
+                           </div>
+                        )}
+
                         <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                      </div>
                      <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
@@ -420,10 +485,24 @@ function CustomerMenu() {
       </div>
       {cart.length > 0 && (
         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 font-sans">
-           <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white rounded-[3.5rem] p-5.5 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all">
-              <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5 font-sans">Final Total</p><p className="text-xl font-black italic">{symbol}{finalTotal.toFixed(0)}</p></div></div>
-              <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
-           </button>
+           <div className="bg-slate-950 text-white rounded-[3.5rem] overflow-hidden shadow-2xl shadow-slate-950/50 border border-white/10 mb-2">
+              {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                <div className="px-6 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
+                    <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Earned {loyaltyPoints} points</span>
+                    <button onClick={handleRedeemRequest} className="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full">Redeem Now</button>
+                </div>
+              )}
+              {pointsToRedeem > 0 && (
+                <div className="px-6 py-3 bg-emerald-500 text-slate-950 flex justify-between items-center">
+                    <span className="text-[9px] font-black uppercase tracking-widest">Points Discount Applied</span>
+                    <span className="text-[11px] font-black">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
+                </div>
+              )}
+              <button onClick={placeOrder} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
+                  <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5 font-sans">Final Total</p><p className="text-xl font-black italic">{symbol}{finalTotal.toFixed(0)}</p></div></div>
+                  <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
+              </button>
+           </div>
         </div>
       )}
       

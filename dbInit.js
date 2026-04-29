@@ -362,6 +362,16 @@ async function initializeDatabase() {
                 note TEXT,
                 expense_date DATE DEFAULT CURRENT_DATE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 23. WhatsApp Point Redemption Verification
+            `CREATE TABLE IF NOT EXISTS pending_redemptions (
+                id SERIAL PRIMARY KEY,
+                token VARCHAR(50) UNIQUE NOT NULL,
+                phone VARCHAR(20),
+                user_id INTEGER REFERENCES app_users(id),
+                points INTEGER DEFAULT 0,
+                is_verified BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
