@@ -284,6 +284,17 @@ function CustomerMenu() {
                   <div className="space-y-1.5 w-full">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
                     <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Enter your name" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" autoFocus />
+                  </div>
+
+                  <div className="space-y-1.5 w-full">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Phone Number</label>
+                    <div className="flex gap-2">
+                       <select className="bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                          {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                       </select>
+                       <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Enter mobile" className="flex-1 bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" />
+                    </div>
+                  </div>
                          {authStatus === "PENDING" ? (
                     <div className="py-6 text-center animate-pulse">
                       <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
