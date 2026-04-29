@@ -318,6 +318,7 @@ function CustomerMenu() {
                         <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Verification is only required for point redemption.</p>
                     </div>
                   )}
+              </div>
           </div>
         </div>
       </div>
