@@ -311,6 +311,7 @@ function CustomerMenu() {
           </div>
         </div>
       </div>
+    </div>
     );
   }
 
