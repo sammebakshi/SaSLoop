@@ -29,7 +29,7 @@ function CustomerMenu() {
   const [redemptionToken, setRedemptionToken] = useState(null);
   const [redemptionStatus, setRedemptionStatus] = useState("IDLE"); // IDLE, PENDING, SUCCESS
   
-  const [view, setView] = useState("menu"); 
+  const [view, setView] = useState("auth"); 
   const [isVerified, setIsVerified] = useState(false);
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
@@ -284,9 +284,7 @@ function CustomerMenu() {
                   <div className="space-y-1.5 w-full">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
                     <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Enter your name" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" autoFocus />
-                  </div>
-
-                  {authStatus === "PENDING" ? (
+                         {authStatus === "PENDING" ? (
                     <div className="py-6 text-center animate-pulse">
                       <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
                         <RefreshCw className="animate-spin w-5 h-5 text-emerald-600" />
@@ -296,17 +294,21 @@ function CustomerMenu() {
                       <button onClick={() => setAuthStatus("IDLE")} className="mt-4 text-[9px] font-black text-rose-500 uppercase tracking-widest underline">Cancel</button>
                     </div>
                   ) : (
-                    <button 
-                      onClick={handleRequestAuth}
-                      className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
-                    >
-                      <MessageCircle className="w-4 h-4 text-emerald-400" />
-                      Verify Using WhatsApp
-                    </button>
+                    <div className="space-y-3">
+                        <button 
+                          onClick={() => {
+                             if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                             setView("menu");
+                          }}
+                          className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
+                        >
+                          Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
+                        </button>
+                        <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Verification is only required for point redemption.</p>
+                    </div>
                   )}
-                  <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-4">Safe & Secure • One-Click Login</p>
               </div>
-           </div>
+          </div>
         </div>
       </div>
     );

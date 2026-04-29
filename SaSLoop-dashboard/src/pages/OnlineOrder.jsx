@@ -56,7 +56,7 @@ function OnlineOrder() {
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
   const [pollInterval, setPollInterval] = useState(null);
   
-  const [view, setView] = useState("menu"); 
+  const [view, setView] = useState("auth"); 
   const [isVerified, setIsVerified] = useState(false);
   const [authStatus, setAuthStatus] = useState("IDLE"); 
   const [authToken, setAuthToken] = useState(null);
@@ -347,16 +347,19 @@ function OnlineOrder() {
                       <button onClick={() => setAuthStatus("IDLE")} className="mt-4 text-[9px] font-black text-rose-500 uppercase tracking-widest underline">Cancel</button>
                     </div>
                   ) : (
-                    <button 
-                      id="WHATSAPP_VERIFY_BUTTON_UNIQUE"
-                      onClick={handleRequestAuth}
-                      className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[10px] sm:text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
-                    >
-                      <MessageCircle className="w-4 h-4 text-emerald-400" />
-                      Verify Using WhatsApp
-                    </button>
+                    <div className="space-y-3">
+                        <button 
+                          onClick={() => {
+                             if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                             setView("menu");
+                          }}
+                          className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
+                        >
+                          Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
+                        </button>
+                        <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Verification is only required for point redemption.</p>
+                    </div>
                   )}
-                  <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-4">Safe & Secure • One-Click Login</p>
               </div>
           </div>
         </div>
