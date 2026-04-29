@@ -8,3 +8,9 @@ logs
 google-key.json
 migration_guide.md
 backups/
+SaSLoop-dashboard/build
+SaSLoop-dashboard/package-lock.json
+package-lock.json
+.DS_Store
+*.zip
+*.rar
