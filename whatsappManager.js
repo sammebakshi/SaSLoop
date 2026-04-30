@@ -8,16 +8,13 @@ const { isBusinessOpen, getDeliveryDetails } = require("./utils/businessUtils");
 const normalizePhone = (p) => {
     if (!p) return "";
     let digits = p.replace(/\D/g, "");
-    // If it starts with 91 but has 12 digits, keep it. 
-    // If it has 10 digits, it's a local number, we leave it for formatToInter to handle.
-    return digits;
+    // If it's a 10-digit number, prepend 91 (India) as the default region
+    if (digits.length === 10) digits = "91" + digits;
+    return `+${digits}`;
 };
 
 const formatToInter = (p) => {
-    if (!p) return "";
-    const digits = p.replace(/\D/g, "");
-    if (digits.length === 10) return `91${digits}`;
-    return digits;
+    return normalizePhone(p);
 };
 
 const sendOfficialMessage = async (to, content, userId) => {

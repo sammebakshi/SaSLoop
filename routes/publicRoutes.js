@@ -253,8 +253,15 @@ router.get("/loyalty/:userId/:phone", async (req, res) => {
     try {
         const { userId, phone } = req.params;
         const digits = (phone || "").replace(/\D/g, "");
-        const dbPhone = digits ? `+${digits}` : "";
-        const result = await pool.query("SELECT points, total_spent, name FROM customer_loyalty WHERE user_id=$1 AND customer_number=$2", [userId, dbPhone]);
+        if (!digits) return res.json({ points: 0, total_spent: 0, name: "Guest" });
+        
+        const withPlus = `+${digits}`;
+        const withoutPlus = digits;
+
+        const result = await pool.query(
+            "SELECT points, total_spent, name FROM customer_loyalty WHERE user_id=$1 AND (customer_number=$2 OR customer_number=$3) LIMIT 1", 
+            [userId, withPlus, withoutPlus]
+        );
         res.json(result.rows[0] || { points: 0, total_spent: 0, name: "Guest" });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -264,11 +271,14 @@ router.get("/orders/:userId/:phone", async (req, res) => {
     try {
         const { userId, phone } = req.params;
         const digits = (phone || "").replace(/\D/g, "");
-        const dbPhone = digits ? `+${digits}` : "";
+        if (!digits) return res.json([]);
+
+        const withPlus = `+${digits}`;
+        const withoutPlus = digits;
         
         const result = await pool.query(
-            "SELECT id, order_reference, items, total_price, status, created_at, table_number, address FROM orders WHERE user_id=$1 AND customer_number=$2 ORDER BY created_at DESC LIMIT 20",
-            [userId, dbPhone]
+            "SELECT id, order_reference, items, total_price, status, created_at, table_number, address FROM orders WHERE user_id=$1 AND (customer_number=$2 OR customer_number=$3) ORDER BY created_at DESC LIMIT 20",
+            [userId, withPlus, withoutPlus]
         );
         res.json(result.rows);
     } catch (e) { res.status(500).json({ error: e.message }); }
