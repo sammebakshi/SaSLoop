@@ -40,7 +40,13 @@ function CustomerMenu() {
 
   const getStandardPhone = (p) => {
     if (!p) return "";
-    return p.startsWith("+") ? p : "+" + p;
+    if (p.startsWith("+")) return p;
+    // Remove all non-digits from input
+    const cleanP = p.replace(/\D/g, "");
+    // If it already starts with country code, just add +
+    if (cleanP.startsWith(countryCode)) return "+" + cleanP;
+    // Otherwise prepend country code
+    return `+${countryCode}${cleanP}`;
   };
 
   const biz = data?.business;
@@ -78,7 +84,7 @@ function CustomerMenu() {
   const fetchActiveOrders = async () => {
     if (!customerPhone) return;
     try {
-      const std = getStandardPhone();
+      const std = getStandardPhone(customerPhone);
       const res = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(std)}`);
       const d = await res.json();
       setActiveOrders(d || []);
@@ -92,7 +98,11 @@ function CustomerMenu() {
   useEffect(() => {
     if (view !== "auth") {
       fetchActiveOrders();
-      const itv = setInterval(fetchActiveOrders, 10000);
+      checkLoyalty();
+      const itv = setInterval(() => {
+        fetchActiveOrders();
+        checkLoyalty();
+      }, 10000);
       return () => clearInterval(itv);
     }
   }, [view, customerPhone]);
@@ -155,6 +165,7 @@ function CustomerMenu() {
   }, [authStatus, authToken]);
 
   const checkLoyalty = async () => {
+    if (!customerPhone) return;
     try {
       const std = getStandardPhone(customerPhone);
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
@@ -290,7 +301,7 @@ function CustomerMenu() {
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Phone Number</label>
                     <div className="flex gap-2">
                        <select className="bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                          {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                          {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                        </select>
                        <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Enter mobile" className="flex-1 bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" />
                     </div>
@@ -477,7 +488,7 @@ function CustomerMenu() {
                              />
                              <div className="flex gap-2">
                                 <select className="bg-white border border-slate-200 px-3 py-3.5 rounded-2xl text-xs font-bold outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                                   {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                                   {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                                 </select>
                                 <input 
                                   type="tel" 
@@ -570,7 +581,7 @@ function CustomerMenu() {
                      />
                      <div className="flex gap-2">
                        <select className="bg-white/10 border border-white/10 px-3 py-3 rounded-2xl text-[10px] font-bold text-white outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                           {countryCodes.map(c => <option key={c.code} value={c.mobile_code} className="bg-slate-900 text-white">+{c.mobile_code}</option>)}
+                           {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
                        </select>
                        <input 
                          type="tel" 

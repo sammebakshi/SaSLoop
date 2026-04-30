@@ -64,7 +64,13 @@ function OnlineOrder() {
 
   const getStandardPhone = (p) => {
     if (!p) return "";
-    return p.startsWith("+") ? p : "+" + p;
+    if (p.startsWith("+")) return p;
+    // Remove all non-digits from input
+    const cleanP = p.replace(/\D/g, "");
+    // If it already starts with country code, just add +
+    if (cleanP.startsWith(countryCode)) return "+" + cleanP;
+    // Otherwise prepend country code
+    return `+${countryCode}${cleanP}`;
   };
 
   const biz = data?.business;
@@ -92,7 +98,7 @@ function OnlineOrder() {
   const fetchActiveOrders = async () => {
     if (!customerPhone) return;
     try {
-      const std = getStandardPhone();
+      const std = getStandardPhone(customerPhone);
       const res = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(std)}`);
       const d = await res.json();
       setActiveOrders(d || []);
@@ -115,7 +121,11 @@ function OnlineOrder() {
   useEffect(() => {
     if (view !== "auth") {
       fetchActiveOrders();
-      const itv = setInterval(fetchActiveOrders, 10000);
+      checkLoyalty();
+      const itv = setInterval(() => {
+        fetchActiveOrders();
+        checkLoyalty();
+      }, 10000);
       return () => clearInterval(itv);
     }
   }, [view, customerPhone]);
@@ -138,8 +148,9 @@ function OnlineOrder() {
   }, [fulfillmentMode, biz]);
 
   const checkLoyalty = async () => {
+    if (!customerPhone) return;
     try {
-      const std = getStandardPhone();
+      const std = getStandardPhone(customerPhone);
       const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
       const d = await res.json();
       setLoyaltyPoints(d.points || 0);
@@ -341,7 +352,7 @@ function OnlineOrder() {
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Phone Number</label>
                     <div className="flex gap-2">
                        <select className="bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                          {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                          {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                        </select>
                        <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Enter mobile" className="flex-1 bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" />
                     </div>
@@ -484,7 +495,7 @@ function OnlineOrder() {
                  <div className="absolute top-0 right-0 p-4 opacity-10"><Utensils className="w-16 h-16 text-white" /></div>
                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Verified Profile</p>
                  <h3 className="text-xl font-black text-white uppercase italic">{customerName}</h3>
-                 <p className="text-[11px] font-bold text-slate-400 mt-1">{getStandardPhone()}</p>
+                 <p className="text-[11px] font-bold text-slate-400 mt-1">{getStandardPhone(customerPhone)}</p>
                  <div className="mt-6 flex items-center gap-4">
                     <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10">
                        <p className="text-[8px] font-black text-slate-500 uppercase">Loyalty Points</p>
@@ -574,7 +585,7 @@ function OnlineOrder() {
                       />
                       <div className="flex gap-2">
                          <select className="bg-white border border-slate-200 px-4 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                            {countryCodes.map(c => <option key={c.code} value={c.mobile_code}>+{c.mobile_code}</option>)}
+                            {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                          </select>
                          <input 
                            type="tel" 
@@ -684,7 +695,7 @@ function OnlineOrder() {
                      />
                      <div className="flex gap-2">
                        <select className="bg-white/10 border border-white/10 px-3 py-3 rounded-2xl text-[10px] font-bold text-white outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
-                           {countryCodes.map(c => <option key={c.code} value={c.mobile_code} className="bg-slate-900 text-white">+{c.mobile_code}</option>)}
+                           {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
                        </select>
                        <input 
                          type="tel" 
