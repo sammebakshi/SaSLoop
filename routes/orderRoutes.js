@@ -52,7 +52,16 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
         if (status === 'PROCESSING') {
             updateMsg = `🔥 *Order Confirmed & Preparing:* Your order *${ref}* is now being prepared! We'll notify you when it's on the way.`;
         } else if (status === 'DISPATCHED') {
-            updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way!`;
+            const isTable = order.table_number && order.table_number !== "0";
+            const isPickup = order.address?.toLowerCase() === 'pickup';
+            
+            if (isTable) {
+                updateMsg = `🍽️ *Serving Now:* Your order *${ref}* is being served to *Table ${order.table_number}*. Enjoy your meal!`;
+            } else if (isPickup) {
+                updateMsg = `🛍️ *Ready for Pickup:* Your order *${ref}* is ready! Please collect it from the counter.`;
+            } else {
+                updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way! Our rider will contact you shortly.`;
+            }
         } else if (status === 'COMPLETED') {
             // 🏆 AWARD LOYALTY POINTS ON COMPLETION
             let pointsSummary = "";
