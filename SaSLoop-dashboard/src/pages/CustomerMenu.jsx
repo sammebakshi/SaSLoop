@@ -372,7 +372,12 @@ function CustomerMenu() {
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div className="flex flex-col"><h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1><p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Rewards: {loyaltyPoints}</p></div>
+           <div className="flex flex-col">
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1>
+              {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Rewards: {loyaltyPoints}</p>
+              )}
+           </div>
            <div className="flex gap-2">
               <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl transition-all active:scale-95">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -493,23 +498,23 @@ function CustomerMenu() {
                         ))}
                      </div>
                       <div className="border-t-2 border-slate-50 pt-10 space-y-5">
-                        {!isVerified && (
-                          <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
-                             <input 
-                               type="text" 
-                               placeholder="Your Name" 
-                               className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
-                               value={customerName}
-                               onChange={e => setCustomerName(e.target.value)}
-                             />
-                              <div className="flex items-center bg-white border border-slate-200 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
+                          {(!customerPhone || customerPhone.length < 5) ? (
+                            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
+                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
+                               <input 
+                                 type="text" 
+                                 placeholder="Your Name" 
+                                 className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
+                                 value={customerName}
+                                 onChange={e => setCustomerName(e.target.value)}
+                               />
+                               <div className="flex items-center bg-white border border-slate-200 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
                                  <select 
                                    className="bg-transparent pl-4 pr-1 py-3.5 text-xs font-bold outline-none border-r border-slate-100" 
                                    value={countryCode} 
                                    onChange={e => setCountryCode(e.target.value)}
                                  >
-                                    {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
+                                     {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
                                  </select>
                                  <input 
                                    type="tel" 
@@ -518,64 +523,39 @@ function CustomerMenu() {
                                    value={customerPhone}
                                    onChange={e => setCustomerPhone(e.target.value)}
                                  />
-                              </div>
-                             {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                                <button 
-                                  onClick={handleRedeemRequest}
-                                  className="w-full mt-4 py-4 rounded-[1.2rem] bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
-                                >
-                                  <MessageCircle className="w-4 h-4" /> Redeem Rewards
-                                </button>
-                             )}
-                          </div>
-                        )}
+                               </div>
+                            </div>
+                          ) : (
+                             <div className="mb-8 bg-slate-900 p-6 rounded-[2.5rem] shadow-xl border border-white/5 relative overflow-hidden text-left">
+                                <div className="absolute top-0 right-0 p-4 opacity-10"><CheckCircle2 className="w-10 h-10 text-white" /></div>
+                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Loyalty Account</p>
+                                <h3 className="text-xl font-black text-white uppercase italic truncate pr-10">{customerName || 'Guest'}</h3>
+                                <div className="mt-4 flex items-center gap-3">
+                                   <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/5">
+                                      <p className="text-[8px] font-black text-slate-500 uppercase">Points Balance</p>
+                                      <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
+                                   </div>
+                                   {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                                      <button 
+                                        onClick={handleRedeemRequest}
+                                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                                      >
+                                        Redeem
+                                      </button>
+                                   )}
+                                </div>
+                             </div>
+                          )}
 
-                        {isVerified && (
-                           <div className="flex items-center gap-3 bg-emerald-50 px-6 py-4 rounded-[2rem] border border-emerald-100 mb-6 animate-in fade-in duration-500">
-                              <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200"><CheckCircle2 className="w-4 h-4" /></div>
-                              <div>
-                                 <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest">Verified Customer</p>
-                                 <p className="text-xs font-bold text-slate-500">{customerPhone}</p>
-                              </div>
-                           </div>
-                        )}
+                          {pointsToRedeem > 0 && (
+                             <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-lg">
+                                <span>Points Applied ({pointsToRedeem})</span>
+                                <span>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
+                             </div>
+                          )}
 
-                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                           <div className="bg-emerald-50/50 p-6 rounded-[2rem] border border-emerald-100/50 mb-4">
-                              <div className="flex items-center justify-between mb-4">
-                                 <div>
-                                    <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Loyalty Rewards</p>
-                                    <p className="text-xs font-bold text-slate-400 uppercase mt-0.5">You have {loyaltyPoints} points</p>
-                                 </div>
-                                 <Sparkles className="w-5 h-5 text-emerald-500" />
-                              </div>
-                              {redemptionStatus === 'PENDING' ? (
-                                 <div className="text-center py-2 animate-pulse">
-                                    <p className="text-[9px] font-black text-emerald-700 uppercase tracking-widest flex items-center justify-center gap-2">
-                                       <RefreshCw className="animate-spin w-3 h-3" /> Waiting for WhatsApp...
-                                    </p>
-                                    <button onClick={() => setRedemptionStatus("IDLE")} className="text-[8px] font-bold text-rose-500 uppercase mt-2 underline">Cancel</button>
-                                 </div>
-                              ) : (
-                                 <button 
-                                    onClick={handleRedeemRequest}
-                                    className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-100 flex items-center justify-center gap-2 active:scale-95 transition-all"
-                                 >
-                                    <MessageCircle className="w-4 h-4" /> Redeem via WhatsApp
-                                 </button>
-                              )}
-                           </div>
-                        )}
-
-                        {pointsToRedeem > 0 && (
-                           <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-lg">
-                              <span>Points Applied ({pointsToRedeem})</span>
-                              <span>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
-                           </div>
-                        )}
-
-                        <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
-                     </div>
+                          <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
+                      </div>
                      <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
                 )}

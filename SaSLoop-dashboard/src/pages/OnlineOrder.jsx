@@ -489,7 +489,12 @@ function OnlineOrder() {
     <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div className="flex flex-col"><h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px]">{biz?.name}</h1><p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Points: {loyaltyPoints}</p></div>
+           <div className="flex flex-col">
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px]">{biz?.name}</h1>
+              {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Points: {loyaltyPoints}</p>
+              )}
+           </div>
            <div className="flex gap-2">
               <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl transition-all active:scale-95">
                   <Activity className="w-4 h-4 text-emerald-400" />
@@ -513,16 +518,18 @@ function OnlineOrder() {
                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Verified Profile</p>
                  <h3 className="text-xl font-black text-white uppercase italic">{customerName}</h3>
                  <p className="text-[11px] font-bold text-slate-400 mt-1">{getStandardPhone(customerPhone)}</p>
-                 <div className="mt-6 flex items-center gap-4">
-                    <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10">
-                       <p className="text-[8px] font-black text-slate-500 uppercase">Loyalty Points</p>
-                       <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
+                 {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                    <div className="mt-6 flex items-center gap-4">
+                       <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10">
+                          <p className="text-[8px] font-black text-slate-500 uppercase">Loyalty Points</p>
+                          <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
+                       </div>
+                       <div className="bg-white/5 px-4 py-2 rounded-xl">
+                          <p className="text-[8px] font-black text-slate-600 uppercase">Status</p>
+                          <p className="text-[10px] font-black text-white uppercase tracking-widest">{loyaltyPoints > 500 ? '👑 VIP' : '🌟 Member'}</p>
+                       </div>
                     </div>
-                    <div className="bg-white/5 px-4 py-2 rounded-xl">
-                       <p className="text-[8px] font-black text-slate-600 uppercase">Status</p>
-                       <p className="text-[10px] font-black text-white uppercase tracking-widest">{loyaltyPoints > 500 ? '👑 VIP' : '🌟 Member'}</p>
-                    </div>
-                 </div>
+                 )}
               </div>
 
               <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-[1.5rem] border border-slate-100">
@@ -590,7 +597,7 @@ function OnlineOrder() {
           </div>
           <aside className="hidden lg:block sticky top-32 space-y-8">
              <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
-                {!isVerified && (
+                {(!customerPhone || customerPhone.length < 5) ? (
                    <div className="space-y-4 mb-10 bg-slate-50 p-8 rounded-[2.5rem] border border-slate-100">
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
                       <input 
@@ -616,23 +623,25 @@ function OnlineOrder() {
                            onChange={e => setCustomerPhone(e.target.value)}
                          />
                       </div>
-                       {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                          <button 
-                            onClick={handleRedeemRequest}
-                            className="w-full mt-4 py-4 rounded-[1.2rem] bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
-                          >
-                            <MessageCircle className="w-4 h-4" /> Redeem Rewards
-                          </button>
-                       )}
                    </div>
-                )}
-
-                {isVerified && (
-                   <div className="flex items-center gap-4 bg-emerald-50 px-8 py-6 rounded-[2.5rem] border border-emerald-100 mb-10 animate-in fade-in duration-500">
-                      <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-200"><CheckCircle2 className="w-5 h-5" /></div>
-                      <div>
-                         <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Verified Customer</p>
-                         <p className="text-sm font-bold text-slate-500">{customerPhone}</p>
+                ) : (
+                   <div className="mb-10 bg-slate-900 p-8 rounded-[2.5rem] shadow-xl border border-white/5 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 p-4 opacity-10"><CheckCircle2 className="w-12 h-12 text-white" /></div>
+                      <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Loyalty Account</p>
+                      <h3 className="text-xl font-black text-white uppercase italic truncate pr-10">{customerName || 'Guest'}</h3>
+                      <div className="mt-4 flex items-center gap-3">
+                         <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/5">
+                            <p className="text-[8px] font-black text-slate-500 uppercase">Points Balance</p>
+                            <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
+                         </div>
+                         {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                            <button 
+                              onClick={handleRedeemRequest}
+                              className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
+                            >
+                              Redeem
+                            </button>
+                         )}
                       </div>
                    </div>
                 )}
