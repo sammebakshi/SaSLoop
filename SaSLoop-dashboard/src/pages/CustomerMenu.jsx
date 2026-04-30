@@ -294,7 +294,7 @@ function CustomerMenu() {
         body: JSON.stringify({ userId: bizId, tableNumber: tableId })
       });
       const d = await res.json();
-      if (d.success) alert("ðŸ›Žï¸ Waiter notified! Someone will be with you shortly.");
+      if (d.success) alert("🛎️ Waiter notified! Someone will be with you shortly.");
       else alert(d.error || "Failed to notify waiter.");
     } catch (e) {
       alert("Something went wrong. Please try again.");
