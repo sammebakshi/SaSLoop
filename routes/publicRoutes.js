@@ -111,11 +111,11 @@ router.post("/order", async (req, res) => {
             }
         }
 
-        // SMART UPSERT LOGIC
+        // SMART UPSERT LOGIC (Recognize active table orders to allow adding more dishes)
         let existingOrder = null;
-        if (tableNumber && tableNumber !== "0" && source === "POS_MANUAL") {
+        if (tableNumber && tableNumber !== "0" && (source === "POS_MANUAL" || source === "QR_MENU")) {
            const checkRes = await pool.query(
-             "SELECT id, order_reference FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+             "SELECT id, order_reference, items, total_price, discount_amount, service_charge, delivery_charge FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
              [userId, tableNumber]
            );
            existingOrder = checkRes.rows[0];
@@ -131,9 +131,16 @@ router.post("/order", async (req, res) => {
         if (existingOrder) {
             orderId = existingOrder.id;
             currentOrderRef = existingOrder.order_reference;
+            
+            // 🥗 SMART MERGE: Append new items to existing items
+            const oldItems = Array.isArray(existingOrder.items) ? existingOrder.items : (typeof existingOrder.items === 'string' ? JSON.parse(existingOrder.items) : []);
+            const newItemsList = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+            const mergedItems = [...oldItems, ...newItemsList];
+            const newTotal = (parseFloat(existingOrder.total_price) || 0) + finalPrice;
+
             insertRes = await pool.query(
               "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8 WHERE id=$9 RETURNING *",
-              [JSON.stringify(items || []), finalPrice, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, orderId]
+              [JSON.stringify(mergedItems), newTotal, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', (parseFloat(existingOrder.discount_amount) || 0) + (discount_amount || 0), (parseFloat(existingOrder.service_charge) || 0) + (service_charge || 0), (parseFloat(existingOrder.delivery_charge) || 0) + finalDeliveryCharge, orderId]
             );
         } else {
             insertRes = await pool.query(
@@ -143,8 +150,8 @@ router.post("/order", async (req, res) => {
             orderId = insertRes.rows[0].id;
         }
         
-        // Notify Staff ONLY IF COD (Online orders wait for redirect click)
-        if (isCOD) {
+        // Notify Staff (Instant notification for all order types)
+        if (true) {
             try {
                 const cgstRate = parseFloat(bizData?.cgst_percent) || 0;
                 const sgstRate = parseFloat(bizData?.sgst_percent) || 0;
@@ -163,8 +170,8 @@ router.post("/order", async (req, res) => {
             } catch (notifErr) { console.error("KITCHEN NOTIF FAIL:", notifErr.message); }
         }
         
-        // Notify Customer
-        if (isOnline && dbPhone && dbPhone.startsWith('+')) {
+        // Notify Customer (Send receipt to everyone with a phone number)
+        if (dbPhone && dbPhone.startsWith('+')) {
             try {
                 const itemLines = (items || []).map(i => `• ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
                 

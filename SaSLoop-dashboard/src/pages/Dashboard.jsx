@@ -17,7 +17,13 @@ function Dashboard() {
   const [lastWaiterCount, setLastWaiterCount] = useState(0);
   const isMobile = isMobileDevice();
 
+  const [newOrderAlert, setNewOrderAlert] = useState(false);
+
   const playNotification = (type) => {
+    if (type === 'order') {
+       setNewOrderAlert(true);
+       setTimeout(() => setNewOrderAlert(false), 8000);
+    }
     try {
       const audio = new Audio(type === 'order' ? 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3');
       audio.play().catch(e => console.warn("Audio blocked by browser"));
@@ -125,6 +131,11 @@ function Dashboard() {
           <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-black text-slate-800 tracking-tight`}>{business?.name || 'Business Intel'}</h2>
           {!isMobile && <p className="text-slate-500 font-medium text-sm mt-1">Real-time performance metrics.</p>}
         </div>
+        {newOrderAlert && (
+           <div className="bg-emerald-500 text-white px-6 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest animate-bounce shadow-lg shadow-emerald-200">
+              New Order Received! 🔔
+           </div>
+        )}
         {!isMobile && (
           <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
              Refreshed: {new Date().toLocaleTimeString()}
