@@ -336,12 +336,14 @@ function CustomerMenu() {
                         >
                           Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
                         </button>
-                        <button 
-                          onClick={handleRedeemRequest}
-                          className="w-full mt-2 py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
-                        >
-                          <MessageCircle className="w-3.5 h-3.5" /> {loyaltyPoints >= (biz?.min_redeem_points || 300) ? 'Redeem via WhatsApp' : 'Verify via WhatsApp'}
-                        </button>
+                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                           <button 
+                             onClick={handleRedeemRequest}
+                             className="w-full mt-2 py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                           >
+                             <MessageCircle className="w-3.5 h-3.5" /> Redeem Rewards
+                           </button>
+                        )}
                     </div>
                   )}
               </div>
@@ -517,12 +519,14 @@ function CustomerMenu() {
                                    onChange={e => setCustomerPhone(e.target.value)}
                                  />
                               </div>
-                             <button 
-                               onClick={handleRedeemRequest}
-                               className="w-full mt-4 py-4 rounded-[1.2rem] bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
-                             >
-                               <MessageCircle className="w-4 h-4" /> {loyaltyPoints >= (biz?.min_redeem_points || 300) ? 'Redeem via WhatsApp' : 'Verify via WhatsApp'}
-                             </button>
+                             {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                                <button 
+                                  onClick={handleRedeemRequest}
+                                  className="w-full mt-4 py-4 rounded-[1.2rem] bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                  <MessageCircle className="w-4 h-4" /> Redeem Rewards
+                                </button>
+                             )}
                           </div>
                         )}
 
@@ -619,12 +623,14 @@ function CustomerMenu() {
                           onChange={e => setCustomerPhone(e.target.value)}
                         />
                       </div>
-                      <button 
-                        onClick={handleRedeemRequest}
-                        className="w-full mt-2 py-3 rounded-2xl bg-white/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
-                      >
-                        <MessageCircle className="w-3.5 h-3.5" /> {loyaltyPoints >= (biz?.min_redeem_points || 300) ? 'Redeem via WhatsApp' : 'Verify via WhatsApp'}
-                      </button>
+                      {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                         <button 
+                           onClick={handleRedeemRequest}
+                           className="w-full mt-2 py-3 rounded-2xl bg-white/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                         >
+                           <MessageCircle className="w-3.5 h-3.5" /> Redeem Rewards
+                         </button>
+                      )}
                    </div>
                )}
                <button onClick={() => {
