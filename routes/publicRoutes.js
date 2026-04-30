@@ -447,6 +447,8 @@ router.post("/call-waiter", async (req, res) => {
         console.error("Call Waiter Error:", err);
         res.status(500).json({ error: "Failed to notify waiter" });
     }
+});
+
 // ✅ LEAD GENERATION (LANDING PAGE)
 router.post("/leads", async (req, res) => {
     try {
