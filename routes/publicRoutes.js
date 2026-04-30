@@ -122,7 +122,7 @@ router.post("/order", async (req, res) => {
         let existingOrder = null;
         if (tableNumber && tableNumber !== "0" && (source === "POS_MANUAL" || source === "QR_MENU")) {
            const checkRes = await pool.query(
-             "SELECT id, order_reference, items, total_price, discount_amount, service_charge, delivery_charge FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+             "SELECT id, order_reference, items, total_price, discount_amount, service_charge, delivery_charge FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PROCESSING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
              [userId, tableNumber]
            );
            existingOrder = checkRes.rows[0];
@@ -155,6 +155,14 @@ router.post("/order", async (req, res) => {
                 [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
             );
             orderId = insertRes.rows[0].id;
+        }
+        
+        // 🧹 TABLE CLEANUP: If this is a COMPLETED POS order for a table, mark other active orders for that table as COMPLETED too
+        if (tableNumber && tableNumber !== "0" && initialStatus === 'COMPLETED' && source === "POS_MANUAL") {
+            await pool.query(
+                "UPDATE orders SET status = 'COMPLETED', payment_status = 'PAID' WHERE user_id = $1 AND table_number = $2 AND status IN ('PENDING', 'PROCESSING', 'PREPARING') AND id != $3",
+                [userId, tableNumber, orderId]
+            );
         }
         
         // Notify Staff (Instant notification for all order types)

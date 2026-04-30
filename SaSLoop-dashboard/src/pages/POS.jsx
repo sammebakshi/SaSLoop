@@ -277,16 +277,25 @@ const POS = () => {
               </div>
               <div className="flex gap-2 py-1">
                   {Array.from({ length: 24 }, (_, i) => i + 1).map(num => {
-                    const order = runningOrders.find(o => o.table_number === String(num));
+                    const tableOrders = runningOrders.filter(o => o.table_number === String(num));
+                    const isOccupied = tableOrders.length > 0;
+                    const totalBalance = tableOrders.reduce((sum, o) => sum + (parseFloat(o.total_price) || 0), 0);
+                    
                     return (
                       <button 
                         key={num}
                         onClick={() => {
                             setSelectedTable(num);
-                            if (order) {
-                                setCart(Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]'));
-                                setCustomerName(order.customer_name);
-                                setCustomerPhone(order.customer_number);
+                            if (isOccupied) {
+                                // 🧾 AGGREGATE ALL ITEMS FROM ALL ORDERS OF THIS TABLE
+                                let allItems = [];
+                                tableOrders.forEach(o => {
+                                   const items = Array.isArray(o.items) ? o.items : JSON.parse(o.items || '[]');
+                                   allItems = [...allItems, ...items];
+                                });
+                                setCart(allItems);
+                                setCustomerName(tableOrders[0].customer_name);
+                                setCustomerPhone(tableOrders[0].customer_number);
                             } else {
                                 setCart([]);
                                 setCustomerName("");
@@ -295,12 +304,12 @@ const POS = () => {
                         }}
                         className={`w-14 h-14 shrink-0 flex flex-col items-center justify-center rounded-[1.25rem] border-2 font-black transition-all ${
                           selectedTable === num ? 'bg-slate-900 text-white border-slate-900 shadow-xl scale-110' :
-                          order ? 'bg-orange-500 text-white border-orange-500 animate-pulse' :
+                          isOccupied ? 'bg-orange-500 text-white border-orange-500 animate-pulse' :
                           'bg-white text-slate-300 border-slate-100 hover:border-slate-300 hover:text-slate-900'
                         }`}
                       >
                         <span className="text-[10px]">T{num}</span>
-                        {order && <span className="text-[8px] opacity-60">\u20B9{order.total_price}</span>}
+                        {isOccupied && <span className="text-[8px] opacity-60">\u20B9{totalBalance.toFixed(0)}</span>}
                       </button>
                     );
                   })}
