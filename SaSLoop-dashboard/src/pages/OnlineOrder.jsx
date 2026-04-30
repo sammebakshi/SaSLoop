@@ -597,10 +597,27 @@ function OnlineOrder() {
           </aside>
           <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
              <div className="relative">
-                {bannerUrl && <div className="w-full overflow-hidden bg-slate-100 relative" style={{ height: `${biz?.settings?.banner_height || 160}px` }}><img src={bannerUrl} className="w-full h-full object-cover" alt="b" /><div className="absolute inset-0 bg-gradient-to-t from-white via-white/50" /></div>}
-                <div className="px-10 py-4 flex items-center gap-6 relative -mt-10">
-                  <div className="w-20 h-20 rounded-[2.5rem] border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0">{logoUrl ? <img src={logoUrl} className="w-full h-full object-cover" alt="l" /> : <Utensils className="w-9 h-9 text-emerald-600 opacity-20" />}</div>
-                  <div className="flex-1 min-w-0 pt-10"><h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1><p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Fresh Food Daily'}</p></div>
+                {bannerUrl && (
+                   <div className="w-full overflow-hidden bg-slate-100 relative" style={{ height: `${biz?.settings?.banner_height || 160}px` }}>
+                      <img 
+                         src={bannerUrl} 
+                         className="w-full h-full object-cover transition-all" 
+                         alt="b" 
+                         style={{ 
+                            transform: `scale(${biz?.settings?.banner_zoom || 1}) translate(${biz?.settings?.banner_x || 0}px, ${biz?.settings?.banner_y || 0}px)`
+                         }}
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
+                   </div>
+                )}
+                <div className="px-10 py-4 flex items-center gap-6 relative -mt-12">
+                   <div className="w-24 h-24 rounded-full border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0 overflow-hidden">
+                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain p-2" alt="l" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
+                   </div>
+                   <div className="flex-1 min-w-0 pt-12">
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
+                      <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Fresh Food Daily'}</p>
+                   </div>
                 </div>
              </div>
              <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl"><div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What are you craving?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 outline-none focus:bg-white focus:border-emerald-500 transition-all" value={search} onChange={e => setSearch(e.target.value)} /></div></div>

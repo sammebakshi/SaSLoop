@@ -263,42 +263,90 @@ function SetupBusiness() {
                      
                      {/* Banner Upload */}
                      <div>
-                        <div className="flex justify-between items-center mb-3">
-                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Menu Banner</label>
-                           <div className="flex items-center gap-3">
-                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Height: {formData.settings.banner_height || 160}px</span>
-                              <input 
-                                 type="range" 
-                                 min="100" 
-                                 max="500" 
-                                 step="10" 
-                                 value={formData.settings.banner_height || 160} 
-                                 onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_height: parseInt(e.target.value)}}))}
-                                 className="w-24 h-1.5 bg-slate-100 rounded-lg appearance-none accent-emerald-500"
-                              />
+                        <div className="flex flex-col gap-6 mb-6">
+                           <div className="flex justify-between items-center">
+                              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Menu Banner & Adjustments</label>
+                              <div className="flex items-center gap-4">
+                                 <div className="flex flex-col items-end">
+                                    <span className="text-[9px] font-black text-slate-300 uppercase">Height</span>
+                                    <input 
+                                       type="range" min="100" max="500" step="10" 
+                                       value={formData.settings.banner_height || 160} 
+                                       onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_height: parseInt(e.target.value)}}))}
+                                       className="w-20 h-1 bg-slate-100 rounded-lg appearance-none accent-emerald-500"
+                                    />
+                                 </div>
+                                 <div className="flex flex-col items-end">
+                                    <span className="text-[9px] font-black text-slate-300 uppercase">Zoom</span>
+                                    <input 
+                                       type="range" min="1" max="3" step="0.1" 
+                                       value={formData.settings.banner_zoom || 1} 
+                                       onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_zoom: parseFloat(e.target.value)}}))}
+                                       className="w-20 h-1 bg-slate-100 rounded-lg appearance-none accent-emerald-500"
+                                    />
+                                 </div>
+                              </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-6 bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                              <div className="flex-1 space-y-4">
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">Horizontal (X)</span>
+                                    <input 
+                                       type="range" min="-100" max="100" step="1" 
+                                       value={formData.settings.banner_x || 0} 
+                                       onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_x: parseInt(e.target.value)}}))}
+                                       className="w-32 h-1 bg-slate-200 rounded-lg appearance-none accent-emerald-500"
+                                    />
+                                 </div>
+                                 <div className="flex justify-between items-center">
+                                    <span className="text-[9px] font-black text-slate-400 uppercase">Vertical (Y)</span>
+                                    <input 
+                                       type="range" min="-100" max="100" step="1" 
+                                       value={formData.settings.banner_y || 0} 
+                                       onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_y: parseInt(e.target.value)}}))}
+                                       className="w-32 h-1 bg-slate-200 rounded-lg appearance-none accent-emerald-500"
+                                    />
+                                 </div>
+                              </div>
+                              <button 
+                                 onClick={() => setFormData(prev => ({...prev, settings: {...prev.settings, banner_zoom: 1, banner_x: 0, banner_y: 0}}))}
+                                 className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-white border border-emerald-100 px-3 py-2 rounded-lg hover:bg-emerald-50 transition-all"
+                              >
+                                 Reset
+                              </button>
                            </div>
                         </div>
+
                         <div className="flex flex-col gap-4">
                            <div 
-                              className="w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden relative group"
+                              className="w-full rounded-3xl border-2 border-dashed border-slate-200 bg-slate-100 flex items-center justify-center overflow-hidden relative group shadow-inner"
                               style={{ height: `${formData.settings.banner_height || 160}px` }}
                            >
                               {bannerPreview ? (
                                  <>
-                                    <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
-                                    <button onClick={() => setFormData(prev => ({...prev, banner_url: ""}))} className="absolute top-2 right-2 w-7 h-7 bg-slate-900/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all"><X className="w-4 h-4 text-white" /></button>
+                                    <img 
+                                       src={bannerPreview} 
+                                       alt="Banner" 
+                                       className="w-full h-full object-cover transition-transform duration-300" 
+                                       style={{ 
+                                          transform: `scale(${formData.settings.banner_zoom || 1}) translate(${formData.settings.banner_x || 0}px, ${formData.settings.banner_y || 0}px)`
+                                       }}
+                                    />
+                                    <div className="absolute inset-0 bg-black/5 pointer-events-none" />
+                                    <button onClick={() => setFormData(prev => ({...prev, banner_url: ""}))} className="absolute top-4 right-4 w-8 h-8 bg-white/90 backdrop-blur-md rounded-full shadow-lg flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:bg-rose-50 hover:text-rose-500"><X className="w-4 h-4" /></button>
                                  </>
                               ) : (
-                                 <Image className="w-8 h-8 text-slate-300" />
+                                 <Image className="w-10 h-10 text-slate-300" />
                               )}
                            </div>
-                           <div>
-                              <label className="cursor-pointer inline-flex items-center gap-2 bg-emerald-50 text-emerald-600 px-5 py-3 rounded-xl font-bold text-xs uppercase tracking-widest hover:bg-emerald-100 transition-all border border-emerald-200 active:scale-95">
+                           <div className="flex items-center justify-between">
+                              <label className="cursor-pointer inline-flex items-center gap-2 bg-slate-900 text-white px-6 py-3.5 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-800 transition-all active:scale-95 shadow-xl shadow-slate-200">
                                  {bannerUploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-                                 {bannerUploading ? "Uploading..." : "Upload Banner"}
+                                 {bannerUploading ? "Uploading..." : "Replace Banner"}
                                  <input type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
                               </label>
-                              <p className="text-[9px] text-slate-400 mt-2 font-medium">Adjust height using the slider above. Appears at the top of your public menus.</p>
+                              <p className="text-[9px] text-slate-400 font-medium italic text-right">Preview shows zoom & position.<br/>Adjust sliders for the perfect look.</p>
                            </div>
                         </div>
                      </div>
