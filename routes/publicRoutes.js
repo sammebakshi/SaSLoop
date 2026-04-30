@@ -90,7 +90,7 @@ router.post("/order", async (req, res) => {
                         await pool.query("DELETE FROM pending_redemptions WHERE id = $1", [redemptionCheck.rows[0].id]);
                         // ✅ DEDUCT POINTS FROM BALANCE
                         await pool.query(
-                            "UPDATE customer_loyalty SET points = points - $1 WHERE user_id = $2 AND customer_number = $3",
+                            "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
                             [pointsToRedeem, userId, dbPhone]
                         );
                         console.log(`🎁 Deducted ${pointsToRedeem} points from ${dbPhone} for Biz ${userId}`);
@@ -122,7 +122,7 @@ router.post("/order", async (req, res) => {
         let existingOrder = null;
         if (tableNumber && tableNumber !== "0" && (source === "POS_MANUAL" || source === "QR_MENU")) {
            const checkRes = await pool.query(
-             "SELECT id, order_reference, items, total_price, discount_amount, service_charge, delivery_charge FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PROCESSING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+             "SELECT id, order_reference, items, total_price, discount_amount, service_charge, delivery_charge, redeemed_points FROM orders WHERE user_id=$1 AND table_number=$2 AND status IN ('PENDING', 'PROCESSING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
              [userId, tableNumber]
            );
            existingOrder = checkRes.rows[0];
@@ -144,10 +144,11 @@ router.post("/order", async (req, res) => {
             const newItemsList = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
             const mergedItems = [...oldItems, ...newItemsList];
             const newTotal = (parseFloat(existingOrder.total_price) || 0) + finalPrice;
+            const newRedeemedPoints = (parseInt(existingOrder.redeemed_points) || 0) + (parseInt(redeemedPoints) || 0);
 
             insertRes = await pool.query(
-              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8 WHERE id=$9 RETURNING *",
-              [JSON.stringify(mergedItems), newTotal, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', (parseFloat(existingOrder.discount_amount) || 0) + (discount_amount || 0), (parseFloat(existingOrder.service_charge) || 0) + (service_charge || 0), (parseFloat(existingOrder.delivery_charge) || 0) + finalDeliveryCharge, orderId]
+              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8, redeemed_points=$9 WHERE id=$10 RETURNING *",
+              [JSON.stringify(mergedItems), newTotal, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', (parseFloat(existingOrder.discount_amount) || 0) + (discount_amount || 0), (parseFloat(existingOrder.service_charge) || 0) + (service_charge || 0), (parseFloat(existingOrder.delivery_charge) || 0) + finalDeliveryCharge, newRedeemedPoints, orderId]
             );
         } else {
             insertRes = await pool.query(

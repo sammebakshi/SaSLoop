@@ -263,9 +263,26 @@ function SetupBusiness() {
                      
                      {/* Banner Upload */}
                      <div>
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Menu Banner</label>
+                        <div className="flex justify-between items-center mb-3">
+                           <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Menu Banner</label>
+                           <div className="flex items-center gap-3">
+                              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Height: {formData.settings.banner_height || 160}px</span>
+                              <input 
+                                 type="range" 
+                                 min="100" 
+                                 max="500" 
+                                 step="10" 
+                                 value={formData.settings.banner_height || 160} 
+                                 onChange={(e) => setFormData(prev => ({...prev, settings: {...prev.settings, banner_height: parseInt(e.target.value)}}))}
+                                 className="w-24 h-1.5 bg-slate-100 rounded-lg appearance-none accent-emerald-500"
+                              />
+                           </div>
+                        </div>
                         <div className="flex flex-col gap-4">
-                           <div className="w-full h-32 rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden relative group">
+                           <div 
+                              className="w-full rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden relative group"
+                              style={{ height: `${formData.settings.banner_height || 160}px` }}
+                           >
                               {bannerPreview ? (
                                  <>
                                     <img src={bannerPreview} alt="Banner" className="w-full h-full object-cover" />
@@ -281,7 +298,7 @@ function SetupBusiness() {
                                  {bannerUploading ? "Uploading..." : "Upload Banner"}
                                  <input type="file" accept="image/*" onChange={handleBannerUpload} className="hidden" />
                               </label>
-                              <p className="text-[9px] text-slate-400 mt-2 font-medium">Recommended size: 1200x400px. Appears at the top of your public menus.</p>
+                              <p className="text-[9px] text-slate-400 mt-2 font-medium">Adjust height using the slider above. Appears at the top of your public menus.</p>
                            </div>
                         </div>
                      </div>
