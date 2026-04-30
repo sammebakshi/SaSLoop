@@ -364,6 +364,15 @@ async function initializeDatabase() {
                 points INTEGER DEFAULT 0,
                 is_verified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 24. WhatsApp Secure Login Verification
+            `CREATE TABLE IF NOT EXISTS pending_auths (
+                id SERIAL PRIMARY KEY,
+                token VARCHAR(50) UNIQUE NOT NULL,
+                phone VARCHAR(20),
+                user_id INTEGER REFERENCES app_users(id),
+                is_verified BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
