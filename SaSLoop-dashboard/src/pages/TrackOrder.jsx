@@ -166,7 +166,7 @@ const TrackOrder = () => {
                     </div>
                     <div className="mt-6 pt-6 border-t border-slate-100 flex justify-between items-center">
                         <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Paid Amount</span>
-                        <span className="text-xl font-black text-slate-900 tracking-tighter">₹{order.total_price}</span>
+                        <span className="text-xl font-black text-slate-900 tracking-tighter">\u20B9{order.total_price}</span>
                     </div>
                 </div>
             </div>

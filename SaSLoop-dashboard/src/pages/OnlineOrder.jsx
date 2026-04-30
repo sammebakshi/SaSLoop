@@ -91,7 +91,7 @@ function OnlineOrder() {
   };
 
   const biz = data?.business;
-  const symbol = '₹';
+  const symbol = '\u20B9';
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 

@@ -222,7 +222,7 @@ function DigitalCatalog() {
   };
 
   const getCurrencySymbol = () => {
-    return '₹';
+    return '\u20B9';
   };
 
   const handleDownloadTemplate = () => {

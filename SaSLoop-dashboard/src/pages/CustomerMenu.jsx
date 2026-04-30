@@ -67,7 +67,7 @@ function CustomerMenu() {
   };
 
   const biz = data?.business;
-  const symbol = biz?.currency_code === 'INR' ? 'â‚¹' : (biz?.currency_code === 'USD' ? '$' : 'â‚¹');
+  const symbol = biz?.currency_code === 'USD' ? '$' : '\u20B9';
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 

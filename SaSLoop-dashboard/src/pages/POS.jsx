@@ -216,7 +216,7 @@ const POS = () => {
           <div class="row"><span>Subtotal:</span><span>${totals.subtotal.toFixed(2)}</span></div>
           ${totals.discountAmt > 0 ? `<div class="row"><span>Discount:</span><span>-${totals.discountAmt.toFixed(2)}</span></div>` : ''}
           <div class="row"><span>Tax:</span><span>${totals.totalTax.toFixed(2)}</span></div>
-          <div class="row bold"><span>GRAND TOTAL:</span><span>₹${totals.total.toFixed(2)}</span></div>
+          <div class="row bold"><span>GRAND TOTAL:</span><span>\u20B9${totals.total.toFixed(2)}</span></div>
           <div class="dashed"></div>
           <div class="center"><p>THANK YOU! VISIT AGAIN</p></div>
           <script>window.print(); window.close();</script>
@@ -300,7 +300,7 @@ const POS = () => {
                         }`}
                       >
                         <span className="text-[10px]">T{num}</span>
-                        {order && <span className="text-[8px] opacity-60">₹{order.total_price}</span>}
+                        {order && <span className="text-[8px] opacity-60">\u20B9{order.total_price}</span>}
                       </button>
                     );
                   })}
@@ -337,7 +337,7 @@ const POS = () => {
                       <div className="text-left px-2">
                           <h4 className="text-[11px] font-black text-slate-900 uppercase italic line-clamp-1 mb-1">{item.product_name}</h4>
                           <div className="flex items-center justify-between">
-                              <p className="text-sm font-black text-slate-950 tracking-tighter italic">₹{item.price}</p>
+                              <p className="text-sm font-black text-slate-950 tracking-tighter italic">\u20B9{item.price}</p>
                               <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: item.is_veg ? '#10b981' : '#f43f5e' }} />
                           </div>
                       </div>
@@ -405,7 +405,7 @@ const POS = () => {
                 <div className="absolute left-0 top-0 w-1 h-full bg-orange-500 opacity-50" />
                 <div className="flex-1">
                    <h5 className="text-white font-black text-[11px] uppercase italic line-clamp-1">{item.product_name}</h5>
-                   <p className="text-white/40 font-black text-[10px] mt-1 italic">₹{item.price} per unit</p>
+                   <p className="text-white/40 font-black text-[10px] mt-1 italic">\u20B9{item.price} per unit</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <div className="flex items-center bg-black/60 rounded-xl border border-white/5 p-1">
