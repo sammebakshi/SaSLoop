@@ -619,6 +619,12 @@ function CustomerMenu() {
                           onChange={e => setCustomerPhone(e.target.value)}
                         />
                       </div>
+                      <button 
+                        onClick={handleRedeemRequest}
+                        className="w-full mt-2 py-3 rounded-2xl bg-white/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                      >
+                        <MessageCircle className="w-3.5 h-3.5" /> {loyaltyPoints >= (biz?.min_redeem_points || 300) ? 'Redeem via WhatsApp' : 'Verify via WhatsApp'}
+                      </button>
                    </div>
                )}
                <button onClick={() => {

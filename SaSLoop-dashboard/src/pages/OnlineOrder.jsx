@@ -733,6 +733,12 @@ function OnlineOrder() {
                          onChange={e => setCustomerPhone(e.target.value)}
                        />
                      </div>
+                     <button 
+                       onClick={handleRedeemRequest}
+                       className="w-full py-3 rounded-2xl bg-white/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+                     >
+                       <MessageCircle className="w-3.5 h-3.5" /> {loyaltyPoints >= (biz?.min_redeem_points || 300) ? 'Redeem via WhatsApp' : 'Verify via WhatsApp'}
+                     </button>
                   </div>
                )}
                <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar">
