@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
+import API_BASE from "../config";
 import { 
   ArrowRight, Bot, Zap, Globe, Smartphone, BarChart3, 
   CheckCircle2, MessageSquare, ShieldCheck, ShoppingBag, Users, PhoneCall,
-  Mail, Lock, Building2, EyeOff, Eye, ChevronDown, Infinity, AlertCircle, Heart, Award, TrendingUp, Download, Share2
+  Mail, Lock, Building2, EyeOff, Eye, ChevronDown, Infinity, AlertCircle, Heart, Award, TrendingUp, Download, Share2, X
 } from 'lucide-react';
 
 const SaSLoopLogo = () => (
@@ -152,6 +153,43 @@ const ChatAnimationBackground = () => {
 };
 
 function LandingPage() {
+  const [showLeadForm, setShowLeadForm] = useState(false);
+  const [leadContext, setLeadContext] = useState("");
+  const [leadData, setLeadData] = useState({ name: "", phone: "", business: "", interest: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  const openLeadForm = (context = "Demo") => {
+    setLeadContext(context);
+    setLeadData({ ...leadData, interest: context });
+    setShowLeadForm(true);
+  };
+
+  const handleLeadSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      // Send to backend lead endpoint
+      const res = await fetch(`${API_BASE}/api/public/leads`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(leadData)
+      });
+      if (res.ok) {
+        setIsSuccess(true);
+        setTimeout(() => {
+          setShowLeadForm(false);
+          setIsSuccess(false);
+          setLeadData({ name: "", phone: "", business: "", interest: "" });
+        }, 3000);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Something went wrong. Please try again.");
+    }
+    setIsSubmitting(false);
+  };
+
   const features = [
     { title: "AI Ordering Agent", desc: "Automated WhatsApp bot that handles orders, catalog browsing, and support 24/7.", icon: Bot },
     { title: "Smart Inventory", desc: "Real-time stock tracking with automated low-stock alerts sent directly to your staff.", icon: Zap },
@@ -166,16 +204,20 @@ function LandingPage() {
       
       {/* NAVIGATION */}
       <nav className="fixed top-0 inset-x-0 h-24 bg-white/80 backdrop-blur-xl z-50 border-b border-slate-100 flex items-center justify-between px-10 md:px-20">
-         <div className="flex items-center gap-2">
+         <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
             <SaSLoopLogo />
             <span className="text-2xl font-black tracking-tighter uppercase italic">SaSLoop</span>
          </div>
          <div className="hidden md:flex items-center gap-12 text-sm font-black uppercase tracking-widest text-slate-400">
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
             <a href="#pricing" className="hover:text-indigo-600 transition-colors">Pricing</a>
-            <a href="#demo" className="hover:text-indigo-600 transition-colors">Live Demo</a>
+            <button onClick={() => openLeadForm("Live Demo")} className="hover:text-indigo-600 transition-colors uppercase font-black tracking-widest">Live Demo</button>
          </div>
-         <a href="/login" className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black hover:scale-105 transition-all shadow-xl active:scale-95">
+         <a href="/login" onClick={(e) => {
+            // Force clear stale session if clicking partner portal to ensure login page shows
+            localStorage.removeItem("token");
+            localStorage.removeItem("user");
+         }} className="px-8 py-3.5 bg-slate-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest hover:bg-black hover:scale-105 transition-all shadow-xl active:scale-95">
             Partner Portal
          </a>
       </nav>
@@ -194,10 +236,10 @@ function LandingPage() {
                Revolutionize your operations with an automated AI agent that sells, supports, and grows your tribe while you sleep. Built for the global enterprise.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-               <button onClick={()=>window.location.href='/login'} className="w-full sm:w-auto px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl shadow-emerald-900/50 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-3">
+               <button onClick={() => openLeadForm("Free Trial")} className="w-full sm:w-auto px-10 py-5 bg-emerald-600 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest shadow-2xl shadow-emerald-900/50 hover:bg-emerald-700 transition-all active:scale-95 flex items-center justify-center gap-3">
                   Start Your Free Trial <ArrowRight className="w-4 h-4" />
                </button>
-               <button className="w-full sm:w-auto px-10 py-5 bg-white/5 border-2 border-white/10 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-lg">
+               <button onClick={() => openLeadForm("Demo Booking")} className="w-full sm:w-auto px-10 py-5 bg-white/5 border-2 border-white/10 text-white rounded-[2rem] font-black uppercase text-xs tracking-widest hover:bg-white/10 transition-all flex items-center justify-center gap-3 backdrop-blur-lg">
                   Book a Demo <PhoneCall className="w-4 h-4" />
                </button>
             </div>
@@ -254,7 +296,7 @@ function LandingPage() {
                         </div>
                      ))}
                   </div>
-                  <button onClick={()=>window.location.href='/login'} className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all ${p.popular ? 'bg-emerald-600 hover:bg-white hover:text-emerald-600 text-white shadow-xl shadow-emerald-500/20' : 'bg-slate-900 text-white hover:bg-black'}`}>
+                  <button onClick={() => openLeadForm(`Procure Plan: ${p.title}`)} className={`w-full py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] transition-all ${p.popular ? 'bg-emerald-600 hover:bg-white hover:text-emerald-600 text-white shadow-xl shadow-emerald-500/20' : 'bg-slate-900 text-white hover:bg-black'}`}>
                      Procure Plan
                   </button>
                </div>
@@ -297,7 +339,7 @@ function LandingPage() {
                   Ready to Loop your <br/> Business into the <span className="text-emerald-400 italic">Future?</span>
                </h2>
                <p className="text-emerald-200/60 font-bold uppercase text-[12px] tracking-[0.5em] mb-12">No Credit Card Required • Instant Setup</p>
-               <button onClick={() => window.location.href='/login'} className="px-16 py-6 bg-white text-slate-900 rounded-[2.5rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:bg-emerald-50 transition-all active:scale-95">
+               <button onClick={() => openLeadForm("Launch Store")} className="px-16 py-6 bg-white text-slate-900 rounded-[2.5rem] font-black uppercase text-xs tracking-widest shadow-2xl hover:bg-emerald-50 transition-all active:scale-95">
                   Launch Your Store Now
                </button>
             </div>
@@ -312,6 +354,70 @@ function LandingPage() {
          </div>
          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">© 2026 SaSLoop Cloud Technologies. All Rights Reserved.</p>
       </footer>
+
+      {/* LEAD GENERATION MODAL */}
+      {showLeadForm && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 animate-in fade-in duration-300">
+           <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-md" onClick={() => setShowLeadForm(false)} />
+           <div className="relative w-full max-w-lg bg-white rounded-[3rem] p-12 shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+              <button onClick={() => setShowLeadForm(false)} className="absolute top-8 right-8 text-slate-400 hover:text-slate-900"><X /></button>
+              
+              {isSuccess ? (
+                <div className="text-center py-10 space-y-6">
+                   <div className="w-20 h-20 bg-emerald-50 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto animate-bounce shadow-inner">
+                      <CheckCircle2 className="w-10 h-10" />
+                   </div>
+                   <h3 className="text-3xl font-black tracking-tighter italic">REQUEST RECEIVED!</h3>
+                   <p className="text-slate-400 text-xs font-black uppercase tracking-widest leading-relaxed">
+                      Our growth agents will call you back within 24 hours to finalize your {leadContext}.
+                   </p>
+                </div>
+              ) : (
+                <>
+                  <div className="text-center mb-10">
+                    <div className="inline-block px-3 py-1 bg-indigo-50 text-indigo-500 rounded-full text-[8px] font-black uppercase tracking-widest mb-4">Lead Generation Phase</div>
+                    <h3 className="text-4xl font-black tracking-tighter italic leading-none mb-2">{leadContext === "Demo" ? "BOOK A DEMO" : leadContext.toUpperCase()}</h3>
+                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Fill details and our agent will reach out</p>
+                  </div>
+                  
+                  <form onSubmit={handleLeadSubmit} className="space-y-6">
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">Full Name</label>
+                        <input 
+                           type="text" required value={leadData.name} onChange={e => setLeadData({...leadData, name: e.target.value})}
+                           placeholder="John Doe" 
+                           className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20" 
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">WhatsApp Number</label>
+                        <input 
+                           type="tel" required value={leadData.phone} onChange={e => setLeadData({...leadData, phone: e.target.value})}
+                           placeholder="+91 98765 43210" 
+                           className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20" 
+                        />
+                     </div>
+                     <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">Business Name</label>
+                        <input 
+                           type="text" required value={leadData.business} onChange={e => setLeadData({...leadData, business: e.target.value})}
+                           placeholder="My Awesome Cafe" 
+                           className="w-full bg-slate-50 border-none rounded-2xl px-6 py-4 text-xs font-bold focus:ring-2 focus:ring-emerald-500/20" 
+                        />
+                     </div>
+                     
+                     <button 
+                        type="submit" disabled={isSubmitting}
+                        className="w-full py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase text-[10px] tracking-[0.2em] shadow-2xl hover:bg-black transition-all active:scale-95 disabled:opacity-50"
+                     >
+                        {isSubmitting ? "Processing..." : "Submit Request"}
+                     </button>
+                  </form>
+                </>
+              )}
+           </div>
+        </div>
+      )}
 
     </div>
   );

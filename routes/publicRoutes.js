@@ -447,6 +447,29 @@ router.post("/call-waiter", async (req, res) => {
         console.error("Call Waiter Error:", err);
         res.status(500).json({ error: "Failed to notify waiter" });
     }
+// ✅ LEAD GENERATION (LANDING PAGE)
+router.post("/leads", async (req, res) => {
+    try {
+        const { name, phone, business, interest } = req.body;
+        
+        // 1. Save to DB
+        await pool.query(
+            "INSERT INTO leads (name, phone, business, interest) VALUES ($1, $2, $3, $4)",
+            [name, phone, business, interest]
+        );
+
+        // 2. Notify Master Admin
+        const msg = `🚀 *NEW LEAD GENERATED!* \n━━━━━━━━━━━━━━\n👤 *Name:* ${name}\n📱 *Phone:* ${phone}\n🏢 *Business:* ${business}\n🎯 *Interest:* ${interest}\n\nPlease contact the lead for onboarding! 📈`;
+        
+        // Notify master admin number
+        const masterPhone = "+919469697216"; 
+        await whatsappManager.sendOfficialMessage(masterPhone, msg, 1);
+
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Lead Error:", err);
+        res.status(500).json({ error: "Submission failed" });
+    }
 });
 
 module.exports = router;

@@ -205,6 +205,14 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS redeemed_points INTEGER DEFAULT 0`,
 
             // 20. Delivery Partners
+            `CREATE TABLE IF NOT EXISTS leads (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(255),
+                phone VARCHAR(50),
+                business VARCHAR(255),
+                interest VARCHAR(255),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
             `CREATE TABLE IF NOT EXISTS delivery_partners (
                 id SERIAL PRIMARY KEY,
                 user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
