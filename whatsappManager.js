@@ -20,7 +20,9 @@ const formatToInter = (p) => {
 const sendOfficialMessage = async (to, content, userId) => {
     try {
         const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
-        const { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        if (token) token = token.trim();
+        if (phoneId) phoneId = phoneId.trim();
         if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
 
         const cleanTo = formatToInter(to);

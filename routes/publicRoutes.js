@@ -7,8 +7,9 @@ const { isBusinessOpen, getDeliveryDetails } = require("../utils/businessUtils")
 // Helper to ensure +CountryCode format
 const formatToInter = (p) => {
     if (!p) return "";
-    const digits = p.replace(/\D/g, "");
-    return digits ? `+${digits}` : "";
+    let digits = p.replace(/\D/g, "");
+    if (digits.length === 10) digits = "91" + digits;
+    return `+${digits}`;
 };
 
 // 📋 GET MENU FOR QR CUSTOMER

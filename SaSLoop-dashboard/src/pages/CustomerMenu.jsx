@@ -4,7 +4,7 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles
+  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles, Gift
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -353,12 +353,12 @@ function CustomerMenu() {
                         >
                           Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
                         </button>
-                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && !isVerified && (
                            <button 
-                             onClick={handleRedeemRequest}
-                             className="w-full mt-2 py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                             onClick={handleRequestAuth}
+                             className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200 hover:bg-emerald-600 transition-all flex items-center justify-center gap-3"
                            >
-                             <MessageCircle className="w-3.5 h-3.5" /> Redeem Rewards
+                             <MessageCircle className="w-5 h-5" /> Verify via WhatsApp to Redeem
                            </button>
                         )}
                     </div>
@@ -554,7 +554,7 @@ function CustomerMenu() {
                                    </div>
                                    {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
                                       <button 
-                                        onClick={handleRedeemRequest}
+                                        onClick={handleRequestAuth}
                                         className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
                                       >
                                         Redeem
@@ -582,56 +582,74 @@ function CustomerMenu() {
       {cart.length > 0 && (
         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 font-sans">
            <div className="bg-slate-950 text-white rounded-[3.5rem] overflow-hidden shadow-2xl shadow-slate-950/50 border border-white/10 mb-2">
-              {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                <div className="px-6 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
-                    <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Earned {loyaltyPoints} points</span>
-                    <button onClick={handleRedeemRequest} className="text-[9px] font-black text-emerald-400 uppercase tracking-widest bg-white/10 px-3 py-1.5 rounded-full">Redeem Now</button>
-                </div>
-              )}
-              {pointsToRedeem > 0 && (
-                <div className="px-6 py-3 bg-emerald-500 text-slate-950 flex justify-between items-center">
-                    <span className="text-[9px] font-black uppercase tracking-widest">Points Discount Applied</span>
-                    <span className="text-[11px] font-black">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
-                </div>
-              )}
-              {(!customerPhone || customerPhone.length < 5) && (
-                  <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
-                      <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Guest Details (For Loyalty Points)</p>
-                      <input 
-                        type="text" 
-                        placeholder="Your Name" 
-                        className="w-full bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
-                        value={customerName}
-                        onChange={e => setCustomerName(e.target.value)}
-                      />
-                      <div className="flex items-center bg-white/10 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-500/50 transition-all">
-                        <select 
-                          className="bg-transparent pl-3 pr-1 py-3 text-[10px] font-bold text-white outline-none border-r border-white/5" 
-                          value={countryCode} 
-                          onChange={e => setCountryCode(e.target.value)}
-                        >
-                            {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
-                        </select>
-                        <input 
-                          type="tel" 
-                          placeholder="Phone Number" 
-                          className="flex-1 bg-transparent px-3 py-3 text-[10px] font-bold text-white outline-none placeholder:text-white/30" 
-                          value={customerPhone}
-                          onChange={e => setCustomerPhone(e.target.value)}
-                        />
-                      </div>
-                      {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                         <button 
-                           onClick={handleRedeemRequest}
-                           className="w-full mt-2 py-3 rounded-2xl bg-white/10 text-emerald-400 text-[9px] font-black uppercase tracking-widest border border-white/10 hover:bg-white/20 transition-all flex items-center justify-center gap-2"
+              {/* 🛡️ DEFENSIVE LOYALTY SECTION */}
+              {(!customerPhone || customerPhone.length < 5 || customerPhone === 'undefined') ? (
+                   <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
+                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Identify for Rewards</p>
+                       <input 
+                         type="text" 
+                         placeholder="Your Name" 
+                         className="w-full bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                         value={customerName || ''}
+                         onChange={e => setCustomerName(e.target.value)}
+                       />
+                       <div className="flex items-center bg-white/10 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-500/50 transition-all">
+                         <select 
+                           className="bg-transparent pl-3 pr-1 py-3 text-[10px] font-bold text-white outline-none border-r border-white/5" 
+                           value={countryCode} 
+                           onChange={e => setCountryCode(e.target.value)}
                          >
-                           <MessageCircle className="w-3.5 h-3.5" /> Redeem Rewards
-                         </button>
-                      )}
-                   </div>
-               )}
+                             {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
+                         </select>
+                         <input 
+                           type="tel" 
+                           placeholder="Phone Number" 
+                           className="flex-1 bg-transparent px-3 py-3 text-[10px] font-bold text-white outline-none placeholder:text-white/30" 
+                           value={customerPhone || ''}
+                           onChange={e => setCustomerPhone(e.target.value)}
+                         />
+                       </div>
+                    </div>
+                ) : (
+                    <div className="px-6 py-5 bg-white/5 border-b border-white/10 space-y-4">
+                        <div className="flex items-center justify-between bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
+                           <div className="flex items-center gap-3">
+                              <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
+                                 <Sparkles className="w-5 h-5 text-emerald-400" />
+                              </div>
+                              <div>
+                                 <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">Your Rewards</p>
+                                 <p className="text-[10px] font-black text-white uppercase italic truncate max-w-[100px]">{customerName || 'Loyal Guest'}</p>
+                              </div>
+                           </div>
+                           <div className="text-right">
+                              <p className="text-[8px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Balance</p>
+                              <p className="text-sm font-black text-emerald-400">{(loyaltyPoints || 0)} pts</p>
+                           </div>
+                        </div>
+                        
+                        {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                           <button 
+                             onClick={handleRedeemRequest}
+                             className="w-full py-4 rounded-[1.5rem] bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                           >
+                             <Gift className="w-4 h-4" /> Redeem Points Now
+                           </button>
+                        )}
+
+                        {pointsToRedeem > 0 && (
+                           <div className="px-6 py-4 bg-indigo-500/20 border-b border-indigo-500/30 flex justify-between items-center">
+                               <div className="flex items-center gap-2">
+                                  <div className="w-2 h-2 bg-indigo-400 rounded-full animate-pulse"></div>
+                                  <span className="text-[9px] font-black uppercase text-indigo-400 tracking-widest">Points Discount Applied</span>
+                               </div>
+                               <span className="text-[11px] font-black text-white">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
+                           </div>
+                        )}
+                    </div>
+                 )}
                <button onClick={() => {
-                  if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                  if(!customerName || !customerPhone || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
                   placeOrder();
                }} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
                   <div className="flex items-center gap-5 pl-4"><div className="relative"><div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div><div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div></div><div className="text-left"><p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5 font-sans">Final Total</p><p className="text-xl font-black italic">{symbol}{finalTotal.toFixed(0)}</p></div></div>
