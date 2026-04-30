@@ -88,6 +88,12 @@ router.post("/order", async (req, res) => {
                     if (available >= pointsToRedeem) {
                         redeemedPoints = pointsToRedeem;
                         await pool.query("DELETE FROM pending_redemptions WHERE id = $1", [redemptionCheck.rows[0].id]);
+                        // ✅ DEDUCT POINTS FROM BALANCE
+                        await pool.query(
+                            "UPDATE customer_loyalty SET points = points - $1 WHERE user_id = $2 AND customer_number = $3",
+                            [pointsToRedeem, userId, dbPhone]
+                        );
+                        console.log(`🎁 Deducted ${pointsToRedeem} points from ${dbPhone} for Biz ${userId}`);
                     }
                 }
             } catch (e) { console.error("Redemption logic fail:", e); }
@@ -145,8 +151,8 @@ router.post("/order", async (req, res) => {
             );
         } else {
             insertRes = await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *",
-                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge]
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *",
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
             );
             orderId = insertRes.rows[0].id;
         }

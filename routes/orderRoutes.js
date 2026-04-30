@@ -101,6 +101,21 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
             }
         } else if (status === 'CANCELLED') {
             updateMsg = `❌ *Cancelled:* Your order *${ref}* has been cancelled.`;
+            // 🔄 RETURN POINTS ON CANCELLATION
+            if ((parseInt(order.redeemed_points) || 0) > 0) {
+                try {
+                    const cleanPhone = (order.customer_number || "").replace(/\D/g, "");
+                    const dbPhone = cleanPhone ? `+${cleanPhone}` : "";
+                    if (dbPhone) {
+                        await pool.query(
+                            "UPDATE customer_loyalty SET points = points + $1 WHERE user_id = $2 AND customer_number = $3",
+                            [order.redeemed_points, userId, dbPhone]
+                        );
+                        updateMsg += `\n🎁 ${order.redeemed_points} points have been returned to your balance.`;
+                        console.log(`🔄 Returned ${order.redeemed_points} points to ${dbPhone} for Biz ${userId}`);
+                    }
+                } catch (refundErr) { console.error("Refund points fail:", refundErr); }
+            }
         }
 
         // 🔥 EXTRA: If admin manually moves order from AWAITING_PAYMENT to PENDING/PROCESSING, trigger KOT

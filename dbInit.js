@@ -202,6 +202,7 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_lat NUMERIC`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_long NUMERIC`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS rider_id INTEGER`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS redeemed_points INTEGER DEFAULT 0`,
 
             // 20. Delivery Partners
             `CREATE TABLE IF NOT EXISTS delivery_partners (

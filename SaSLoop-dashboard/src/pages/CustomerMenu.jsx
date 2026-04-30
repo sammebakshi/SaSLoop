@@ -270,7 +270,17 @@ function CustomerMenu() {
         })
       });
       const o = await res.json();
-      if (res.ok) { setOrderRef(o.orderRef); setFinalPaidAmount(o.finalPrice || 0); setView("confirmed"); setCart([]); fetchActiveOrders(); }
+      if (res.ok) { 
+        setOrderRef(o.orderRef); 
+        setFinalPaidAmount(o.finalPrice || 0); 
+        setView("confirmed"); 
+        setCart([]); 
+        fetchActiveOrders(); 
+        // ✅ RESET LOYALTY STATE
+        setPointsToRedeem(0);
+        setRedemptionToken(null);
+        setRedemptionStatus("IDLE");
+      }
       else alert(o.error || "Failed");
     } finally { setPlacing(false); }
   };
