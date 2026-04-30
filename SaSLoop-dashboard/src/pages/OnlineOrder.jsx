@@ -33,6 +33,7 @@ function OnlineOrder() {
   const [loading, setLoading] = useState(true);
   const [cart, setCart] = useState([]);
   const [search, setSearch] = useState("");
+  const [showCartDrawer, setShowCartDrawer] = useState(false);
   const [activeCategory, setActiveCategory] = useState("");
   const categoryRefs = useRef({});
   const [fulfillmentMode, setFulfillmentMode] = useState("DELIVERY");
@@ -724,111 +725,203 @@ function OnlineOrder() {
                      </div>
                      <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5" /> : <>Confirm Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
                   </div>
-                )}
-             </div>
-          </aside>
-      </div>
-      {cart.length > 0 && (
-         <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12 items-center">
-            <div className="bg-slate-950 text-white rounded-[3.5rem] overflow-hidden shadow-2xl shadow-slate-950/50 border border-white/10">
-               {fulfillmentMode === 'DELIVERY' && (
-                  <div className="px-10 py-3 bg-white/5 border-b border-white/5 flex justify-between items-center">
-                     <span className="text-[9px] font-black uppercase text-white/40 tracking-widest">Delivery Charge Applied</span>
-                     <span className="text-[11px] font-black text-emerald-400">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
-                  </div>
                )}
-
-               {/* 🛡️ DEFENSIVE LOYALTY SECTION */}
-               {(!customerPhone || customerPhone.length < 5 || customerPhone === 'undefined') ? (
-                   <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
-                      <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Identify for Rewards</p>
-                      <input 
-                        type="text" 
-                        placeholder="Your Name" 
-                        className="w-full bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
-                        value={customerName || ''}
-                        onChange={e => setCustomerName(e.target.value)}
-                      />
-                      <div className="flex items-center bg-white/10 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-500/50 transition-all">
-                        <select 
-                          className="bg-transparent pl-3 pr-1 py-3 text-[10px] font-bold text-white outline-none border-r border-white/5" 
-                          value={countryCode} 
-                          onChange={e => setCountryCode(e.target.value)}
-                        >
-                            {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
-                        </select>
-                        <input 
-                          type="tel" 
-                          placeholder="Phone Number" 
-                          className="flex-1 bg-transparent px-3 py-3 text-[10px] font-bold text-white outline-none placeholder:text-white/30" 
-                          value={customerPhone || ''}
-                          onChange={e => setCustomerPhone(e.target.value)}
-                        />
+            </div>
+         </aside>
+      </div>
+       {cart.length > 0 && !showCartDrawer && (
+          <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
+             <button 
+               onClick={() => setShowCartDrawer(true)}
+               className="w-full bg-slate-950 text-white rounded-[3rem] p-4 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all"
+             >
+                <div className="flex items-center gap-4 pl-4">
+                   <div className="relative">
+                      <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
+                         <ShoppingBag className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-slate-950">
+                         <span className="text-[9px] font-black">{totalCartItems}</span>
                       </div>
                    </div>
-                ) : (
-                    <div className="px-6 py-5 bg-white/5 border-b border-white/10 space-y-4">
-                       <div className="flex items-center justify-between bg-emerald-500/10 p-4 rounded-2xl border border-emerald-500/20">
-                          <div className="flex items-center gap-3">
-                             <div className="w-10 h-10 bg-emerald-500/20 rounded-xl flex items-center justify-center">
-                                <Sparkles className="w-5 h-5 text-emerald-400" />
-                             </div>
-                             <div>
-                                <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">Your Rewards</p>
-                                <p className="text-[10px] font-black text-white uppercase italic truncate max-w-[100px]">{customerName || 'Loyal Guest'}</p>
-                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[8px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Balance</p>
-                             <p className="text-sm font-black text-emerald-400">{(loyaltyPoints || 0)} pts</p>
-                          </div>
-                       </div>
-                       
-                       {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                          <button 
-                            onClick={handleRedeemRequest}
-                            className="w-full py-4 rounded-[1.5rem] bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                          >
-                            <Gift className="w-4 h-4" /> Redeem Points Now
-                          </button>
-                       )}
+                   <div className="text-left">
+                      <p className="text-[9px] font-black uppercase text-white/30 tracking-widest leading-none mb-1">View Cart</p>
+                      <p className="text-lg font-black">{symbol}{finalTotal.toFixed(0)}</p>
+                   </div>
+                </div>
+                <div className="bg-emerald-500 text-slate-950 px-6 py-3.5 rounded-[2rem] font-black text-[11px] uppercase tracking-widest flex items-center gap-2">
+                   Next <ChevronRight className="w-4 h-4" />
+                </div>
+             </button>
+          </div>
+       )}
 
-                       {pointsToRedeem > 0 && (
-                          <div className="w-full py-3 px-4 rounded-xl bg-indigo-500/20 border border-indigo-500/30 flex justify-between items-center">
-                             <p className="text-[9px] font-black text-indigo-400 uppercase tracking-widest">Points Applied: {pointsToRedeem}</p>
-                             <p className="text-[10px] font-black text-white">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)} Off</p>
-                          </div>
-                       )}
-                    </div>
-                 )}
-               <div className="px-6 py-4 bg-white/5 border-b border-white/5 flex gap-2 overflow-x-auto no-scrollbar relative">
-                  <div className="absolute top-0 right-2 text-[6px] text-white/5 uppercase">v1.2-loyalty-fix</div>
-                  {(!biz?.settings?.accepted_payment_methods || biz?.settings?.accepted_payment_methods?.cash) && (
-                     <button onClick={() => setPaymentMethod('CASH')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'CASH' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>COD / Cash</button>
-                  )}
-                  {biz?.settings?.accepted_payment_methods?.upi && (
-                     <button onClick={() => setPaymentMethod('UPI')} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all ${paymentMethod === 'UPI' ? 'bg-emerald-500 text-slate-950' : 'bg-white/10 text-white hover:bg-white/20'}`}>Pay Online</button>
-                  )}
+       {/* 🎁 FULL CART DRAWER OVERLAY */}
+       {showCartDrawer && (
+         <div className="fixed inset-0 z-[300] flex items-end justify-center font-sans">
+            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCartDrawer(false)} />
+            <div className="relative w-full max-w-lg bg-white rounded-t-[3.5rem] shadow-2xl animate-in slide-in-from-bottom-full duration-500 flex flex-col max-h-[90vh]">
+               {/* Header */}
+               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
+                  <div>
+                     <h2 className="text-xl font-black text-slate-950 uppercase tracking-tighter italic">My Order</h2>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{totalCartItems} Items Selected</p>
+                  </div>
+                  <button onClick={() => setShowCartDrawer(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center active:scale-90 transition-all">
+                     <X className="w-6 h-6 text-slate-400" />
+                  </button>
                </div>
-               <button onClick={() => {
-                  if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
-                  placeOrder();
-               }} disabled={placing} className="w-full p-5.5 flex items-center justify-between active:scale-95 transition-all">
-                  <div className="flex items-center gap-5 pl-4">
-                     <div className="relative">
-                        <div className="w-14 h-14 bg-white/10 rounded-[1.8rem] flex items-center justify-center"><ShoppingBag className="w-7 h-7 text-emerald-400" /></div>
-                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center border-4 border-slate-950"><span className="text-[10px] font-black text-white">{totalCartItems}</span></div>
-                     </div>
-                     <div className="text-left">
-                        <p className="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mb-0.5">Payable</p>
-                        <p className="text-xl font-black">{symbol}{finalTotal.toFixed(0)}</p>
+
+               {/* Cart Content */}
+               <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-8">
+                  {/* Item List */}
+                  <div className="space-y-6">
+                     {cart.map(item => (
+                        <div key={item.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
+                           <div className="w-16 h-16 rounded-2xl bg-slate-50 overflow-hidden shrink-0">
+                              {item.image_url ? (
+                                 <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover" alt="p" />
+                              ) : (
+                                 <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-6 h-6" /></div>
+                              )}
+                           </div>
+                           <div className="flex-1 min-w-0">
+                              <p className="text-sm font-black text-slate-900 leading-tight uppercase italic truncate">{item.product_name}</p>
+                              <p className="text-[10px] font-black text-slate-400 uppercase mt-1">{symbol}{item.price} per item</p>
+                           </div>
+                           <div className="bg-slate-100 rounded-xl p-1 flex items-center gap-3">
+                              <button 
+                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all"
+                              >
+                                 <Minus className="w-3.5 h-3.5" />
+                              </button>
+                              <span className="text-xs font-black text-slate-900 w-4 text-center">{item.qty}</span>
+                              <button 
+                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
+                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-500 active:scale-90 transition-all"
+                              >
+                                 <Plus className="w-3.5 h-3.5" />
+                              </button>
+                           </div>
+                        </div>
+                     ))}
+                  </div>
+
+                  {/* Loyalty Section */}
+                  <div className="pt-4">
+                     {(!customerPhone || customerPhone.length < 5 || customerPhone === 'undefined') ? (
+                        <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identify for Rewards</p>
+                           <input 
+                             type="text" 
+                             placeholder="Full Name" 
+                             className="w-full bg-white border border-slate-200 px-6 py-4 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
+                             value={customerName || ''}
+                             onChange={e => setCustomerName(e.target.value)}
+                           />
+                           <div className="flex items-center bg-white border border-slate-200 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
+                              <select 
+                                className="bg-transparent pl-4 pr-1 py-4 text-xs font-bold outline-none border-r border-slate-100" 
+                                value={countryCode} 
+                                onChange={e => setCountryCode(e.target.value)}
+                              >
+                                 {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
+                              </select>
+                              <input 
+                                type="tel" 
+                                placeholder="Phone Number" 
+                                className="flex-1 bg-transparent px-4 py-4 text-xs font-bold outline-none" 
+                                value={customerPhone || ''}
+                                onChange={e => setCustomerPhone(e.target.value)}
+                              />
+                           </div>
+                        </div>
+                     ) : (
+                        <div className="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
+                           <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles className="w-12 h-12 text-white" /></div>
+                           <div className="flex items-center justify-between mb-6">
+                              <div>
+                                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">Your Rewards</p>
+                                 <p className="text-lg font-black text-white uppercase italic">{customerName || 'Loyal Guest'}</p>
+                              </div>
+                              <div className="text-right">
+                                 <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Balance</p>
+                                 <p className="text-xl font-black text-emerald-400">{loyaltyPoints || 0}</p>
+                              </div>
+                           </div>
+                           
+                           {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                              <button 
+                                onClick={handleRedeemRequest}
+                                className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                              >
+                                <Gift className="w-4 h-4" /> Redeem Points Now
+                              </button>
+                           )}
+
+                           {pointsToRedeem > 0 && (
+                              <div className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/5 flex justify-between items-center">
+                                 <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Points Applied: {pointsToRedeem}</p>
+                                 <p className="text-sm font-black text-white">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</p>
+                              </div>
+                           )}
+                        </div>
+                     )}
+                  </div>
+
+                  {/* Payment Methods */}
+                  <div className="space-y-4">
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Payment Method</p>
+                     <div className="grid grid-cols-2 gap-3">
+                        {(!biz?.settings?.accepted_payment_methods || biz?.settings?.accepted_payment_methods?.cash) && (
+                           <button 
+                             onClick={() => setPaymentMethod('CASH')}
+                             className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${paymentMethod === 'CASH' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-400 border-slate-100'}`}
+                           >
+                              COD / Cash
+                           </button>
+                        )}
+                        {biz?.settings?.accepted_payment_methods?.upi && (
+                           <button 
+                             onClick={() => setPaymentMethod('UPI')}
+                             className={`py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border-2 ${paymentMethod === 'UPI' ? 'bg-slate-900 text-white border-slate-900 shadow-xl' : 'bg-white text-slate-400 border-slate-100'}`}
+                           >
+                              Pay Online
+                           </button>
+                        )}
                      </div>
                   </div>
-                  <div className="bg-emerald-500 text-slate-950 px-10 py-5 rounded-[2.5rem] flex items-center gap-4 font-black text-[13px] uppercase tracking-widest shadow-2xl">Confirm <ChevronRight className="w-5 h-5" /></div>
-               </button>
+
+                  {/* Delivery Info */}
+                  {fulfillmentMode === 'DELIVERY' && (
+                     <div className="bg-amber-50 p-6 rounded-[2rem] border border-amber-100 flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase text-amber-700 tracking-widest">Delivery Charge</span>
+                        <span className="text-sm font-black text-amber-900">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
+                     </div>
+                  )}
+               </div>
+
+               {/* Footer / Confirm */}
+               <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-t-[3.5rem]">
+                  <div className="flex justify-between items-center mb-6 px-4">
+                     <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Payable Amount</p>
+                     <p className="text-3xl font-black text-slate-950 tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p>
+                  </div>
+                  <button 
+                    onClick={() => {
+                       if(!customerName || !customerPhone || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                       placeOrder();
+                    }} 
+                    disabled={placing}
+                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-95 transition-all"
+                  >
+                     {placing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Confirm Order <ChevronRight className="w-6 h-6" /></>}
+                  </button>
+               </div>
             </div>
          </div>
-      )}
+       )}
       
       {/* FLOATING ACTION BUTTONS */}
       <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150] lg:hidden">
