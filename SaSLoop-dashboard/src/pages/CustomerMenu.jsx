@@ -336,7 +336,14 @@ function CustomerMenu() {
                         >
                           Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
                         </button>
-                        <p className="text-center text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-2">Verification is only required for point redemption.</p>
+                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
+                           <button 
+                             onClick={handleRedeemRequest}
+                             className="w-full mt-2 py-3 rounded-2xl bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                           >
+                             <MessageCircle className="w-3.5 h-3.5" /> Redeem via WhatsApp
+                           </button>
+                        )}
                     </div>
                   )}
               </div>
@@ -512,7 +519,14 @@ function CustomerMenu() {
                                    onChange={e => setCustomerPhone(e.target.value)}
                                  />
                               </div>
-                             <p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest text-center mt-2 px-4 italic leading-relaxed">Verification is only required for redeeming rewards.</p>
+                             {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                                <button 
+                                  onClick={handleRedeemRequest}
+                                  className="w-full mt-4 py-4 rounded-[1.2rem] bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest border border-emerald-100 hover:bg-emerald-100 transition-all flex items-center justify-center gap-2"
+                                >
+                                  <MessageCircle className="w-4 h-4" /> Redeem via WhatsApp
+                                </button>
+                             )}
                           </div>
                         )}
 
