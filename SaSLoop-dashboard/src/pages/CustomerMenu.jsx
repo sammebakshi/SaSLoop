@@ -38,6 +38,22 @@ function CustomerMenu() {
   const [authStatus, setAuthStatus] = useState("IDLE"); // IDLE, PENDING
   const [authToken, setAuthToken] = useState(null);
 
+  // --- 🔒 SESSION PERSISTENCE ---
+  useEffect(() => {
+    const savedName = localStorage.getItem(`sasloop_name_${bizId}`);
+    const savedPhone = localStorage.getItem(`sasloop_phone_${bizId}`);
+    if (savedName) setCustomerName(savedName);
+    if (savedPhone) {
+      setCustomerPhone(savedPhone);
+      setView("menu"); // Skip auth if already identified
+    }
+  }, [bizId]);
+
+  const saveSession = (name, phone) => {
+    localStorage.setItem(`sasloop_name_${bizId}`, name);
+    localStorage.setItem(`sasloop_phone_${bizId}`, phone);
+  };
+
   const getStandardPhone = (p) => {
     if (!p) return "";
     if (p.startsWith("+")) return p;
@@ -50,7 +66,7 @@ function CustomerMenu() {
   };
 
   const biz = data?.business;
-  const symbol = biz?.currency_code === 'INR' ? '₹' : (biz?.currency_code === 'USD' ? '$' : '₹');
+  const symbol = biz?.currency_code === 'INR' ? 'â‚¹' : (biz?.currency_code === 'USD' ? '$' : 'â‚¹');
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 
@@ -102,7 +118,7 @@ function CustomerMenu() {
       const itv = setInterval(() => {
         fetchActiveOrders();
         checkLoyalty();
-      }, 3000); // ⚡ Live Sync
+      }, 3000); // âš¡ Live Sync
       return () => clearInterval(itv);
     }
   }, [view, customerPhone]);
@@ -119,7 +135,7 @@ function CustomerMenu() {
         const d = await res.json();
         if (d.success) {
             setAuthToken(d.token);
-            const waMsg = `🚀 Verify my number for ${biz?.name}! ✨ [ID: ${d.token}]`;
+            const waMsg = `ðŸš€ Verify my number for ${biz?.name}! âœ¨ [ID: ${d.token}]`;
             const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
             window.open(waUrl, "_blank");
         } else {
@@ -199,7 +215,7 @@ function CustomerMenu() {
         const d = await res.json();
         if (d.success) {
             setRedemptionToken(d.token);
-            const waMsg = `🎁 Redeem ${pointsToUse} points for ${biz?.name}! ✨ [ID: ${d.token}]`;
+            const waMsg = `ðŸŽ Redeem ${pointsToUse} points for ${biz?.name}! âœ¨ [ID: ${d.token}]`;
             const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
             window.open(waUrl, "_blank");
             
@@ -227,7 +243,7 @@ function CustomerMenu() {
   };
 
   const placeOrder = async () => {
-    if (!isVerified && (!customerName || !customerPhone)) {
+    if ((!customerPhone || customerPhone.length < 5) && (!customerName || !customerPhone)) {
         alert("Please provide your Name and Phone number to place the order.");
         return;
     }
@@ -267,7 +283,7 @@ function CustomerMenu() {
         body: JSON.stringify({ userId: bizId, tableNumber: tableId })
       });
       const d = await res.json();
-      if (d.success) alert("🛎️ Waiter notified! Someone will be with you shortly.");
+      if (d.success) alert("ðŸ›Žï¸ Waiter notified! Someone will be with you shortly.");
       else alert(d.error || "Failed to notify waiter.");
     } catch (e) {
       alert("Something went wrong. Please try again.");
@@ -330,6 +346,7 @@ function CustomerMenu() {
                         <button 
                           onClick={() => {
                              if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                             saveSession(customerName, customerPhone);
                              setView("menu");
                           }}
                           className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
@@ -577,7 +594,7 @@ function CustomerMenu() {
                     <span className="text-[11px] font-black">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
                 </div>
               )}
-              {!isVerified && (
+              {(!customerPhone || customerPhone.length < 5) && (
                   <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Guest Details (For Loyalty Points)</p>
                       <input 

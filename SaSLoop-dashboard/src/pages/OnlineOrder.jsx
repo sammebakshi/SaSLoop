@@ -61,6 +61,22 @@ function OnlineOrder() {
   const [authStatus, setAuthStatus] = useState("IDLE"); 
   const [authToken, setAuthToken] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState("CASH");
+  
+  // --- 🔒 SESSION PERSISTENCE ---
+  useEffect(() => {
+    const savedName = localStorage.getItem(`sasloop_name_${bizId}`);
+    const savedPhone = localStorage.getItem(`sasloop_phone_${bizId}`);
+    if (savedName) setCustomerName(savedName);
+    if (savedPhone) {
+      setCustomerPhone(savedPhone);
+      setView("menu"); // Skip auth if already identified
+    }
+  }, [bizId]);
+
+  const saveSession = (name, phone) => {
+    localStorage.setItem(`sasloop_name_${bizId}`, name);
+    localStorage.setItem(`sasloop_phone_${bizId}`, phone);
+  };
 
   const getStandardPhone = (p) => {
     if (!p) return "";
@@ -382,6 +398,7 @@ function OnlineOrder() {
                         <button 
                           onClick={() => {
                              if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                             saveSession(customerName, customerPhone);
                              setView("menu");
                           }}
                           className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
@@ -720,7 +737,7 @@ function OnlineOrder() {
                      <span className="text-[11px] font-black text-emerald-400">+{symbol}{(deliveryRadiusStatus.charge || 0).toFixed(0)}</span>
                   </div>
                )}
-               {!isVerified && (
+               {(!customerPhone || customerPhone.length < 5) && (
                   <div className="px-6 py-5 bg-white/5 border-b border-white/5 space-y-3">
                      <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pl-1">Guest Details (For Loyalty Points)</p>
                      <input 
