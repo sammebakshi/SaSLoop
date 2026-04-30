@@ -125,7 +125,7 @@ function OnlineOrder() {
       const itv = setInterval(() => {
         fetchActiveOrders();
         checkLoyalty();
-      }, 10000);
+      }, 3000); // ⚡ Live Sync
       return () => clearInterval(itv);
     }
   }, [view, customerPhone]);

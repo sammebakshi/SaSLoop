@@ -13,7 +13,16 @@ function Dashboard() {
   const [waiterRequests, setWaiterRequests] = useState([]);
   const [credits, setCredits] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [lastWaiterCount, setLastWaiterCount] = useState(0);
   const isMobile = isMobileDevice();
+
+  const playNotification = (type) => {
+    try {
+      const audio = new Audio(type === 'order' ? 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3');
+      audio.play().catch(e => console.warn("Audio blocked by browser"));
+    } catch (e) {}
+  };
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -36,7 +45,14 @@ function Dashboard() {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const ordersData = await ordersRes.json();
-        setOrders(Array.isArray(ordersData) ? ordersData : []);
+        const ordersList = Array.isArray(ordersData) ? ordersData : [];
+        
+        // 🔔 Sound trigger for new orders
+        setOrders(prev => {
+           if (prev.length > 0 && ordersList.length > prev.length) playNotification('order');
+           return ordersList;
+        });
+
         const adminUser = JSON.parse(localStorage.getItem("user") || "{}");
         setCredits(impersonateId ? 0 : (adminUser.broadcast_credits || 0));
 
@@ -45,7 +61,14 @@ function Dashboard() {
           headers: { "Authorization": `Bearer ${token}` }
         });
         const waiterData = await waiterRes.json();
-        setWaiterRequests(Array.isArray(waiterData) ? waiterData : []);
+        const waitersList = Array.isArray(waiterData) ? waiterData : [];
+
+        // 🔔 Sound trigger for waiter calls
+        setWaiterRequests(prev => {
+           if (prev.length > 0 && waitersList.length > prev.length) playNotification('waiter');
+           return waitersList;
+        });
+
       } catch (err) {
         console.error("Dashboard Load Error:", err);
       } finally {
@@ -53,7 +76,7 @@ function Dashboard() {
       }
     };
     fetchData();
-    const itv = setInterval(fetchData, 10000); // Polling for real-time updates
+    const itv = setInterval(fetchData, 3000); // ⚡ High-speed sync
     return () => clearInterval(itv);
   }, []);
 

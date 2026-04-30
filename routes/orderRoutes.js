@@ -50,7 +50,7 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
         let updateMsg = "";
         
         if (status === 'PROCESSING') {
-            updateMsg = `👨‍🍳 *Order Update:* Your order *${ref}* is being prepared!`;
+            updateMsg = `🔥 *Order Confirmed & Preparing:* Your order *${ref}* is now being prepared! We'll notify you when it's on the way.`;
         } else if (status === 'DISPATCHED') {
             updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way!`;
         } else if (status === 'COMPLETED') {

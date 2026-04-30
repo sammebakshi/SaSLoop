@@ -169,9 +169,10 @@ router.post("/order", async (req, res) => {
                 const itemLines = (items || []).map(i => `• ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
                 
                 const receiptRows = [
-                    `✅ *Order Confirmed!*`,
+                    `⏳ *Order Placed!*`,
                     ``,
                     `*${bizData?.name || 'Restaurant'}* received your order.`,
+                    `*Please wait for us to accept it.*`,
                     `*Ref:* ${currentOrderRef}`,
                     `───────────────`,
                     itemLines,
