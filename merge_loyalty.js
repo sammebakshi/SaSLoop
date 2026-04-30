@@ -57,20 +57,19 @@ async function mergeLoyalty() {
                     if (e.id !== primaryId) idsToDelete.push(e.id);
                 });
 
-                console.log(`✅ Result: ${bestName} | Total Points: ${totalPoints} | Total Spent: ₹${totalSpent}`);
-                
-                // Update primary
-                const standardizedNum = `+91${last10}`; // Standardize to +91 format
-                await pool.query(
-                    "UPDATE customer_loyalty SET points=$1, total_spent=$2, name=$3, last_visit=$4, customer_number=$5 WHERE id=$6",
-                    [totalPoints, totalSpent, bestName, bestLastVisit, standardizedNum, primaryId]
-                );
-
-                // Delete others
+                // 1. Delete duplicates first to free up the unique constraint
                 if (idsToDelete.length > 0) {
                     await pool.query("DELETE FROM customer_loyalty WHERE id = ANY($1)", [idsToDelete]);
                     console.log(`🗑️ Deleted ${idsToDelete.length} duplicates.`);
                 }
+
+                // 2. Update primary with combined data and standardized number
+                const standardizedNum = `+91${last10}`; 
+                await pool.query(
+                    "UPDATE customer_loyalty SET points=$1, total_spent=$2, name=$3, last_visit=$4, customer_number=$5 WHERE id=$6",
+                    [totalPoints, totalSpent, bestName, bestLastVisit, standardizedNum, primaryId]
+                );
+                console.log(`✅ Result: ${bestName} | Total Points: ${totalPoints} | Total Spent: ₹${totalSpent}`);
             } else {
                 // Even for single entries, let's standardize the format to +91
                 const e = group[0];
