@@ -507,9 +507,9 @@ function OnlineOrder() {
       <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
            <div className="flex flex-col">
-              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px]">{biz?.name}</h1>
-              {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
-                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Points: {loyaltyPoints}</p>
+              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1>
+              {customerPhone && (
+                <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Available Points: {loyaltyPoints}</p>
               )}
            </div>
            <div className="flex gap-2">

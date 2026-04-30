@@ -391,8 +391,8 @@ function CustomerMenu() {
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
            <div className="flex flex-col">
               <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1>
-              {loyaltyPoints >= (biz?.min_redeem_points || 300) && (
-                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Rewards: {loyaltyPoints}</p>
+              {customerPhone && (
+                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Available Points: {loyaltyPoints}</p>
               )}
            </div>
            <div className="flex gap-2">
