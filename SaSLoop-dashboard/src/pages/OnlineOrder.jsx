@@ -350,11 +350,21 @@ function OnlineOrder() {
 
                   <div className="space-y-1.5 w-full">
                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Phone Number</label>
-                    <div className="flex gap-2">
-                       <select className="bg-slate-50 border border-slate-100 px-3 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                    <div className="flex items-center bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
+                       <select 
+                         className="bg-transparent pl-4 pr-1 py-4 text-sm font-bold text-slate-800 outline-none border-r border-slate-100" 
+                         value={countryCode} 
+                         onChange={e => setCountryCode(e.target.value)}
+                       >
                           {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                        </select>
-                       <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Enter mobile" className="flex-1 bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" />
+                       <input 
+                         type="tel" 
+                         value={customerPhone} 
+                         onChange={e => setCustomerPhone(e.target.value)} 
+                         placeholder="Enter mobile" 
+                         className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-slate-800 outline-none" 
+                       />
                     </div>
                   </div>
 
@@ -583,14 +593,18 @@ function OnlineOrder() {
                         value={customerName}
                         onChange={e => setCustomerName(e.target.value)}
                       />
-                      <div className="flex gap-2">
-                         <select className="bg-white border border-slate-200 px-4 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                      <div className="flex items-center bg-white border border-slate-200 rounded-[1.5rem] overflow-hidden focus-within:border-emerald-500 transition-all">
+                         <select 
+                           className="bg-transparent pl-4 pr-1 py-4.5 text-sm font-bold outline-none border-r border-slate-100" 
+                           value={countryCode} 
+                           onChange={e => setCountryCode(e.target.value)}
+                         >
                             {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
                          </select>
                          <input 
                            type="tel" 
                            placeholder="Phone Number" 
-                           className="flex-1 bg-white border border-slate-200 px-6 py-4.5 rounded-[1.5rem] text-sm font-bold outline-none focus:border-emerald-500 transition-all"
+                           className="flex-1 bg-transparent px-4 py-4.5 text-sm font-bold outline-none" 
                            value={customerPhone}
                            onChange={e => setCustomerPhone(e.target.value)}
                          />
@@ -693,14 +707,18 @@ function OnlineOrder() {
                        value={customerName}
                        onChange={e => setCustomerName(e.target.value)}
                      />
-                     <div className="flex gap-2">
-                       <select className="bg-white/10 border border-white/10 px-3 py-3 rounded-2xl text-[10px] font-bold text-white outline-none" value={countryCode} onChange={e => setCountryCode(e.target.value)}>
+                     <div className="flex items-center bg-white/10 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-500/50 transition-all">
+                       <select 
+                         className="bg-transparent pl-3 pr-1 py-3 text-[10px] font-bold text-white outline-none border-r border-white/5" 
+                         value={countryCode} 
+                         onChange={e => setCountryCode(e.target.value)}
+                       >
                            {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
                        </select>
                        <input 
                          type="tel" 
                          placeholder="Phone Number" 
-                         className="flex-1 bg-white/10 border border-white/10 px-5 py-3 rounded-2xl text-xs font-bold text-white outline-none focus:border-emerald-500"
+                         className="flex-1 bg-transparent px-3 py-3 text-[10px] font-bold text-white outline-none placeholder:text-white/30" 
                          value={customerPhone}
                          onChange={e => setCustomerPhone(e.target.value)}
                        />
