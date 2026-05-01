@@ -6,16 +6,28 @@ function QRManager() {
   const [user, setUser] = useState(null);
   const [tables, setTables] = useState(["1", "2", "3", "4", "5"]);
   const [newTable, setNewTable] = useState("");
-  const [liveUrl, setLiveUrl] = useState(""); // ⬅️ NEW: Manual Live Link Override
+  const [liveUrl, setLiveUrl] = useState(""); 
+  const [bizData, setBizData] = useState(null);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
-    // Try to auto-detect if we are on a tunnel
+    if (userData) {
+      const parsedUser = JSON.parse(userData);
+      setUser(parsedUser);
+      fetchBizProfile(parsedUser.id);
+    }
     if (window.location.hostname.includes("ngrok") || window.location.hostname.includes("onrender")) {
        setLiveUrl(window.location.origin);
     }
   }, []);
+
+  const fetchBizProfile = async (userId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/business/profile/${userId}`);
+      const data = await res.json();
+      if (data.business) setBizData(data.business);
+    } catch (err) { console.error("Failed to fetch biz profile:", err); }
+  };
 
   const addTable = () => {
     if (!newTable || tables.includes(newTable)) return;
@@ -29,6 +41,94 @@ function QRManager() {
 
   // Base URL is the Live Link if provided, otherwise the current origin
   const baseUrl = liveUrl || window.location.origin;
+
+  const downloadStandee = async (qrUrl, tableNum = null) => {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    
+    // Standee Dimensions (A5 Ratio: 148x210mm @ 150DPI = 874x1240px)
+    canvas.width = 800;
+    canvas.height = 1200;
+
+    // 1. Background (White)
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 2. Top Header (Emerald Green)
+    ctx.fillStyle = "#10b981";
+    ctx.fillRect(0, 0, canvas.width, 400);
+
+    // 3. SaSLoop Branding (Top)
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 40px Inter, system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("Order & Pay on WhatsApp", canvas.width / 2, 100);
+    
+    ctx.font = "900 80px Inter, system-ui";
+    ctx.fillText("SaSLoop AI", canvas.width / 2, 200);
+
+    // 4. White Card for QR
+    const cardMargin = 80;
+    const cardWidth = canvas.width - (cardMargin * 2);
+    ctx.shadowColor = "rgba(0,0,0,0.1)";
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = "#ffffff";
+    // Draw Rounded Rect
+    const r = 40;
+    const x = cardMargin, y = 280, w = cardWidth, h = 600;
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    ctx.lineTo(x + r, y + h);
+    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+    ctx.lineTo(x, y + r);
+    ctx.quadraticCurveTo(x, y, x + r, y);
+    ctx.closePath();
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // 5. Load and Draw QR Code
+    const qrImg = new Image();
+    qrImg.crossOrigin = "anonymous";
+    qrImg.src = qrUrl;
+    
+    await new Promise((resolve) => {
+      qrImg.onload = resolve;
+    });
+
+    const qrSize = 400;
+    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 350, qrSize, qrSize);
+
+    // 6. Business Name & Table
+    ctx.fillStyle = "#0f172a";
+    ctx.font = "900 50px Inter, system-ui";
+    ctx.fillText(bizData?.name || "Our Business", canvas.width / 2, 800);
+    
+    if (tableNum) {
+      ctx.fillStyle = "#10b981";
+      ctx.font = "bold 40px Inter, system-ui";
+      ctx.fillText(`TABLE ${tableNum}`, canvas.width / 2, 860);
+    }
+
+    // 7. Footer Call to Action
+    ctx.fillStyle = "#64748b";
+    ctx.font = "600 30px Inter, system-ui";
+    ctx.fillText("Send a 'Hi' on WhatsApp to Order", canvas.width / 2, 1000);
+
+    // 8. Bottom SaSLoop Logo
+    ctx.fillStyle = "#10b981";
+    ctx.font = "900 45px Inter, system-ui";
+    ctx.fillText("⚡ SaSLoop", canvas.width / 2, 1100);
+
+    // 9. Download
+    const link = document.createElement("a");
+    link.download = `SaSLoop_Standee_${tableNum || 'Main'}.png`;
+    link.href = canvas.toDataURL("image/png", 1.0);
+    link.click();
+  };
 
   return (
     <div className="p-8 space-y-8 bg-slate-50 min-h-full">
@@ -88,9 +188,12 @@ function QRManager() {
                               <button onClick={copyToClipboard} className="w-full bg-white/10 text-white border border-white/20 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all">
                                  <ExternalLink className="w-3.5 h-3.5" /> Copy Link
                               </button>
-                              <a href={qrUrl} download="Online_Order_QR.png" className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all">
-                                 <Download className="w-3.5 h-3.5" /> Save QR
-                              </a>
+                              <button 
+                                 onClick={() => downloadStandee(qrUrl)} 
+                                 className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"
+                               >
+                                  <Download className="w-3.5 h-3.5" /> Save Standee
+                               </button>
                            </div>
                         </div>
                      );
@@ -168,9 +271,12 @@ function QRManager() {
                               <button onClick={() => window.print()} className="flex-1 bg-slate-100 text-slate-600 p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
                                  <Printer className="w-4 h-4" /> Print
                               </button>
-                              <a href={qrUrl} download={`Table_${t}_QR.png`} className="flex-1 bg-indigo-600 text-white p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                                 <Download className="w-4 h-4" /> Save
-                              </a>
+                               <button 
+                                 onClick={() => downloadStandee(qrUrl, t)} 
+                                 className="flex-1 bg-indigo-600 text-white p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
+                               >
+                                  <Download className="w-4 h-4" /> Save
+                               </button>
                            </div>
                         </div>
                      </div>
