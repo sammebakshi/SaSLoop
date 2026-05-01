@@ -492,8 +492,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
                 await updateSession(userId, cleanNum, 'IDLE', session.context);
                 
+                const cartSummaryLines = cart.map(item => `• ${item.qty}x *${item.name}*`).join('\n');
                 const cartTotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-                const msg = `✅ *Added to Bag:*\n${qty}x *${selection.product_name}*\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
+                
+                const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
                 await sendButtons(customerNumber, msg, [
                     { id: 'checkout', title: '🛒 Checkout Now' },
                     { id: 'place_order', title: '➕ Add More' }
@@ -1168,8 +1170,9 @@ RETURN ONLY JSON:
                     session.context.cart = newCart;
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
+                    const cartSummaryLines = newCart.map(item => `• ${item.qty}x *${item.name}*`).join('\n');
                     const cartTotal = newCart.reduce((sum, item) => sum + (item.qty * item.price), 0);
-                    let responseText = `${result.human_reply}\n\n✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n💰 *Bag Total: ${symbol}${cartTotal.toFixed(2)}*`;
+                    let responseText = `${result.human_reply}\n\n✅ *Current Bag:*\n${cartSummaryLines}\n\n💰 *Total: ${symbol}${cartTotal.toFixed(2)}*`;
                     
                     if (result.upsell_suggestion) responseText += `\n\n✨ *Chef's Recommendation:* \n${result.upsell_suggestion}`;
 
