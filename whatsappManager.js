@@ -1174,8 +1174,8 @@ RETURN ONLY JSON:
                     if (amb.matches.length > 10) {
                         const groups = {};
                         amb.matches.forEach(m => {
-                            // Extract base name by removing Small/Medium/Large/Full/Half/1kg etc
-                            const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter)\b/gi, '').trim();
+                            // Extract base name by removing Small/Medium/Large/Full/Half/Regular/etc
+                            const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
                             if (!groups[base]) groups[base] = [];
                             groups[base].push(m);
                         });

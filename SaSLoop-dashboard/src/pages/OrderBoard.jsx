@@ -220,14 +220,16 @@ function OrderBoard() {
           )}
           {col.title === "Processing" && (
             <div className="w-full space-y-2">
-              <select 
-                onChange={(e) => assignRider(order.id, e.target.value)}
-                className="w-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black py-2 rounded-xl uppercase tracking-widest outline-none px-2"
-                defaultValue=""
-              >
-                <option value="" disabled>Assign Rider</option>
-                {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-              </select>
+              {!order.table_number && order.address !== 'Pickup' && (
+                <select 
+                  onChange={(e) => assignRider(order.id, e.target.value)}
+                  className="w-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black py-2 rounded-xl uppercase tracking-widest outline-none px-2"
+                  defaultValue=""
+                >
+                  <option value="" disabled>Assign Rider</option>
+                  {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                </select>
+              )}
               <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
                   {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
               </button>
