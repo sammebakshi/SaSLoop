@@ -137,7 +137,8 @@ if (fs.existsSync(buildPath)) {
 // ======================
 // ✅ ULTIMATE SPA HANDLER (Force Menu Fix)
 // ======================
-app.get(/^\/(?!api|uploads).*/, (req, res) => {
+// Exclude api, uploads, and any paths that look like direct file requests (containing a dot)
+app.get(/^\/(?!api|uploads|.*\.).*/, (req, res) => {
     if (req.path.startsWith("/api/")) {
         return res.status(404).json({ error: "API not found" });
     }
