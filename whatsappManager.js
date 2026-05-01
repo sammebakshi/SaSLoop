@@ -462,6 +462,27 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- 🧩 HANDLE PENDING DISAMBIGUATION SELECTION ---
         if (session.context.pending_selection) {
             const pending = session.context.pending_selection;
+            
+            // 🔥 Handle Flavor Group Selection
+            if (pending.is_group && lower.startsWith('group_')) {
+                const groupName = msgText.substring(6); // Remove 'group_'
+                const variants = pending.groups[groupName];
+                if (variants) {
+                    const rows = variants.map(v => ({
+                        id: v.product_name,
+                        title: v.product_name.substring(0, 24),
+                        description: `${symbol}${v.price}`
+                    }));
+                    const body = `✨ *${groupName}* Selected!\n━━━━━━━━━━━━━━\nWhich size or portion would you like? 👇`;
+                    await sendList(customerNumber, "Select Size", body, "✨ View Sizes ✨", [{ title: "Available Sizes", rows }], userId);
+                    
+                    // Update state: No longer a group, now just waiting for the final variant
+                    session.context.pending_selection = { keyword: pending.keyword, qty: pending.qty };
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+                    return;
+                }
+            }
+
             const selection = menu.find(i => i.product_name.toLowerCase() === lower);
             if (selection) {
                 const qty = pending.qty || 1;
@@ -1147,8 +1168,36 @@ RETURN ONLY JSON:
                 if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
                     session.context.cart = newCart;
-                    // Store ALL ambiguous items so we can ask them one by one
                     session.context.pending_ambiguous = ambiguousItems.slice(1);
+                    
+                    // 🔥 SMART GROUPING: If > 10 matches, group by flavor
+                    if (amb.matches.length > 10) {
+                        const groups = {};
+                        amb.matches.forEach(m => {
+                            // Extract base name by removing Small/Medium/Large/Full/Half/1kg etc
+                            const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter)\b/gi, '').trim();
+                            if (!groups[base]) groups[base] = [];
+                            groups[base].push(m);
+                        });
+
+                        const groupNames = Object.keys(groups);
+                        if (groupNames.length > 1) {
+                            // Show Flavor List
+                            const rows = groupNames.slice(0, 10).map(name => ({
+                                id: `group_${name}`,
+                                title: name.substring(0, 24),
+                                description: `See ${groups[name].length} sizes available`
+                            }));
+                            const body = `🍕 *Which flavor of ${amb.keyword} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
+                            await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
+                            
+                            session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty, is_group: true, groups };
+                            await updateSession(userId, cleanNum, 'IDLE', session.context);
+                            return;
+                        }
+                    }
+
+                    // Standard 1-level list if <= 10 or grouping not possible
                     session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 
