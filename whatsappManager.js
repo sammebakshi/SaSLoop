@@ -472,6 +472,24 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 
                 session.context.cart = cart;
                 delete session.context.pending_selection;
+                
+                // --- 🔄 CHECK FOR MORE AMBIGUOUS ITEMS ---
+                if (session.context.pending_ambiguous && session.context.pending_ambiguous.length > 0) {
+                    const nextAmb = session.context.pending_ambiguous.shift();
+                    session.context.pending_selection = { keyword: nextAmb.keyword, qty: nextAmb.qty };
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                    const rows = nextAmb.matches.slice(0, 10).map(m => ({
+                        id: m.product_name,
+                        title: m.product_name.substring(0, 24),
+                        description: `${symbol}${m.price}`
+                    }));
+
+                    const body = `✅ *Added: ${qty}x ${selection.product_name}*\n\n🤔 *And which "${nextAmb.keyword}" did you mean?*`;
+                    await sendList(customerNumber, "Select Next", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                    return;
+                }
+
                 await updateSession(userId, cleanNum, 'IDLE', session.context);
                 
                 const cartTotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
@@ -868,12 +886,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 session.context.pending_item = { name: item.product_name, price: item.price };
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
             } else {
-                const matches = directMatches;
-                let responseText = `🤔 *Which ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\n\n`;
-                matches.forEach(m => {
-                    responseText += `• *${m.product_name}* - ${symbol}${m.price}\n`;
-                });
-                await sendBrandedText(customerNumber, biz.name, responseText, userId);
+                const matches = directMatches.slice(0, 10);
+                const rows = matches.map(m => ({
+                    id: m.product_name,
+                    title: m.product_name.substring(0, 24),
+                    description: `${symbol}${m.price}`
+                }));
+
+                const body = `🤔 *Which ${simpleLower} did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
+                await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                
+                session.context.pending_selection = { keyword: simpleLower, qty: 1 };
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
             }
             return;
         }
@@ -949,8 +973,8 @@ REPLY in the SAME LANGUAGE as the user (English or Roman Urdu).
 
 JSON RULES:
 - "intent": "ORDER_ITEM", "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
-- "items": Array of { "name": string, "quantity": number }.
-- "human_reply": A conversational, sales-driven response. Confirm items enthusiastically.
+- "items": Array of { "name": string, "quantity": number }. ⚠️ CRITICAL: NEVER guess the specific dish variant. If a user says "Biryani", "Pizza", or "Chicken", and your menu context shows multiple variants (e.g. Full/Half, Veg/Non-Veg), you MUST return the generic name ONLY (e.g. "Biryani") so the system can ask for clarification.
+- "human_reply": A conversational, sales-driven response. Confirm items enthusiastically. If an item is ambiguous, tell them you'll show the options.
 - "upsell_suggestion": A short, tempting suggestion for one more item.
 
 RETURN ONLY JSON:
@@ -1094,10 +1118,12 @@ RETURN ONLY JSON:
                         else newCart.push({ name: exactMatch.product_name, qty, price: exactMatch.price });
                         addedSummary.push(`${qty}x *${exactMatch.product_name}*`);
                     } else {
-                        // Step 2: Find ALL fuzzy matches
+                        // Step 2: Find ALL fuzzy matches (Check name, category, or sub-category)
                         const fuzzyMatches = menu.filter(i => 
                             i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
-                            aiItem.name.toLowerCase().includes(i.product_name.toLowerCase())
+                            aiItem.name.toLowerCase().includes(i.product_name.toLowerCase()) ||
+                            (i.category && i.category.toLowerCase() === aiItem.name.toLowerCase()) ||
+                            (i.sub_category && i.sub_category.toLowerCase() === aiItem.name.toLowerCase())
                         );
                         
                         if (fuzzyMatches.length === 1) {
@@ -1119,6 +1145,8 @@ RETURN ONLY JSON:
                 if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
                     session.context.cart = newCart;
+                    // Store ALL ambiguous items so we can ask them one by one
+                    session.context.pending_ambiguous = ambiguousItems.slice(1);
                     session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
 

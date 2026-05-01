@@ -230,5 +230,89 @@ router.get('/mystery-shopper', async (req, res) => {
     }
 });
 
+// ✅ AI MENU SCANNER (Gemini Vision)
+router.post("/scan-menu", authMiddleware, async (req, res) => {
+    try {
+        const { imageBase64 } = req.body;
+        if (!imageBase64) return res.status(400).json({ error: "Image required" });
+
+        const geminiKey = process.env.GEMINI_API_KEY;
+        if (!geminiKey) return res.status(500).json({ error: "Gemini API Key missing" });
+
+        const prompt = `
+            Analyze this restaurant menu image and extract ALL food items.
+            For each item, provide: "name", "price" (as number), "category", and a "description" (max 10 words).
+            Return ONLY a valid JSON array of objects.
+            Example: [{"name": "Cheese Burger", "price": 250, "category": "Burgers", "description": "Juicy beef patty with extra cheddar."}]
+        `;
+
+        const response = await axios.post(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`,
+            {
+                contents: [{
+                    parts: [
+                        { text: prompt },
+                        { inline_data: { mime_type: "image/jpeg", data: imageBase64.split(",")[1] } }
+                    ]
+                }]
+            }
+        );
+
+        const rawText = response.data.candidates[0].content.parts[0].text;
+        const jsonMatch = rawText.match(/\[[\s\S]*\]/);
+        const items = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
+
+        res.json({ items });
+    } catch (err) {
+        console.error("AI Scan Error:", err);
+        res.status(500).json({ error: "Failed to scan menu" });
+    }
+});
+
+// ✅ AI GLOBAL INTELLIGENCE (Executive Command)
+router.get("/business-intelligence", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        
+        const [ordersRes, itemsRes] = await Promise.all([
+            pool.query("SELECT * FROM orders WHERE user_id = $1 AND created_at > NOW() - INTERVAL '24 hours'", [userId]),
+            pool.query("SELECT product_name, COUNT(*) as count FROM orders, jsonb_to_recordset(items) as x(product_name text) WHERE user_id = $1 GROUP BY product_name ORDER BY count DESC LIMIT 1", [userId])
+        ]);
+
+        const todayRevenue = ordersRes.rows.reduce((sum, o) => sum + parseFloat(o.total_amount), 0);
+        const topDish = itemsRes.rows[0]?.product_name || "N/A";
+        const surge = todayRevenue > 10000 ? 1.1 : 1.0;
+
+        // Persist surge multiplier to the database
+        await pool.query("UPDATE restaurants SET current_surge_multiplier = $1 WHERE user_id = $2", [surge, userId]);
+        
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const prompt = `
+            Act as an Elite Business Consultant. Based on today's revenue (₹${todayRevenue}) and top dish (${topDish}), 
+            give ONE high-impact, premium business strategy for the owner. 
+            Be brief, bold, and strategic. Focus on scaling.
+        `;
+
+        const completion = await groq.chat.completions.create({
+            messages: [{ role: "user", content: prompt }],
+            model: "llama-3.1-8b-instant"
+        });
+
+        res.json({
+            strategy: completion.choices[0].message.content,
+            metrics: {
+                today_revenue: todayRevenue,
+                active_customers: ordersRes.rowCount,
+                peak_hour: "7 PM - 9 PM",
+                top_dish: topDish,
+                surge_multiplier: todayRevenue > 10000 ? 1.1 : 1.0
+            }
+        });
+    } catch (err) {
+        console.error("Intelligence Error:", err);
+        res.status(500).json({ error: "Intelligence hub offline" });
+    }
+});
+
 module.exports = router;
 
