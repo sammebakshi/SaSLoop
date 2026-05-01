@@ -146,7 +146,8 @@ if (fs.existsSync(buildPath)) {
 // ======================
 // ✅ ULTIMATE SPA HANDLER (Reliable Navigation)
 // ======================
-app.get('*', (req, res, next) => {
+// 3. Otherwise, serve index.html for all other routes (SPA) - Express 5.x Regex Syntax
+app.get(/.*/, (req, res, next) => {
     // 1. Skip if it's an API or Uploads request
     if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
         return next();
