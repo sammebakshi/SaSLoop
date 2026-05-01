@@ -8,7 +8,7 @@ logs
 google-key.json
 migration_guide.md
 backups/
-SaSLoop-dashboard/build
+# SaSLoop-dashboard/build (Temporarily un-ignored for production sync)
 SaSLoop-dashboard/package-lock.json
 package-lock.json
 .DS_Store
