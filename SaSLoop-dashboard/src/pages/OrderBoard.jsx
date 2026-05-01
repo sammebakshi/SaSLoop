@@ -156,7 +156,7 @@ function OrderBoard() {
   };
 
   const columns = [
-    { title: "Incoming", status: ["CONFIRMED", "PENDING", "pending"], icon: AlertCircle, color: "rose" },
+    { title: "Incoming", status: ["CONFIRMED", "PENDING", "pending", "AWAITING_PAYMENT", "awaiting_payment"], icon: AlertCircle, color: "rose" },
     { title: "Processing", status: ["PROCESSING", "PREPARING", "preparing"], icon: Clock, color: "amber" },
     { title: "Dispatched", status: ["DISPATCHED", "SHIPPED", "out_for_delivery"], icon: Truck, color: "indigo" },
     { title: "Completed", status: ["COMPLETED", "delivered"], icon: CheckCircle2, color: "emerald" },

@@ -717,6 +717,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'PICKUP', total, items: cart, customer: { name: customerName, phone: cleanNum } });
 
+            // 🚨 STAFF NOTIFICATION
+            const staffNums = biz.notification_numbers || [];
+            const staffMsg = `🔔 *New Pickup Order!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n💰 *Total:* ${symbol}${total.toFixed(2)}\n📄 *Items:* \n${cart.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
+            for (let num of staffNums) {
+                await sendOfficialMessage(num, staffMsg, userId);
+            }
 
             await deductInventory(userId, cart);
 
@@ -789,6 +795,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', total: pending.total, items: pending.items, address: pending.address, customer: { name: customerName, phone: cleanNum } });
 
+            // 🚨 STAFF NOTIFICATION
+            const staffNums = biz.notification_numbers || [];
+            const staffMsg = `🔔 *New Delivery Order!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n📍 *Address:* ${pending.address}\n💰 *Total:* ${symbol}${pending.total.toFixed(2)}\n📄 *Items:* \n${pending.items.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
+            for (let num of staffNums) {
+                await sendOfficialMessage(num, staffMsg, userId);
+            }
 
             await deductInventory(userId, pending.items);
 
