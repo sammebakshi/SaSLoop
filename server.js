@@ -144,21 +144,26 @@ if (fs.existsSync(buildPath)) {
 }
 
 // ======================
-// ✅ ULTIMATE SPA HANDLER (Force Menu Fix)
+// ✅ ULTIMATE SPA HANDLER (Reliable Navigation)
 // ======================
-// Exclude api, uploads, and any paths that look like direct file requests (containing a dot)
-app.get(/^\/(?!api|uploads|.*\.).*/, (req, res) => {
-    if (req.path.startsWith("/api/")) {
-        return res.status(404).json({ error: "API not found" });
-    }
-    
-    const indexPath = path.join(buildPath, "index.html");
-    if (!fs.existsSync(indexPath)) {
-        console.error("❌ index.html missing at:", indexPath);
-        return res.status(500).send(`Frontend not built. Please run: npm run build-frontend`);
+app.get('*', (req, res, next) => {
+    // 1. Skip if it's an API or Uploads request
+    if (req.path.startsWith('/api/') || req.path.startsWith('/uploads/')) {
+        return next();
     }
 
-    res.sendFile(indexPath);
+    // 2. Skip if it's a direct file request (contains a dot like .css, .js, .png)
+    if (req.path.includes('.')) {
+        return next();
+    }
+
+    // 3. Otherwise, serve index.html for all other routes (SPA)
+    const indexPath = path.join(buildPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(500).send("Dashboard build missing. Please run: npm run build-frontend");
+    }
 });
 
 // ======================
