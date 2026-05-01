@@ -125,22 +125,35 @@ app.get("/api/health-check", async (req, res) => {
 // ======================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// ======================
+// 🎨 DESIGN & ASSETS (Prioritized)
+// ======================
 // Resolve build path relative to server.js
 let buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
-
-// Robust check for build folder
 if (!fs.existsSync(buildPath)) {
-    // Try parent directory if server.js is nested
     const altPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
     if (fs.existsSync(altPath)) buildPath = altPath;
 }
 
-console.log("🚀 FRONTEND PATH:", buildPath);
+console.log("🚀 FINAL FRONTEND PATH:", buildPath);
+
+// Debugger to see why CSS/JS might be failing
+app.use((req, res, next) => {
+    if (req.path.includes('.') && !req.path.startsWith('/api')) {
+        const fullPath = path.join(buildPath, req.path);
+        const exists = fs.existsSync(fullPath);
+        console.log(`[ASSET CHECK] ${exists ? '✅' : '❌'} ${req.path} -> ${fullPath}`);
+    }
+    next();
+});
+
 if (fs.existsSync(buildPath)) {
-    console.log("✅ Dashboard Files Linked Successfully!");
-    app.use(express.static(buildPath));
-} else {
-    console.warn("⚠️ CRITICAL: Dashboard Build Folder NOT FOUND at:", buildPath);
+    app.use(express.static(buildPath, {
+        index: false, // Don't serve index.html here, let SPA handler do it
+        immutable: true,
+        maxAge: '1y'
+    }));
+    console.log("✅ Dashboard Assets Mounted!");
 }
 
 // ======================
