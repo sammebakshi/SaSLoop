@@ -9,6 +9,19 @@ const path = require('path');
 const fs = require('fs');
 const fileUpload = require("express-fileupload");
 
+// ======================
+// 🛡️ EXPRESS 5 COMPATIBILITY PATCH (Ghost Hunter)
+// ======================
+const originalGet = app.get.bind(app);
+app.get = function(path, ...args) {
+    if (path === '*') {
+        console.warn("🚨 [EXPRESS 5 PATCH] Intercepted and fixed a '*' route. Auto-converting to Regex.");
+        console.trace("📍 Trace to find the culprit:");
+        return originalGet(/.*/, ...args);
+    }
+    return originalGet(path, ...args);
+};
+
 const pool = require("./db");
 
 // ======================
