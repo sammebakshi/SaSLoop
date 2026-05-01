@@ -41,6 +41,60 @@ function DigitalCatalog() {
   // Professional Dialogs
   const [notice, setNotice] = useState(null); // { type: 'success'|'error', message: '' }
   const [confirmAction, setConfirmAction] = useState(null); // { message: '', onConfirm: () => {} }
+  const [scanning, setScanning] = useState(false);
+
+  const handleAiScan = async (file) => {
+    if (!file) return;
+    setScanning(true);
+    try {
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64 = reader.result;
+        const res = await fetch(`${API_BASE}/api/analytics/scan-menu`, {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify({ imageBase64: base64 })
+        });
+        const data = await res.json();
+        if (res.ok && data.items) {
+           // Bulk add items to the state (or save to DB)
+           for (const item of data.items) {
+              const saveRes = await fetch(`${API_BASE}/api/catalog`, {
+                 method: "POST",
+                 headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${localStorage.getItem("token")}`
+                 },
+                 body: JSON.stringify({
+                    product_name: item.name,
+                    price: item.price,
+                    category: item.category,
+                    description: item.description,
+                    availability: true,
+                    is_veg: true
+                 })
+              });
+              if (saveRes.ok) {
+                 const newItem = await saveRes.json();
+                 setItems(prev => [newItem, ...prev]);
+              }
+           }
+           showNotice("success", `AI successfully digitized ${data.items.length} items!`);
+        } else {
+           showNotice("error", data.error || "AI Scan failed");
+        }
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+       showNotice("error", "AI Connection Error");
+    } finally {
+       setScanning(false);
+    }
+  };
+
 
   const showNotice = (type, message) => {
     setNotice({ type, message });
@@ -157,44 +211,7 @@ function DigitalCatalog() {
     } catch (e) { console.error(e); }
   };
 
-  const [scanning, setScanning] = useState(false);
 
-  const handleAiScan = async (file) => {
-    if (!file) return;
-    setScanning(true);
-    try {
-        const formData = new FormData();
-        formData.append("image", file);
-        const token = localStorage.getItem("token");
-        const res = await fetch(`${API_BASE}/api/catalog/ai-scan`, {
-            method: "POST",
-            headers: { "Authorization": `Bearer ${token}` },
-            body: formData
-        });
-        const data = await res.json();
-        if (Array.isArray(data)) {
-            // Confirm and Import
-            if (window.confirm(`AI found ${data.length} items. Would you like to import them all?`)) {
-                await fetch(`${API_BASE}/api/catalog/import`, {
-                    method: "POST",
-                    headers: { 
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}` 
-                    },
-                    body: JSON.stringify({ items: data })
-                });
-                showNotice('success', `${data.length} items imported via AI!`);
-                window.location.reload();
-            }
-        } else {
-            showNotice('error', 'AI Scan failed to find items.');
-        }
-    } catch (e) {
-        showNotice('error', 'AI Connection Error');
-    } finally {
-        setScanning(false);
-    }
-  };
   
   const [isEnhancing, setIsEnhancing] = useState(false);
   const handleEnhanceImage = async (item) => {
@@ -458,12 +475,12 @@ function DigitalCatalog() {
                          accept="image/*" 
                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                          onChange={(e) => handleAiScan(e.target.files[0])}
-                         disabled={scanning}
-                      />
-                      <button className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${scanning ? 'bg-indigo-100 text-indigo-400 animate-pulse' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 group-hover:scale-105'}`}>
-                         <Sparkles className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} /> {scanning ? 'AI Scanning...' : 'Import from Photo'}
-                      </button>
-                   </div>
+                         disabled={scanning} />
+                       />
+                       <button className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${scanning ? 'bg-indigo-100 text-indigo-400 animate-pulse' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 group-hover:scale-105'}`}>
+                          <Sparkles className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} /> {scanning ? 'AI Scanning...' : 'Import from Photo'}
+                       </button>
+                    </div>
                    
                    <button 
                       onClick={() => setShowAddForm(true)}
@@ -709,7 +726,6 @@ function DigitalCatalog() {
                               </button>
                            </div>
                         </div>
-                         </div>
                          {editingItem.track_stock && (
                             <div className="space-y-2">
                                <label className="text-[9px] font-black uppercase text-orange-400 tracking-widest pl-1">Current Stock Qty</label>
@@ -726,15 +742,12 @@ function DigitalCatalog() {
               </div>
           </div>
       )}
-
-      {/* CONFIRMATION / NOTICES */}
       {notice && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[500] bg-slate-900 text-white px-8 py-5 rounded-[2rem] shadow-2xl flex items-center gap-3 animate-slide-up">
             <CheckCircle2 className="w-6 h-6 text-emerald-400" />
             <span className="font-black text-[10px] uppercase tracking-widest">{notice.message}</span>
         </div>
       )}
-
       {confirmAction && (
         <div className="fixed inset-0 z-[600] flex items-center justify-center p-6 bg-slate-900/60 backdrop-blur-md animate-in fade-in duration-300">
             <div className="bg-white w-full max-w-sm p-12 rounded-[3.5rem] shadow-2xl text-center animate-in zoom-in-95 duration-300">

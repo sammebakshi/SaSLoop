@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Upload, Users, Megaphone, Send, Plus, Target, CheckCircle2, AlertCircle, FileSpreadsheet, Bot, Loader2, Image as ImageIcon, Link2 } from "lucide-react";
+import { Upload, Users, Megaphone, Send, Plus, Target, CheckCircle2, AlertCircle, FileSpreadsheet, Bot, Loader2, Image as ImageIcon, Link2, Sparkles } from "lucide-react";
 import API_BASE, { isMobileDevice } from "../config";
 
 function BroadcastHub() {

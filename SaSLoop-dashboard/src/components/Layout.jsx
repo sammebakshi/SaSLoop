@@ -34,7 +34,8 @@ import {
   IndianRupee,
   Zap,
   Brain,
-  Rocket
+  Rocket,
+  Globe
 } from "lucide-react";
 
 

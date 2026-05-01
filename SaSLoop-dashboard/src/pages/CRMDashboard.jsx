@@ -3,7 +3,7 @@ import API_BASE from "../config";
 import { 
   Users, Star, QrCode, TrendingUp, Search, Filter, 
   MessageSquare, Heart, Crown, Award, ExternalLink, Download, Share2,
-  Ban, Trash2, ShieldAlert, CheckCircle2
+  Ban, Trash2, ShieldAlert, CheckCircle2, Sparkles, ArrowRight
 } from "lucide-react";
 
 function CRMDashboard() {

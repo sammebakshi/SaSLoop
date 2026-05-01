@@ -5,7 +5,7 @@ import {
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
   RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles, Gift,
-  Instagram, Facebook, Twitter, Youtube, Globe,
+  Globe,
   Eye, CreditCard, Scan, QrCode, ArrowUpRight
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
@@ -127,7 +127,16 @@ function CustomerMenu() {
   };
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { setData(d); setLoading(false); if (d.items?.length > 0) setActiveCategory(d.items[0].category || "General"); });
+    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { 
+        const surge = d.business?.current_surge_multiplier || 1.0;
+        const optimizedItems = (d.items || []).map(item => ({
+          ...item,
+          price: (item.ai_pricing && surge > 1) ? Math.ceil(item.price * surge) : item.price
+        }));
+        setData({ ...d, items: optimizedItems }); 
+        setLoading(false); 
+        if (optimizedItems.length > 0) setActiveCategory(optimizedItems[0].category || "General"); 
+    });
   }, [bizId]);
 
   useEffect(() => {
@@ -532,22 +541,7 @@ function CustomerMenu() {
                       <div className="flex items-center gap-3 mt-4">
                          {biz?.social_instagram && (
                             <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Instagram className="w-5 h-5" />
-                            </a>
-                         )}
-                         {biz?.social_facebook && (
-                            <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Facebook className="w-5 h-5 fill-white" />
-                            </a>
-                         )}
-                         {biz?.social_twitter && (
-                            <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Twitter className="w-5 h-5 fill-white" />
-                            </a>
-                         )}
-                         {biz?.social_youtube && (
-                            <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-10 h-10 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Youtube className="w-5 h-5 fill-white" />
+                               <Globe className="w-5 h-5" />
                             </a>
                          )}
                          {biz?.social_website && (
@@ -874,22 +868,7 @@ function CustomerMenu() {
                       <div className="flex justify-center gap-3 mb-6">
                          {biz?.social_instagram && (
                             <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-pink-600 transition-all border border-slate-100 shadow-sm">
-                               <Instagram className="w-4 h-4" />
-                            </a>
-                         )}
-                         {biz?.social_facebook && (
-                            <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                               <Facebook className="w-4 h-4" />
-                            </a>
-                         )}
-                         {biz?.social_twitter && (
-                            <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-sky-500 transition-all border border-slate-100 shadow-sm">
-                               <Twitter className="w-4 h-4" />
-                            </a>
-                         )}
-                         {biz?.social_youtube && (
-                            <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition-all border border-slate-100 shadow-sm">
-                               <Youtube className="w-4 h-4" />
+                               <Globe className="w-4 h-4" />
                             </a>
                          )}
                          {biz?.social_website && (
