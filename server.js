@@ -125,13 +125,22 @@ app.get("/api/health-check", async (req, res) => {
 // ======================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-const buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
-console.log("Checking build path:", buildPath);
+// Resolve build path relative to server.js
+let buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
+
+// Robust check for build folder
+if (!fs.existsSync(buildPath)) {
+    // Try parent directory if server.js is nested
+    const altPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
+    if (fs.existsSync(altPath)) buildPath = altPath;
+}
+
+console.log("🚀 FRONTEND PATH:", buildPath);
 if (fs.existsSync(buildPath)) {
-    console.log("✅ Build folder found!");
+    console.log("✅ Dashboard Files Linked Successfully!");
     app.use(express.static(buildPath));
 } else {
-    console.warn("⚠️ Build folder NOT FOUND at:", buildPath);
+    console.warn("⚠️ CRITICAL: Dashboard Build Folder NOT FOUND at:", buildPath);
 }
 
 // ======================
