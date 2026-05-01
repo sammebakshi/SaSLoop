@@ -37,6 +37,11 @@ import DeliveryTeam from "./pages/DeliveryTeam";
 import RiderPortal from "./pages/RiderPortal";
 import ExpenseTracker from "./pages/ExpenseTracker";
 import StaffManagement from "./pages/StaffManagement";
+import Integrations from "./pages/Integrations";
+import IntelligenceHub from "./pages/IntelligenceHub";
+import MarketingStudio from "./pages/MarketingStudio";
+import CommandCenter from "./pages/CommandCenter";
+
 
 // ============================================================
 // 🎯 LAYOUT SELECTOR — Desktop (Sidebar) vs Mobile (Bottom Tabs)
@@ -124,6 +129,9 @@ function App() {
             <Route path="/expenses" element={<ExpenseTracker />} />
             <Route path="/staff" element={<StaffManagement />} />
             <Route path="/mobile-app" element={<AppCenter />} />
+            <Route path="/intelligence" element={<IntelligenceHub />} />
+            <Route path="/marketing-studio" element={<MarketingStudio />} />
+            <Route path="/command-center" element={<CommandCenter />} />
         </Route>
         
         {/* Shared Restricted Routes */}
@@ -135,7 +143,9 @@ function App() {
             <Route path="/whatsapp-connect" element={<WhatsAppConnect />} />
             <Route path="/bot-config" element={<BotConfig />} />
             <Route path="/setup-business" element={<SetupBusiness />} />
+            <Route path="/integrations" element={<Integrations />} />
             <Route path="/support" element={<Support />} />
+
             <Route path="/mobile-app" element={<AppCenter />} />
         </Route>
       </Routes>

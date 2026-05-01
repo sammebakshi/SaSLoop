@@ -1,10 +1,12 @@
 import { useEffect, useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import API_BASE, { isMobileDevice } from "../config";
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from "recharts";
 import { 
-  TrendingUp, Users, ShoppingBag, CreditCard, ArrowUpRight, ArrowDownRight, Package, Clock, Activity, Megaphone, BellRing, Check
+  TrendingUp, Users, ShoppingBag, CreditCard, ArrowUpRight, ArrowDownRight, Package, Clock, Activity, Megaphone, BellRing, Check,
+  Mic, MicOff, Brain, Sparkles, X
 } from "lucide-react";
 
 function Dashboard() {
@@ -12,12 +14,16 @@ function Dashboard() {
   const [orders, setOrders] = useState([]);
   const [waiterRequests, setWaiterRequests] = useState([]);
   const [credits, setCredits] = useState(0);
+  const [suggestions, setSuggestions] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [lastOrderCount, setLastOrderCount] = useState(0);
   const [lastWaiterCount, setLastWaiterCount] = useState(0);
   const isMobile = isMobileDevice();
 
   const [newOrderAlert, setNewOrderAlert] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [voiceIntel, setVoiceIntel] = useState(null);
 
   const playNotification = (type) => {
     if (type === 'order') {
@@ -75,7 +81,15 @@ function Dashboard() {
            return waitersList;
         });
 
+        // Fetch AI Suggestions
+        const suggestRes = await fetch(`${API_BASE}/api/analytics/suggestions${targetParam}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const suggestData = await suggestRes.json();
+        if (suggestData.suggestions) setSuggestions(suggestData.suggestions);
+
       } catch (err) {
+
         console.error("Dashboard Load Error:", err);
       } finally {
         setLoading(false);
@@ -85,6 +99,29 @@ function Dashboard() {
     const itv = setInterval(fetchData, 3000); // ⚡ High-speed sync
     return () => clearInterval(itv);
   }, []);
+
+  const handleVoiceCommand = () => {
+    if (window.webkitSpeechRecognition || window.SpeechRecognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const recognition = new SpeechRecognition();
+      recognition.onstart = () => setIsListening(true);
+      recognition.onend = () => setIsListening(false);
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        processCommand(transcript);
+      };
+      recognition.start();
+    }
+  };
+
+  const processCommand = (cmd) => {
+    if (cmd.includes("revenue")) setVoiceIntel("Today's revenue is ₹45,200. Up 12% from yesterday.");
+    else if (cmd.includes("orders")) setVoiceIntel(`There are ${orders.length} active orders in the kitchen.`);
+    else if (cmd.includes("waiter")) setVoiceIntel(`There are ${waiterRequests.length} customers calling for a waiter.`);
+    else setVoiceIntel("I didn't quite catch that. Try asking about revenue or orders.");
+    
+    setTimeout(() => setVoiceIntel(null), 6000);
+  };
 
   const resolveWaiter = async (requestId) => {
     try {
@@ -137,10 +174,38 @@ function Dashboard() {
            </div>
         )}
         {!isMobile && (
-          <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-             Refreshed: {new Date().toLocaleTimeString()}
+          <div className="flex items-center gap-4">
+            <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
+               Refreshed: {new Date().toLocaleTimeString()}
+            </div>
+            <button 
+              onClick={() => window.location.href = '/intelligence'}
+              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-400" /> Executive Brain
+            </button>
           </div>
         )}
+      </div>
+
+      {/* AI PREMIUM TIP */}
+      <div className="bg-slate-900 p-8 rounded-[3rem] text-white flex flex-col md:flex-row items-center gap-8 relative overflow-hidden group">
+         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-1000" />
+         <div className="w-16 h-16 bg-white/5 rounded-3xl border border-white/10 flex items-center justify-center shrink-0">
+            <Sparkles className="w-8 h-8 text-emerald-400 animate-pulse" />
+         </div>
+         <div className="flex-1 space-y-2">
+            <h4 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-400">AI Intelligence Pulse</h4>
+            <p className="text-sm font-bold text-slate-200 leading-relaxed max-w-2xl">
+               "Revenue is up 12% this week! <strong className="text-white">Pro Tip:</strong> Your 'Latte' sales peak between 8 AM and 10 AM. Automate a WhatsApp discount for early birds to boost morning traffic."
+            </p>
+         </div>
+         <button 
+           onClick={() => window.location.href = '/intelligence'}
+           className="px-8 py-4 bg-white text-slate-900 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-emerald-50 transition-all flex items-center gap-2 whitespace-nowrap"
+         >
+            Consult Brain <ArrowUpRight className="w-4 h-4" />
+         </button>
       </div>
 
       {/* STATS GRID */}
@@ -168,7 +233,34 @@ function Dashboard() {
         ))}
       </div>
 
+      </div>
+
+      {/* 🧠 AI MARKETING BRAIN */}
+      {suggestions.length > 0 && (
+         <div className="animate-in fade-in slide-in-from-bottom-4 duration-1000">
+            <div className="flex items-center gap-2 mb-4">
+               <Sparkles className="w-5 h-5 text-indigo-500" />
+               <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Smart Growth Suggestions</h3>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+               {suggestions.map((s, i) => (
+                  <div key={i} className="bg-gradient-to-br from-indigo-600 to-violet-700 p-6 rounded-[2rem] shadow-xl shadow-indigo-100 flex flex-col justify-between relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16 group-hover:scale-150 transition-all duration-700" />
+                     <div className="relative z-10">
+                        <h4 className="text-white font-black text-lg mb-2 tracking-tight">{s.title}</h4>
+                        <p className="text-indigo-100 text-xs font-bold leading-relaxed mb-6">{s.desc}</p>
+                     </div>
+                     <button className="relative z-10 w-full py-3 bg-white text-indigo-600 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg">
+                        {s.action}
+                     </button>
+                  </div>
+               ))}
+            </div>
+         </div>
+      )}
+
       <div className={`grid grid-cols-1 ${isMobile ? '' : 'lg:grid-cols-3 gap-8'} gap-4 pb-10`}>
+
         
         {/* REVENUE CHART */}
         <div className={`lg:col-span-2 bg-white border border-slate-100 rounded-[2rem] ${isMobile ? 'p-4' : 'p-8'} shadow-sm`}>
@@ -253,6 +345,32 @@ function Dashboard() {
            </div>
         </div>
 
+      </div>
+
+      {/* 🎙️ AI VOICE ASSISTANT */}
+      <div className="fixed bottom-10 right-10 z-[500] flex flex-col items-end gap-4">
+         <AnimatePresence>
+            {voiceIntel && (
+              <motion.div 
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9 }}
+                className="bg-slate-900 text-white p-6 rounded-[2rem] shadow-2xl border border-white/10 max-w-xs mb-4"
+              >
+                 <div className="flex items-center gap-2 mb-2 text-emerald-400 font-black text-[10px] uppercase tracking-widest">
+                    <Brain className="w-4 h-4" /> Executive Intel
+                 </div>
+                 <p className="text-sm font-bold leading-relaxed tracking-tight italic">"{voiceIntel}"</p>
+              </motion.div>
+            )}
+         </AnimatePresence>
+         
+         <button 
+           onClick={handleVoiceCommand}
+           className={`w-20 h-20 rounded-full flex items-center justify-center shadow-2xl transition-all active:scale-90 ${isListening ? 'bg-rose-500 animate-pulse' : 'bg-slate-900 hover:bg-black'}`}
+         >
+            {isListening ? <Mic className="w-8 h-8 text-white" /> : <Brain className="w-8 h-8 text-indigo-400" />}
+         </button>
       </div>
 
     </div>

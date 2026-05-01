@@ -218,8 +218,10 @@ function SetupBusiness() {
                     { n: 2, t: "Industry", s: "Catalog Type" },
                     { n: 3, t: "Logic", s: "Operation Rules" },
                     { n: 4, t: "Scaling", s: "Staff & Inventory" },
-                    { n: 5, t: "Social", s: "Links & Presence" }
+                    { n: 5, t: "Social", s: "Links & Presence" },
+                    { n: 6, t: "Power", s: "Advanced Apps" }
                   ].map((s) => (
+
                     <div key={s.n} className={`flex items-start gap-5 transition-all cursor-pointer ${step === s.n ? 'opacity-100 translate-x-2' : 'opacity-40'}`} onClick={() => setStep(s.n)}>
                        <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-black text-xs ${step === s.n ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white/10 text-white/50'}`}>{s.n}</div>
                        <div><p className="text-white font-bold text-sm mb-1">{s.t}</p><p className="text-white/50 text-[9px] uppercase font-bold tracking-widest">{s.s}</p></div>
@@ -585,6 +587,54 @@ function SetupBusiness() {
                   </div>
                </div>
             )}
+
+            {step === 6 && (
+               <div className="animate-in fade-in slide-in-from-right-4 duration-500 space-y-8">
+                  <div className="bg-indigo-50 p-10 rounded-[3rem] border-2 border-indigo-100 text-center space-y-6">
+                     <div className="w-20 h-20 bg-indigo-600 text-white rounded-3xl flex items-center justify-center mx-auto shadow-2xl shadow-indigo-200">
+                        <Sparkles className="w-10 h-10 fill-white" />
+                     </div>
+                     <div className="space-y-2">
+                        <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase italic">Advanced Ecosystem</h2>
+                        <p className="text-slate-500 font-bold text-sm max-w-md mx-auto leading-relaxed">
+                           Ready to scale? Connect your WhatsApp Chat Widget, Webhooks, and Google Sheets in our dedicated Power Hub.
+                        </p>
+                     </div>
+                     <button 
+                       type="button"
+                       onClick={() => navigate('/integrations')}
+                       className="px-12 py-5 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-3"
+                     >
+                        Configure Advanced Apps <Globe className="w-4 h-4" />
+                     </button>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <div className="p-6 bg-white rounded-3xl border-2 border-slate-50 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0"><CheckCircle2 className="w-6 h-6" /></div>
+                        <div>
+                           <h4 className="text-xs font-black text-slate-800 uppercase">Chat Widget</h4>
+                           <p className="text-[10px] text-slate-400 font-bold">Add WhatsApp to your website</p>
+                        </div>
+                     </div>
+                     <div className="p-6 bg-white rounded-3xl border-2 border-slate-50 flex items-center gap-4">
+                        <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center shrink-0"><CheckCircle2 className="w-6 h-6" /></div>
+                        <div>
+                           <h4 className="text-xs font-black text-slate-800 uppercase">Webhooks</h4>
+                           <p className="text-[10px] text-slate-400 font-bold">Real-time data synchronization</p>
+                        </div>
+                     </div>
+                  </div>
+
+                  <div className="flex gap-4">
+                     <button onClick={() => setStep(5)} type="button" className="px-8 py-5 bg-slate-100 text-slate-400 rounded-2xl font-black uppercase text-xs tracking-widest">Back</button>
+                     <button onClick={handleSubmit} disabled={loading} className="flex-1 py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-2xl flex items-center justify-center gap-2 hover:bg-black transition-all active:scale-[0.98]">
+                        {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : saveSuccess ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : "Save & Launch"}
+                     </button>
+                  </div>
+               </div>
+            )}
+
 
          </div>
       </div>

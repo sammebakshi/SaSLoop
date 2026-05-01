@@ -4,6 +4,8 @@ const pool = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
 const path = require("path");
 const fs = require("fs");
+const { scanMenuWithAI } = require("../utils/aiCatalogUtils");
+
 
 // Image Upload
 router.post("/upload", authMiddleware, async (req, res) => {
@@ -43,6 +45,37 @@ router.post("/upload", authMiddleware, async (req, res) => {
         res.status(500).json({ error: e.message }); 
     }
 });
+
+// AI Menu Scanner
+router.post("/ai-scan", authMiddleware, async (req, res) => {
+    try {
+        if (!req.files || !req.files.image) {
+            return res.status(400).json({ error: "No image uploaded" });
+        }
+        
+        const file = req.files.image;
+        const uploadDir = path.join(process.cwd(), "uploads");
+        const tmpPath = path.join(uploadDir, `tmp_scan_${Date.now()}.jpg`);
+        
+        if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+        file.mv(tmpPath, async (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            
+            try {
+                const items = await scanMenuWithAI(tmpPath);
+                fs.unlinkSync(tmpPath); // Cleanup
+                res.json(items);
+            } catch (aiErr) {
+                if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+                res.status(500).json({ error: "AI Scan failed: " + aiErr.message });
+            }
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 
 // GET all items for the user
 router.get("/", authMiddleware, async (req, res) => {

@@ -31,7 +31,8 @@ function DigitalCatalog() {
       tax_applicable: 1,
       is_veg: false,
       track_stock: false,
-      stock_count: ""
+      stock_count: "",
+      ai_pricing: false
   });
   const [showAddForm, setShowAddForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -126,7 +127,7 @@ function DigitalCatalog() {
         if (res.ok) {
             const added = await res.json();
             setItems([added, ...items]);
-            setNewItem({ code: "", product_name: "", category: "", sub_category: "", price: "", availability: true, image_url: "", description: "", tax_applicable: 1, is_veg: false, track_stock: false, stock_count: "" });
+            setNewItem({ code: "", product_name: "", category: "", sub_category: "", price: "", availability: true, image_url: "", description: "", tax_applicable: 1, is_veg: false, track_stock: false, stock_count: "", ai_pricing: false });
             setShowAddForm(false);
             showNotice("success", "Dish added to catalog!");
         }
@@ -153,7 +154,86 @@ function DigitalCatalog() {
             setEditingItem(null);
             showNotice("success", "Dish updated!");
         }
-    } catch (err) { console.error(err); }
+    } catch (e) { console.error(e); }
+  };
+
+  const [scanning, setScanning] = useState(false);
+
+  const handleAiScan = async (file) => {
+    if (!file) return;
+    setScanning(true);
+    try {
+        const formData = new FormData();
+        formData.append("image", file);
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/api/catalog/ai-scan`, {
+            method: "POST",
+            headers: { "Authorization": `Bearer ${token}` },
+            body: formData
+        });
+        const data = await res.json();
+        if (Array.isArray(data)) {
+            // Confirm and Import
+            if (window.confirm(`AI found ${data.length} items. Would you like to import them all?`)) {
+                await fetch(`${API_BASE}/api/catalog/import`, {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}` 
+                    },
+                    body: JSON.stringify({ items: data })
+                });
+                showNotice('success', `${data.length} items imported via AI!`);
+                window.location.reload();
+            }
+        } else {
+            showNotice('error', 'AI Scan failed to find items.');
+        }
+    } catch (e) {
+        showNotice('error', 'AI Connection Error');
+    } finally {
+        setScanning(false);
+    }
+  };
+  
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const handleEnhanceImage = async (item) => {
+    if (!item.image_url) return showNotice("error", "Add an image first!");
+    setIsEnhancing(true);
+    try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/api/analytics/enhance-image`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}` 
+            },
+            body: JSON.stringify({ imageUrl: item.image_url, productName: item.product_name })
+        });
+        const data = await res.json();
+        if (data.url) {
+            // Automatically update the item image
+            const upRes = await fetch(`${API_BASE}/api/catalog/${item.id}`, {
+                method: "PUT",
+                headers: { 
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}` 
+                },
+                body: JSON.stringify({ ...item, image_url: data.url })
+            });
+            if (upRes.ok) {
+                setItems(items.map(i => i.id === item.id ? { ...i, image_url: data.url } : i));
+                if (editingItem && editingItem.id === item.id) setEditingItem({ ...editingItem, image_url: data.url });
+                showNotice("success", "Magic Touch applied! Studio photo ready.");
+            }
+        } else {
+            showNotice("error", data.error || "Enhancement failed");
+        }
+    } catch (e) {
+        showNotice("error", "AI Connection Error");
+    } finally {
+        setIsEnhancing(false);
+    }
   };
 
   const handleDelete = async (id) => {
@@ -371,12 +451,27 @@ function DigitalCatalog() {
                         className="w-full bg-slate-100/50 border border-transparent rounded-2xl pl-14 pr-4 py-4 text-xs font-bold focus:bg-white focus:border-orange-100 outline-none transition-all shadow-inner"
                     />
                 </div>
-                <button 
-                    onClick={() => setShowAddForm(!showAddForm)}
-                    className={`w-full md:w-auto px-8 py-4 rounded-2xl font-black text-[10px] uppercase transition-all shadow-xl ${showAddForm ? 'bg-slate-100 text-slate-600' : 'bg-orange-500 text-white'}`}
-                >
-                    {showAddForm ? 'Cancel' : <><Plus className="w-4 h-4 inline mr-2" /> New Dish</>}
-                </button>
+                <div className="flex flex-wrap items-center gap-3">
+                   <div className="relative group">
+                      <input 
+                         type="file" 
+                         accept="image/*" 
+                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                         onChange={(e) => handleAiScan(e.target.files[0])}
+                         disabled={scanning}
+                      />
+                      <button className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${scanning ? 'bg-indigo-100 text-indigo-400 animate-pulse' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-100 group-hover:scale-105'}`}>
+                         <Sparkles className={`w-4 h-4 ${scanning ? 'animate-spin' : ''}`} /> {scanning ? 'AI Scanning...' : 'Import from Photo'}
+                      </button>
+                   </div>
+                   
+                   <button 
+                      onClick={() => setShowAddForm(true)}
+                      className="flex items-center gap-2 px-6 py-3.5 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-slate-100 hover:scale-105 transition-all"
+                   >
+                      <Plus className="w-4 h-4" /> Add Item
+                   </button>
+                </div>
             </div>
 
             {/* ADD FORM */}
@@ -493,6 +588,9 @@ function DigitalCatalog() {
                                         ) : (
                                             <span className="bg-rose-50 text-rose-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase">Out of Stock</span>
                                         )}
+                                        {item.ai_pricing && (
+                                            <span className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-[8px] font-black uppercase mt-1">AI Pricing</span>
+                                        )}
                                         {item.stock_count !== null && item.stock_count !== undefined && (
                                             <span className="text-[9px] font-black text-orange-500 uppercase tracking-widest">Qty: {item.stock_count}</span>
                                         )}
@@ -501,6 +599,14 @@ function DigitalCatalog() {
                                 <td className="px-8 py-6 text-center font-black text-slate-900 tracking-tighter text-base">{getCurrencySymbol()}{item.price}</td>
                                 <td className="px-8 py-6 text-right">
                                     <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                        <button 
+                                            onClick={() => handleEnhanceImage(item)} 
+                                            disabled={isEnhancing}
+                                            className={`w-9 h-9 flex items-center justify-center bg-white border border-slate-100 rounded-xl shadow-sm transition-all ${isEnhancing ? 'animate-pulse text-indigo-400' : 'text-indigo-500 hover:scale-110 hover:bg-indigo-50'}`}
+                                            title="AI Magic Touch"
+                                        >
+                                            <Sparkles className="w-4 h-4" />
+                                        </button>
                                         <button onClick={() => setEditingItem({...item, track_stock: item.stock_count !== null && item.stock_count !== undefined})} className="w-9 h-9 flex items-center justify-center text-slate-400 bg-white border border-slate-100 rounded-xl hover:text-indigo-600 hover:border-indigo-100 shadow-sm"><Settings className="w-4 h-4" /></button>
                                         <button onClick={() => handleDelete(item.id)} className="w-9 h-9 flex items-center justify-center text-slate-400 bg-white border border-slate-100 rounded-xl hover:text-rose-500 hover:border-rose-100 shadow-sm"><Trash2 className="w-4 h-4" /></button>
                                     </div>
@@ -593,6 +699,16 @@ function DigitalCatalog() {
                                   <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${editingItem.track_stock ? 'translate-x-5' : 'translate-x-1'}`}></div>
                               </button>
                            </div>
+                        </div>
+                        <div className="space-y-2">
+                           <label className="text-[9px] font-black uppercase text-indigo-400 tracking-widest pl-1">AI Smart Pricing</label>
+                           <div className="flex items-center justify-between bg-indigo-50/30 border border-indigo-100 rounded-2xl px-6 py-3">
+                              <span className="text-xs font-bold text-indigo-600">Auto Surge/Discount?</span>
+                              <button type="button" onClick={() => setEditingItem({...editingItem, ai_pricing: !editingItem.ai_pricing})} className={`w-10 h-6 rounded-full relative transition-colors ${editingItem.ai_pricing ? 'bg-indigo-500' : 'bg-slate-300'}`}>
+                                  <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${editingItem.ai_pricing ? 'translate-x-5' : 'translate-x-1'}`}></div>
+                              </button>
+                           </div>
+                        </div>
                          </div>
                          {editingItem.track_stock && (
                             <div className="space-y-2">

@@ -97,6 +97,8 @@ app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
 app.use("/api/reservations", require("./routes/reservationRoutes"));
 app.use("/api/delivery", require("./routes/deliveryRoutes"));
+app.use("/api/analytics", require("./routes/analyticsRoutes"));
+
 
 // ======================
 // ✅ HEALTH CHECK

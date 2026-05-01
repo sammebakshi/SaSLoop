@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import API_BASE from "../config";
-import { ChefHat } from "lucide-react";
+import { ChefHat, Mic, MicOff, Sparkles } from "lucide-react";
 
 function KDS() {
   const [orders, setOrders] = useState([]);
@@ -17,6 +17,37 @@ function KDS() {
       }
     } catch (err) {} finally { setLoading(false); }
   }, []);
+
+  const [isListening, setIsListening] = useState(false);
+  const recognitionRef = useRef(null);
+
+  const startVoiceControl = useCallback(() => {
+    if (window.webkitSpeechRecognition || window.SpeechRecognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognitionRef.current = new SpeechRecognition();
+      recognitionRef.current.continuous = true;
+      recognitionRef.current.interimResults = false;
+      recognitionRef.current.onresult = (event) => {
+        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
+        console.log("KDS Voice:", transcript);
+        
+        // Command logic: "Start order ABC", "Ready order ABC"
+        const order = orders.find(o => transcript.includes(o.order_reference.toLowerCase()) || transcript.includes(o.id.toString()));
+        if (order) {
+           if (transcript.includes("start") || transcript.includes("cook")) updateStatus(order.id, "PROCESSING");
+           if (transcript.includes("ready") || transcript.includes("finish")) updateStatus(order.id, "DISPATCHED");
+           if (transcript.includes("complete") || transcript.includes("clear")) updateStatus(order.id, "COMPLETED");
+        }
+      };
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  }, [orders]);
+
+  const stopVoiceControl = () => {
+    recognitionRef.current?.stop();
+    setIsListening(false);
+  };
 
   useEffect(() => {
     fetchOrders();
@@ -51,6 +82,13 @@ function KDS() {
         <h1 className="text-3xl font-black flex items-center gap-3 tracking-tight"><ChefHat className="text-amber-400 w-10 h-10"/> Kitchen Display System</h1>
         <div className="flex gap-4 items-center">
             {loading && <span className="animate-pulse text-amber-400 font-bold tracking-widest text-sm uppercase">Syncing...</span>}
+            <button 
+              onClick={isListening ? stopVoiceControl : startVoiceControl}
+              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
+            >
+              {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
+              {isListening ? 'Voice Active' : 'Enable Voice'}
+            </button>
             <div className="bg-slate-800 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest border border-slate-700">Live Board</div>
         </div>
       </div>

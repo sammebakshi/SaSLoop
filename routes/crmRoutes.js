@@ -90,4 +90,37 @@ router.delete("/customer/:phone", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ GET SEGMENTED ANALYTICS
+router.get("/segments", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.query.target_user_id || req.user.id;
+    const uid = parseInt(userId);
+    
+    const dbRes = await pool.query(`
+      WITH customer_data AS (
+        SELECT 
+          customer_number,
+          points,
+          total_spent,
+          last_visit,
+          COALESCE(name, 'Customer') as name,
+          EXTRACT(DAY FROM (NOW() - last_visit)) as days_since_visit
+        FROM customer_loyalty
+        WHERE user_id = $1
+      )
+      SELECT 
+        COUNT(*) FILTER (WHERE total_spent > 5000 OR points > 1000) as vip_count,
+        COUNT(*) FILTER (WHERE days_since_visit > 14) as at_risk_count,
+        COUNT(*) FILTER (WHERE days_since_visit <= 7 AND total_spent < 1000) as new_count,
+        COUNT(*) as total_count
+      FROM customer_data
+    `, [uid]);
+    
+    res.json(dbRes.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
+

@@ -4,7 +4,9 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
-  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles, Gift
+  RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles, Gift,
+  Instagram, Facebook, Twitter, Youtube, Globe,
+  Eye, CreditCard, Scan, QrCode, ArrowUpRight
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -38,6 +40,8 @@ function CustomerMenu() {
 
   const [authStatus, setAuthStatus] = useState("IDLE"); // IDLE, PENDING
   const [authToken, setAuthToken] = useState(null);
+  const [tasteProfile, setTasteProfile] = useState([]); // e.g. ["spicy", "veg"]
+  const [showVIPKey, setShowVIPKey] = useState(false);
 
   // --- 🔒 SESSION PERSISTENCE ---
   useEffect(() => {
@@ -93,7 +97,21 @@ function CustomerMenu() {
   }, [cart, data, biz]);
 
   const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)));
-  const filteredItems = useMemo(() => (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase())), [data, search]);
+  
+  const filteredItems = useMemo(() => {
+    let items = (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
+    
+    // 🔥 AI Personalized Re-sorting
+    if (tasteProfile.length > 0) {
+      items = [...items].sort((a, b) => {
+        const scoreA = tasteProfile.filter(tag => a.description?.toLowerCase().includes(tag) || a.category?.toLowerCase().includes(tag) || (tag === 'veg' && a.is_veg)).length;
+        const scoreB = tasteProfile.filter(tag => b.description?.toLowerCase().includes(tag) || b.category?.toLowerCase().includes(tag) || (tag === 'veg' && b.is_veg)).length;
+        return scoreB - scoreA;
+      });
+    }
+    return items;
+  }, [data, search, tasteProfile]);
+
   const groupedItems = useMemo(() => filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {}), [filteredItems]);
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
@@ -172,6 +190,9 @@ function CustomerMenu() {
             const ordRes = await fetch(`${API_BASE}/api/public/orders/${bizId}/${encodeURIComponent(stdPhone)}`);
             const ordData = await ordRes.json();
             setActiveOrders(ordData || []);
+
+            // 🧠 Mock AI Taste Profile Fetch
+            setTasteProfile(["spicy", "biryani"]); 
             
             setView("menu");
           }
@@ -426,7 +447,32 @@ function CustomerMenu() {
                  <button onClick={() => setOrderTab("tracking")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Tracking</button>
                  <button onClick={() => setOrderTab("history")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>History</button>
               </div>
-              <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+               <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+                  {/* VIP KEY PASS CARD */}
+                  <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+                     <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-6">
+                           <div>
+                              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Exclusive Member</p>
+                              <h4 className="text-2xl font-black tracking-tighter uppercase italic">{customerName || 'Loyal Guest'}</h4>
+                           </div>
+                           <Gift className="w-6 h-6 text-indigo-400" />
+                        </div>
+                        <div className="flex justify-between items-end">
+                           <div>
+                              <p className="text-[8px] font-black uppercase text-white/40 mb-1">Loyalty Points</p>
+                              <p className="text-2xl font-black tracking-tighter">{loyaltyPoints}</p>
+                           </div>
+                           <button 
+                             onClick={() => setShowVIPKey(true)}
+                             className="px-4 py-2 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
+                           >
+                              Wallet Pass
+                           </button>
+                        </div>
+                     </div>
+                  </div>
                  {orderTab === "tracking" ? (
                    activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? <div className="h-44 flex flex-col items-center justify-center opacity-20"><Package className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest text-center">No Active Orders<br/>Start Ordering!</p></div> : 
                    activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
@@ -479,8 +525,42 @@ function CustomerMenu() {
                       {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain p-2" alt="l" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
                    </div>
                    <div className="flex-1 min-w-0 pt-12">
-                     <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
-                     <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Scan QR for Service'}</p>
+                      <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
+                      <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Scan QR for Service'}</p>
+
+                      {/* Social & Review Links */}
+                      <div className="flex items-center gap-3 mt-4">
+                         {biz?.social_instagram && (
+                            <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Instagram className="w-5 h-5" />
+                            </a>
+                         )}
+                         {biz?.social_facebook && (
+                            <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Facebook className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_twitter && (
+                            <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Twitter className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_youtube && (
+                            <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-10 h-10 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Youtube className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_website && (
+                            <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Globe className="w-5 h-5" />
+                            </a>
+                         )}
+                         {biz?.settings?.google_review_link && (
+                            <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-10 h-10 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Star className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                      </div>
                    </div>
                 </div>
              </div>
@@ -500,6 +580,14 @@ function CustomerMenu() {
                             <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">
                               {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
                               <div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white shadow-2xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950">{symbol}{item.price}</div>
+                              
+                              {/* AR PREVIEW BUTTON */}
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); alert("✨ Reality Engine Initializing... \n\n This feature allows customers to see a 3D AR model of " + item.product_name + " on their table. (Premium Demo Mode)"); }}
+                                className="absolute top-2 left-2 sm:top-5 sm:left-5 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100"
+                              >
+                                 <Scan className="w-4 h-4 sm:w-6 sm:h-6" />
+                              </button>
                             </div>
                             <h3 className="px-1 sm:px-4 text-[12px] sm:text-[15px] font-black text-slate-900 leading-tight mb-2 sm:mb-3 uppercase tracking-tight italic line-clamp-2">{item.product_name}</h3>
                             <p className="px-1 sm:px-4 text-[10px] sm:text-[11px] text-slate-400 font-medium mb-4 sm:mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
@@ -597,7 +685,17 @@ function CustomerMenu() {
 
                           <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
                       </div>
-                     <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">{placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}</button>
+                     <div className="space-y-3">
+                        <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">
+                          {placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}
+                        </button>
+                        <button 
+                          onClick={() => alert("💎 Premium Instant Pay (Apple/Google/UPI) is being integrated for your region.")}
+                          className="w-full bg-white border-2 border-slate-100 text-slate-900 py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
+                        >
+                           <CreditCard className="w-4 h-4 text-indigo-500" /> Instant Checkout
+                        </button>
+                     </div>
                   </div>
                 )}
              </div>
@@ -753,16 +851,62 @@ function CustomerMenu() {
                      <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Final Bill</p>
                      <p className="text-3xl font-black text-slate-950 tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p>
                   </div>
-                  <button 
-                    onClick={() => {
-                       if(!customerName || !customerPhone || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
-                       placeOrder();
-                    }} 
-                    disabled={placing}
-                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-95 transition-all"
-                  >
-                     {placing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Place Order <ChevronRight className="w-6 h-6" /></>}
-                  </button>
+                  <div className="space-y-3">
+                     <button 
+                       onClick={() => {
+                          if(!customerName || !customerPhone || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
+                          placeOrder();
+                       }} 
+                       disabled={placing}
+                       className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-95 transition-all"
+                     >
+                        {placing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Place Order <ChevronRight className="w-6 h-6" /></>}
+                     </button>
+                     <button 
+                        onClick={() => alert("💎 Premium Instant Pay (Apple/Google/UPI) is being integrated for your region.")}
+                        className="w-full bg-white border border-slate-200 text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
+                     >
+                        <CreditCard className="w-4 h-4 text-emerald-500" /> One-Tap Pay
+                     </button>
+                  </div>
+                  <div className="mt-12 py-10 border-t border-slate-100 text-center">
+                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-4">Powered by SaSLoop</p>
+                      <div className="flex justify-center gap-3 mb-6">
+                         {biz?.social_instagram && (
+                            <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-pink-600 transition-all border border-slate-100 shadow-sm">
+                               <Instagram className="w-4 h-4" />
+                            </a>
+                         )}
+                         {biz?.social_facebook && (
+                            <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
+                               <Facebook className="w-4 h-4" />
+                            </a>
+                         )}
+                         {biz?.social_twitter && (
+                            <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-sky-500 transition-all border border-slate-100 shadow-sm">
+                               <Twitter className="w-4 h-4" />
+                            </a>
+                         )}
+                         {biz?.social_youtube && (
+                            <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition-all border border-slate-100 shadow-sm">
+                               <Youtube className="w-4 h-4" />
+                            </a>
+                         )}
+                         {biz?.social_website && (
+                            <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all border border-slate-100 shadow-sm">
+                               <Globe className="w-4 h-4" />
+                            </a>
+                         )}
+                         {biz?.settings?.google_review_link && (
+                            <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 transition-all border border-slate-100 shadow-sm">
+                               <Star className="w-4 h-4" />
+                            </a>
+                         )}
+                      </div>
+                      <div className="flex justify-center gap-4">
+                         <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center grayscale opacity-30 shadow-inner"><Utensils className="w-4 h-4" /></div>
+                      </div>
+                   </div>
                </div>
             </div>
          </div>
@@ -827,6 +971,34 @@ function CustomerMenu() {
                 ))}
              </div>
           </div>
+        </div>
+      )}
+      {/* VIP KEY MODAL */}
+      {showVIPKey && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
+           <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 font-sans">
+              <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
+                 <h3 className="text-3xl font-black tracking-tighter uppercase italic italic-shadow mb-1">Elite VIP</h3>
+                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-8">Digital Pass Key</p>
+                 
+                 <div className="w-32 h-32 bg-white rounded-3xl mx-auto mb-8 p-3 shadow-2xl flex items-center justify-center">
+                    <QrCode className="w-full h-full text-slate-900" />
+                 </div>
+                 
+                 <p className="text-xs font-bold opacity-60 mb-8 uppercase tracking-widest">Scan at store for instant points</p>
+                 
+                 <div className="flex flex-col gap-3">
+                    <button className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
+                       Add to Apple Wallet <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                    <button className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
+                       Google Pay <ArrowUpRight className="w-4 h-4" />
+                    </button>
+                 </div>
+              </div>
+              <button onClick={() => setShowVIPKey(false)} className="w-full py-5 text-slate-400 font-black text-[10px] uppercase tracking-widest border-t border-slate-50">Close Pass</button>
+           </div>
         </div>
       )}
     </div>

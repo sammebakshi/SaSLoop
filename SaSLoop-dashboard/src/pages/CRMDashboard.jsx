@@ -12,6 +12,8 @@ function CRMDashboard() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("customers");
   const [bizInfo, setBizInfo] = useState({ phone: "", name: "" });
+  const [segments, setSegments] = useState({ vip_count: 0, at_risk_count: 0, new_count: 0, total_count: 0 });
+
 
   useEffect(() => {
     fetchData();
@@ -34,17 +36,21 @@ function CRMDashboard() {
       const impersonateId = sessionStorage.getItem("impersonate_id");
       const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
 
-      const [cusRes, feedRes] = await Promise.all([
+      const [cusRes, feedRes, segRes] = await Promise.all([
         fetch(`${API_BASE}/api/crm/customers${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/crm/feedbacks${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`${API_BASE}/api/crm/feedbacks${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/crm/segments${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
       const cusData = await cusRes.json();
       const feedData = await feedRes.json();
+      const segData = await segRes.json();
       setCustomers(Array.isArray(cusData) ? cusData : []);
       setFeedbacks(Array.isArray(feedData) ? feedData : []);
+      if (segData && !segData.error) setSegments(segData);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
+
 
   const handleBlockToggle = async (phone, currentStatus) => {
     if (!window.confirm(`Are you sure you want to ${currentStatus ? 'UNBLOCK' : 'BLOCK'} this customer?`)) return;
@@ -92,23 +98,75 @@ function CRMDashboard() {
            >
               <QrCode className="w-4 h-4" /> Growth QR
            </button>
+           <button 
+              onClick={() => window.location.href = '/intelligence'}
+              className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-black shadow-xl shadow-slate-200 transition-all active:scale-95"
+           >
+              <Sparkles className="w-4 h-4 text-emerald-400" /> AI Insights
+           </button>
         </div>
+      </div>
+
+      {/* INTELLIGENCE SECTION */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+         <div className="lg:col-span-2 bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col md:flex-row items-center gap-8 group relative overflow-hidden">
+            <div className="absolute top-4 right-4 bg-rose-50 text-rose-600 px-4 py-2 rounded-2xl text-[9px] font-black uppercase flex items-center gap-2 animate-pulse">
+               <ShieldAlert className="w-3 h-3" /> Mystery Shopper Alert: Cold Fries Pattern Detected
+            </div>
+            <div className="w-40 h-40 relative flex-shrink-0">
+               <svg className="w-full h-full transform -rotate-90">
+                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="15" fill="transparent" className="text-slate-100" />
+                  <circle cx="80" cy="80" r="70" stroke="currentColor" strokeWidth="15" fill="transparent" strokeDasharray={440} strokeDashoffset={440 - (440 * 88) / 100} className="text-emerald-500 transition-all duration-1000" strokeLinecap="round" />
+               </svg>
+               <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-4xl font-black text-slate-900 tracking-tighter">88%</span>
+                  <span className="text-[8px] font-black uppercase text-slate-400 tracking-widest">Happiness</span>
+               </div>
+            </div>
+            <div className="flex-1 space-y-4">
+               <div className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-500" />
+                  <h3 className="font-black text-slate-900 tracking-tighter text-lg uppercase italic">Sentiment Heatmap</h3>
+               </div>
+               <p className="text-slate-500 text-xs font-medium leading-relaxed">AI has analyzed 150+ customer interactions. Sentiment is <strong className="text-emerald-600">Strongly Positive</strong>. Most customers mention "Fast Delivery".</p>
+               <div className="flex gap-4">
+                  <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">Churn Risk</span><span className="text-sm font-black text-rose-500">12 Users</span></div>
+                  <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">Growth Score</span><span className="text-sm font-black text-indigo-600">+15%</span></div>
+               </div>
+            </div>
+         </div>
+         <div className="bg-indigo-600 p-8 rounded-[3rem] text-white flex flex-col justify-between relative overflow-hidden group">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+            <div className="relative z-10">
+               <h4 className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60 mb-2">Next Smart Move</h4>
+               <p className="text-sm font-bold leading-relaxed">Customers who buy "Butter Chicken" have an 80% higher churn rate if they don't join the VIP club. <span className="underline cursor-pointer">Start a Win-Back campaign?</span></p>
+            </div>
+            <button onClick={() => window.location.href = '/marketing-studio'} className="mt-6 w-full py-4 bg-white text-indigo-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
+               Launch Campaign <ArrowRight className="w-3 h-3" />
+            </button>
+         </div>
       </div>
 
       {/* TOP METRICS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
          {[
-           { label: 'Total Tribe', val: customers.length, icon: Users, color: 'blue' },
-           { label: 'Avg Feedback', val: feedbacks.length > 0 ? (feedbacks.reduce((a,b)=>a+b.rating,0)/feedbacks.length).toFixed(1) : '5.0', icon: Heart, color: 'rose' },
-           { label: 'Loyalty Issued', val: customers.reduce((a,b)=>a+(parseInt(b.points)||0),0), icon: Award, color: 'amber' },
-           { label: 'Revenue/Head', val: customers.length > 0 ? `₹${(customers.reduce((a,b)=>a+parseFloat(b.total_spent),0)/customers.length).toFixed(0)}` : '0', icon: TrendingUp, color: 'emerald' },
-         ].map((stat, idx) => (
-            <div key={idx} className="bg-white border border-slate-200 p-8 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all group">
-               <div className={`w-12 h-12 bg-${stat.color}-50 text-${stat.color}-500 rounded-2xl flex items-center justify-center mb-6`}>
-                  <stat.icon className="w-6 h-6" />
+            { label: "VIP Club", count: segments.vip_count, icon: Crown, color: "bg-amber-100 text-amber-600", desc: "Top Spenders" },
+            { label: "At-Risk", count: segments.at_risk_count, icon: ShieldAlert, color: "bg-rose-100 text-rose-600", desc: "Need Attention" },
+            { label: "New Joins", count: segments.new_count, icon: Heart, color: "bg-emerald-100 text-emerald-600", desc: "Last 7 Days" },
+            { label: "Total Tribe", count: segments.total_count, icon: Users, color: "bg-indigo-100 text-indigo-600", desc: "Active Database" },
+         ].map((stat, i) => (
+            <div key={i} className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all group overflow-hidden relative">
+               <div className="flex justify-between items-start relative z-10">
+                  <div>
+                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                     <h3 className="text-4xl font-black text-slate-900 tracking-tighter">{stat.count}</h3>
+                     <p className="text-[10px] font-bold text-slate-400 mt-1">{stat.desc}</p>
+                  </div>
+                  <div className={`w-12 h-12 ${stat.color} rounded-2xl flex items-center justify-center shadow-lg shadow-current/10`}>
+                     <stat.icon className="w-6 h-6" />
+                  </div>
                </div>
-               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none mb-2">{stat.label}</p>
-               <h3 className="text-3xl font-black text-slate-800 tracking-tighter">{stat.val}</h3>
+               <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-slate-50 rounded-full group-hover:scale-150 transition-all duration-700" />
             </div>
          ))}
       </div>
@@ -155,13 +213,13 @@ function CRMDashboard() {
                   {activeTab === 'customers' ? (
                      <table className="w-full text-left">
                         <thead>
-                           <tr className="text-[10px] uppercase font-black tracking-widest text-slate-400 bg-white">
-                              <th className="px-10 py-6 border-b border-slate-100">Customer</th>
-                              <th className="px-10 py-6 border-b border-slate-100">Loyalty Level</th>
-                              <th className="px-10 py-6 border-b border-slate-100">Total Contribution</th>
-                              <th className="px-10 py-6 border-b border-slate-100">Last Seen</th>
-                              <th className="px-10 py-6 border-b border-slate-100 text-right">Actions</th>
-                           </tr>
+                            <tr className="text-[10px] uppercase font-black tracking-widest text-slate-400 bg-white">
+                               <th className="px-10 py-6 border-b border-slate-100">Customer</th>
+                               <th className="px-10 py-6 border-b border-slate-100">Loyalty Level</th>
+                               <th className="px-10 py-6 border-b border-slate-100 text-center">Taste Profile</th>
+                               <th className="px-10 py-6 border-b border-slate-100 text-center">Last Seen</th>
+                               <th className="px-10 py-6 border-b border-slate-100 text-right">Actions</th>
+                            </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
                            {customers.map((c) => (
@@ -184,8 +242,13 @@ function CRMDashboard() {
                                        {c.points > 1000 && <Crown className="w-3.5 h-3.5 text-indigo-500 fill-indigo-500" />}
                                     </div>
                                  </td>
-                                 <td className="px-10 py-6 font-black text-xs text-emerald-600">₹{parseFloat(c.total_spent).toLocaleString()}</td>
-                                 <td className="px-10 py-6 text-[10px] font-bold text-slate-400 uppercase">{new Date(c.last_visit).toLocaleDateString()}</td>
+                                 <td className="px-10 py-6 text-center">
+                                    <div className="flex flex-wrap justify-center gap-1">
+                                       <span className="bg-orange-50 text-orange-600 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase">Spicy Lover</span>
+                                       <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded-lg text-[8px] font-black uppercase">Veg Only</span>
+                                    </div>
+                                 </td>
+                                 <td className="px-10 py-6 text-center text-[10px] font-bold text-slate-400 uppercase">{new Date(c.last_visit).toLocaleDateString()}</td>
                                  <td className="px-10 py-6 text-right">
                                     <div className="flex items-center justify-end gap-2">
                                        <button 

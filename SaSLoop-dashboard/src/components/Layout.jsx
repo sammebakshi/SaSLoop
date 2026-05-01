@@ -31,8 +31,12 @@ import {
   Monitor,
   ChefHat,
   Calendar,
-  IndianRupee
+  IndianRupee,
+  Zap,
+  Brain,
+  Rocket
 } from "lucide-react";
+
 
 const SaSLoopLogo = () => (
   <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5 drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
@@ -268,6 +272,9 @@ const Layout = ({ children }) => {
     } else { // business user
         return [
           { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
+          { name: "Global Command", path: "/command-center", icon: Globe },
+          { name: "Intelligence Hub", path: "/intelligence", icon: Brain },
+          { name: "Marketing Studio", path: "/marketing-studio", icon: Rocket },
           { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
           { name: "Business Data", path: "#", icon: BookOpen, isDropdown: true, isOpenState: businessDataOpen, setOpenState: setBusinessDataOpen, subItems: [
               { name: "Manage Profile", path: "/setup-business" },
@@ -285,7 +292,9 @@ const Layout = ({ children }) => {
           { name: "Table Reservations", path: "/reservations", icon: Calendar },
           { name: "Reports", path: "/reports", icon: BarChart3 },
           { name: "Customer Growth", path: "/crm", icon: Users },
+          { name: "Integrations & Apps", path: "/integrations", icon: Zap },
           { name: "Expense Tracker", path: "/expenses", icon: IndianRupee },
+
           { name: "Staff Management", path: "/staff", icon: Shield },
           { name: "Mobile App Hub", path: "/mobile-app", icon: Smartphone },
           { name: "Help & Support", path: "/support", icon: LifeBuoy },

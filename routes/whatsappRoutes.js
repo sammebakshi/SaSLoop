@@ -349,4 +349,25 @@ router.get("/auth/status/:token", async (req, res) => {
   }
 });
 
+// ============================================
+// 🎙️ AI VOICE SALESMAN (TTS)
+// ============================================
+router.post("/voice-salesman", authMiddleware, async (req, res) => {
+  try {
+    const { text, to } = req.body;
+    if (!text || !to) return res.status(400).json({ error: "Text and Recipient required" });
+
+    // In a real app, we'd call ElevenLabs or OpenAI TTS here.
+    // Mocking the generation of a high-quality voice note.
+    const mockVoiceUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"; 
+
+    // Send as an audio message via Meta
+    await whatsappManager.sendOfficialMessage(to, { audioUrl: mockVoiceUrl }, req.user.id);
+    
+    res.json({ success: true, voiceUrl: mockVoiceUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 module.exports = router;

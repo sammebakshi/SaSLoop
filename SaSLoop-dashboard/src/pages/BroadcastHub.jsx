@@ -17,7 +17,10 @@ function BroadcastHub() {
   const [topupAmount, setTopupAmount] = useState(500);
   const [systemPayment, setSystemPayment] = useState(null);
   const [isTopupLoading, setIsTopupLoading] = useState(false);
+  const [isAiGenLoading, setIsAiGenLoading] = useState(false);
+  const [aiPrompt, setAiPrompt] = useState("");
   const isMobile = isMobileDevice();
+
 
   useEffect(() => {
     fetchCredits();
@@ -98,11 +101,38 @@ function BroadcastHub() {
         setErrorResponse(data.error || "Broadcast failed.");
       }
     } catch (err) {
-      setErrorResponse("Network error. Please try again.");
+      setErrorResponse("Network error. Try again.");
     } finally {
       setIsSending(false);
     }
   };
+
+  const handleAiImageGen = async () => {
+    if (!aiPrompt) return;
+    setIsAiGenLoading(true);
+    try {
+        const res = await fetch(`${API_BASE}/api/analytics/generate-image`, {
+            method: "POST",
+            headers: { 
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${localStorage.getItem("token")}` 
+            },
+            body: JSON.stringify({ prompt: aiPrompt })
+        });
+        const data = await res.json();
+        if (data.url) {
+            setImageUrl(API_BASE + data.url);
+            setAiPrompt("");
+        } else {
+            alert(data.error || "Generation failed.");
+        }
+    } catch (e) {
+        alert("AI Service Error");
+    } finally {
+        setIsAiGenLoading(false);
+    }
+  };
+
 
   const fetchSystemPayment = async () => {
     try {
@@ -267,6 +297,29 @@ function BroadcastHub() {
                                   placeholder="https://your-image.jpg"
                                   className="w-full bg-slate-50 border-none rounded-2xl py-4 pl-12 pr-4 text-xs font-bold focus:ring-2 focus:ring-indigo-500 transition-all"
                               />
+                          </div>
+                      </div>
+
+                      <div className="md:col-span-2 space-y-3 pt-2">
+                          <div className="flex items-center gap-2">
+                             <Bot className="w-3.5 h-3.5 text-indigo-500" />
+                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AI Creative Studio</span>
+                          </div>
+                          <div className="flex gap-2">
+                             <input 
+                                type="text" 
+                                placeholder="Describe image (e.g. Delicious burger with cheese explosion)"
+                                className="flex-1 bg-slate-50 border-none rounded-xl px-4 py-3 text-[11px] font-bold outline-none focus:ring-1 focus:ring-indigo-500"
+                                value={aiPrompt}
+                                onChange={(e) => setAiPrompt(e.target.value)}
+                             />
+                             <button 
+                                onClick={handleAiImageGen}
+                                disabled={isAiGenLoading || !aiPrompt}
+                                className="px-5 py-3 bg-indigo-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-indigo-700 disabled:opacity-50 transition-all flex items-center gap-2 whitespace-nowrap shadow-lg shadow-indigo-100"
+                             >
+                                {isAiGenLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />} AI Generate
+                             </button>
                           </div>
                       </div>
                       <div className="relative">

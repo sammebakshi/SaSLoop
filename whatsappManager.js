@@ -4,6 +4,8 @@ const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
 const { isBusinessOpen, getDeliveryDetails } = require("./utils/businessUtils");
+const { triggerWebhook } = require("./utils/webhookUtils");
+
 
 const normalizePhone = (p) => {
     if (!p) return "";
@@ -671,6 +673,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI']
             );
 
+            // 🔥 WEBHOOK TRIGGER
+            triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'PICKUP', total, items: cart, customer: { name: customerName, phone: cleanNum } });
+
+
             await deductInventory(userId, cart);
 
             // Skip immediate KOT for online payment orders
@@ -738,6 +744,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
                 [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI']
             );
+
+            // 🔥 WEBHOOK TRIGGER
+            triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', total: pending.total, items: pending.items, address: pending.address, customer: { name: customerName, phone: cleanNum } });
+
 
             await deductInventory(userId, pending.items);
 
@@ -1253,12 +1263,25 @@ const handleMetaWebhook = async (body) => {
                         adContext = `\n[System Note: Customer clicked an ad to get here! Ad Headline: "${ref.headline || ''}", Ad Body: "${ref.body || ''}". Acknowledge their interest subtly.]`;
                     }
 
-                    if (textBody || isLocation) {
-                        if (adContext && textBody) textBody += adContext;
-                        await upsertContact(userId, fromNumber, contactName);
-                        await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
-                        await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
+                        if (textBody || isLocation) {
+                            if (adContext && textBody) textBody += adContext;
+                            await upsertContact(userId, fromNumber, contactName);
+                            await logChat(userId, fromNumber, 'customer', textBody || "Sent a location pin");
+
+                            // 🔥 WEBHOOK TRIGGER
+                            const bizRes = await pool.query("SELECT id, name, settings FROM restaurants WHERE user_id = $1", [userId]);
+                            if (bizRes.rows.length > 0) {
+                                triggerWebhook(bizRes.rows[0], 'message.incoming', { 
+                                    customer: { name: contactName, phone: fromNumber }, 
+                                    message: textBody || "Location Pin",
+                                    is_location: isLocation,
+                                    location: locationData
+                                });
+                            }
+
+                            await processAiAutomations(userId, fromNumber, textBody, contactName, isLocation, locationData);
                         }
+
                     } catch (innerErr) {
                         console.error("CRITICAL PROCESSING ERROR:", innerErr);
                             if (metaPhoneId) {

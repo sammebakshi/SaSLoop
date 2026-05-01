@@ -4,7 +4,8 @@ import API_BASE from "../config";
 import { 
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, RefreshCw, 
-  CheckCircle2, Package, History, Bike, Store, Activity, Sparkles, AlertCircle, MessageCircle, LayoutGrid, Gift
+  CheckCircle2, Package, History, Bike, Store, Activity, Sparkles, AlertCircle, MessageCircle, LayoutGrid, Gift,
+  Instagram, Facebook, Twitter, Youtube, Globe, Star
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
@@ -617,6 +618,40 @@ function OnlineOrder() {
                    <div className="flex-1 min-w-0 pt-12">
                       <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
                       <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Fresh Food Daily'}</p>
+                      
+                      {/* Social & Review Links */}
+                      <div className="flex items-center gap-3 mt-4">
+                         {biz?.social_instagram && (
+                            <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Instagram className="w-5 h-5" />
+                            </a>
+                         )}
+                         {biz?.social_facebook && (
+                            <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-10 h-10 bg-blue-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Facebook className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_twitter && (
+                            <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-10 h-10 bg-slate-900 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Twitter className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_youtube && (
+                            <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-10 h-10 bg-red-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Youtube className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                         {biz?.social_website && (
+                            <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Globe className="w-5 h-5" />
+                            </a>
+                         )}
+                         {biz?.settings?.google_review_link && (
+                            <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-10 h-10 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
+                               <Star className="w-5 h-5 fill-white" />
+                            </a>
+                         )}
+                      </div>
                    </div>
                 </div>
              </div>
@@ -881,7 +916,7 @@ function OnlineOrder() {
                            {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
                               <button 
                                 onClick={handleRedeemRequest}
-                                className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all"
                               >
                                 <Gift className="w-4 h-4" /> Redeem Points Now
                               </button>
@@ -945,6 +980,44 @@ function OnlineOrder() {
                   >
                      {placing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Confirm Order <ChevronRight className="w-6 h-6" /></>}
                   </button>
+                <div className="mt-20 py-12 border-t border-slate-100 text-center">
+                   <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-6">Powered by SaSLoop</p>
+                   <div className="flex justify-center gap-3 mb-8">
+                      {biz?.social_instagram && (
+                         <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-pink-600 transition-all border border-slate-100 shadow-sm">
+                            <Instagram className="w-4 h-4" />
+                         </a>
+                      )}
+                      {biz?.social_facebook && (
+                         <a href={biz.social_facebook} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
+                            <Facebook className="w-4 h-4" />
+                         </a>
+                      )}
+                      {biz?.social_twitter && (
+                         <a href={biz.social_twitter} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-sky-500 transition-all border border-slate-100 shadow-sm">
+                            <Twitter className="w-4 h-4" />
+                         </a>
+                      )}
+                      {biz?.social_youtube && (
+                         <a href={biz.social_youtube} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-red-600 transition-all border border-slate-100 shadow-sm">
+                            <Youtube className="w-4 h-4" />
+                         </a>
+                      )}
+                      {biz?.social_website && (
+                         <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all border border-slate-100 shadow-sm">
+                            <Globe className="w-4 h-4" />
+                         </a>
+                      )}
+                      {biz?.settings?.google_review_link && (
+                         <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 transition-all border border-slate-100 shadow-sm">
+                            <Star className="w-4 h-4" />
+                         </a>
+                      )}
+                   </div>
+                   <div className="flex justify-center gap-4">
+                      <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center grayscale opacity-30 shadow-inner"><ShoppingBag className="w-4 h-4" /></div>
+                   </div>
+                </div>
                </div>
             </div>
          </div>

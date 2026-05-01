@@ -4,6 +4,8 @@ const pool = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
 
 const whatsappManager = require("../whatsappManager");
+const { triggerWebhook } = require("../utils/webhookUtils");
+
 
 // ✅ GET ALL ORDERS FOR LOGGED-IN BUSINESS (or target user if admin)
 router.get("/", authMiddleware, async (req, res) => {
@@ -42,6 +44,13 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
     const order = checkRes.rows[0];
 
     await pool.query("UPDATE orders SET status = $1 WHERE id = $2", [status, id]);
+
+    // 🔥 WEBHOOK TRIGGER
+    const bizRes = await pool.query("SELECT id, name, settings FROM restaurants WHERE user_id = $1", [userId]);
+    if (bizRes.rows.length > 0) {
+        triggerWebhook(bizRes.rows[0], 'order.status_changed', { order_id: id, status, reference: order.order_reference });
+    }
+
     
     // Proactively Notify Customer via WhatsApp
     try {
