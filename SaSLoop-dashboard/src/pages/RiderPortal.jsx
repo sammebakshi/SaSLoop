@@ -34,7 +34,7 @@ function RiderPortal() {
         } catch (err) {
             console.error(err);
         }
-    };
+    }, [riderId]);
 
     const startTracking = () => {
         if (!navigator.geolocation) {
