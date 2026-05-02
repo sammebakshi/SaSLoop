@@ -426,8 +426,9 @@ const POS = () => {
                </div>
             </div>
          </div>
-         </>
-      )}
+      </div>
+      </>
+   )}
 
       {/* OVERLAY: CHECKOUT SUCCESS */}
       <AnimatePresence>
