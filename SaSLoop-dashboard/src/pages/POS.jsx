@@ -377,7 +377,7 @@ const POS = () => {
                       className="bg-white border-2 border-transparent p-4 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:border-orange-100 transition-all group relative animate-in zoom-in-95 duration-300"
                     >
                        <div className="aspect-square bg-slate-50 rounded-[2rem] mb-4 overflow-hidden border border-slate-50">
-                          {item.image_url ? <img src={`${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
+                          {item.image_url ? <img src={`${API_BASE}${item.image_url}`} alt={item.product_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
                        </div>
                        <div className="text-left px-2">
                            <h4 className="text-[11px] font-black text-slate-900 uppercase italic line-clamp-1 mb-1">{item.product_name}</h4>

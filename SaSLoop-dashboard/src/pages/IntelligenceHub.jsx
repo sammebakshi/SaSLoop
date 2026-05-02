@@ -4,18 +4,20 @@ import {
   MessageSquare, Activity, ArrowUpRight, 
   Clock, Users, Wallet, ChefHat, ShoppingBag, Plus
 } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import API_BASE from "../config";
 
 function IntelligenceHub() {
   const [strategy, setStrategy] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [metrics, setMetrics] = useState({
     today_revenue: 0,
     active_customers: 0,
     peak_hour: "2 PM",
     top_dish: "Loading...",
-    surge_multiplier: 1.0
+    surge_multiplier: 1.0,
+    hourly_data: [],
+    category_data: []
   });
 
   useEffect(() => {
@@ -36,67 +38,43 @@ function IntelligenceHub() {
           active_customers: data.metrics.active_customers || 0,
           peak_hour: data.metrics.peak_hour || "N/A",
           top_dish: data.metrics.top_dish || "N/A",
-          surge_multiplier: data.metrics.surge_multiplier || 1.0
+          surge_multiplier: data.metrics.surge_multiplier || 1.0,
+          hourly_data: data.metrics.hourly_data || [],
+          category_data: data.metrics.category_data || []
         });
       }
     } catch (err) {
       console.error("Intelligence Fetch Error:", err);
       setStrategy("AI Consultant: Focus on upselling high-margin items during your lunch rush.");
-      setMetrics({
-        today_revenue: 0,
-        active_customers: 0,
-        peak_hour: "7 PM - 9 PM",
-        top_dish: "Trending Item",
-        surge_multiplier: 1.0
-      });
     } finally {
       setLoading(false);
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, color, subtext }) => {
-    try {
-      const bgColor = color ? color.replace('bg-', 'bg-').replace('-500', '-50') : 'bg-slate-50';
-      const textColor = color ? color.replace('bg-', 'text-') : 'text-slate-500';
-      
-      return (
-        <div className="bg-white p-8 rounded-[3rem] border-2 border-slate-50 shadow-xl shadow-slate-200/20 group hover:border-indigo-100 transition-all duration-500 relative overflow-hidden">
-          <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] -mr-8 -mt-8 rounded-full ${color || 'bg-slate-500'}`} />
-          <div className="flex justify-between items-start relative z-10">
-            <div className={`p-4 rounded-2xl ${bgColor} ${textColor}`}>
-              {Icon && <Icon className="w-6 h-6" />}
-            </div>
-            {trend && (
-              <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-                {trend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-                {Math.abs(trend)}%
-              </div>
-            )}
-          </div>
-          <div className="mt-6 relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-            <h3 className="text-3xl font-black text-slate-900 mt-1 tracking-tight italic">{value}</h3>
-            <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{subtext}</p>
-          </div>
+  const StatCard = ({ title, value, icon: Icon, trend, color, subtext }) => (
+    <div className="bg-white p-8 rounded-[3rem] border-2 border-slate-50 shadow-xl shadow-slate-200/20 group hover:border-indigo-100 transition-all duration-500 relative overflow-hidden">
+      <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] -mr-8 -mt-8 rounded-full ${color}`} />
+      <div className="flex justify-between items-start relative z-10">
+        <div className={`p-4 rounded-2xl ${color.replace('bg-', 'bg-').replace('-500', '-50')} ${color.replace('bg-', 'text-')}`}>
+          <Icon className="w-6 h-6" />
         </div>
-      );
-    } catch (e) {
-      return <div className="p-4 bg-red-50 text-red-500">Error in StatCard</div>;
-    }
-  };
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-20 text-center">
-        <h2 className="text-2xl font-black text-slate-800">Something went wrong</h2>
-        <p className="text-slate-500 mt-2">{error}</p>
-        <button onClick={() => window.location.reload()} className="mt-6 px-8 py-3 bg-indigo-600 text-white rounded-xl">Reload Page</button>
+        {trend && (
+          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+            {trend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+            {Math.abs(trend)}%
+          </div>
+        )}
       </div>
-    );
-  }
+      <div className="mt-6 relative z-10">
+        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+        <h3 className="text-3xl font-black text-slate-900 mt-1 tracking-tight italic">{value}</h3>
+        <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{subtext}</p>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-8 pb-20">
+    <div className="max-w-7xl mx-auto p-4 space-y-8 pb-20 animate-in fade-in duration-700">
       
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
@@ -205,7 +183,7 @@ function IntelligenceHub() {
           </div>
         </div>
 
-        {/* STATIC PREDICTION CARD (CHART DISABLED FOR DEBUG) */}
+        {/* PREDICTION CHART */}
         <div className="bg-white rounded-[3.5rem] p-10 border-2 border-slate-50 shadow-2xl shadow-slate-200/30 flex flex-col justify-between">
            <div>
               <div className="flex items-center gap-3 mb-8">
@@ -229,8 +207,15 @@ function IntelligenceHub() {
               </div>
            </div>
 
-           <div className="h-48 mt-8 flex items-center justify-center bg-slate-50 rounded-3xl text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-              Chart temporarily disabled for debug
+           <div className="h-48 mt-8">
+              <ResponsiveContainer width="100%" height="100%">
+                 <LineChart data={metrics.hourly_data?.length > 0 ? metrics.hourly_data : [{time: '00:00', revenue: 0}]}>
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                    />
+                    <Line type="monotone" dataKey="revenue" stroke="#4f46e5" strokeWidth={4} dot={false} />
+                 </LineChart>
+              </ResponsiveContainer>
            </div>
 
            <div className="pt-8 border-t border-slate-50">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Sparkles, FileText, Settings, Download, Plus, Trash2, Search, FileDown, FileUp, Zap, ZapOff, AlertCircle, ShoppingBag, CheckCircle2, Upload, X } from "lucide-react";
+import { Search, Plus, Filter, ShoppingBag, Settings, Trash2, X, Upload, Activity, RefreshCw, Smartphone, Package, CheckCircle2, Globe, MessageCircle, MoreVertical, Sparkles, Wand2 } from 'lucide-react';
 import API_BASE, { isMobileDevice } from "../config";
 
 function DigitalCatalog() {
@@ -497,7 +497,7 @@ function DigitalCatalog() {
                         <div className="col-span-full flex items-center gap-6 mb-2">
                            <div className="w-24 h-24 bg-white border-2 border-dashed border-slate-200 rounded-3xl flex flex-col items-center justify-center text-slate-300 relative overflow-hidden shrink-0">
                                {newItem.image_url ? (
-                                   <img src={`${API_BASE}${newItem.image_url}`} className="w-full h-full object-cover" />
+                                   <img src={`${API_BASE}${newItem.image_url}`} alt={newItem.product_name} className="w-full h-full object-cover" />
                                ) : (
                                    <Upload className="w-6 h-6 mb-1" />
                                )}
@@ -583,7 +583,7 @@ function DigitalCatalog() {
                                 <td className="px-8 py-6">
                                     <div className="flex items-center gap-4">
                                         <div className="w-12 h-12 bg-slate-100 rounded-2xl overflow-hidden shrink-0">
-                                            {item.image_url ? <img src={`${API_BASE}${item.image_url}`} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><ShoppingBag className="w-5 h-5" /></div>}
+                                            {item.image_url ? <img src={`${API_BASE}${item.image_url}`} alt={item.product_name} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><ShoppingBag className="w-5 h-5" /></div>}
                                         </div>
                                         <div>
                                             <p className="text-sm font-black text-slate-900 leading-none mb-1">{item.product_name}</p>
@@ -650,7 +650,7 @@ function DigitalCatalog() {
                       <div className="flex items-center gap-8 mb-4">
                          <div className="w-32 h-32 bg-slate-50 border-2 border-dashed border-slate-100 rounded-[2.5rem] flex flex-col items-center justify-center text-slate-300 relative overflow-hidden shrink-0 group">
                              {editingItem.image_url ? (
-                                 <img src={`${API_BASE}${editingItem.image_url}`} className="w-full h-full object-cover" />
+                                 <img src={`${API_BASE}${editingItem.image_url}`} alt={editingItem.product_name} className="w-full h-full object-cover" />
                              ) : (
                                  <Upload className="w-8 h-8 opacity-20" />
                              )}
