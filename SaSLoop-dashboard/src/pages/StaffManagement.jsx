@@ -114,6 +114,9 @@ const StaffManagement = () => {
                             <div className="flex items-center gap-4">
                                <p className="text-xs font-bold text-slate-400">{s.email}</p>
                                <span className="text-[9px] font-black text-indigo-500 uppercase tracking-widest bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{s.role.replace('staff_', '')}</span>
+                               {s.pos_pin && (
+                                  <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100 ml-2">PIN: {s.pos_pin}</span>
+                               )}
                             </div>
                          </div>
                       </div>
@@ -153,11 +156,27 @@ const StaffManagement = () => {
                      />
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Password</label>
+                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Staff Password</label>
                      <input 
                         className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs font-bold text-white outline-none focus:border-indigo-500" 
-                        type="password" placeholder="At least 6 characters" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required
+                        type="password" placeholder="Dashboard password" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} required
                      />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">POS Phone</label>
+                        <input 
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs font-bold text-white outline-none focus:border-indigo-500" 
+                            placeholder="+91..." value={formData.phone || ""} onChange={e => setFormData({...formData, phone: e.target.value})} required
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">POS 4-Digit PIN</label>
+                        <input 
+                            className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-xs font-bold text-white outline-none focus:border-indigo-500" 
+                            placeholder="1234" maxLength="4" value={formData.pos_pin || ""} onChange={e => setFormData({...formData, pos_pin: e.target.value})} required
+                        />
+                    </div>
                   </div>
                   <div className="space-y-2">
                      <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Access Role</label>

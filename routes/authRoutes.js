@@ -157,4 +157,35 @@ router.post("/reset-password", async (req, res) => {
   }
 });
 
+// 🔐 POS LOGIN (Staff with PIN)
+router.post("/pos-login", async (req, res) => {
+    try {
+        const { phone, pin } = req.body;
+        if (!phone || !pin) return res.status(400).json({ error: "Phone and PIN are required" });
+
+        const result = await pool.query(
+            "SELECT id, email, role, parent_user_id, name, business_name FROM app_users WHERE phone = $1 AND pos_pin = $2 AND status = 'active'",
+            [phone, pin]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: "Invalid credentials or inactive account" });
+        }
+
+        const user = result.rows[0];
+        const bizId = user.parent_user_id || user.id;
+
+        const token = jwt.sign(
+            { id: user.id, bizId, role: user.role, isPOS: true },
+            process.env.JWT_SECRET || "secretkey",
+            { expiresIn: "24h" }
+        );
+
+        res.json({ token, user: { ...user, bizId } });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Server error during POS login" });
+    }
+});
+
 module.exports = router;

@@ -214,7 +214,7 @@ router.get("/staff", authMiddleware, async (req, res) => {
 // POST /api/business/staff
 const bcrypt = require("bcrypt");
 router.post("/staff", authMiddleware, async (req, res) => {
-    const { name, email, password, role, permissions, target_user_id } = req.body;
+    const { name, email, password, role, permissions, target_user_id, phone, pos_pin } = req.body;
     try {
         let userId = req.user.id;
         if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin'))) {
@@ -223,8 +223,8 @@ router.post("/staff", authMiddleware, async (req, res) => {
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const result = await pool.query(
-            "INSERT INTO app_users (name, email, password, role, parent_user_id, staff_permissions) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, name, email, role",
-            [name, email, hashedPassword, role, userId, JSON.stringify(permissions || {})]
+            "INSERT INTO app_users (name, email, password, role, parent_user_id, staff_permissions, phone, pos_pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, role, phone, pos_pin",
+            [name, email, hashedPassword, role, userId, JSON.stringify(permissions || {}), phone, pos_pin]
         );
         res.json(result.rows[0]);
     } catch (err) {

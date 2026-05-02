@@ -19,13 +19,21 @@ import {
   History,
   Receipt,
   Users,
-  Star
+  Star,
+  Settings,
+  LogOut,
+  Bell
 } from "lucide-react";
 import API_BASE from "../config";
+import { useNavigate } from "react-router-dom";
 
 import POSDashboard from "./POSDashboard";
+import POSSettings from "./POSSettings";
+import KDS from "./KDS";
+import OrderBoard from "./OrderBoard";
 
 const POS = () => {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -47,7 +55,13 @@ const POS = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
 
+  // Auth Protection
   useEffect(() => {
+    const token = localStorage.getItem("pos_token");
+    if (!token) {
+        navigate("/pos/login");
+        return;
+    }
     fetchData();
     const tableInterval = setInterval(fetchTables, 10000);
     return () => clearInterval(tableInterval);
@@ -55,14 +69,11 @@ const POS = () => {
 
   const fetchData = async () => {
     try {
-      const token = localStorage.getItem("token");
-      const impersonateId = sessionStorage.getItem("impersonate_id");
-      const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
-
+      const token = localStorage.getItem("pos_token");
       const [bizRes, itemsRes, ordersRes, tablesRes] = await Promise.all([
-        fetch(`${API_BASE}/api/business/status${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/catalog${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/orders${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/business/status`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/catalog`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/orders`, { headers: { "Authorization": `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
 
@@ -84,7 +95,7 @@ const POS = () => {
 
   const fetchTables = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("pos_token");
       const res = await fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } });
       const data = await res.json();
       setPosTables(data);
@@ -160,6 +171,12 @@ const POS = () => {
     setIsProcessing(false);
   };
 
+  const handleLogout = () => {
+      localStorage.removeItem("pos_token");
+      localStorage.removeItem("pos_user");
+      navigate("/pos/login");
+  };
+
   const handlePrint = () => {
     const printWindow = window.open('', '_blank');
     const receiptHTML = `
@@ -202,35 +219,32 @@ const POS = () => {
 
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-slate-950 text-white">
-      <RefreshCw className="w-10 h-10 animate-spin text-orange-500 mb-6" />
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Syncing SaSLoop POS...</p>
+      <RefreshCw className="w-10 h-10 animate-spin text-indigo-500 mb-6" />
+      <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-40">Syncing POS Engine...</p>
     </div>
   );
 
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0c10] font-sans text-slate-100 select-none p-4 gap-4">
       
+      {/* 🛠️ SIDEBAR NAVIGATION */}
       <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
          <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] flex flex-col items-center py-8 gap-8 flex-1 shadow-2xl">
-            <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-orange-500/20 mb-4 cursor-pointer hover:scale-110 transition-transform">
+            <div className="w-12 h-12 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-2xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 mb-4 cursor-pointer hover:scale-110 transition-transform">
                 <Zap className="w-6 h-6 text-white" />
             </div>
 
             <div className="flex flex-col gap-6 w-full items-center">
                {[
                   { id: "DASHBOARD", icon: Grid, label: "Analytics" },
-                  { id: "ORDERING", icon: ShoppingBag, label: "Orders" },
-                  { icon: Utensils, label: "Kitchen", path: "/kds" },
-                  { icon: History, label: "History", path: "/orders" },
-                  { icon: Users, label: "CRM", path: "/crm" },
-                  { icon: Receipt, label: "Reports", path: "/analytics" }
+                  { id: "ORDERING", icon: ShoppingBag, label: "Ordering" },
+                  { id: "KDS", icon: Utensils, label: "Kitchen Display" },
+                  { id: "HISTORY", icon: History, label: "Order History" },
+                  { id: "SETTINGS", icon: Settings, label: "POS Settings" }
                ].map((item, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => {
-                       if (item.id) setView(item.id);
-                       else if (item.path) window.location.href = item.path;
-                    }}
+                    onClick={() => setView(item.id)}
                     className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${view === item.id ? 'bg-white text-slate-950 shadow-xl' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
                   >
                      <item.icon className="w-5 h-5" />
@@ -242,194 +256,200 @@ const POS = () => {
             </div>
 
             <div className="mt-auto flex flex-col gap-4 w-full items-center">
-               <button onClick={() => window.location.href = "/floor-plan"} className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all">
-                  <LayoutGrid className="w-5 h-5" />
+               <button onClick={handleLogout} className="w-12 h-12 rounded-2xl bg-rose-500/10 text-rose-500 border border-rose-500/20 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all group relative">
+                  <LogOut className="w-5 h-5" />
+                  <div className="absolute left-16 px-3 py-1 bg-rose-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-2xl">
+                     Logout Terminal
+                  </div>
                </button>
             </div>
          </div>
-         <button onClick={() => window.close()} className="w-full aspect-square bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-xl"><X className="w-6 h-6" /></button>
       </div>
 
-      {view === "DASHBOARD" ? (
-         <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
-            <POSDashboard />
-         </div>
-      ) : (
-         <>
-            <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
-               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 flex flex-col items-center gap-4 flex-1 py-8 overflow-y-auto no-scrollbar shadow-xl">
-                  {categories.map(cat => (
-                     <button 
-                       key={cat}
-                       onClick={() => setSelectedCategory(cat)}
-                       className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedCategory === cat ? 'bg-white text-slate-950 shadow-2xl scale-110' : 'text-white/40 hover:bg-white/5'}`}
-                     >
-                        <Star className="w-4 h-4" />
-                        <span className="text-[7px] font-black uppercase tracking-tighter text-center line-clamp-1 px-1">{cat}</span>
-                     </button>
-                  ))}
-               </div>
+      {/* 🖥️ MAIN VIEWPORT */}
+      <div className="flex-1 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] shadow-2xl overflow-hidden flex flex-col">
+        
+        {view === "DASHBOARD" && (
+            <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
+                <POSDashboard />
             </div>
+        )}
 
-      {/* ⚪ MIDDLE: PRODUCTS & FLOOR PREVIEW */}
-      <div className="flex-1 flex flex-col min-w-0 gap-4">
-         
-         {/* SMART TOOLBAR: Search & Tables */}
-         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4 px-8 flex items-center justify-between shrink-0 h-24">
-            <div className="flex-1 max-w-md relative group">
-                <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-orange-500 transition-colors" />
-                <input 
-                    type="text" placeholder="Search dish or scan code..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-4 text-xs font-black outline-none focus:border-orange-500/50 transition-all text-white placeholder:text-white/20"
-                />
+        {view === "SETTINGS" && (
+            <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
+                <POSSettings />
             </div>
+        )}
 
-            <div className="flex items-center gap-3 ml-6 overflow-x-auto no-scrollbar py-2">
-                {posTables.map(table => (
-                   <button 
-                     key={table.id}
-                     onClick={() => setSelectedTable(table.table_name)}
-                     className={`h-12 px-5 rounded-2xl border-2 flex items-center gap-3 transition-all shrink-0 ${selectedTable === table.table_name ? 'bg-orange-500 border-orange-400 text-white shadow-xl scale-105' : table.status === 'OCCUPIED' ? 'bg-white/10 border-white/20 text-white animate-pulse' : 'bg-white/5 border-white/5 text-white/40 hover:border-white/20'}`}
-                   >
-                      <span className="text-[10px] font-black uppercase italic">{table.table_name}</span>
-                      <div className={`w-2 h-2 rounded-full ${table.status === 'OCCUPIED' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                   </button>
-                ))}
+        {view === "KDS" && (
+            <div className="flex-1 overflow-y-auto no-scrollbar">
+                <KDS />
             </div>
-         </div>
+        )}
 
-         {/* ITEM GRID */}
-         <div className="flex-1 overflow-y-auto no-scrollbar p-2">
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                <AnimatePresence>
-                    {filteredItems.map(item => (
-                        <motion.button 
-                           key={item.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-                           onClick={() => addToCart(item)}
-                           className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-[2.5rem] shadow-xl hover:border-orange-500/30 transition-all group relative h-fit"
-                        >
-                            <div className="aspect-square bg-slate-900 rounded-[1.8rem] mb-4 overflow-hidden relative border border-white/5">
-                                {item.image_url ? <img src={`${API_BASE}${item.image_url}`} alt={item.product_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
-                                <div className="absolute top-3 right-3 w-3 h-3 rounded-full border-2 border-slate-950" style={{ backgroundColor: item.is_veg ? '#10b981' : '#f43f5e' }} />
-                            </div>
-                            <div className="text-left px-2">
-                                <h4 className="text-[11px] font-black text-white uppercase italic tracking-tighter mb-1 line-clamp-1">{item.product_name}</h4>
-                                <p className="text-xl font-black text-white tracking-tighter italic">₹{item.price}</p>
-                            </div>
-                            <div className="absolute -top-1 -right-1 w-10 h-10 bg-orange-500 text-white rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-2xl scale-75 group-hover:scale-100"><Plus className="w-6 h-6" /></div>
-                        </motion.button>
-                    ))}
-                </AnimatePresence>
+        {view === "HISTORY" && (
+            <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50">
+                <OrderBoard />
             </div>
-         </div>
+        )}
+
+        {view === "ORDERING" && (
+            <div className="flex-1 flex gap-4 p-4 overflow-hidden">
+                {/* Categories Strip */}
+                <div className="w-20 flex flex-col gap-4 shrink-0">
+                   <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 flex flex-col items-center gap-4 flex-1 py-8 overflow-y-auto no-scrollbar shadow-xl">
+                      {categories.map(cat => (
+                         <button 
+                           key={cat}
+                           onClick={() => setSelectedCategory(cat)}
+                           className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedCategory === cat ? 'bg-white text-slate-950 shadow-2xl scale-110' : 'text-white/40 hover:bg-white/5'}`}
+                         >
+                            <Star className="w-4 h-4" />
+                            <span className="text-[7px] font-black uppercase tracking-tighter text-center line-clamp-1 px-1">{cat}</span>
+                         </button>
+                      ))}
+                   </div>
+                </div>
+
+                {/* Middle: Grid & Search */}
+                <div className="flex-1 flex flex-col gap-4">
+                    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-4 px-8 flex items-center justify-between shrink-0 h-24">
+                        <div className="flex-1 max-w-md relative group">
+                            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-white/20 group-focus-within:text-indigo-400 transition-colors" />
+                            <input 
+                                type="text" placeholder="Search dish..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
+                                className="w-full bg-white/5 border border-white/10 rounded-2xl pl-16 pr-6 py-4 text-xs font-black outline-none focus:border-indigo-500/50 transition-all text-white placeholder:text-white/20"
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 ml-6 overflow-x-auto no-scrollbar py-2">
+                            {posTables.map(table => (
+                               <button 
+                                 key={table.id}
+                                 onClick={() => setSelectedTable(table.table_name)}
+                                 className={`h-12 px-5 rounded-2xl border-2 flex items-center gap-3 transition-all shrink-0 ${selectedTable === table.table_name ? 'bg-indigo-600 border-indigo-400 text-white shadow-xl scale-105' : table.status === 'OCCUPIED' ? 'bg-white/10 border-white/20 text-white animate-pulse' : 'bg-white/5 border-white/5 text-white/40 hover:border-white/20'}`}
+                               >
+                                  <span className="text-[10px] font-black uppercase italic">{table.table_name}</span>
+                                  <div className={`w-2 h-2 rounded-full ${table.status === 'OCCUPIED' ? 'bg-amber-400' : 'bg-emerald-400'}`} />
+                               </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto no-scrollbar">
+                        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 p-2">
+                            <AnimatePresence>
+                                {filteredItems.map(item => (
+                                    <motion.button 
+                                       key={item.id} layout initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                                       onClick={() => addToCart(item)}
+                                       className="bg-white/5 backdrop-blur-xl border border-white/10 p-4 rounded-[2.5rem] shadow-xl hover:border-indigo-500/30 transition-all group relative"
+                                    >
+                                        <div className="aspect-square bg-slate-900 rounded-[1.8rem] mb-4 overflow-hidden relative border border-white/5">
+                                            {item.image_url ? <img src={`${API_BASE}${item.image_url}`} alt={item.product_name} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
+                                            <div className="absolute top-3 right-3 w-3 h-3 rounded-full border-2 border-slate-950" style={{ backgroundColor: item.is_veg ? '#10b981' : '#f43f5e' }} />
+                                        </div>
+                                        <div className="text-left px-2">
+                                            <h4 className="text-[11px] font-black text-white uppercase italic tracking-tighter mb-1 line-clamp-1">{item.product_name}</h4>
+                                            <p className="text-xl font-black text-white tracking-tighter italic">₹{item.price}</p>
+                                        </div>
+                                        <div className="absolute -top-1 -right-1 w-10 h-10 bg-indigo-600 text-white rounded-2xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all shadow-2xl scale-75 group-hover:scale-100"><Plus className="w-6 h-6" /></div>
+                                    </motion.button>
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Cart */}
+                <div className="w-[380px] bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-2xl">
+                    <div className="p-8 pb-4">
+                       <div className="flex items-center justify-between mb-8">
+                          <div>
+                            <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic italic-shadow">Billing</h2>
+                            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mt-1">Terminal Active</p>
+                          </div>
+                          <div className="flex bg-white/5 p-1 rounded-2xl">
+                             {['DINEIN', 'TAKEAWAY'].map(mode => (
+                                <button key={mode} onClick={() => setActiveTab(mode)} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${activeTab === mode ? 'bg-white text-slate-950' : 'text-white/40'}`}>{mode}</button>
+                             ))}
+                          </div>
+                       </div>
+
+                       <div className="grid grid-cols-2 gap-4">
+                          <div className="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col">
+                             <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Mobile</span>
+                             <input type="text" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+91..." className="bg-transparent text-xs font-bold text-white outline-none w-full" />
+                          </div>
+                          <div className="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col">
+                             <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Name</span>
+                             <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Guest" className="bg-transparent text-xs font-bold text-white outline-none w-full" />
+                          </div>
+                       </div>
+                    </div>
+
+                    <div className="flex-1 overflow-y-auto px-8 py-4 no-scrollbar space-y-4">
+                       {cart.length === 0 ? (
+                          <div className="h-full flex flex-col items-center justify-center opacity-10">
+                             <ShoppingBag className="w-20 h-20 mb-4" />
+                             <p className="text-[10px] font-black uppercase tracking-[0.5em]">Empty Cart</p>
+                          </div>
+                       ) : (
+                          <AnimatePresence>
+                             {cart.map(item => (
+                                <motion.div 
+                                   key={item.id} initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }}
+                                   className="flex items-center gap-4 bg-white/5 border border-white/5 p-4 rounded-[2rem] group"
+                                >
+                                   <div className="flex-1">
+                                      <h5 className="text-[11px] font-black text-white uppercase italic leading-none mb-1">{item.product_name}</h5>
+                                      <p className="text-[10px] font-bold text-white/30 italic">₹{item.price} × {item.qty}</p>
+                                   </div>
+                                   <div className="flex items-center bg-black/40 rounded-xl p-1 gap-3">
+                                      <button onClick={() => updateQty(item.id, -1)} className="p-1 text-white/40 hover:text-white"><Minus className="w-3.5 h-3.5" /></button>
+                                      <span className="text-xs font-black text-white w-4 text-center">{item.qty}</span>
+                                      <button onClick={() => updateQty(item.id, 1)} className="p-1 text-white/40 hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
+                                   </div>
+                                </motion.div>
+                             ))}
+                          </AnimatePresence>
+                       )}
+                    </div>
+
+                    <div className="p-10 bg-black/40 border-t border-white/5 space-y-6">
+                       <div className="flex items-end justify-between">
+                          <div>
+                            <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-1">Grand Total</p>
+                            <h3 className="text-5xl font-black italic tracking-tighter text-white">₹{Math.floor(totals.total)}</h3>
+                          </div>
+                          <div className="flex gap-2">
+                             <button onClick={handlePrint} className="w-12 h-12 rounded-2xl bg-white/5 text-white/30 border border-white/10 flex items-center justify-center hover:text-white hover:bg-white/10 transition-all"><Printer className="w-5 h-5" /></button>
+                             <button onClick={() => setPaymentMode('CASH')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'CASH' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Banknote className="w-5 h-5" /></button>
+                             <button onClick={() => setPaymentMode('UPI')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'UPI' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Smartphone className="w-5 h-5" /></button>
+                          </div>
+                       </div>
+
+                       <div className="flex gap-4">
+                          <button 
+                            disabled={isProcessing || cart.length === 0} onClick={() => handleAction('PREPARING')}
+                            className="flex-1 py-6 bg-white/5 border border-white/10 rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/10 transition-all text-white/60"
+                          >
+                            Hold Order
+                          </button>
+                          <button 
+                            disabled={isProcessing || cart.length === 0} onClick={() => handleAction('COMPLETED')}
+                            className="flex-[1.5] py-6 bg-indigo-600 rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.4em] shadow-2xl shadow-indigo-500/20 active:scale-95 transition-all text-white flex items-center justify-center gap-3"
+                          >
+                            Settle & Print <ChevronRight className="w-5 h-5" />
+                          </button>
+                       </div>
+                    </div>
+                </div>
+            </div>
+        )}
       </div>
 
-      {/* 🧾 RIGHT: ELITE BILLING CONSOLE */}
-      <div className="w-[420px] flex flex-col shrink-0 gap-4">
-         
-         <div className="flex-1 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-2xl">
-            {/* Header & Tabs */}
-            <div className="p-8 pb-4">
-               <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <h2 className="text-3xl font-black text-white tracking-tighter uppercase italic italic-shadow">Billing</h2>
-                    <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.4em] mt-1">Terminal Active</p>
-                  </div>
-                  <div className="flex bg-white/5 p-1 rounded-2xl">
-                     {['DINEIN', 'TAKEAWAY'].map(mode => (
-                        <button key={mode} onClick={() => setActiveTab(mode)} className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase transition-all ${activeTab === mode ? 'bg-white text-slate-950' : 'text-white/40'}`}>{mode}</button>
-                     ))}
-                  </div>
-               </div>
-
-               {/* Customer Quick Lookup */}
-               <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col">
-                     <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Customer Mobile</span>
-                     <input type="text" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="+91..." className="bg-transparent text-xs font-bold text-white outline-none w-full" />
-                  </div>
-                  <div className="bg-black/40 border border-white/10 rounded-2xl p-4 flex flex-col">
-                     <span className="text-[8px] font-black text-white/30 uppercase tracking-widest mb-1">Customer Name</span>
-                     <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Guest Name" className="bg-transparent text-xs font-bold text-white outline-none w-full" />
-                  </div>
-               </div>
-            </div>
-
-            {/* Cart List */}
-            <div className="flex-1 overflow-y-auto px-8 py-4 no-scrollbar space-y-4">
-               {cart.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center opacity-10">
-                     <ShoppingBag className="w-20 h-20 mb-4" />
-                     <p className="text-[10px] font-black uppercase tracking-[0.5em]">Cart Empty</p>
-                  </div>
-               ) : (
-                  <AnimatePresence>
-                     {cart.map(item => (
-                        <motion.div 
-                           key={item.id} initial={{ x: 50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -50, opacity: 0 }}
-                           className="flex items-center gap-4 bg-white/5 border border-white/5 p-4 rounded-[2rem] group"
-                        >
-                           <div className="flex-1">
-                              <h5 className="text-[11px] font-black text-white uppercase italic leading-none mb-1">{item.product_name}</h5>
-                              <p className="text-[10px] font-bold text-white/30 italic">₹{item.price} × {item.qty}</p>
-                           </div>
-                           <div className="flex items-center bg-black/40 rounded-xl p-1 gap-3">
-                              <button onClick={() => updateQty(item.id, -1)} className="p-1 text-white/40 hover:text-white"><Minus className="w-3.5 h-3.5" /></button>
-                              <span className="text-xs font-black text-white w-4 text-center">{item.qty}</span>
-                              <button onClick={() => updateQty(item.id, 1)} className="p-1 text-white/40 hover:text-white"><Plus className="w-3.5 h-3.5" /></button>
-                           </div>
-                        </motion.div>
-                     ))}
-                  </AnimatePresence>
-               )}
-            </div>
-
-            {/* Footer Summary */}
-            <div className="p-10 bg-black/40 border-t border-white/5 space-y-6">
-               <div className="space-y-2">
-                  <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
-                     <span>Items Subtotal</span>
-                     <span className="text-white">₹{totals.subtotal.toFixed(0)}</span>
-                  </div>
-                  <div className="flex justify-between text-[10px] font-black text-white/30 uppercase tracking-[0.2em]">
-                     <span>GST & Service</span>
-                     <span className="text-white">₹{totals.totalTax.toFixed(0)}</span>
-                  </div>
-               </div>
-
-               <div className="flex items-end justify-between">
-                  <div>
-                    <p className="text-[10px] font-black text-white/20 uppercase tracking-[0.4em] mb-1">Grand Total</p>
-                    <h3 className="text-5xl font-black italic tracking-tighter text-white">₹{Math.floor(totals.total)}</h3>
-                  </div>
-                  <div className="flex gap-2">
-                     <button onClick={handlePrint} className="w-12 h-12 rounded-2xl bg-white/5 text-white/30 border border-white/10 flex items-center justify-center hover:text-white hover:bg-white/10 transition-all"><Printer className="w-5 h-5" /></button>
-                     <button onClick={() => setPaymentMode('CASH')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'CASH' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Banknote className="w-5 h-5" /></button>
-                     <button onClick={() => setPaymentMode('UPI')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'UPI' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Smartphone className="w-5 h-5" /></button>
-                  </div>
-               </div>
-
-               <div className="flex gap-4">
-                  <button 
-                    disabled={isProcessing || cart.length === 0} onClick={() => handleAction('PREPARING')}
-                    className="flex-1 py-6 bg-white/5 border border-white/10 rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.3em] hover:bg-white/10 active:scale-95 transition-all text-white/60"
-                  >
-                    Hold Order
-                  </button>
-                  <button 
-                    disabled={isProcessing || cart.length === 0} onClick={() => handleAction('COMPLETED')}
-                    className="flex-[1.5] py-6 bg-orange-500 rounded-[1.8rem] text-[10px] font-black uppercase tracking-[0.4em] shadow-2xl shadow-orange-500/20 active:scale-95 transition-all text-white flex items-center justify-center gap-3"
-                  >
-                    Settle & Print <ChevronRight className="w-5 h-5" />
-                  </button>
-               </div>
-            </div>
-         </div>
-      </div>
-      </>
-   )}
-
-      {/* OVERLAY: CHECKOUT SUCCESS */}
+      {/* 🧾 CHECKOUT SUCCESS OVERLAY */}
       <AnimatePresence>
         {checkoutResult && (
            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[500] flex items-center justify-center bg-slate-950/90 backdrop-blur-xl p-6">

@@ -42,6 +42,7 @@ import IntelligenceHub from "./pages/IntelligenceHub";
 import MarketingStudio from "./pages/MarketingStudio";
 import CommandCenter from "./pages/CommandCenter";
 import TableManagement from "./pages/TableManagement";
+import POSLogin from "./pages/POSLogin";
 
 
 // ============================================================
@@ -84,8 +85,8 @@ const ProtectedShell = ({ allowedRoles }) => {
 
 // Simple guard for POS to open without Layout
 const POSGuard = () => {
-  const user = JSON.parse(localStorage.getItem("user") || "null");
-  if (!user) return <Navigate to="/login" replace />;
+  const token = localStorage.getItem("pos_token");
+  if (!token) return <Navigate to="/pos/login" replace />;
   return <POS />;
 };
 
@@ -100,6 +101,7 @@ function App() {
         <Route path="/order/:bizId" element={<OnlineOrder />} />
         <Route path="/track/:orderRef" element={<TrackOrder />} />
         <Route path="/rider/:riderId" element={<RiderPortal />} />
+        <Route path="/pos/login" element={<POSLogin />} />
         <Route path="/pos" element={<POSGuard />} />
 
         {/* Master Admin Routes */}

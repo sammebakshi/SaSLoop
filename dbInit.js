@@ -63,6 +63,7 @@ async function initializeDatabase() {
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS parent_user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS staff_permissions JSONB DEFAULT '{}'`,
+            `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS pos_pin VARCHAR(10) DEFAULT NULL`,
 
             // 3. Create business_items table
             `CREATE TABLE IF NOT EXISTS business_items (
