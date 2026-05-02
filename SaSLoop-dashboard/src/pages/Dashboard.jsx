@@ -216,15 +216,14 @@ function Dashboard() {
         )}
         {!isMobile && (
           <div className="flex items-center gap-4">
-             <div className="flex items-center gap-4">
-                <button 
-                  onClick={unlockAudio}
-                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg ${
-                    !audioEnabled 
-                      ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 animate-pulse' 
-                      : 'bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-emerald-100'
-                  }`}
-                >
+             <button 
+               onClick={unlockAudio}
+               className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg ${
+                 !audioEnabled 
+                   ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 animate-pulse' 
+                   : 'bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-emerald-100'
+               }`}
+             >
                   {!audioEnabled ? (
                     <>
                       <BellRing className="w-4 h-4" /> Enable Sound Alerts
@@ -239,7 +238,7 @@ function Dashboard() {
              <button onClick={handleVoiceCommand} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isListening ? 'bg-indigo-600 text-white animate-pulse shadow-xl shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                 {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />} AI Voice
              </button>
-          </div>
+           </div>
         )}
       </div>
 
