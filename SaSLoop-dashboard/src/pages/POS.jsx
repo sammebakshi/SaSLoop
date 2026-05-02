@@ -64,10 +64,13 @@ const POS = () => {
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("token");
+      const impersonateId = sessionStorage.getItem("impersonate_id");
+      const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
+
       const [bizRes, itemsRes, ordersRes, tablesRes] = await Promise.all([
-        fetch(`${API_BASE}/api/business/status`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/catalog`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/orders`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/business/status${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/catalog${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/orders${targetParam}`, { headers: { "Authorization": `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
 
@@ -136,7 +139,7 @@ const POS = () => {
     setIsProcessing(true);
     try {
       const payload = {
-        userId: business.user_id,
+        userId: business?.user_id,
         tableNumber: String(selectedTable || 0),
         items: cart,
         totalPrice: totals.total,
@@ -163,6 +166,46 @@ const POS = () => {
       }
     } catch (e) { console.error(e); }
     setIsProcessing(false);
+  };
+
+  const handlePrint = () => {
+    const printWindow = window.open('', '_blank');
+    const receiptHTML = `
+      <html>
+        <head>
+          <title>Bill - ${business?.name}</title>
+          <style>
+            body { font-family: 'monospace'; width: 80mm; padding: 2mm; font-size: 11px; line-height: 1.2; }
+            .center { text-align: center; }
+            .dashed { border-bottom: 1px dashed #000; margin: 2mm 0; }
+            .row { display: flex; justify-content: space-between; }
+            .bold { font-weight: bold; font-size: 13px; }
+          </style>
+        </head>
+        <body>
+          <div class="center">
+            <h2 style="margin:0">${business?.name}</h2>
+            <p style="margin:0">${business?.address || ''}</p>
+            <p style="margin:0">Ph: ${business?.phone}</p>
+          </div>
+          <div class="dashed"></div>
+          <div class="row"><span>Date: ${new Date().toLocaleDateString()}</span><span>Time: ${new Date().toLocaleTimeString()}</span></div>
+          <div class="row"><span>Table: ${selectedTable || 'N/A'}</span><span>Mode: ${activeTab}</span></div>
+          <div class="dashed"></div>
+          ${cart.map(i => `<div class="row"><span>${i.qty} x ${i.product_name}</span><span>${(i.price * i.qty).toFixed(2)}</span></div>`).join('')}
+          <div class="dashed"></div>
+          <div class="row"><span>Subtotal:</span><span>${totals.subtotal.toFixed(2)}</span></div>
+          ${totals.discountAmt > 0 ? `<div class="row"><span>Discount:</span><span>-${totals.discountAmt.toFixed(2)}</span></div>` : ''}
+          <div class="row"><span>Tax:</span><span>${totals.totalTax.toFixed(2)}</span></div>
+          <div class="row bold"><span>GRAND TOTAL:</span><span>\u20B9${totals.total.toFixed(2)}</span></div>
+          <div class="dashed"></div>
+          <div class="center"><p>THANK YOU! VISIT AGAIN</p></div>
+          <script>window.print(); window.close();</script>
+        </body>
+      </html>
+    `;
+    printWindow.document.write(receiptHTML);
+    printWindow.document.close();
   };
 
   if (loading) return (
@@ -328,6 +371,7 @@ const POS = () => {
                     <h3 className="text-5xl font-black italic tracking-tighter text-white">₹{Math.floor(totals.total)}</h3>
                   </div>
                   <div className="flex gap-2">
+                     <button onClick={handlePrint} className="w-12 h-12 rounded-2xl bg-white/5 text-white/30 border border-white/10 flex items-center justify-center hover:text-white hover:bg-white/10 transition-all"><Printer className="w-5 h-5" /></button>
                      <button onClick={() => setPaymentMode('CASH')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'CASH' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Banknote className="w-5 h-5" /></button>
                      <button onClick={() => setPaymentMode('UPI')} className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${paymentMode === 'UPI' ? 'bg-white text-slate-950' : 'bg-white/5 text-white/30 border border-white/5'}`}><Smartphone className="w-5 h-5" /></button>
                   </div>
