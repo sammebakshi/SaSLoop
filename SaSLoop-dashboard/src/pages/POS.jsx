@@ -59,6 +59,7 @@ const POS = () => {
   const [checkoutResult, setCheckoutResult] = useState(null);
 
   const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [theme, setTheme] = useState(localStorage.getItem("pos_theme") || "dark");
   const [notificationSound] = useState(new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3")); // iPhone-like tone
 
   useEffect(() => {
