@@ -24,16 +24,36 @@ function Dashboard() {
   const [newOrderAlert, setNewOrderAlert] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceIntel, setVoiceIntel] = useState(null);
+  const [audioEnabled, setAudioEnabled] = useState(() => localStorage.getItem("globalSound") === "true");
+  const [lastChatCount, setLastChatCount] = useState(0);
+  const [lastNotifCount, setLastNotifCount] = useState(0);
 
   const playNotification = (type) => {
+    if (!audioEnabled) return;
     if (type === 'order') {
        setNewOrderAlert(true);
        setTimeout(() => setNewOrderAlert(false), 8000);
     }
     try {
-      const audio = new Audio(type === 'order' ? 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3' : 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3');
-      audio.play().catch(e => console.warn("Audio blocked by browser"));
-    } catch (e) {}
+      const urls = {
+        order: 'https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3',
+        waiter: 'https://assets.mixkit.co/active_storage/sfx/2570/2570-preview.mp3',
+        message: 'https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3'
+      };
+      const audio = new Audio(urls[type] || urls.order);
+      audio.play().catch(e => console.warn("Audio blocked by browser. User must click 'Enable Sound' first."));
+    } catch (e) { console.error("Audio playback error:", e); }
+  };
+
+  const unlockAudio = () => {
+    setAudioEnabled(true);
+    localStorage.setItem("globalSound", "true");
+    // Play a tiny silent sound to unlock
+    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+    audio.volume = 0.1;
+    audio.play().then(() => {
+        alert("🔔 Sound Notifications Enabled Successfully!");
+    }).catch(e => alert("Please allow audio permissions in your browser settings."));
   };
 
   useEffect(() => {
@@ -87,6 +107,21 @@ function Dashboard() {
         });
         const suggestData = await suggestRes.json();
         if (suggestData.suggestions) setSuggestions(suggestData.suggestions);
+
+        // 🔔 Fetch WhatsApp & System Notifications
+        const notifRes = await fetch(`${API_BASE}/api/whatsapp/notif-counts`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+        const notifData = await notifRes.json();
+        
+        setLastChatCount(prev => {
+            if (prev > 0 && notifData.chats > prev) playNotification('message');
+            return notifData.chats;
+        });
+        setLastNotifCount(prev => {
+            if (prev > 0 && notifData.notifications > prev) playNotification('order');
+            return notifData.notifications;
+        });
 
       } catch (err) {
 
@@ -175,15 +210,22 @@ function Dashboard() {
         )}
         {!isMobile && (
           <div className="flex items-center gap-4">
-            <div className="bg-white border border-slate-200 px-4 py-2 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-               Refreshed: {new Date().toLocaleTimeString()}
-            </div>
-            <button 
-              onClick={() => window.location.href = '/intelligence'}
-              className="px-6 py-2.5 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-black transition-all"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-400" /> Executive Brain
-            </button>
+             {!audioEnabled ? (
+                <button 
+                  onClick={unlockAudio}
+                  className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 animate-pulse transition-all"
+                >
+                  <BellRing className="w-4 h-4" /> Enable Sound Alerts
+                </button>
+             ) : (
+                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest">
+                   <Check className="w-4 h-4" /> Sounds Active
+                </div>
+             )}
+             
+             <button onClick={handleVoiceCommand} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isListening ? 'bg-indigo-600 text-white animate-pulse shadow-xl shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
+                {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />} AI Voice
+             </button>
           </div>
         )}
       </div>

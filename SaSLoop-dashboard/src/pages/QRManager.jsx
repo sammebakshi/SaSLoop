@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import API_BASE from "../config";
 import { QrCode, Download, Printer, Plus, Trash2, ExternalLink, ShoppingBag } from "lucide-react";
+import { generateStandee } from "../utils/standeeGenerator";
 
 function QRManager() {
   const [user, setUser] = useState(null);
@@ -23,7 +24,7 @@ function QRManager() {
 
   const fetchBizProfile = async (userId) => {
     try {
-      const res = await fetch(`${API_BASE}/api/business/profile/${userId}`);
+      const res = await fetch(`${API_BASE}/api/public/menu/${userId}`);
       const data = await res.json();
       if (data.business) setBizData(data.business);
     } catch (err) { console.error("Failed to fetch biz profile:", err); }
@@ -43,91 +44,7 @@ function QRManager() {
   const baseUrl = liveUrl || window.location.origin;
 
   const downloadStandee = async (qrUrl, tableNum = null) => {
-    const canvas = document.createElement("canvas");
-    const ctx = canvas.getContext("2d");
-    
-    // Standee Dimensions (A5 Ratio: 148x210mm @ 150DPI = 874x1240px)
-    canvas.width = 800;
-    canvas.height = 1200;
-
-    // 1. Background (White)
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    // 2. Top Header (Emerald Green)
-    ctx.fillStyle = "#10b981";
-    ctx.fillRect(0, 0, canvas.width, 400);
-
-    // 3. SaSLoop Branding (Top)
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 40px Inter, system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText("Order & Pay on WhatsApp", canvas.width / 2, 100);
-    
-    ctx.font = "900 80px Inter, system-ui";
-    ctx.fillText("SaSLoop AI", canvas.width / 2, 200);
-
-    // 4. White Card for QR
-    const cardMargin = 80;
-    const cardWidth = canvas.width - (cardMargin * 2);
-    ctx.shadowColor = "rgba(0,0,0,0.1)";
-    ctx.shadowBlur = 40;
-    ctx.fillStyle = "#ffffff";
-    // Draw Rounded Rect
-    const r = 40;
-    const x = cardMargin, y = 280, w = cardWidth, h = 600;
-    ctx.beginPath();
-    ctx.moveTo(x + r, y);
-    ctx.lineTo(x + w - r, y);
-    ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-    ctx.lineTo(x + w, y + h - r);
-    ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    ctx.lineTo(x + r, y + h);
-    ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-    ctx.lineTo(x, y + r);
-    ctx.quadraticCurveTo(x, y, x + r, y);
-    ctx.closePath();
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    // 5. Load and Draw QR Code
-    const qrImg = new Image();
-    qrImg.crossOrigin = "anonymous";
-    qrImg.src = qrUrl;
-    
-    await new Promise((resolve) => {
-      qrImg.onload = resolve;
-    });
-
-    const qrSize = 400;
-    ctx.drawImage(qrImg, (canvas.width - qrSize) / 2, 350, qrSize, qrSize);
-
-    // 6. Business Name & Table
-    ctx.fillStyle = "#0f172a";
-    ctx.font = "900 50px Inter, system-ui";
-    ctx.fillText(bizData?.name || "Our Business", canvas.width / 2, 800);
-    
-    if (tableNum) {
-      ctx.fillStyle = "#10b981";
-      ctx.font = "bold 40px Inter, system-ui";
-      ctx.fillText(`TABLE ${tableNum}`, canvas.width / 2, 860);
-    }
-
-    // 7. Footer Call to Action
-    ctx.fillStyle = "#64748b";
-    ctx.font = "600 30px Inter, system-ui";
-    ctx.fillText("Send a 'Hi' on WhatsApp to Order", canvas.width / 2, 1000);
-
-    // 8. Bottom SaSLoop Logo
-    ctx.fillStyle = "#10b981";
-    ctx.font = "900 45px Inter, system-ui";
-    ctx.fillText("⚡ SaSLoop", canvas.width / 2, 1100);
-
-    // 9. Download
-    const link = document.createElement("a");
-    link.download = `SaSLoop_Standee_${tableNum || 'Main'}.png`;
-    link.href = canvas.toDataURL("image/png", 1.0);
-    link.click();
+    await generateStandee(qrUrl, bizData, "ORDER", tableNum);
   };
 
   return (

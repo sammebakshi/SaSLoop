@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import API_BASE from "../config";
-import { Bot, Save, FileText, CheckCircle2, MessageSquare, AlertCircle, Zap, Terminal, ArrowLeft, QrCode, Copy, ExternalLink } from "lucide-react";
+import { Bot, Save, FileText, CheckCircle2, MessageSquare, AlertCircle, Zap, Terminal, ArrowLeft, QrCode, Copy, ExternalLink, Download } from "lucide-react";
+import { generateStandee } from "../utils/standeeGenerator";
 
 function BotConfig() {
   const [user, setUser] = useState(null);

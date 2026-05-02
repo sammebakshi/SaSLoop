@@ -5,6 +5,7 @@ import {
   MessageSquare, Heart, Crown, Award, ExternalLink, Download, Share2,
   Ban, Trash2, ShieldAlert, CheckCircle2, Sparkles, ArrowRight
 } from "lucide-react";
+import { generateStandee } from "../utils/standeeGenerator";
 
 function CRMDashboard() {
   const [customers, setCustomers] = useState([]);
@@ -187,8 +188,8 @@ function CRMDashboard() {
                   <p className="text-slate-500 font-medium leading-relaxed max-w-sm">Place this QR on your physical tables, packaging, or store front. When customers scan it, they instantly subscribe to your WhatsApp updates and earn <strong className="text-indigo-600">50 Bonus Points</strong>.</p>
                   
                   <div className="flex gap-4 pt-4">
-                     <button onClick={() => window.open(qrUrl, '_blank')} className="px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all">
-                        Download Print File <Download className="w-4 h-4" />
+                     <button onClick={() => generateStandee(qrUrl, bizInfo, "CRM")} className="px-8 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black uppercase text-xs tracking-widest shadow-xl flex items-center gap-2 active:scale-95 transition-all">
+                        Download Standee <Download className="w-4 h-4" />
                      </button>
                      <button className="px-8 py-5 bg-white border-2 border-slate-100 text-slate-600 rounded-[1.5rem] font-black uppercase text-xs tracking-widest flex items-center gap-2 hover:bg-slate-50 transition-all">
                         Share Link <Share2 className="w-4 h-4" />
