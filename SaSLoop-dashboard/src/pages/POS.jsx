@@ -58,6 +58,8 @@ const POS = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
 
+  const [theme, setTheme] = useState(localStorage.getItem("pos_theme") || "dark");
+
   useEffect(() => {
     const token = localStorage.getItem("pos_token");
     const storedUser = localStorage.getItem("pos_user");
@@ -69,7 +71,15 @@ const POS = () => {
     
     fetchData();
     const tableInterval = setInterval(fetchTables, 10000);
-    return () => clearInterval(tableInterval);
+
+    const handleThemeUpdate = () => {
+      setTheme(localStorage.getItem("pos_theme") || "dark");
+    };
+    window.addEventListener("storage", handleThemeUpdate);
+    return () => {
+      clearInterval(tableInterval);
+      window.removeEventListener("storage", handleThemeUpdate);
+    };
   }, []);
 
   const fetchData = async () => {
@@ -129,14 +139,30 @@ const POS = () => {
   };
 
   const totals = useMemo(() => {
-    const subtotal = cart.reduce((acc, item) => acc + (item.price * item.qty), 0);
+    const subtotal = cart.reduce((acc, item) => {
+      const p = parseFloat(item.price) || 0;
+      const q = parseInt(item.qty) || 0;
+      return acc + (p * q);
+    }, 0);
+
     let discountAmt = 0;
-    if (discountType === 'PERCENT') discountAmt = (subtotal * discountValue) / 100;
-    else if (discountType === 'FIXED') discountAmt = discountValue;
+    const dVal = parseFloat(discountValue) || 0;
+    if (discountType === 'PERCENT') discountAmt = (subtotal * dVal) / 100;
+    else if (discountType === 'FIXED') discountAmt = dVal;
+
     const netAmount = Math.max(0, subtotal - discountAmt);
-    const taxRate = (business?.cgst_percent || 0) + (business?.sgst_percent || 0);
+    const cgst = parseFloat(business?.cgst_percent) || 0;
+    const sgst = parseFloat(business?.sgst_percent) || 0;
+    const taxRate = cgst + sgst;
+    
     const totalTax = netAmount * (taxRate / 100);
-    return { subtotal, discountAmt, netAmount, totalTax, total: netAmount + totalTax };
+    return { 
+      subtotal, 
+      discountAmt, 
+      netAmount, 
+      totalTax: isNaN(totalTax) ? 0 : totalTax, 
+      total: isNaN(netAmount + totalTax) ? subtotal : (netAmount + totalTax) 
+    };
   }, [cart, business, discountType, discountValue]);
 
   const handleAction = async (status = 'COMPLETED') => {
@@ -227,11 +253,11 @@ const POS = () => {
   );
 
   return (
-    <div className="flex h-screen overflow-hidden bg-[#0a0c10] font-sans text-slate-100 select-none p-2 gap-2">
+    <div className={`flex h-screen overflow-hidden font-sans select-none p-2 gap-2 transition-colors duration-500 ${theme === 'dark' ? 'bg-[#0a0c10] text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
       
       {/* 🛠️ MINI SIDEBAR */}
       <div className="w-16 flex flex-col gap-2 shrink-0 h-full">
-         <div className="bg-white/5 border border-white/10 rounded-2xl flex flex-col items-center py-6 gap-6 flex-1 shadow-2xl">
+         <div className={`border rounded-2xl flex flex-col items-center py-6 gap-6 flex-1 shadow-2xl transition-colors ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
             <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20 mb-2">
                 <Box className="w-5 h-5 text-white" />
             </div>
@@ -247,10 +273,10 @@ const POS = () => {
                   <button 
                     key={idx}
                     onClick={() => setView(item.id)}
-                    className={`group relative w-10 h-10 rounded-xl flex items-center justify-center transition-all ${view === item.id ? 'bg-white text-slate-950 shadow-lg' : 'text-white/20 hover:bg-white/5 hover:text-white'}`}
+                    className={`group relative w-10 h-10 rounded-xl flex items-center justify-center transition-all ${view === item.id ? (theme === 'dark' ? 'bg-white text-slate-950 shadow-lg' : 'bg-slate-950 text-white shadow-lg') : (theme === 'dark' ? 'text-white/20 hover:bg-white/5 hover:text-white' : 'text-slate-300 hover:bg-slate-50 hover:text-slate-900')}`}
                   >
                      <item.icon className="w-4 h-4" />
-                     <div className="absolute left-14 px-2 py-1 bg-white text-slate-950 text-[9px] font-black uppercase tracking-widest rounded shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50">
+                     <div className={`absolute left-14 px-2 py-1 text-[9px] font-black uppercase tracking-widest rounded shadow-2xl opacity-0 group-hover:opacity-100 pointer-events-none transition-all z-50 ${theme === 'dark' ? 'bg-white text-slate-950' : 'bg-slate-950 text-white'}`}>
                         {item.label}
                      </div>
                   </button>
@@ -269,22 +295,22 @@ const POS = () => {
       <div className="flex-1 flex flex-col min-w-0">
         
         {/* TOP BAR: Business Info & Search */}
-        <header className="h-14 flex items-center justify-between px-6 bg-white/5 border border-white/10 rounded-2xl mb-2 shrink-0">
+        <header className={`h-14 flex items-center justify-between px-6 border rounded-2xl mb-2 shrink-0 transition-colors ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200 shadow-sm'}`}>
             <div className="flex items-center gap-4">
                 <div className="flex flex-col">
-                    <h1 className="text-xs font-black uppercase tracking-widest text-emerald-400 leading-none">{business?.name || "Terminal Active"}</h1>
-                    <p className="text-[8px] font-bold text-white/30 uppercase mt-1 tracking-tighter">
-                        Logged in: <span className="text-white/60">{user?.name}</span> • Terminal ID: <span className="text-white/60">POS-01</span>
+                    <h1 className="text-xs font-black uppercase tracking-widest text-emerald-500 leading-none">{business?.name || "Terminal Active"}</h1>
+                    <p className={`text-[8px] font-bold uppercase mt-1 tracking-tighter ${theme === 'dark' ? 'text-white/30' : 'text-slate-400'}`}>
+                        Logged in: <span className={theme === 'dark' ? 'text-white/60' : 'text-slate-900'}>{user?.name}</span> • Terminal ID: <span className={theme === 'dark' ? 'text-white/60' : 'text-slate-900'}>POS-01</span>
                     </p>
                 </div>
             </div>
 
             {view === "ORDERING" && (
                 <div className="flex-1 max-w-sm mx-8 relative group">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/20 group-focus-within:text-emerald-400 transition-colors" />
+                    <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 transition-colors ${theme === 'dark' ? 'text-white/20 group-focus-within:text-emerald-400' : 'text-slate-300 group-focus-within:text-emerald-500'}`} />
                     <input 
                         type="text" placeholder="Search menu..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-[10px] font-bold outline-none focus:border-emerald-500/50 transition-all text-white placeholder:text-white/20"
+                        className={`w-full border rounded-xl pl-10 pr-4 py-2 text-[10px] font-bold outline-none transition-all placeholder:opacity-20 ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white focus:border-emerald-500/50' : 'bg-slate-50 border-slate-200 text-slate-900 focus:border-emerald-500'}`}
                     />
                 </div>
             )}
@@ -363,20 +389,20 @@ const POS = () => {
                     </div>
 
                     {/* Right: Cart Console */}
-                    <div className="w-[340px] bg-white/5 border border-white/10 rounded-2xl flex flex-col shrink-0 shadow-2xl">
-                        <div className="p-5 border-b border-white/5">
+                    <div className={`w-[340px] border rounded-2xl flex flex-col shrink-0 shadow-2xl transition-colors ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'}`}>
+                        <div className={`p-5 border-b ${theme === 'dark' ? 'border-white/5' : 'border-slate-100'}`}>
                             <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-sm font-black uppercase tracking-widest text-white italic italic-shadow">Cart</h2>
-                                <div className="flex bg-white/5 p-1 rounded-lg">
+                                <h2 className={`text-sm font-black uppercase tracking-widest italic italic-shadow ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Cart</h2>
+                                <div className={`flex p-1 rounded-lg ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'}`}>
                                     {['DINEIN', 'PICKUP'].map(m => (
-                                        <button key={m} onClick={() => setActiveTab(m)} className={`px-3 py-1.5 rounded-md text-[7px] font-black uppercase transition-all ${activeTab === m ? 'bg-white text-slate-950' : 'text-white/30'}`}>{m}</button>
+                                        <button key={m} onClick={() => setActiveTab(m)} className={`px-3 py-1.5 rounded-md text-[7px] font-black uppercase transition-all ${activeTab === m ? (theme === 'dark' ? 'bg-white text-slate-950' : 'bg-slate-950 text-white') : (theme === 'dark' ? 'text-white/30' : 'text-slate-400')}`}>{m}</button>
                                     ))}
                                 </div>
                             </div>
                             <div className="flex flex-col gap-2">
-                                <div className="flex items-center bg-black/20 border border-white/5 rounded-lg p-2.5">
-                                    <Smartphone className="w-3 h-3 text-white/20 mr-3" />
-                                    <input type="text" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Customer Phone" className="bg-transparent text-[10px] font-bold text-white outline-none w-full placeholder:text-white/10" />
+                                <div className={`flex items-center border rounded-lg p-2.5 ${theme === 'dark' ? 'bg-black/20 border-white/5' : 'bg-slate-50 border-slate-200'}`}>
+                                    <Smartphone className={`w-3 h-3 mr-3 ${theme === 'dark' ? 'text-white/20' : 'text-slate-300'}`} />
+                                    <input type="text" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} placeholder="Customer Phone" className={`bg-transparent text-[10px] font-bold outline-none w-full placeholder:opacity-20 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} />
                                 </div>
                             </div>
                         </div>

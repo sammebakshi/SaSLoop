@@ -137,6 +137,48 @@ const POSSettings = () => {
                         </div>
                     </div>
                 </div>
+
+                {/* Theme & UI Customization */}
+                <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 md:col-span-2 mt-8">
+                    <div className="flex items-center gap-4 mb-8 text-indigo-600">
+                        <Monitor className="w-8 h-8" />
+                        <h2 className="text-xl font-black italic uppercase tracking-tight">Terminal Appearance</h2>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="flex items-center justify-between p-8 bg-slate-50 rounded-[2.5rem]">
+                            <div className="flex flex-col">
+                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Interface Theme</span>
+                                <span className="text-[8px] font-bold text-slate-400 uppercase mt-1">Switch between Light and Dark mode</span>
+                            </div>
+                            <div className="flex bg-white p-1 rounded-2xl shadow-sm border border-slate-100">
+                                {[
+                                    { id: 'light', label: 'Light Mode' },
+                                    { id: 'dark', label: 'Dark Mode' }
+                                ].map(t => (
+                                    <button 
+                                        key={t.id}
+                                        onClick={() => {
+                                            localStorage.setItem("pos_theme", t.id);
+                                            window.dispatchEvent(new Event("storage"));
+                                            window.location.reload(); 
+                                        }}
+                                        className={`px-6 py-3 rounded-xl text-[9px] font-black uppercase transition-all ${localStorage.getItem("pos_theme") === t.id ? 'bg-slate-900 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}
+                                    >
+                                        {t.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="p-8 bg-indigo-50/50 border border-indigo-100 rounded-[2.5rem] flex items-center gap-4">
+                           <div className="w-10 h-10 bg-indigo-600 text-white rounded-xl flex items-center justify-center shadow-lg">
+                               <RefreshCw className="w-4 h-4" />
+                           </div>
+                           <p className="text-[9px] font-bold text-indigo-900/60 uppercase tracking-tight leading-relaxed">Theme changes are applied instantly across the entire terminal shell.</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div className="mt-12 bg-indigo-600/5 border border-indigo-600/10 p-8 rounded-[2.5rem] flex items-center gap-6">
