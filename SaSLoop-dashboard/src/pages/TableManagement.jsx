@@ -10,7 +10,9 @@ import {
   Plus, 
   MousePointer2,
   Lock,
-  Unlock
+  Unlock,
+  RefreshCw,
+  X
 } from "lucide-react";
 import API_BASE from "../config";
 

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { 
-  Plus, Trash2, Shield, User, Mail, Lock, 
-  ChevronRight, Activity, Zap, CheckCircle2, X,
-  Users, Key, Smartphone
+  Plus, Trash2, Shield, User,
+  Users
 } from "lucide-react";
 import API_BASE, { isMobileDevice } from "../config";
 
