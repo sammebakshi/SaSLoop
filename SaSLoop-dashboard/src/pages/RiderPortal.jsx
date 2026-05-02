@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import API_BASE from "../config";
 import { useParams } from "react-router-dom";
 import { 
@@ -46,7 +46,6 @@ function RiderPortal() {
         watchId.current = navigator.geolocation.watchPosition(
             (pos) => {
                 const { latitude, longitude } = pos.coords;
-                setLocation({ lat: latitude, lng: longitude });
                 updateLocationOnServer(latitude, longitude);
             },
             (err) => {

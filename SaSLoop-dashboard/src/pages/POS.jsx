@@ -18,6 +18,7 @@ import {
   Grid,
   History,
   Receipt,
+  Users,
   Star
 } from "lucide-react";
 import API_BASE from "../config";
@@ -33,8 +34,9 @@ const POS = () => {
   const [loading, setLoading] = useState(true);
   const [business, setBusiness] = useState(null);
   const [posTables, setPosTables] = useState([]);
+  const [runningOrders, setRunningOrders] = useState([]);
   
-  const [view, setView] = useState("DASHBOARD"); // Default to the new Elite Dashboard
+  const [view, setView] = useState("DASHBOARD");
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeTab, setActiveTab] = useState("DINEIN"); 
   const [customerName, setCustomerName] = useState("");
@@ -208,7 +210,6 @@ const POS = () => {
   return (
     <div className="flex h-screen overflow-hidden bg-[#0a0c10] font-sans text-slate-100 select-none p-4 gap-4">
       
-      {/* 🟢 LEFT: ELITE NAVIGATION SIDEBAR */}
       <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
          <div className="bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] flex flex-col items-center py-8 gap-8 flex-1 shadow-2xl">
             <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center shadow-2xl shadow-orange-500/20 mb-4 cursor-pointer hover:scale-110 transition-transform">
@@ -249,14 +250,12 @@ const POS = () => {
          <button onClick={() => window.close()} className="w-full aspect-square bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-xl"><X className="w-6 h-6" /></button>
       </div>
 
-      {/* 🟠 CONDITIONAL VIEW RENDER */}
       {view === "DASHBOARD" ? (
          <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
             <POSDashboard />
          </div>
       ) : (
          <>
-            {/* 🟠 CATEGORY STRIP */}
             <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
                <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 flex flex-col items-center gap-4 flex-1 py-8 overflow-y-auto no-scrollbar shadow-xl">
                   {categories.map(cat => (
