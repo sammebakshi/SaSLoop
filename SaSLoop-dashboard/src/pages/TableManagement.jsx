@@ -102,11 +102,15 @@ const TableManagement = () => {
     return `${diff}m`;
   };
 
-  const handleDragEnd = (id, info) => {
+  const handleDragEnd = (tableIdentifier, info) => {
     if (!isEditMode) return;
-    const newTables = tables.map(t => 
-      t.id === id ? { ...t, x_pos: t.x_pos + info.offset.x, y_pos: t.y_pos + info.offset.y } : t
-    );
+    const newTables = tables.map(t => {
+      const isMatch = t.id ? t.id === tableIdentifier : t.table_name === tableIdentifier;
+      if (isMatch) {
+        return { ...t, x_pos: t.x_pos + info.offset.x, y_pos: t.y_pos + info.offset.y };
+      }
+      return t;
+    });
     setTables(newTables);
   };
 
@@ -115,7 +119,7 @@ const TableManagement = () => {
       {/* Header / Stats */}
       <div className="px-10 py-8 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase italic">Floor Plan Console</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight italic uppercase">Floor Plan Console</h1>
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Real-time Table Orchestration</p>
         </div>
 
@@ -163,7 +167,7 @@ const TableManagement = () => {
                 key={table.id || table.table_name}
                 drag={isEditMode}
                 dragMomentum={false}
-                onDragEnd={(e, info) => handleDragEnd(table.id, info)}
+                onDragEnd={(e, info) => handleDragEnd(table.id || table.table_name, info)}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ 
                     opacity: 1, 
