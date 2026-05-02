@@ -73,13 +73,18 @@ function LiveChats() {
       if (res.ok) {
         setStatus(data.status);
         if (data.pausedNumbers) setPausedNumbers(data.pausedNumbers);
-        if (data.chats && data.chats.length > 0) {
-           const customerMsgCount = data.chats.filter(c => c.role === 'customer').length;
+        if (data.chats) {
+           // Explicitly sort chats by time to ensure order
+           const sortedChats = [...data.chats].sort((a, b) => new Date(a.time) - new Date(b.time));
+           
+           const customerMsgCount = sortedChats.filter(c => c.role === 'customer').length;
            if (prevCustomerMsgCount.current !== -1 && customerMsgCount > prevCustomerMsgCount.current && chatSoundRef.current) {
              playMessagePing();
+             // Force scroll if we get a new customer message
+             setTimeout(() => scrollToBottom(true), 100);
            }
            prevCustomerMsgCount.current = customerMsgCount;
-           setChats(data.chats);
+           setChats(sortedChats);
         }
       }
     } catch (err) {
