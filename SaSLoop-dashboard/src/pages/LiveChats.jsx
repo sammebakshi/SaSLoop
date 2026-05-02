@@ -39,8 +39,8 @@ function LiveChats() {
   const chatSoundRef = useRef(chatSoundEnabled);
   chatSoundRef.current = chatSoundEnabled;
 
-  // Utility to normalize WhatsApp numbers (remove @s.whatsapp.net)
-  const normalizeNum = (num) => num ? num.split('@')[0] : num;
+  // Utility to normalize WhatsApp numbers (remove @s.whatsapp.net and non-digits)
+  const normalizeNum = (num) => num ? num.split('@')[0].replace(/\D/g, '') : num;
 
   const fetchContactsInfo = async () => {
     try {
