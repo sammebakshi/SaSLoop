@@ -304,6 +304,7 @@ const Layout = ({ children }) => {
           ]},
           { name: "Live Chats", path: "/chats", icon: MessageSquare },
           { name: "POS Terminal", path: "/pos", icon: Monitor },
+          { name: "Floor Plan Console", path: "/floor-plan", icon: Store },
           { name: "Order Board", path: "/orders", icon: Package },
           { name: "Kitchen Display (KDS)", path: "/kds", icon: ChefHat },
           { name: "Table Reservations", path: "/reservations", icon: Calendar },

@@ -41,6 +41,7 @@ import Integrations from "./pages/Integrations";
 import IntelligenceHub from "./pages/IntelligenceHub";
 import MarketingStudio from "./pages/MarketingStudio";
 import CommandCenter from "./pages/CommandCenter";
+import TableManagement from "./pages/TableManagement";
 
 
 // ============================================================
@@ -134,6 +135,7 @@ function App() {
             <Route path="/intelligence" element={<IntelligenceHub />} />
             <Route path="/marketing-studio" element={<MarketingStudio />} />
             <Route path="/command-center" element={<CommandCenter />} />
+            <Route path="/floor-plan" element={<TableManagement />} />
         </Route>
         
         {/* Shared Restricted Routes */}
