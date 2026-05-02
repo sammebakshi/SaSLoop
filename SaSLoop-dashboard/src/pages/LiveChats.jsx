@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useLayoutEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import API_BASE, { isMobileDevice } from "../config";
 import { MessageSquare, Bot, User as UserIcon, Activity, RefreshCw, Send, PauseCircle, PlayCircle, ShieldAlert, ChevronLeft, Bell, BellOff, ChevronDown } from "lucide-react";
 
@@ -125,13 +125,18 @@ function LiveChats() {
     }
   }, [chats]);
 
+  // Pre-calculate latest message time for each number for efficient sorting
+  const lastMessageTimes = {};
+  chats.forEach(c => {
+    const time = new Date(c.time).getTime();
+    if (!lastMessageTimes[c.customerNumber] || time > lastMessageTimes[c.customerNumber]) {
+      lastMessageTimes[c.customerNumber] = time;
+    }
+  });
+
   const activeNumbers = [...new Set(chats.map(c => c.customerNumber))]
     .filter(Boolean)
-    .sort((a, b) => {
-      const lastA = chats.filter(c => c.customerNumber === a).slice(-1)[0]?.time || 0;
-      const lastB = chats.filter(c => c.customerNumber === b).slice(-1)[0]?.time || 0;
-      return new Date(lastB) - new Date(lastA);
-    });
+    .sort((a, b) => (lastMessageTimes[b] || 0) - (lastMessageTimes[a] || 0));
   
   const selectContact = async (num) => {
     setSelectedNumber(num);
