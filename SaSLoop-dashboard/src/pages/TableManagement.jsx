@@ -107,11 +107,38 @@ const TableManagement = () => {
     const newTables = tables.map(t => {
       const isMatch = t.id ? t.id === tableIdentifier : t.table_name === tableIdentifier;
       if (isMatch) {
-        return { ...t, x_pos: t.x_pos + info.offset.x, y_pos: t.y_pos + info.offset.y };
+        // Round to nearest integer to avoid database float errors
+        return { 
+          ...t, 
+          x_pos: Math.round(t.x_pos + info.offset.x), 
+          y_pos: Math.round(t.y_pos + info.offset.y) 
+        };
       }
       return t;
     });
     setTables(newTables);
+  };
+  const syncLayout = async () => {
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE}/api/pos/tables/sync`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+        body: JSON.stringify({ tables })
+      });
+      if (res.ok) {
+        alert("Layout Saved Successfully!");
+        setIsEditMode(false);
+        fetchTables();
+      } else {
+        alert("Failed to save layout. Please check connection.");
+      }
+    } catch (e) { 
+      console.error(e); 
+      alert("Error saving layout: " + e.message);
+    }
+    setIsSaving(false);
   };
 
   return (
