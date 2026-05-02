@@ -382,6 +382,18 @@ async function initializeDatabase() {
                 user_id INTEGER REFERENCES app_users(id),
                 is_verified BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`,
+            // 25. POS Floor Plan Tables
+            `CREATE TABLE IF NOT EXISTS pos_tables (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
+                table_name VARCHAR(50) NOT NULL,
+                x_pos INTEGER DEFAULT 0,
+                y_pos INTEGER DEFAULT 0,
+                status VARCHAR(50) DEFAULT 'AVAILABLE',
+                capacity INTEGER DEFAULT 4,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`
         ];
 
