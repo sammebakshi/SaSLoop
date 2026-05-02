@@ -36,6 +36,19 @@ router.get("/menu/:userId", async (req, res) => {
         res.status(500).json({ error: "Internal error" });
     }
 });
+ 
+// 📋 CHECK TABLE STATUS
+router.get("/table-status/:userId/:tableName", async (req, res) => {
+    try {
+        const { userId, tableName } = req.params;
+        const result = await pool.query(
+            "SELECT status FROM pos_tables WHERE user_id = $1 AND table_name = $2",
+            [userId, tableName]
+        );
+        if (result.rows.length === 0) return res.json({ status: "AVAILABLE" }); // Default if table not found in POS config
+        res.json({ status: result.rows[0].status });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+});
 
 // 🚀 PLACE ORDER (QR / ONLINE)
 router.post("/order", async (req, res) => {
@@ -183,6 +196,17 @@ router.post("/order", async (req, res) => {
                 [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
             );
             orderId = insertRes.rows[0].id;
+
+            // ✅ AUTO-OCCUPY TABLE IN POS
+            if (tableNumber && tableNumber !== "0" && source === "QR_MENU") {
+                try {
+                    await pool.query(
+                        "UPDATE pos_tables SET status = 'OCCUPIED', updated_at = NOW() WHERE user_id = $1 AND table_name = $2",
+                        [userId, tableNumber]
+                    );
+                    console.log(`🪑 Table ${tableNumber} marked as OCCUPIED for Biz ${userId}`);
+                } catch (posErr) { console.error("POS Table Occupy Error:", posErr.message); }
+            }
         }
         
         // 🧹 TABLE CLEANUP: If this is a COMPLETED POS order for a table, mark other active orders for that table as COMPLETED too

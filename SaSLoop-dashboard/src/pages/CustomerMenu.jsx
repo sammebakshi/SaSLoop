@@ -137,7 +137,20 @@ function CustomerMenu() {
         setLoading(false); 
         if (optimizedItems.length > 0) setActiveCategory(optimizedItems[0].category || "General"); 
     });
-  }, [bizId]);
+
+    // ✅ CHECK TABLE AVAILABILITY
+    if (tableId && tableId !== "0") {
+        fetch(`${API_BASE}/api/public/table-status/${bizId}/${tableId}`)
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === "OCCUPIED" || d.status === "BILLED") {
+                    alert(`🛎️ Table ${tableId} is currently occupied. Please contact staff if this is a mistake.`);
+                } else if (d.status === "DIRTY") {
+                    alert(`🧹 Table ${tableId} is being cleaned. Please wait a moment.`);
+                }
+            });
+    }
+  }, [bizId, tableId]);
 
   useEffect(() => {
     if (view !== "auth") {

@@ -15,16 +15,74 @@ import {
 import API_BASE from "../config";
 
 const TableManagement = () => {
-  const [tables, setTables] = useState([
-    { id: 1, name: "T1", x: 100, y: 100, capacity: 4, status: "AVAILABLE", seatedAt: null },
-    { id: 2, name: "T2", x: 250, y: 100, capacity: 2, status: "OCCUPIED", seatedAt: "2026-05-02T14:30:00" },
-    { id: 3, name: "T3", x: 400, y: 100, capacity: 6, status: "BILLED", seatedAt: "2026-05-02T14:15:00" },
-    { id: 4, name: "T4", x: 100, y: 250, capacity: 4, status: "DIRTY", seatedAt: null },
-    { id: 5, name: "B1", x: 550, y: 100, capacity: 2, status: "AVAILABLE", seatedAt: null },
-  ]);
-
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedTable, setSelectedTable] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    fetchTables();
+    const interval = setInterval(fetchTables, 10000); // Poll every 10s for status updates
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchTables = async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/pos/tables`, {
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+      });
+      const data = await res.json();
+      setTables(data);
+    } catch (e) { console.error("Fetch tables fail:", e); }
+    finally { setLoading(false); }
+  };
+
+  const syncLayout = async () => {
+    setIsSaving(true);
+    try {
+      await fetch(`${API_BASE}/api/pos/tables/sync`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}` 
+        },
+        body: JSON.stringify({ tables })
+      });
+      setIsEditMode(false);
+      alert("✅ Floor plan layout saved successfully!");
+    } catch (e) { alert("❌ Failed to save layout"); }
+    finally { setIsSaving(false); }
+  };
+
+  const updateTableStatus = async (tableName, newStatus) => {
+    try {
+      await fetch(`${API_BASE}/api/pos/tables/${tableName}/status`, {
+        method: "PUT",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}` 
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      fetchTables();
+      setSelectedTable(null);
+    } catch (e) { alert("Failed to update status"); }
+  };
+
+  const addNewTable = () => {
+    const name = prompt("Table Name (e.g. T6):");
+    if (!name) return;
+    const newTable = {
+      table_name: name,
+      x_pos: 100,
+      y_pos: 100,
+      capacity: 4,
+      status: "AVAILABLE"
+    };
+    setTables([...tables, newTable]);
+    setIsEditMode(true);
+  };
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -45,7 +103,7 @@ const TableManagement = () => {
   const handleDragEnd = (id, info) => {
     if (!isEditMode) return;
     const newTables = tables.map(t => 
-      t.id === id ? { ...t, x: t.x + info.offset.x, y: t.y + info.offset.y } : t
+      t.id === id ? { ...t, x_pos: t.x_pos + info.offset.x, y_pos: t.y_pos + info.offset.y } : t
     );
     setTables(newTables);
   };
@@ -77,22 +135,30 @@ const TableManagement = () => {
           </div>
 
           <button 
-            onClick={() => setIsEditMode(!isEditMode)}
-            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl ${isEditMode ? 'bg-indigo-600 text-white shadow-indigo-200' : 'bg-white border-2 border-slate-100 text-slate-600 hover:border-indigo-100'}`}
+            onClick={() => isEditMode ? syncLayout() : setIsEditMode(true)}
+            disabled={isSaving}
+            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl ${isEditMode ? 'bg-emerald-600 text-white shadow-emerald-200' : 'bg-white border-2 border-slate-100 text-slate-600 hover:border-indigo-100'}`}
           >
-            {isEditMode ? <Unlock className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
-            {isEditMode ? 'Lock Layout' : 'Rearrange Floor'}
+            {isEditMode ? (isSaving ? <RefreshCw className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />) : <Lock className="w-4 h-4" />}
+            {isEditMode ? (isSaving ? 'Saving...' : 'Save Layout') : 'Rearrange Floor'}
           </button>
         </div>
       </div>
 
       <div className="flex-1 relative overflow-hidden bg-[radial-gradient(#e2e8f0_1px,transparent_1px)] [background-size:32px_32px]">
+        {loading ? (
+           <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/50 backdrop-blur-sm z-[200]">
+              <RefreshCw className="animate-spin w-10 h-10 text-indigo-600 mb-4" />
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Loading Floor Plan...</p>
+           </div>
+        ) : null}
+        
         {/* Floor Map Container */}
         <div className="absolute inset-0 p-10">
           <AnimatePresence>
             {tables.map((table) => (
               <motion.div
-                key={table.id}
+                key={table.id || table.table_name}
                 drag={isEditMode}
                 dragMomentum={false}
                 onDragEnd={(e, info) => handleDragEnd(table.id, info)}
@@ -100,8 +166,8 @@ const TableManagement = () => {
                 animate={{ 
                     opacity: 1, 
                     scale: 1,
-                    x: table.x,
-                    y: table.y 
+                    x: table.x_pos,
+                    y: table.y_pos 
                 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -112,7 +178,7 @@ const TableManagement = () => {
                 <div className={`absolute -top-1 -right-1 w-6 h-6 rounded-full border-4 border-white ${getStatusColor(table.status)} shadow-lg`}></div>
                 
                 {/* Table ID */}
-                <span className="text-2xl font-black text-slate-900 tracking-tighter mb-1 italic">{table.name}</span>
+                <span className="text-2xl font-black text-slate-900 tracking-tighter mb-1 italic">{table.table_name}</span>
                 
                 {/* Capacity */}
                 <div className="flex items-center gap-1 opacity-40">
@@ -124,7 +190,7 @@ const TableManagement = () => {
                 {(table.status === "OCCUPIED" || table.status === "BILLED") && (
                   <div className="mt-2 px-3 py-1 bg-slate-50 rounded-lg flex items-center gap-1.5">
                     <Clock className="w-3 h-3 text-slate-400" />
-                    <span className="text-[9px] font-black text-slate-500">{getDuration(table.seatedAt)}</span>
+                    <span className="text-[9px] font-black text-slate-500">{getDuration(table.updated_at)}</span>
                   </div>
                 )}
 
@@ -142,12 +208,12 @@ const TableManagement = () => {
               initial={{ x: 400 }}
               animate={{ x: 0 }}
               exit={{ x: 400 }}
-              className="absolute top-0 right-0 bottom-0 w-96 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.05)] border-l border-slate-100 z-[100] flex flex-col"
+              className="absolute top-0 right-0 bottom-0 w-96 bg-white shadow-[-20px_0_60px_rgba(0,0,0,0.05)] border-l border-slate-100 z-[300] flex flex-col"
             >
               <div className="p-10 flex-1 overflow-y-auto">
                 <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase leading-none">Table {selectedTable.name}</h2>
-                  <button onClick={() => setSelectedTable(null)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><CheckCircle2 className="w-6 h-6" /></button>
+                  <h2 className="text-3xl font-black text-slate-900 italic tracking-tighter uppercase leading-none">Table {selectedTable.table_name}</h2>
+                  <button onClick={() => setSelectedTable(null)} className="p-2 hover:bg-slate-50 rounded-xl text-slate-400 transition-colors"><X className="w-6 h-6" /></button>
                 </div>
 
                 <div className={`p-6 rounded-[2rem] mb-10 flex items-center justify-between ${getStatusColor(selectedTable.status).replace('bg-', 'bg-')}/10 border-2 border-dashed ${getStatusColor(selectedTable.status).replace('bg-', 'border-')}`}>
@@ -156,11 +222,16 @@ const TableManagement = () => {
                     <p className={`text-sm font-black uppercase italic ${getStatusColor(selectedTable.status).replace('bg-', 'text-')}`}>{selectedTable.status}</p>
                   </div>
                   {selectedTable.status === "AVAILABLE" ? (
-                    <button className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 active:scale-95 transition-all">Seat Guests</button>
+                    <button 
+                      onClick={() => updateTableStatus(selectedTable.table_name, "OCCUPIED")}
+                      className="bg-emerald-500 text-white px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-emerald-100 active:scale-95 transition-all"
+                    >
+                      Seat Guests
+                    </button>
                   ) : (
                     <div className="flex flex-col items-end">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Seated For</p>
-                      <p className="text-sm font-black text-slate-900 italic">{getDuration(selectedTable.seatedAt)}</p>
+                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-1">Status Duration</p>
+                      <p className="text-sm font-black text-slate-900 italic">{getDuration(selectedTable.updated_at)}</p>
                     </div>
                   )}
                 </div>
@@ -175,24 +246,40 @@ const TableManagement = () => {
                     </div>
                   </button>
 
-                  <button className="w-full p-6 bg-slate-50 hover:bg-amber-500 hover:text-white rounded-[2rem] flex items-center justify-between transition-all group active:scale-95">
+                  <button 
+                    onClick={() => updateTableStatus(selectedTable.table_name, "BILLED")}
+                    className="w-full p-6 bg-slate-50 hover:bg-amber-500 hover:text-white rounded-[2rem] flex items-center justify-between transition-all group active:scale-95"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-white group-hover:bg-amber-400/50 rounded-2xl shadow-sm"><CheckCircle2 className="w-5 h-5" /></div>
                       <span className="text-sm font-bold tracking-tight">Request Bill</span>
                     </div>
                   </button>
 
-                  <button className="w-full p-6 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-[2rem] flex items-center justify-between transition-all group active:scale-95">
+                  <button 
+                    onClick={() => updateTableStatus(selectedTable.table_name, "DIRTY")}
+                    className="w-full p-6 bg-slate-50 hover:bg-slate-900 hover:text-white rounded-[2rem] flex items-center justify-between transition-all group active:scale-95"
+                  >
                     <div className="flex items-center gap-4">
                       <div className="p-3 bg-white group-hover:bg-slate-700/50 rounded-2xl shadow-sm"><AlertCircle className="w-5 h-5" /></div>
                       <span className="text-sm font-bold tracking-tight">Mark as Dirty</span>
+                    </div>
+                  </button>
+
+                  <button 
+                    onClick={() => updateTableStatus(selectedTable.table_name, "AVAILABLE")}
+                    className="w-full p-6 bg-slate-50 hover:bg-emerald-500 hover:text-white rounded-[2rem] flex items-center justify-between transition-all group active:scale-95"
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className="p-3 bg-white group-hover:bg-emerald-400/50 rounded-2xl shadow-sm"><RefreshCw className="w-5 h-5" /></div>
+                      <span className="text-sm font-bold tracking-tight">Mark Available</span>
                     </div>
                   </button>
                 </div>
               </div>
 
               <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex gap-4 shrink-0">
-                  <button className="flex-1 bg-slate-900 text-white h-16 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Open Full Order</button>
+                  <button onClick={() => window.open('/pos', '_blank')} className="flex-1 bg-slate-900 text-white h-16 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Open Full Order</button>
                   <button className="w-16 h-16 bg-white border-2 border-slate-100 rounded-[1.5rem] flex items-center justify-center text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95"><Trash2 className="w-5 h-5" /></button>
               </div>
             </motion.div>
@@ -202,8 +289,8 @@ const TableManagement = () => {
         {/* Toolbar */}
         <div className="absolute bottom-10 left-10 flex items-center gap-4">
            <div className="flex bg-white/80 backdrop-blur-3xl p-2 rounded-[2rem] shadow-2xl border border-slate-100 gap-2">
-              <button className="w-12 h-12 flex items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-100"><MousePointer2 className="w-5 h-5" /></button>
-              <button className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-colors"><Plus className="w-5 h-5 text-slate-400" /></button>
+              <button onClick={() => setIsEditMode(true)} className="w-12 h-12 flex items-center justify-center rounded-2xl bg-indigo-600 text-white shadow-xl shadow-indigo-100"><MousePointer2 className="w-5 h-5" /></button>
+              <button onClick={addNewTable} className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-colors"><Plus className="w-5 h-5 text-slate-400" /></button>
               <button className="w-12 h-12 flex items-center justify-center rounded-2xl hover:bg-slate-50 transition-colors"><ArrowRightLeft className="w-5 h-5 text-slate-400" /></button>
            </div>
         </div>
