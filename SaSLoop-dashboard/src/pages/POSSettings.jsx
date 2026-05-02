@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Printer, Save, RefreshCw, Smartphone, Monitor, Bluetooth, Wifi } from "lucide-react";
 
-const POSSettings = () => {
+const POSSettings = ({ business, posTables = [] }) => {
     const [settings, setSettings] = useState({
         printerType: "BROWSER",
         printerIP: "",
@@ -176,6 +176,59 @@ const POSSettings = () => {
                                <RefreshCw className="w-4 h-4" />
                            </div>
                            <p className="text-[9px] font-bold text-indigo-900/60 uppercase tracking-tight leading-relaxed">Theme changes are applied instantly across the entire terminal shell.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 📲 QR CODE CENTER (FLOOR PLAN SYNC) */}
+                <div className="bg-white p-10 rounded-[3rem] shadow-xl border border-slate-100 md:col-span-2 mt-8">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-4 text-emerald-500">
+                            <Smartphone className="w-8 h-8" />
+                            <h2 className="text-xl font-black italic uppercase tracking-tight">QR Generator Center</h2>
+                        </div>
+                        <span className="text-[10px] font-black bg-emerald-50 text-emerald-600 px-4 py-2 rounded-xl uppercase tracking-widest border border-emerald-100">Floor Plan Synced</span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4">
+                        {posTables.map(table => (
+                            <div key={table.id} className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col items-center group hover:bg-slate-900 hover:border-slate-800 transition-all cursor-pointer">
+                                <div className="w-12 h-12 bg-white rounded-xl mb-4 flex items-center justify-center shadow-sm group-hover:bg-white/10 group-hover:text-white">
+                                    <Smartphone className="w-6 h-6" />
+                                </div>
+                                <h4 className="text-xs font-black uppercase italic group-hover:text-white mb-4">{table.table_name}</h4>
+                                <button 
+                                    onClick={() => {
+                                        const bizId = business?.id;
+                                        const url = `https://sasloop.in/menu/${bizId}?table=${table.table_name}`;
+                                        window.open(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(url)}`, '_blank');
+                                    }}
+                                    className="w-full py-2.5 bg-emerald-500 text-white rounded-xl text-[8px] font-black uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all shadow-lg shadow-emerald-500/20"
+                                >
+                                    Download QR
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 🖨️ DIRECT PRINTING GUIDE */}
+                <div className="bg-slate-900 p-10 rounded-[3rem] shadow-2xl border border-white/5 md:col-span-2 mt-8">
+                    <div className="flex items-center gap-4 mb-8 text-white">
+                        <Save className="w-8 h-8" />
+                        <h2 className="text-xl font-black italic uppercase tracking-tight">Elite Direct Printing</h2>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <div className="space-y-4">
+                            <h3 className="text-emerald-400 text-[10px] font-black uppercase tracking-[0.2em]">Enable Silent Print (No Dialog)</h3>
+                            <p className="text-white/40 text-[9px] font-bold uppercase leading-relaxed">To print directly without the browser window popping up, launch your Chrome/Edge browser with the kiosk flag:</p>
+                            <code className="block bg-black/40 p-4 rounded-xl text-[10px] text-white/80 font-mono border border-white/5">--kiosk-printing</code>
+                        </div>
+                        <div className="flex items-center bg-white/5 p-8 rounded-[2rem] border border-white/10">
+                            <div className="w-10 h-10 bg-white/10 rounded-xl flex items-center justify-center mr-4">
+                                <Monitor className="w-4 h-4 text-white" />
+                            </div>
+                            <p className="text-white/60 text-[8px] font-black uppercase tracking-widest leading-relaxed">This is recommended for Fast Billing. Once enabled, clicking "Settle Bill" will instantly dispatch the print to your default printer.</p>
                         </div>
                     </div>
                 </div>

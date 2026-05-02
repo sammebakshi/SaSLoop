@@ -58,7 +58,8 @@ const POS = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
 
-  const [theme, setTheme] = useState(localStorage.getItem("pos_theme") || "dark");
+  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [notificationSound] = useState(new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3")); // iPhone-like tone
 
   useEffect(() => {
     const token = localStorage.getItem("pos_token");
@@ -71,6 +72,7 @@ const POS = () => {
     
     fetchData();
     const tableInterval = setInterval(fetchTables, 10000);
+    const orderInterval = setInterval(checkForNewOrders, 5000);
 
     const handleThemeUpdate = () => {
       setTheme(localStorage.getItem("pos_theme") || "dark");
@@ -78,26 +80,45 @@ const POS = () => {
     window.addEventListener("storage", handleThemeUpdate);
     return () => {
       clearInterval(tableInterval);
+      clearInterval(orderInterval);
       window.removeEventListener("storage", handleThemeUpdate);
     };
   }, []);
 
+  const checkForNewOrders = async () => {
+    try {
+        const token = localStorage.getItem("pos_token");
+        const res = await fetch(`${API_BASE}/api/orders`, { headers: { "Authorization": `Bearer ${token}` } });
+        const orders = await res.json();
+        if (Array.isArray(orders)) {
+            if (lastOrderCount > 0 && orders.length > lastOrderCount) {
+                notificationSound.play().catch(e => console.log("Sound play blocked:", e));
+                // Optional: Show a small toast or notification
+            }
+            setLastOrderCount(orders.length);
+        }
+    } catch (e) {}
+  };
+
   const fetchData = async () => {
     try {
       const token = localStorage.getItem("pos_token");
-      const [bizRes, itemsRes, tablesRes] = await Promise.all([
+      const [bizRes, itemsRes, tablesRes, ordersRes] = await Promise.all([
         fetch(`${API_BASE}/api/business/status`, { headers: { "Authorization": `Bearer ${token}` } }),
         fetch(`${API_BASE}/api/catalog`, { headers: { "Authorization": `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } })
+        fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } }),
+        fetch(`${API_BASE}/api/orders`, { headers: { "Authorization": `Bearer ${token}` } })
       ]);
 
       const bizData = await bizRes.json();
       const itemsData = await itemsRes.json();
       const tablesData = await tablesRes.json();
+      const ordersData = await ordersRes.json();
 
       setBusiness(bizData.business);
       setItems(Array.isArray(itemsData) ? itemsData : []);
       setPosTables(Array.isArray(tablesData) ? tablesData : []);
+      setLastOrderCount(Array.isArray(ordersData) ? ordersData.length : 0);
       
       const cats = ["All", ...new Set(itemsData.map(i => i.category))];
       setCategories(cats);
@@ -327,7 +348,7 @@ const POS = () => {
         {/* View Switcher */}
         <div className="flex-1 overflow-hidden">
             {view === "DASHBOARD" && <div className="h-full overflow-y-auto no-scrollbar bg-slate-50 rounded-2xl"><POSDashboard /></div>}
-            {view === "SETTINGS" && <div className="h-full overflow-y-auto no-scrollbar bg-slate-50 rounded-2xl"><POSSettings /></div>}
+            {view === "SETTINGS" && <div className="h-full overflow-y-auto no-scrollbar bg-slate-50 rounded-2xl"><POSSettings business={business} posTables={posTables} /></div>}
             {view === "KDS" && <div className="h-full overflow-y-auto no-scrollbar bg-slate-900 rounded-2xl"><KDS /></div>}
             {view === "HISTORY" && <div className="h-full overflow-y-auto no-scrollbar bg-slate-50 rounded-2xl"><OrderBoard /></div>}
 
@@ -444,7 +465,7 @@ const POS = () => {
                                     <span className="text-white/60">₹{totals.subtotal.toFixed(0)}</span>
                                 </div>
                                 <div className="flex justify-between text-[8px] font-black text-white/20 uppercase">
-                                    <span>Tax</span>
+                                    <span>Tax ({((parseFloat(business?.cgst_percent) || 0) + (parseFloat(business?.sgst_percent) || 0)).toFixed(1)}%)</span>
                                     <span className="text-white/60">₹{totals.totalTax.toFixed(0)}</span>
                                 </div>
                                 <div className="flex justify-between items-end pt-2">
