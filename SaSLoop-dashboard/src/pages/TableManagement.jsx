@@ -24,9 +24,11 @@ const TableManagement = () => {
 
   useEffect(() => {
     fetchTables();
-    const interval = setInterval(fetchTables, 10000); // Poll every 10s for status updates
+    const interval = setInterval(() => {
+      if (!isEditMode) fetchTables();
+    }, 10000); // Poll every 10s for status updates
     return () => clearInterval(interval);
-  }, []);
+  }, [isEditMode]);
 
   const fetchTables = async () => {
     try {
@@ -67,6 +69,18 @@ const TableManagement = () => {
     };
     setTables([...tables, newTable]);
     setIsEditMode(true);
+  const deleteTable = async (table) => {
+    if (!window.confirm(`Delete table ${table.table_name}?`)) return;
+    if (table.id) {
+       try {
+         await fetch(`${API_BASE}/api/pos/tables/${table.id}`, {
+           method: "DELETE",
+           headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+         });
+       } catch (e) { console.error(e); }
+    }
+    setTables(tables.filter(t => t.table_name !== table.table_name));
+    setSelectedTable(null);
   };
 
   const getStatusColor = (status) => {
@@ -296,7 +310,7 @@ const TableManagement = () => {
 
               <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex gap-4 shrink-0">
                   <button onClick={() => window.open('/pos', '_blank')} className="flex-1 bg-slate-900 text-white h-16 rounded-[1.5rem] text-[11px] font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Open Full Order</button>
-                  <button className="w-16 h-16 bg-white border-2 border-slate-100 rounded-[1.5rem] flex items-center justify-center text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95"><Trash2 className="w-5 h-5" /></button>
+                  <button onClick={() => deleteTable(selectedTable)} className="w-16 h-16 bg-white border-2 border-slate-100 rounded-[1.5rem] flex items-center justify-center text-rose-500 hover:bg-rose-50 hover:border-rose-100 transition-all active:scale-95"><Trash2 className="w-5 h-5" /></button>
               </div>
             </motion.div>
           )}

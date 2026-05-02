@@ -23,14 +23,16 @@ router.post("/tables/sync", authMiddleware, async (req, res) => {
     try {
         const userId = req.user.id;
         const { tables } = req.body; // Array of { id, x_pos, y_pos, status, table_name }
-
+        console.log(`Syncing ${tables.length} tables for user ${userId}`);
         for (const table of tables) {
             if (table.id) {
+                console.log(`Updating table ${table.id}`);
                 await pool.query(
                     "UPDATE pos_tables SET x_pos = $1, y_pos = $2, status = $3, table_name = $4, updated_at = NOW() WHERE id = $5 AND user_id = $6",
                     [table.x_pos, table.y_pos, table.status, table.table_name, table.id, userId]
                 );
             } else {
+                console.log(`Inserting new table ${table.table_name}`);
                 await pool.query(
                     "INSERT INTO pos_tables (user_id, table_name, x_pos, y_pos, status) VALUES ($1, $2, $3, $4, $5)",
                     [userId, table.table_name, table.x_pos, table.y_pos, table.status || 'AVAILABLE']
