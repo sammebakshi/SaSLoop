@@ -110,6 +110,9 @@ function KDS() {
                             <div>
                                <div className="text-xs font-bold text-slate-400 tracking-widest">{order.order_reference}</div>
                                <div className="text-xl font-black text-slate-100 mt-1">{order.customer_name}</div>
+                               <div className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mt-1">
+                                  {new Date(order.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                               </div>
                             </div>
                             <div className="text-right">
                                <div className="bg-slate-900/50 border border-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold uppercase text-amber-400">{order.table_number ? `Table ${order.table_number}` : 'Delivery/Pickup'}</div>

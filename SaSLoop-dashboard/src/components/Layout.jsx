@@ -138,6 +138,14 @@ const Layout = ({ children }) => {
   }, []);
 
   useEffect(() => {
+    const handleStorage = () => {
+      setSoundEnabled(localStorage.getItem("globalSound") === "true");
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  useEffect(() => {
     const impersonateId = sessionStorage.getItem("impersonate_id");
     if (user && (user.role === 'user' || impersonateId)) {
       const checkStatus = async () => {

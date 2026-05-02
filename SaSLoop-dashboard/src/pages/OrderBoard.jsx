@@ -174,7 +174,10 @@ function OrderBoard() {
             <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm leading-none truncate max-w-[120px]">{order.customer_name || 'Guest User'}</h4>
             {order.customer_number && <p className="text-[8px] font-bold text-indigo-400 mt-0.5 whitespace-nowrap">📞 {order.customer_number}</p>}
           </div>
-          <span className="text-[10px] font-black text-slate-900 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg whitespace-nowrap">₹{getPrice(order.total_price)}</span>
+          <div className="text-right">
+            <span className="text-[10px] font-black text-slate-900 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg whitespace-nowrap block mb-1">₹{getPrice(order.total_price)}</span>
+            <p className="text-[7px] text-slate-400 font-bold uppercase">{new Date(order.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+          </div>
       </div>
       
       <div className="flex items-center justify-between mb-3">

@@ -455,14 +455,14 @@ function OnlineOrder() {
                   
                   <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 mb-6 inline-block">
                     <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`)}`} 
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}&mc=5812&mode=02&tr=${orderRef}${Date.now()}`)}`} 
                       alt="UPI QR Code" 
                       className="w-40 h-40 object-contain mx-auto"
                     />
                     <p className="text-[9px] font-black text-slate-400 mt-3 uppercase tracking-widest">Scan with any UPI App</p>
                   </div>
 
-                  <a href={`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}`} className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 mb-3">Pay ₹{finalPaidAmount.toFixed(0)} on Mobile</a>
+                  <a href={`upi://pay?pa=${biz?.settings?.upi_id || "restaurant@upi"}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${finalPaidAmount.toFixed(2)}&cu=INR&tn=Order%20${orderRef}&mc=5812&mode=02&tr=${orderRef}${Date.now()}`} className="block w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest shadow-xl shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95 mb-3">Pay ₹{finalPaidAmount.toFixed(0)} on Mobile</a>
                   <p className="text-[8px] font-bold text-slate-400">Or we have sent a payment link to your WhatsApp.</p>
                </div>
             )}

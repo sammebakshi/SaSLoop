@@ -46,14 +46,20 @@ function Dashboard() {
   };
 
   const unlockAudio = () => {
-    setAudioEnabled(true);
-    localStorage.setItem("globalSound", "true");
-    // Play a tiny silent sound to unlock
-    const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
-    audio.volume = 0.1;
-    audio.play().then(() => {
-        alert("🔔 Sound Notifications Enabled Successfully!");
-    }).catch(e => alert("Please allow audio permissions in your browser settings."));
+    const newVal = !audioEnabled;
+    setAudioEnabled(newVal);
+    localStorage.setItem("globalSound", newVal ? "true" : "false");
+    // Trigger storage event for same-tab sync
+    window.dispatchEvent(new Event('storage'));
+    
+    if (newVal) {
+      // Play a tiny silent sound to unlock
+      const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3');
+      audio.volume = 0.1;
+      audio.play().then(() => {
+          alert("🔔 Sound Notifications Enabled Successfully!");
+      }).catch(e => alert("Please allow audio permissions in your browser settings."));
+    }
   };
 
   useEffect(() => {
@@ -210,18 +216,25 @@ function Dashboard() {
         )}
         {!isMobile && (
           <div className="flex items-center gap-4">
-             {!audioEnabled ? (
+             <div className="flex items-center gap-4">
                 <button 
                   onClick={unlockAudio}
-                  className="flex items-center gap-2 bg-rose-500 hover:bg-rose-600 text-white px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-rose-200 animate-pulse transition-all"
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all shadow-lg ${
+                    !audioEnabled 
+                      ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200 animate-pulse' 
+                      : 'bg-emerald-50 border border-emerald-200 text-emerald-700 shadow-emerald-100'
+                  }`}
                 >
-                  <BellRing className="w-4 h-4" /> Enable Sound Alerts
+                  {!audioEnabled ? (
+                    <>
+                      <BellRing className="w-4 h-4" /> Enable Sound Alerts
+                    </>
+                  ) : (
+                    <>
+                      <Check className="w-4 h-4" /> Sounds Active
+                    </>
+                  )}
                 </button>
-             ) : (
-                <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest">
-                   <Check className="w-4 h-4" /> Sounds Active
-                </div>
-             )}
              
              <button onClick={handleVoiceCommand} className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${isListening ? 'bg-indigo-600 text-white animate-pulse shadow-xl shadow-indigo-200' : 'bg-white border border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                 {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />} AI Voice
@@ -337,7 +350,9 @@ function Dashboard() {
                       </div>
                       <div className="min-w-0">
                          <p className="text-[11px] font-black text-slate-800 tracking-tight truncate">{order.customer_name || 'Guest'}</p>
-                         <p className="text-[9px] text-slate-400 font-bold uppercase">{new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                         <p className="text-[9px] text-slate-400 font-bold uppercase">
+                            {new Date(order.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                         </p>
                       </div>
                    </div>
                    <div className="text-right">
