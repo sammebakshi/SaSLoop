@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Filter, ShoppingBag, Settings, Trash2, X, Upload, Activity, RefreshCw, Smartphone, Package, CheckCircle2, Globe, MessageCircle, MoreVertical, Sparkles, Wand2 } from 'lucide-react';
+import { Search, Plus, Filter, ShoppingBag, Settings, Trash2, X, Upload, Activity, RefreshCw, Smartphone, Package, CheckCircle2, Globe, MessageCircle, MoreVertical, Sparkles, Wand2, Download, FileDown, FileUp, AlertCircle } from 'lucide-react';
 import API_BASE, { isMobileDevice } from "../config";
 
 function DigitalCatalog() {
