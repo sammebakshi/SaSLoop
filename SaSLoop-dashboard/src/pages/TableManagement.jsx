@@ -10,7 +10,6 @@ import {
   Plus, 
   MousePointer2,
   Lock,
-  Unlock,
   RefreshCw,
   X
 } from "lucide-react";
@@ -40,22 +39,6 @@ const TableManagement = () => {
     finally { setLoading(false); }
   };
 
-  const syncLayout = async () => {
-    setIsSaving(true);
-    try {
-      await fetch(`${API_BASE}/api/pos/tables/sync`, {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}` 
-        },
-        body: JSON.stringify({ tables })
-      });
-      setIsEditMode(false);
-      alert("✅ Floor plan layout saved successfully!");
-    } catch (e) { alert("❌ Failed to save layout"); }
-    finally { setIsSaving(false); }
-  };
 
   const updateTableStatus = async (tableName, newStatus) => {
     try {

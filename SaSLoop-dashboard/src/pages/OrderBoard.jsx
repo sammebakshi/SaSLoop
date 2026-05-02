@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import API_BASE, { isMobileDevice } from "../config";
-import { Package, Truck, CheckCircle2, Clock, MapPin, ChevronRight, AlertCircle, RefreshCw, Bell, BellOff, XCircle, Trash2 } from "lucide-react";
+import { Truck, CheckCircle2, Clock, MapPin, ChevronRight, AlertCircle, RefreshCw, Bell, BellOff, XCircle } from "lucide-react";
 
 // ── Web Audio API notification chime ────────
 let audioCtx = null;
-let audioUnlocked = false;
+let _audioUnlocked = false;
 
 function ensureAudioContext() {
   if (!audioCtx) {
@@ -13,7 +13,7 @@ function ensureAudioContext() {
   if (audioCtx.state === "suspended") {
     audioCtx.resume();
   }
-  audioUnlocked = true;
+  _audioUnlocked = true;
   return audioCtx;
 }
 
@@ -40,7 +40,7 @@ function playChime() {
 function OrderBoard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [_lastUpdated, setLastUpdated] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("orderBoardSound") === "true");
   const [mobileTab, setMobileTab] = useState("Incoming");
   const [newOrderFlash, setNewOrderFlash] = useState(false);

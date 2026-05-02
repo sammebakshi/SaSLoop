@@ -5,22 +5,24 @@ import {
   ShoppingBag, 
   Plus, 
   Minus, 
-  Trash2, 
   CheckCircle2, 
-  Clock, 
-  CreditCard, 
   Banknote, 
   Smartphone,
   Utensils,
   RefreshCw,
-  Users,
   Zap,
   LayoutGrid,
   X,
   Printer,
-  ChevronRight
+  ChevronRight,
+  Grid,
+  History,
+  Receipt,
+  Star
 } from "lucide-react";
 import API_BASE from "../config";
+
+import POSDashboard from "./POSDashboard";
 
 const POS = () => {
   const [items, setItems] = useState([]);
@@ -32,17 +34,14 @@ const POS = () => {
   const [business, setBusiness] = useState(null);
   const [posTables, setPosTables] = useState([]);
   
-  const [runningOrders, setRunningOrders] = useState([]);
+  const [view, setView] = useState("DASHBOARD"); // Default to the new Elite Dashboard
   const [selectedTable, setSelectedTable] = useState(null);
   const [activeTab, setActiveTab] = useState("DINEIN"); 
-  const [subTab, setSubTab] = useState("BILLING"); 
-
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [loyaltyPoints, setLoyaltyPoints] = useState(0);
   const [paymentMode, setPaymentMode] = useState("CASH");
-  const [discountType, setDiscountType] = useState("NONE");
-  const [discountValue, setDiscountValue] = useState(0);
+  const [discountType] = useState("NONE");
+  const [discountValue] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkoutResult, setCheckoutResult] = useState(null);
 
@@ -218,16 +217,20 @@ const POS = () => {
 
             <div className="flex flex-col gap-6 w-full items-center">
                {[
-                  { icon: Grid, label: "POS", active: true },
+                  { id: "DASHBOARD", icon: Grid, label: "Analytics" },
+                  { id: "ORDERING", icon: ShoppingBag, label: "Orders" },
                   { icon: Utensils, label: "Kitchen", path: "/kds" },
-                  { icon: History, label: "Orders", path: "/orders" },
+                  { icon: History, label: "History", path: "/orders" },
                   { icon: Users, label: "CRM", path: "/crm" },
                   { icon: Receipt, label: "Reports", path: "/analytics" }
                ].map((item, idx) => (
                   <button 
                     key={idx}
-                    onClick={() => item.path && (window.location.href = item.path)}
-                    className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${item.active ? 'bg-white text-slate-950 shadow-xl' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
+                    onClick={() => {
+                       if (item.id) setView(item.id);
+                       else if (item.path) window.location.href = item.path;
+                    }}
+                    className={`group relative w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${view === item.id ? 'bg-white text-slate-950 shadow-xl' : 'text-white/30 hover:bg-white/5 hover:text-white'}`}
                   >
                      <item.icon className="w-5 h-5" />
                      <div className="absolute left-16 px-3 py-1 bg-white text-slate-950 text-[10px] font-black uppercase tracking-widest rounded-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-all translate-x-[-10px] group-hover:translate-x-0 whitespace-nowrap z-50 shadow-2xl">
@@ -241,29 +244,33 @@ const POS = () => {
                <button onClick={() => window.location.href = "/floor-plan"} className="w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center hover:bg-indigo-500 hover:text-white transition-all">
                   <LayoutGrid className="w-5 h-5" />
                </button>
-               <button className="w-12 h-12 rounded-2xl bg-white/5 text-white/20 flex items-center justify-center hover:text-white transition-all">
-                  <Lock className="w-5 h-5" />
-               </button>
             </div>
          </div>
          <button onClick={() => window.close()} className="w-full aspect-square bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-[2rem] flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all shadow-xl"><X className="w-6 h-6" /></button>
       </div>
 
-      {/* 🟠 CATEGORY STRIP */}
-      <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
-         <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 flex flex-col items-center gap-4 flex-1 py-8 overflow-y-auto no-scrollbar shadow-xl">
-            {categories.map(cat => (
-               <button 
-                 key={cat}
-                 onClick={() => setSelectedCategory(cat)}
-                 className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedCategory === cat ? 'bg-white text-slate-950 shadow-2xl scale-110' : 'text-white/40 hover:bg-white/5'}`}
-               >
-                  <Star className="w-4 h-4" />
-                  <span className="text-[7px] font-black uppercase tracking-tighter text-center line-clamp-1 px-1">{cat}</span>
-               </button>
-            ))}
+      {/* 🟠 CONDITIONAL VIEW RENDER */}
+      {view === "DASHBOARD" ? (
+         <div className="flex-1 overflow-y-auto no-scrollbar bg-slate-50 rounded-[3rem] border border-white/10 shadow-2xl overflow-hidden">
+            <POSDashboard />
          </div>
-      </div>
+      ) : (
+         <>
+            {/* 🟠 CATEGORY STRIP */}
+            <div className="w-20 flex flex-col gap-4 shrink-0 h-full">
+               <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 flex flex-col items-center gap-4 flex-1 py-8 overflow-y-auto no-scrollbar shadow-xl">
+                  {categories.map(cat => (
+                     <button 
+                       key={cat}
+                       onClick={() => setSelectedCategory(cat)}
+                       className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center gap-1 transition-all ${selectedCategory === cat ? 'bg-white text-slate-950 shadow-2xl scale-110' : 'text-white/40 hover:bg-white/5'}`}
+                     >
+                        <Star className="w-4 h-4" />
+                        <span className="text-[7px] font-black uppercase tracking-tighter text-center line-clamp-1 px-1">{cat}</span>
+                     </button>
+                  ))}
+               </div>
+            </div>
 
       {/* ⚪ MIDDLE: PRODUCTS & FLOOR PREVIEW */}
       <div className="flex-1 flex flex-col min-w-0 gap-4">
@@ -419,7 +426,8 @@ const POS = () => {
                </div>
             </div>
          </div>
-      </div>
+         </>
+      )}
 
       {/* OVERLAY: CHECKOUT SUCCESS */}
       <AnimatePresence>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API_BASE from "../config";
-import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag, X, Bike, Utensils, ArrowRight, MousePointer2, Plus } from "lucide-react";
+import { Store, Clock, Settings, CheckCircle2, Sparkles, MapPin, Navigation, ShoppingBag, X, Bike, Utensils, Plus } from "lucide-react";
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 function LocationPicker({ lat, lng, onChange }) {
-  const map = useMapEvents({
+  const _map = useMapEvents({
     click(e) {
       onChange(e.latlng.lat, e.latlng.lng);
     },
@@ -23,7 +23,7 @@ function LocationPicker({ lat, lng, onChange }) {
 }
 
 function OperationalRules() {
-  const [user, setUser] = useState(null);
+  const [_user, setUser] = useState(null);
   const [formData, setFormData] = useState({
      name: "",
      phone: "",

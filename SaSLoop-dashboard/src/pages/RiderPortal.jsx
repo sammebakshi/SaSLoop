@@ -3,14 +3,13 @@ import API_BASE from "../config";
 import { useParams } from "react-router-dom";
 import { 
   MapPin, Navigation, Package, CheckCircle2, 
-  Phone, AlertCircle, Loader2, Play, Square 
+  Phone, AlertCircle, Play, Square 
 } from "lucide-react";
 
 function RiderPortal() {
     const { riderId } = useParams();
     const [orders, setOrders] = useState([]);
     const [isTracking, setIsTracking] = useState(false);
-    const [location, setLocation] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
     const watchId = useRef(null);
@@ -22,9 +21,9 @@ function RiderPortal() {
             clearInterval(itv);
             if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
         };
-    }, [riderId]);
+    }, [riderId, fetchAssignedOrders]);
 
-    const fetchAssignedOrders = async () => {
+    const fetchAssignedOrders = React.useCallback(async () => {
         try {
             // We fetch orders where rider_id matches and status is DISPATCHED
             // For now, we'll use a public endpoint or a specialized one

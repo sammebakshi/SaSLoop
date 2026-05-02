@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from "react";
 import API_BASE from "../config";
 import { 
-  BarChart3, Calendar, Search, Download, Filter, 
-  Package, TrendingUp, ArrowUpRight, ArrowDownRight,
-  Clock, CheckCircle2, XCircle, ShoppingBag, MapPin, Printer
+  BarChart3, Search, 
+  TrendingUp,
+  Clock, CheckCircle2, XCircle, ShoppingBag, Printer
 } from "lucide-react";
 
 function Reports() {
   const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);

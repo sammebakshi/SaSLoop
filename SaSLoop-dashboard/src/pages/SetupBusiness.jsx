@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
 import API_BASE from "../config";
 import { 
-  Store, Phone, MapPin, Loader2, Clock, Settings, 
-  Truck, Coffee, Car, ShoppingCart, Stethoscope, Scissors,
-  CheckCircle2, AlertCircle, Sparkles, Globe, ListPlus, ToggleRight,
+  Store, MapPin, Loader2, Settings, 
+  Coffee, ShoppingCart, Stethoscope, Scissors,
+  CheckCircle2, Sparkles, Globe, ListPlus, ToggleRight,
   Upload, Image, Link2, X
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";

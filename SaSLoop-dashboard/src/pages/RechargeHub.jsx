@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react";
 import API_BASE from "../config";
-import { CreditCard, Zap, ShieldCheck, Heart, ArrowRight, CheckCircle2, Loader2, Megaphone, Landmark, QrCode, Clock, RefreshCw, AlertCircle, Image as ImageIcon } from "lucide-react";
+import { Zap, ShieldCheck, Heart, ArrowRight, CheckCircle2, Loader2, Landmark, QrCode, Clock } from "lucide-react";
 import { createPortal } from "react-dom";
 
 function RechargeHub() {
-  const [loading, setLoading] = useState(false);
+  const [_loading, setLoading] = useState(false);
   const [masterPayment, setMasterPayment] = useState(null);
   const [history, setHistory] = useState([]);
   
