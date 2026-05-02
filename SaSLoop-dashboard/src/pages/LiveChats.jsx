@@ -39,6 +39,9 @@ function LiveChats() {
   const chatSoundRef = useRef(chatSoundEnabled);
   chatSoundRef.current = chatSoundEnabled;
 
+  // Utility to normalize WhatsApp numbers (remove @s.whatsapp.net)
+  const normalizeNum = (num) => num ? num.split('@')[0] : num;
+
   const fetchContactsInfo = async () => {
     try {
        const impersonateId = sessionStorage.getItem("impersonate_id");
@@ -130,22 +133,25 @@ function LiveChats() {
     }
   }, [chats]);
 
-  // Pre-calculate latest message time for each number for efficient sorting
+  // Pre-calculate latest message time for each normalized number
   const lastMessageTimes = {};
   chats.forEach(c => {
+    const norm = normalizeNum(c.customerNumber);
     const time = new Date(c.time).getTime();
-    if (!lastMessageTimes[c.customerNumber] || time > lastMessageTimes[c.customerNumber]) {
-      lastMessageTimes[c.customerNumber] = time;
+    if (!lastMessageTimes[norm] || time > lastMessageTimes[norm]) {
+      lastMessageTimes[norm] = time;
     }
   });
 
-  const activeNumbers = [...new Set(chats.map(c => c.customerNumber))]
+  // Unique list of normalized numbers, sorted by time
+  const activeNormalized = [...new Set(chats.map(c => normalizeNum(c.customerNumber)))]
     .filter(Boolean)
     .sort((a, b) => (lastMessageTimes[b] || 0) - (lastMessageTimes[a] || 0));
-  
-  const selectContact = async (num) => {
-    setSelectedNumber(num);
-    setIsPaused(pausedNumbers.includes(num));
+
+  const selectContact = async (rawNum) => {
+    const norm = normalizeNum(rawNum);
+    setSelectedNumber(rawNum); // Keep original for backend
+    setIsPaused(pausedNumbers.some(p => normalizeNum(p) === norm));
     if (isMobile) setShowMobileChat(true);
     try {
        await fetch(`${API_BASE}/api/whatsapp/mark-read`, {
@@ -154,7 +160,7 @@ function LiveChats() {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${localStorage.getItem("token")}` 
           },
-          body: JSON.stringify({ type: 'chats', customerNumber: num })
+          body: JSON.stringify({ type: 'chats', customerNumber: rawNum })
        });
     } catch (e) {}
     setTimeout(() => scrollToBottom(true), 100);
@@ -210,7 +216,7 @@ function LiveChats() {
     finally { setSending(false); }
   };
   
-  const selectedChats = chats.filter(c => c.customerNumber === selectedNumber);
+  const selectedChats = chats.filter(c => normalizeNum(c.customerNumber) === normalizeNum(selectedNumber));
 
   const contactListJSX = (
     <div className={`flex flex-col h-full bg-white ${isMobile ? 'w-full' : 'w-[350px] border-r border-slate-100'}`}>
@@ -222,30 +228,31 @@ function LiveChats() {
           </div>
         </div>
         <div className="flex-1 overflow-y-auto no-scrollbar pb-10">
-          {activeNumbers.length === 0 ? (
+          {activeNormalized.length === 0 ? (
               <div className="flex flex-col items-center justify-center text-center h-full p-10 opacity-20 italic">
                 <MessageSquare className="w-12 h-12 mb-4" />
                 <p className="text-[10px] font-black uppercase tracking-widest">No active sessions</p>
               </div>
           ) : (
-              activeNumbers.map((num) => {
-                const msgs = chats.filter(c => c.customerNumber === num);
+              activeNormalized.map((norm) => {
+                const msgs = chats.filter(c => normalizeNum(c.customerNumber) === norm);
                 const lastMsg = msgs[msgs.length - 1];
-                const isSelected = selectedNumber === num;
+                const rawNum = lastMsg?.customerNumber || norm;
+                const isSelected = normalizeNum(selectedNumber) === norm;
                 return (
                     <button 
-                      key={num} 
-                      onClick={() => selectContact(num)}
+                      key={norm} 
+                      onClick={() => selectContact(rawNum)}
                       className={`w-full p-6 text-left flex gap-5 transition-all relative group ${isSelected && !isMobile ? 'bg-indigo-50/40' : 'hover:bg-slate-50'}`}
                     >
                       {isSelected && !isMobile && <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-indigo-600 rounded-r-full"></div>}
                       <div className={`w-14 h-14 ${isSelected && !isMobile ? 'bg-indigo-600 text-white shadow-2xl shadow-indigo-200 scale-105' : 'bg-slate-100 text-slate-500 group-hover:bg-indigo-50'} rounded-[1.5rem] flex items-center justify-center shrink-0 font-black text-xs transition-all duration-300`}>
-                          {num.substring(0, 2)}
+                          {norm.substring(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
                           <div className="flex justify-between items-center mb-1">
                              <p className={`font-black tracking-tight text-[12px] uppercase italic ${lastMsg?.role === 'customer' && !lastMsg?.is_read ? 'text-indigo-600' : 'text-slate-900'}`}>
-                                {contactsMap[num] || num.split('@')[0]}
+                                {contactsMap[norm] || contactsMap[rawNum] || norm}
                              </p>
                              <span className="text-[9px] font-black text-slate-300">{lastMsg ? new Date(lastMsg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
                           </div>
