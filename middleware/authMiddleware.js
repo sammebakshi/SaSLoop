@@ -19,7 +19,7 @@ const authMiddleware = async (req, res, next) => {
 
     // Load fresh permissions from DB (so changes take effect without re-login)
     const dbRes = await pool.query(
-      "SELECT id, email, role, status, admin_permissions, created_by, assigned_admin_id FROM app_users WHERE id = $1",
+      "SELECT id, email, role, status, admin_permissions, created_by, assigned_admin_id, parent_user_id FROM app_users WHERE id = $1",
       [verified.id]
     );
 
@@ -40,6 +40,8 @@ const authMiddleware = async (req, res, next) => {
       admin_permissions: user.admin_permissions || {},
       created_by: user.created_by,
       assigned_admin_id: user.assigned_admin_id,
+      parent_user_id: user.parent_user_id,
+      bizId: user.parent_user_id || user.id // Unified business ID
     };
 
     next();

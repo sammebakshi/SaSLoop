@@ -11,7 +11,7 @@ const { triggerWebhook } = require("../utils/webhookUtils");
 router.get("/", authMiddleware, async (req, res) => {
   try {
     const { target_user_id } = req.query;
-    let userId = req.user.id;
+    let userId = req.user.bizId;
 
     // If an admin wants to see someone else's orders
     if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin'))) {
@@ -34,7 +34,7 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
-    const userId = req.user.id;
+    const userId = req.user.bizId;
 
     // Verify ownership & Fetch order data for notification
     const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);

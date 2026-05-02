@@ -137,7 +137,7 @@ router.post("/setup", authMiddleware, async (req, res) => {
 router.get("/status", authMiddleware, async (req, res) => {
   try {
     const { target_user_id } = req.query;
-    let userId = req.user.id;
+    let userId = req.user.bizId;
     if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin'))) {
        userId = target_user_id;
     }

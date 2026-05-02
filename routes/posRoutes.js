@@ -6,7 +6,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 // ✅ GET ALL TABLES FOR POS
 router.get("/tables", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.bizId;
         const result = await pool.query(
             "SELECT * FROM pos_tables WHERE user_id = $1 ORDER BY table_name ASC",
             [userId]
@@ -21,7 +21,7 @@ router.get("/tables", authMiddleware, async (req, res) => {
 // ✅ SAVE/UPDATE TABLE POSITIONS (BULK)
 router.post("/tables/sync", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.bizId;
         const { tables } = req.body; // Array of { id, x_pos, y_pos, status, table_name }
         console.log(`Syncing ${tables.length} tables for user ${userId}`);
         for (const table of tables) {
@@ -49,7 +49,7 @@ router.post("/tables/sync", authMiddleware, async (req, res) => {
 // ✅ UPDATE SINGLE TABLE STATUS
 router.put("/tables/:tableName/status", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.bizId;
         const { tableName } = req.params;
         const { status } = req.body;
 
@@ -67,7 +67,7 @@ router.put("/tables/:tableName/status", authMiddleware, async (req, res) => {
 // ✅ DELETE TABLE
 router.delete("/tables/:id", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const userId = req.user.bizId;
         const { id } = req.params;
         await pool.query("DELETE FROM pos_tables WHERE id = $1 AND user_id = $2", [id, userId]);
         res.json({ success: true });
