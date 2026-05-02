@@ -66,6 +66,8 @@ const ProtectedShell = ({ allowedRoles }) => {
   if (!user) return <Navigate to="/login" replace />;
 
   if (allowedRoles && allowedRoles.length > 0) {
+    if (user.role === 'master_admin') return <AppLayout />;
+    
     const hasRole = allowedRoles.some(role => {
        if (role === 'admin' && user.role?.startsWith('admin')) return true;
        return user.role === role;

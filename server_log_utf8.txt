@@ -1,0 +1,13 @@
+﻿Γùç injected env (16) from .env // tip: Γîÿ custom filepath { path: '/custom/path/.env' }
+SERVER BOOTING... ≡ƒÜÇ
+Γùç injected env (0) from .env // tip: Γùê secrets for agents [www.dotenvx.com]
+≡ƒÜÇ FINAL FRONTEND PATH: C:\Users\Sajad\Desktop\SaSLoop\backend\SaSLoop-dashboard\build
+Γ£à Dashboard Assets Mounted!
+Server running on port 5000 ≡ƒÜÇ
+≡ƒÉÿ INITIALIZING DATABASE SCHEMA...
+≡ƒÉÿ STANDARDIZING PHONE FORMAT TO INTERNATIONAL...
+Γ£à DATABASE SCHEMA INITIALIZED SUCCESSFULLY
+ΓÅ░ Abandoned Cart Recovery Cron Started
+ΓÅ░ AUTO FOLLOW-UP ENGINE STARTED
+ΓÅ░ Database Backup Cron Scheduled (Daily 3:00 AM)
+≡ƒôê SERVER RESTARTED! Total restarts logged: 15

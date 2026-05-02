@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { 
   Globe, Zap, Users, ShoppingBag, TrendingUp, ArrowUpRight, 
-  MapPin, Activity, ShieldCheck, Layers, Eye
+  MapPin, Activity, ShieldCheck, Layers, Eye, Settings
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import API_BASE from "../config";
 
 const stores = [
@@ -13,6 +14,7 @@ const stores = [
 ];
 
 function CommandCenter() {
+  const navigate = useNavigate();
   const [activeStore, setActiveStore] = useState(stores[0]);
   const [pulses, setPulses] = useState([]);
 
@@ -46,8 +48,11 @@ function CommandCenter() {
             <div className="text-[8px] font-black uppercase text-white/40 tracking-widest mb-1">Total Network Revenue</div>
             <div className="text-2xl font-black tracking-tighter">₹1,25,000 <span className="text-xs text-emerald-400 font-bold ml-2">↑ 18%</span></div>
           </div>
-          <button className="bg-indigo-600 px-8 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20">
-            System Settings
+          <button 
+            onClick={() => navigate('/setup-business')}
+            className="bg-indigo-600 px-8 py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-widest hover:bg-indigo-500 transition-all shadow-2xl shadow-indigo-500/20 flex items-center gap-3"
+          >
+            <Settings className="w-4 h-4" /> System Settings
           </button>
         </div>
       </div>
@@ -147,7 +152,10 @@ function CommandCenter() {
                 </div>
                 <span className="text-emerald-400 font-black">{activeStore.growth}</span>
               </div>
-              <button className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all">
+              <button 
+                onClick={() => navigate('/dashboard')}
+                className="w-full py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all"
+              >
                 Enter Digital Twin
               </button>
             </div>

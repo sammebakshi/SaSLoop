@@ -255,6 +255,7 @@ const Layout = ({ children }) => {
     if (role === 'master_admin') {
         return [
           { name: "Master Dashboard", path: "/master-dashboard", icon: LayoutDashboard },
+          { name: "Global Command", path: "/command-center", icon: Globe },
           { name: "Manage Users", path: "#", icon: Users, isDropdown: true, isOpenState: manageUsersOpen, setOpenState: setManageUsersOpen, subItems: [
               { name: "Add Admin", path: "/master-dashboard#add-admin" },
               { name: "Add Business", path: "/master-dashboard#add-business" },
@@ -263,18 +264,25 @@ const Layout = ({ children }) => {
           ]},
           { name: "Audit Logs", path: "/audit-logs", icon: Shield },
           { name: "System Health", path: "/system-health", icon: Activity },
-          { name: "Broadcast Hub", path: "/broadcast", icon: MenuSquare },
+          { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
           { name: "Support Desk", path: "/support-desk", icon: LifeBuoy },
           { name: "WhatsApp Connect", path: "/whatsapp-connect", icon: MessageSquare },
-          { name: "Platform Settings", path: "/platform-settings", icon: Settings },
+          { name: "Business Data", path: "#", icon: BookOpen, isDropdown: true, isOpenState: businessDataOpen, setOpenState: setBusinessDataOpen, subItems: [
+              { name: "Manage Profile", path: "/setup-business" },
+              { name: "AI Bot Setup", path: "/bot-config" },
+              { name: "Operational Rules", path: "/business-data/rules" },
+              { name: "Menu & Catalog", path: "/business-data/catalog" },
+          ]},
         ];
     } else if (role && role.startsWith('admin')) {
         return [
           { name: "Admin Dashboard", path: "/admin-dashboard", icon: LayoutDashboard },
+          { name: "Global Command", path: "/command-center", icon: Globe },
           { name: "Manage Clients", path: "#", icon: Users, isDropdown: true, isOpenState: manageUsersOpen, setOpenState: setManageUsersOpen, subItems: [
               { name: "Add Business", path: "/admin-dashboard#add-business" },
               { name: "View All Businesses", path: "/admin-dashboard#manage-businesses" },
           ]},
+          { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
           { name: "WhatsApp Connect", path: "/whatsapp-connect", icon: MessageSquare },
           { name: "Support Desk", path: "/support-desk", icon: LifeBuoy },
         ];
@@ -311,7 +319,8 @@ const Layout = ({ children }) => {
     }
   };
 
-  const navItems = getNavItems(user?.role);
+  const impersonateId = sessionStorage.getItem('impersonate_id');
+  const navItems = getNavItems(impersonateId ? 'user' : user?.role);
 
   const getRoleBadgeColor = (role) => {
     switch (role) {

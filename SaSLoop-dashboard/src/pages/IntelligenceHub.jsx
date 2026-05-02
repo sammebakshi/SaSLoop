@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { 
   Brain, Sparkles, TrendingUp, TrendingDown, Target, Zap, 
-  MessageSquare, BarChart3, PieChart, Activity, ArrowUpRight, 
+  MessageSquare, Activity, ArrowUpRight, 
   Clock, Users, Wallet, ChefHat, ShoppingBag, Plus
 } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell } from 'recharts';
 import API_BASE from "../config";
 
 function IntelligenceHub() {
   const [strategy, setStrategy] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [metrics, setMetrics] = useState({
     today_revenue: 0,
     active_customers: 0,
@@ -29,46 +29,80 @@ function IntelligenceHub() {
         headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
       });
       const data = await res.json();
-      setStrategy(data.strategy);
-      setMetrics(data.metrics);
+      if (data && data.metrics) {
+        setStrategy(data.strategy || "");
+        setMetrics({
+          today_revenue: data.metrics.today_revenue || 0,
+          active_customers: data.metrics.active_customers || 0,
+          peak_hour: data.metrics.peak_hour || "N/A",
+          top_dish: data.metrics.top_dish || "N/A",
+          surge_multiplier: data.metrics.surge_multiplier || 1.0
+        });
+      }
     } catch (err) {
-      console.error(err);
-      setStrategy("Focus on upselling high-margin items during your lunch rush (12 PM - 2 PM). Consider a 'Combo Deal' for your top-performing dish.");
+      console.error("Intelligence Fetch Error:", err);
+      setStrategy("AI Consultant: Focus on upselling high-margin items during your lunch rush.");
+      setMetrics({
+        today_revenue: 0,
+        active_customers: 0,
+        peak_hour: "7 PM - 9 PM",
+        top_dish: "Trending Item",
+        surge_multiplier: 1.0
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  const StatCard = ({ title, value, icon: Icon, trend, color, subtext }) => (
-    <div className="bg-white p-8 rounded-[3rem] border-2 border-slate-50 shadow-xl shadow-slate-200/20 group hover:border-indigo-100 transition-all duration-500 relative overflow-hidden">
-      <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] -mr-8 -mt-8 rounded-full ${color}`} />
-      <div className="flex justify-between items-start relative z-10">
-        <div className={`p-4 rounded-2xl ${color.replace('bg-', 'bg-').replace('-500', '-50')} ${color.replace('bg-', 'text-')}`}>
-          <Icon className="w-6 h-6" />
-        </div>
-        {trend && (
-          <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
-            {trend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-            {Math.abs(trend)}%
+  const StatCard = ({ title, value, icon: Icon, trend, color, subtext }) => {
+    try {
+      const bgColor = color ? color.replace('bg-', 'bg-').replace('-500', '-50') : 'bg-slate-50';
+      const textColor = color ? color.replace('bg-', 'text-') : 'text-slate-500';
+      
+      return (
+        <div className="bg-white p-8 rounded-[3rem] border-2 border-slate-50 shadow-xl shadow-slate-200/20 group hover:border-indigo-100 transition-all duration-500 relative overflow-hidden">
+          <div className={`absolute top-0 right-0 w-32 h-32 opacity-[0.03] -mr-8 -mt-8 rounded-full ${color || 'bg-slate-500'}`} />
+          <div className="flex justify-between items-start relative z-10">
+            <div className={`p-4 rounded-2xl ${bgColor} ${textColor}`}>
+              {Icon && <Icon className="w-6 h-6" />}
+            </div>
+            {trend && (
+              <div className={`flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black ${trend > 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
+                {trend > 0 ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                {Math.abs(trend)}%
+              </div>
+            )}
           </div>
-        )}
+          <div className="mt-6 relative z-10">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
+            <h3 className="text-3xl font-black text-slate-900 mt-1 tracking-tight italic">{value}</h3>
+            <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{subtext}</p>
+          </div>
+        </div>
+      );
+    } catch (e) {
+      return <div className="p-4 bg-red-50 text-red-500">Error in StatCard</div>;
+    }
+  };
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full p-20 text-center">
+        <h2 className="text-2xl font-black text-slate-800">Something went wrong</h2>
+        <p className="text-slate-500 mt-2">{error}</p>
+        <button onClick={() => window.location.reload()} className="mt-6 px-8 py-3 bg-indigo-600 text-white rounded-xl">Reload Page</button>
       </div>
-      <div className="mt-6 relative z-10">
-        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{title}</p>
-        <h3 className="text-3xl font-black text-slate-900 mt-1 tracking-tight italic">{value}</h3>
-        <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase tracking-widest">{subtext}</p>
-      </div>
-    </div>
-  );
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto p-4 space-y-8 animate-in fade-in duration-1000 pb-20">
+    <div className="max-w-7xl mx-auto p-4 space-y-8 pb-20">
       
       {/* HEADER SECTION */}
       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6">
         <div className="space-y-2">
           <div className="flex items-center gap-2 px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full w-fit">
-            <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+            <Sparkles className="w-3.5 h-3.5" />
             <span className="text-[10px] font-black uppercase tracking-widest">AI Intelligence Active</span>
           </div>
           <h1 className="text-5xl font-black text-slate-900 tracking-tighter italic uppercase underline decoration-orange-500">Global Command</h1>
@@ -86,18 +120,43 @@ function IntelligenceHub() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard title="Real-time Revenue" value={`₹${metrics.today_revenue.toLocaleString()}`} icon={Wallet} trend={12} color="bg-indigo-500" subtext="Live order stream" />
-        <StatCard title="Active Traffic" value={metrics.active_customers} icon={Users} trend={-4} color="bg-emerald-500" subtext="Current store density" />
-        <StatCard title="Surge Multiplier" value={`${metrics.surge_multiplier}x`} icon={Zap} color="bg-orange-500" subtext="Automatic revenue boost" />
-        <StatCard title="Peak Demand" value={metrics.peak_hour} icon={Clock} color="bg-rose-500" subtext="Predicted rush window" />
+        <StatCard 
+          title="Real-time Revenue" 
+          value={`₹${(metrics?.today_revenue || 0).toLocaleString()}`} 
+          icon={Wallet} 
+          trend={12} 
+          color="bg-indigo-500" 
+          subtext="Live order stream" 
+        />
+        <StatCard 
+          title="Active Traffic" 
+          value={metrics?.active_customers || 0} 
+          icon={Users} 
+          trend={-4} 
+          color="bg-emerald-500" 
+          subtext="Current store density" 
+        />
+        <StatCard 
+          title="Surge Multiplier" 
+          value={`${metrics?.surge_multiplier || 1.0}x`} 
+          icon={Zap} 
+          color="bg-orange-500" 
+          subtext="Automatic revenue boost" 
+        />
+        <StatCard 
+          title="Peak Demand" 
+          value={metrics?.peak_hour || "N/A"} 
+          icon={Clock} 
+          color="bg-rose-500" 
+          subtext="Predicted rush window" 
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
         {/* AI STRATEGY BOX */}
         <div className="lg:col-span-2 bg-slate-900 rounded-[3.5rem] p-12 text-white relative overflow-hidden shadow-2xl shadow-slate-400/20 group">
-          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl group-hover:bg-indigo-500/20 transition-all duration-1000" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/5 rounded-full -ml-32 -mb-32 blur-3xl" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full -mr-32 -mt-32 blur-3xl" />
           
           <div className="relative z-10 space-y-10">
             <div className="flex items-center gap-4">
@@ -113,7 +172,7 @@ function IntelligenceHub() {
             <div className="space-y-6">
                <div className="p-8 bg-white/5 rounded-[2.5rem] border border-white/5 backdrop-blur-md">
                   <p className="text-lg font-bold leading-relaxed italic text-slate-200">
-                    "{strategy || 'Analyzing your business patterns... Strategizing for maximum conversion.'}"
+                    "{strategy || 'Analyzing your business patterns...'}"
                   </p>
                </div>
                
@@ -122,7 +181,7 @@ function IntelligenceHub() {
                      <ChefHat className="w-5 h-5 text-orange-400" />
                      <div>
                         <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Target Menu Item</p>
-                        <p className="text-sm font-black text-white italic uppercase tracking-tighter">{metrics.top_dish}</p>
+                        <p className="text-sm font-black text-white italic uppercase tracking-tighter">{metrics?.top_dish || "N/A"}</p>
                      </div>
                   </div>
                   <div className="flex items-center gap-4 p-5 bg-white/5 rounded-2xl border border-white/5">
@@ -146,7 +205,7 @@ function IntelligenceHub() {
           </div>
         </div>
 
-        {/* REVENUE PREDICTION CARD */}
+        {/* STATIC PREDICTION CARD (CHART DISABLED FOR DEBUG) */}
         <div className="bg-white rounded-[3.5rem] p-10 border-2 border-slate-50 shadow-2xl shadow-slate-200/30 flex flex-col justify-between">
            <div>
               <div className="flex items-center gap-3 mb-8">
@@ -155,7 +214,7 @@ function IntelligenceHub() {
                  </div>
                  <div>
                     <h4 className="text-lg font-black text-slate-900 tracking-tight uppercase italic">Profit Velocity</h4>
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Next 24h Prediction</p>
+                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Prediction Mode</p>
                  </div>
               </div>
 
@@ -165,19 +224,13 @@ function IntelligenceHub() {
                     <span className="text-xl font-black text-indigo-600 italic">92%</span>
                  </div>
                  <div className="w-full h-3 bg-slate-50 rounded-full overflow-hidden">
-                    <div className="w-[92%] h-full bg-gradient-to-r from-indigo-500 to-indigo-600" />
+                    <div className="w-[92%] h-full bg-indigo-600" />
                  </div>
               </div>
            </div>
 
-           <div className="h-48 mt-8">
-              <ResponsiveContainer width="100%" height="100%">
-                 <LineChart data={[
-                   {t: '10am', v: 400}, {t: '12pm', v: 800}, {t: '2pm', v: 600}, {t: '4pm', v: 500}, {t: '6pm', v: 1100}, {t: '8pm', v: 1400}
-                 ]}>
-                    <Line type="monotone" dataKey="v" stroke="#6366f1" strokeWidth={4} dot={false} />
-                 </LineChart>
-              </ResponsiveContainer>
+           <div className="h-48 mt-8 flex items-center justify-center bg-slate-50 rounded-3xl text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+              Chart temporarily disabled for debug
            </div>
 
            <div className="pt-8 border-t border-slate-50">

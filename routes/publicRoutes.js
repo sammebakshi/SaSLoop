@@ -65,7 +65,33 @@ router.post("/order", async (req, res) => {
 
         const currSymbol = bizData?.currency_code === 'INR' ? '₹' : (bizData?.currency_code === 'USD' ? '$' : '₹');
         
-        let finalPrice = parseFloat(totalPrice) || 0;
+        // 🛒 SERVER-SIDE PRICE VALIDATION
+        let calculatedSubtotal = 0;
+        try {
+            const safeItems = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+            const itemIds = safeItems.map(i => i.id).filter(id => id);
+            if (itemIds.length > 0) {
+                const dbItemsRes = await pool.query("SELECT id, price FROM business_items WHERE id = ANY($1)", [itemIds]);
+                const priceMap = {};
+                dbItemsRes.rows.forEach(row => priceMap[row.id] = parseFloat(row.price));
+                
+                safeItems.forEach(item => {
+                    const dbPrice = priceMap[item.id] || parseFloat(item.price) || 0;
+                    calculatedSubtotal += (dbPrice * (parseInt(item.qty) || 1));
+                });
+            } else {
+                // Fallback for custom items if allowed, or just use frontend price if items is empty
+                calculatedSubtotal = parseFloat(totalPrice) || 0;
+            }
+        } catch (e) { console.error("Price validation error:", e); calculatedSubtotal = parseFloat(totalPrice) || 0; }
+
+        let finalPrice = calculatedSubtotal;
+        // Apply taxes if business has them
+        const taxRate = (parseFloat(bizData.cgst_percent) || 0) + (parseFloat(bizData.sgst_percent) || 0);
+        if (taxRate > 0) finalPrice += (calculatedSubtotal * (taxRate / 100));
+        // Apply discount
+        if (discount_amount) finalPrice -= parseFloat(discount_amount);
+        
         let redeemedPoints = 0;
 
         // Loyalty Redemption Logic (WhatsApp Verified)
@@ -151,9 +177,10 @@ router.post("/order", async (req, res) => {
               [JSON.stringify(mergedItems), newTotal, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', (parseFloat(existingOrder.discount_amount) || 0) + (discount_amount || 0), (parseFloat(existingOrder.service_charge) || 0) + (service_charge || 0), (parseFloat(existingOrder.delivery_charge) || 0) + finalDeliveryCharge, newRedeemedPoints, orderId]
             );
         } else {
+            const itemsData = typeof items === 'string' ? JSON.parse(items) : (items || []);
             insertRes = await pool.query(
                 "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *",
-                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(items || []), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
             );
             orderId = insertRes.rows[0].id;
         }
@@ -411,7 +438,8 @@ router.get("/payment-redirect/:orderRef", async (req, res) => {
         // 3. Redirect to actual payment link
         const customLink = biz?.settings?.custom_payment_link;
         const upiId = biz?.settings?.upi_id || "restaurant@upi";
-        const finalRedirect = customLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(biz?.name || "Restaurant")}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}`;
+        const cleanName = (biz?.name || "Restaurant").replace(/[^a-zA-Z0-9 ]/g, '');
+        const finalRedirect = customLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(cleanName)}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}&mc=5812&mode=02&tr=${order.order_reference}`;
         
         res.redirect(finalRedirect);
     } catch (err) {

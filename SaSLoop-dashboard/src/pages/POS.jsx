@@ -247,7 +247,7 @@ const POS = () => {
              {categories.map(cat => (
                <button 
                  key={cat}
-                 onClick={() => setSelectedCategory(cat)}
+                 onClick={() => { setSelectedCategory(cat); setSubTab('BILLING'); }}
                  className={`w-full text-left px-6 py-4 text-[10px] font-black uppercase tracking-widest transition-all border-r-4 ${
                    selectedCategory === cat 
                    ? 'bg-orange-50 text-orange-600 border-orange-500' 
@@ -257,6 +257,15 @@ const POS = () => {
                  {cat}
                </button>
              ))}
+             <div className="mt-4 px-6">
+                <button 
+                  onClick={() => setSubTab(subTab === 'BILLING' ? 'HISTORY' : 'BILLING')}
+                  className={`w-full py-4 rounded-2xl flex items-center justify-center gap-3 transition-all border-2 ${subTab === 'HISTORY' ? 'bg-indigo-600 border-indigo-500 text-white shadow-xl' : 'bg-slate-50 border-slate-100 text-slate-400 hover:text-slate-900'}`}
+                >
+                   {subTab === 'HISTORY' ? <Grid className="w-4 h-4" /> : <History className="w-4 h-4" />}
+                   <span className="text-[10px] font-black uppercase tracking-widest">{subTab === 'HISTORY' ? 'Back to Billing' : 'Order History'}</span>
+                </button>
+             </div>
           </div>
           <div className="p-6 border-t border-slate-100">
              <button onClick={() => window.close()} className="w-full py-3 bg-rose-50 text-rose-500 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-rose-500 hover:text-white transition-all">
@@ -334,27 +343,55 @@ const POS = () => {
 
            <div className="flex-1 overflow-y-auto p-6 pt-4 custom-scrollbar">
               <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
-                 {filteredItems.map(item => (
-                   <button 
-                     key={item.id}
-                     onClick={() => addToCart(item)}
-                     className="bg-white border-2 border-transparent p-4 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:border-orange-100 transition-all group relative animate-in zoom-in-95 duration-300"
-                   >
-                      <div className="aspect-square bg-slate-50 rounded-[2rem] mb-4 overflow-hidden border border-slate-50">
-                         {item.image_url ? <img src={`${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
-                      </div>
-                      <div className="text-left px-2">
-                          <h4 className="text-[11px] font-black text-slate-900 uppercase italic line-clamp-1 mb-1">{item.product_name}</h4>
-                          <div className="flex items-center justify-between">
-                              <p className="text-sm font-black text-slate-950 tracking-tighter italic">\u20B9{item.price}</p>
-                              <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: item.is_veg ? '#10b981' : '#f43f5e' }} />
-                          </div>
-                      </div>
-                      <div className="absolute -top-1 -right-1 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
-                          <Plus className="w-5 h-5" />
-                      </div>
-                   </button>
-                 ))}
+                 {subTab === 'HISTORY' ? (
+                   runningOrders.map(order => (
+                     <button 
+                        key={order.id}
+                        className="bg-white border-2 border-slate-100 p-6 rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all text-left group"
+                        onClick={() => {
+                           const itemsArr = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
+                           setCart(itemsArr);
+                           setCustomerName(order.customer_name);
+                           setCustomerPhone(order.customer_number);
+                           setSelectedTable(parseInt(order.table_number) || null);
+                           setSubTab('BILLING');
+                        }}
+                     >
+                        <div className="flex justify-between items-start mb-4">
+                           <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 group-hover:text-indigo-500 transition-colors"><Receipt className="w-5 h-5" /></div>
+                           <span className="text-[10px] font-black text-slate-900 bg-slate-50 px-2 py-1 rounded-lg">\u20B9{order.total_price}</span>
+                        </div>
+                        <h4 className="text-[11px] font-black text-slate-900 uppercase italic line-clamp-1 mb-1">{order.customer_name || 'Guest'}</h4>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{new Date(order.created_at).toLocaleTimeString()}</p>
+                        <div className="mt-4 pt-4 border-t border-slate-50 flex items-center justify-between">
+                           <span className="text-[8px] font-black text-indigo-500 uppercase">Ref: {order.order_reference?.split('-')[1] || order.id}</span>
+                           <ArrowRight className="w-3 h-3 text-slate-300 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                     </button>
+                   ))
+                 ) : (
+                   filteredItems.map(item => (
+                    <button 
+                      key={item.id}
+                      onClick={() => addToCart(item)}
+                      className="bg-white border-2 border-transparent p-4 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:border-orange-100 transition-all group relative animate-in zoom-in-95 duration-300"
+                    >
+                       <div className="aspect-square bg-slate-50 rounded-[2rem] mb-4 overflow-hidden border border-slate-50">
+                          {item.image_url ? <img src={`${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110" /> : <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-10 h-10" /></div>}
+                       </div>
+                       <div className="text-left px-2">
+                           <h4 className="text-[11px] font-black text-slate-900 uppercase italic line-clamp-1 mb-1">{item.product_name}</h4>
+                           <div className="flex items-center justify-between">
+                               <p className="text-sm font-black text-slate-950 tracking-tighter italic">\u20B9{item.price}</p>
+                               <div className="w-3 h-3 rounded-full border-2 border-white shadow-sm" style={{ backgroundColor: item.is_veg ? '#10b981' : '#f43f5e' }} />
+                           </div>
+                       </div>
+                       <div className="absolute -top-1 -right-1 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                           <Plus className="w-5 h-5" />
+                       </div>
+                    </button>
+                  ))
+                 )}
               </div>
            </div>
         </div>

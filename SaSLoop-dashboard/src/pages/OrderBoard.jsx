@@ -85,7 +85,7 @@ function OrderBoard() {
   useEffect(() => {
     fetchOrders();
     fetchRiders();
-    const interval = setInterval(fetchOrders, 15000);
+    const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
