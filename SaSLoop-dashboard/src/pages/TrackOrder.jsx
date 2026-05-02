@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Clock, ChefHat, CheckCircle2, Bike, MapPin, Phone, Navigation } from 'lucide-react';
+import { Clock, ChefHat, CheckCircle2, Bike, Phone } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import API_BASE from '../config';

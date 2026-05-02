@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import API_BASE from "../config";
-import { HelpCircle, Send, Clock, MessageSquare, CheckCircle2, ChevronRight, AlertCircle, LifeBuoy } from "lucide-react";
+import { HelpCircle, Clock, MessageSquare, CheckCircle2, LifeBuoy } from "lucide-react";
 
 function Support() {
   const [tickets, setTickets] = useState([]);

@@ -9,7 +9,7 @@
     "tunnel": "node start-tunnel.js",
     "dev": "concurrently \"node server.js\" \"node start-tunnel.js\"",
     "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && NODE_OPTIONS=--max-old-space-size=4096 npm run build",
-    "update-live": "git pull origin main && npm install && npm run build-frontend && pm2 restart server && pm2 save",
+    "update-live": "git pull origin main && npm install && npm run build-frontend && pm2 restart SaSLoop-Backend && pm2 save",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

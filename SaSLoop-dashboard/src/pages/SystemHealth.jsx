@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import API_BASE from "../config";
 import { 
-  Activity, Database, AlertTriangle, ShieldCheck, Server, RefreshCw, 
-  Users, ShoppingBag, Package, MessageSquare, LifeBuoy, Hash, Cpu, HardDrive
+  Activity, Database, AlertTriangle, ShieldCheck, RefreshCw, 
+  Users, ShoppingBag, Package, MessageSquare, Cpu, HardDrive
 } from "lucide-react";
 
 function SystemHealth() {
