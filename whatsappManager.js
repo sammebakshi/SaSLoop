@@ -163,7 +163,7 @@ const getRecentChats = async (userId) => {
         const res = await pool.query(
             `SELECT id, customer_number AS "customerNumber", role, text, created_at AS time, is_read
              FROM chat_messages WHERE user_id = $1 AND created_at > NOW() - INTERVAL '7 days'
-             ORDER BY created_at ASC LIMIT 1000`,
+             ORDER BY created_at DESC LIMIT 2000`,
             [userId]
         );
         return res.rows;
