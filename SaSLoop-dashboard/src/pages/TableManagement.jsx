@@ -69,6 +69,8 @@ const TableManagement = () => {
     };
     setTables([...tables, newTable]);
     setIsEditMode(true);
+  };
+
   const deleteTable = async (table) => {
     if (!window.confirm(`Delete table ${table.table_name}?`)) return;
     if (table.id) {
