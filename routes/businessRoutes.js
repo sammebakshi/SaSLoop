@@ -211,28 +211,62 @@ router.get("/staff", authMiddleware, async (req, res) => {
     }
 });
 
-// POST /api/business/staff
+// POST /api/business/staff (Tiered Role Engine)
 const bcrypt = require("bcrypt");
 router.post("/staff", authMiddleware, async (req, res) => {
-        const { name, email, password, role, permissions, target_user_id, phone, pos_pin, username } = req.body;
-        
+    const { name, email, password, role, target_user_id, phone, pos_pin, username } = req.body;
+    try {
+        let userId = req.user.id;
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin'))) {
+           userId = target_user_id;
+        }
+
         // 1. GLOBAL IDENTITY CHECK
         const exists = await pool.query(
             "SELECT id FROM app_users WHERE email = $1 OR phone = $2 OR username = $3",
             [email, phone, username || email]
         );
         if (exists.rows.length > 0) {
-            return res.status(400).json({ error: "One of these details (email, phone, or username) is already registered in SaSLoop" });
+            return res.status(400).json({ error: "Identity already taken. Choose a different username/phone." });
+        }
+
+        // 2. DEFAULT PERMISSION MAPPING
+        let permissions = {};
+        switch(role.toLowerCase()) {
+            case 'manager':
+                permissions = { can_void_order: true, can_view_reports: true, can_manage_inventory: true, can_edit_prices: true };
+                break;
+            case 'cashier':
+                permissions = { can_void_order: false, can_view_reports: false, can_manage_inventory: true, can_edit_prices: false };
+                break;
+            case 'waiter':
+                permissions = { can_void_order: false, can_view_reports: false, can_manage_inventory: false, can_edit_prices: false, table_order_only: true };
+                break;
+            case 'rider':
+                permissions = { is_delivery_partner: true, access_rider_app: true };
+                break;
+            default:
+                permissions = { basic_pos_access: true };
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const result = await pool.query(
-            "INSERT INTO app_users (name, email, username, password, role, parent_user_id, staff_permissions, phone, pos_pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, email, role, phone, pos_pin",
-            [name, email, username || email, hashedPassword, role, userId, JSON.stringify(permissions || {}), phone, pos_pin]
+            "INSERT INTO app_users (name, email, username, password, role, parent_user_id, staff_permissions, phone, pos_pin, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'active') RETURNING id, name, email, role, phone, pos_pin",
+            [name, email, username || email, hashedPassword, role, userId, JSON.stringify(permissions), phone, pos_pin]
         );
+
+        // 3. If Rider, also add to delivery_partners table for tracking
+        if (role.toLowerCase() === 'rider') {
+            await pool.query(
+                "INSERT INTO delivery_partners (user_id, name, phone) VALUES ($1, $2, $3)",
+                [result.rows[0].id, name, phone]
+            );
+        }
+
         res.json(result.rows[0]);
     } catch (err) {
-        res.status(500).json({ error: err.message });
+        console.error("Staff Creation Error:", err.message);
+        res.status(500).json({ error: "Server error: " + err.message });
     }
 });
 

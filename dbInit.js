@@ -401,7 +401,16 @@ async function initializeDatabase() {
         ];
 
         for (let q of queries) {
-            if (q) await pool.query(q);
+            try {
+                if (q) await pool.query(q);
+            } catch (queryErr) {
+                // If it's a "Duplicate Constraint" error, we ignore it and keep the server running
+                if (queryErr.code === '23505' || queryErr.message.includes('already exists')) {
+                    console.warn("⚠️ Skipping constraint: duplicates exist. Please clean up database.");
+                } else {
+                    console.error("❌ Query Failed:", q.substring(0, 50) + "...", queryErr.message);
+                }
+            }
         }
 
         // ✅ AUTO-NORMALIZATION: Standardize on full International format (+91...)
