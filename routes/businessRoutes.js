@@ -202,7 +202,7 @@ router.get("/staff", authMiddleware, async (req, res) => {
         }
 
         const result = await pool.query(
-            "SELECT id, name, email, role, status, staff_permissions FROM app_users WHERE parent_user_id = $1",
+            "SELECT id, name, email, role, status, staff_permissions, phone, pos_pin FROM app_users WHERE parent_user_id = $1",
             [userId]
         );
         res.json(result.rows);

@@ -7,6 +7,62 @@ const whatsappManager = require("../whatsappManager");
 const { triggerWebhook } = require("../utils/webhookUtils");
 
 
+// ✅ CREATE NEW ORDER (POS / MANUAL)
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.bizId;
+    const { 
+        customer_name, customer_number, items, total_price, 
+        payment_method, status, table_id, order_type,
+        address, table_number
+    } = req.body;
+
+    const orderRef = `POS-${Math.random().toString(36).substring(7).toUpperCase()}`;
+    
+    const result = await pool.query(
+      `INSERT INTO orders (
+        user_id, order_reference, customer_name, customer_number, items, 
+        total_price, payment_method, status, payment_status, 
+        table_number, address, source, created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW()) RETURNING *`,
+      [
+        userId, orderRef, customer_name || 'Walk-in', customer_number || '', 
+        JSON.stringify(items), total_price, payment_method || 'CASH', 
+        status || 'PENDING', (payment_method === 'CASH' || status === 'COMPLETED') ? 'PAID' : 'PENDING',
+        table_number || (table_id ? table_id.toString() : '0'), 
+        address || (order_type || 'POS'), 'POS_TERMINAL'
+      ]
+    );
+
+    const newOrder = result.rows[0];
+
+    // 🔥 Trigger KOT and Staff Notifications
+    try {
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        const symbol = biz?.currency_code === 'USD' ? '$' : '₹';
+        
+        await whatsappManager.notifyKitchenAndStaff(
+            userId, orderRef, newOrder.customer_name, newOrder.customer_number, items,
+            total_price, total_price, 0, 0, 0, 0, symbol,
+            'POS', newOrder.address, newOrder.table_number
+        );
+        
+        // Trigger Webhook for Dashboard Sync
+        if (biz) {
+            triggerWebhook(biz, 'order.created', newOrder);
+        }
+    } catch (err) {
+        console.error("POS Order Notification Error:", err);
+    }
+
+    res.json(newOrder);
+  } catch (err) {
+    console.error("🔥 POS ORDER CREATE ERROR:", err);
+    res.status(500).json({ error: "Failed to create POS order" });
+  }
+});
+
 // ✅ GET ALL ORDERS FOR LOGGED-IN BUSINESS (or target user if admin)
 router.get("/", authMiddleware, async (req, res) => {
   try {

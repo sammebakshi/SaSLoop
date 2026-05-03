@@ -59,12 +59,18 @@ const StaffManagement = () => {
         },
         body: JSON.stringify(formData)
       });
+      const data = await res.json();
       if (res.ok) {
         setShowAddForm(false);
-        setFormData({ ...formData, name: "", email: "", password: "" });
+        setFormData({ ...formData, name: "", email: "", password: "", phone: "", pos_pin: "" });
         fetchStaff();
+      } else {
+        window.alert(data.error || "Failed to add staff");
       }
-    } catch (e) { console.error(e); }
+    } catch (e) { 
+      console.error(e);
+      window.alert("Connection error. Please try again.");
+    }
   };
 
   const handleDelete = async (id) => {

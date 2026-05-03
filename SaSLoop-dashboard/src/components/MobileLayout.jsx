@@ -324,7 +324,6 @@ const MobileLayout = () => {
       ];
     } else {
       return [
-        { label: "POS Terminal", icon: Monitor, action: () => { window.open("/pos", "SaSLoopPOS"); setMoreMenuOpen(false); } },
         { label: "Business Profile", icon: Store, path: "/setup-business" },
         { label: "AI Bot Setup", icon: Bot, path: "/bot-config" },
         { label: "Broadcast Hub", icon: Megaphone, path: "/broadcast" },

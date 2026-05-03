@@ -29,7 +29,6 @@ import CustomerMenu from "./pages/CustomerMenu";
 import QRManager from "./pages/QRManager";
 import Reports from "./pages/Reports";
 import OnlineOrder from "./pages/OnlineOrder";
-import POS from "./pages/POS";
 import KDS from "./pages/KDS";
 import TrackOrder from "./pages/TrackOrder";
 import Reservations from "./pages/Reservations";
@@ -42,7 +41,6 @@ import IntelligenceHub from "./pages/IntelligenceHub";
 import MarketingStudio from "./pages/MarketingStudio";
 import CommandCenter from "./pages/CommandCenter";
 import TableManagement from "./pages/TableManagement";
-import POSLogin from "./pages/POSLogin";
 
 
 // ============================================================
@@ -83,13 +81,6 @@ const ProtectedShell = ({ allowedRoles }) => {
   return <AppLayout />;
 };
 
-// Simple guard for POS to open without Layout
-const POSGuard = () => {
-  const token = localStorage.getItem("pos_token");
-  if (!token) return <Navigate to="/pos/login" replace />;
-  return <POS />;
-};
-
 function App() {
   return (
     <BrowserRouter>
@@ -101,8 +92,6 @@ function App() {
         <Route path="/order/:bizId" element={<OnlineOrder />} />
         <Route path="/track/:orderRef" element={<TrackOrder />} />
         <Route path="/rider/:riderId" element={<RiderPortal />} />
-        <Route path="/pos/login" element={<POSLogin />} />
-        <Route path="/pos" element={<POSGuard />} />
 
         {/* Master Admin Routes */}
         <Route element={<ProtectedShell allowedRoles={['master_admin']} />}>
