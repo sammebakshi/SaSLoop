@@ -25,7 +25,11 @@ import {
   BellDot,
   Bell,
   BarChart3,
-  Monitor
+  Monitor,
+  Globe,
+  Shield,
+  Activity,
+  Users
 } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
@@ -263,18 +267,31 @@ const MobileLayout = () => {
   // 🗂️ Tab Configuration
   // ================================================================
   const getTabs = () => {
-    const baseTabs = [
-      { id: "dashboard", label: "Home", icon: LayoutDashboard, path: "/dashboard" },
-      { id: "orders", label: "Orders", icon: Package, path: "/orders", badge: newOrderCount },
-      { id: "chats", label: "Chats", icon: MessageSquare, path: "/chats", badge: notifCounts.chats },
-    ];
-
-    if (user?.role === 'master_admin' || user?.role?.startsWith('admin')) {
-      baseTabs.push({ id: "reports", label: "Reports", icon: BarChart3, path: "/reports" });
+    const role = user?.role;
+    if (role === 'master_admin') {
+      return [
+        { id: "dashboard", label: "Master", icon: LayoutDashboard, path: "/master-dashboard" },
+        { id: "users", label: "Users", icon: Users, path: "/master-dashboard#manage-businesses" },
+        { id: "broadcast", label: "Blast", icon: Megaphone, path: "/broadcast" },
+        { id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) },
+      ];
+    } else if (role?.startsWith('admin')) {
+      return [
+        { id: "dashboard", label: "Admin", icon: LayoutDashboard, path: "/admin-dashboard" },
+        { id: "clients", label: "Clients", icon: Users, path: "/admin-dashboard#manage-businesses" },
+        { id: "broadcast", label: "Blast", icon: Megaphone, path: "/broadcast" },
+        { id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) },
+      ];
+    } else {
+      const baseTabs = [
+        { id: "dashboard", label: "Home", icon: LayoutDashboard, path: "/dashboard" },
+        { id: "orders", label: "Orders", icon: Package, path: "/orders", badge: newOrderCount },
+        { id: "chats", label: "Chats", icon: MessageSquare, path: "/chats", badge: notifCounts.chats },
+        { id: "reports", label: "Reports", icon: BarChart3, path: "/reports" },
+      ];
+      baseTabs.push({ id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) });
+      return baseTabs;
     }
-
-    baseTabs.push({ id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) });
-    return baseTabs;
   };
 
   const tabs = getTabs();
@@ -282,18 +299,45 @@ const MobileLayout = () => {
   // ================================================================
   // 📋 "More" Menu Items
   // ================================================================
-  const moreItems = [
-    { label: "POS Terminal", icon: Monitor, action: () => { window.open("/pos", "SaSLoopPOS"); setMoreMenuOpen(false); } },
-    { label: "Business Profile", icon: Store, path: "/setup-business" },
-    { label: "AI Bot Setup", icon: Bot, path: "/bot-config" },
-    { label: "Broadcast Hub", icon: Megaphone, path: "/broadcast" },
-    { label: "Operational Rules", icon: Settings, path: "/business-data/rules" },
-    { label: "Freeform Knowledge", icon: BookOpen, path: "/business-data/knowledge" },
-    { label: "QR Code Manager", icon: QrCode, path: "/business-data/qr" },
-    { label: "Help & Support", icon: LifeBuoy, path: "/support" },
-    { label: "Change Password", icon: Key, action: () => { setIsChangePwdOpen(true); setMoreMenuOpen(false); } },
-    { label: "Sign Out", icon: LogOut, action: () => { handleLogout(); setMoreMenuOpen(false); }, danger: true }
-  ];
+  const getMoreItems = () => {
+    const role = user?.role;
+    const baseItems = [
+      { label: "Change Password", icon: Key, action: () => { setIsChangePwdOpen(true); setMoreMenuOpen(false); } },
+      { label: "Sign Out", icon: LogOut, action: () => { handleLogout(); setMoreMenuOpen(false); }, danger: true }
+    ];
+
+    if (role === 'master_admin') {
+      return [
+        { label: "Global Command", icon: Globe, path: "/command-center" },
+        { label: "Audit Logs", icon: Shield, path: "/audit-logs" },
+        { label: "System Health", icon: Activity, path: "/system-health" },
+        { label: "Support Desk", icon: LifeBuoy, path: "/support-desk" },
+        { label: "WhatsApp Connect", icon: MessageSquare, path: "/whatsapp-connect" },
+        ...baseItems
+      ];
+    } else if (role?.startsWith('admin')) {
+      return [
+        { label: "Global Command", icon: Globe, path: "/command-center" },
+        { label: "Support Desk", icon: LifeBuoy, path: "/support-desk" },
+        { label: "WhatsApp Connect", icon: MessageSquare, path: "/whatsapp-connect" },
+        ...baseItems
+      ];
+    } else {
+      return [
+        { label: "POS Terminal", icon: Monitor, action: () => { window.open("/pos", "SaSLoopPOS"); setMoreMenuOpen(false); } },
+        { label: "Business Profile", icon: Store, path: "/setup-business" },
+        { label: "AI Bot Setup", icon: Bot, path: "/bot-config" },
+        { label: "Broadcast Hub", icon: Megaphone, path: "/broadcast" },
+        { label: "Operational Rules", icon: Settings, path: "/business-data/rules" },
+        { label: "Freeform Knowledge", icon: BookOpen, path: "/business-data/knowledge" },
+        { label: "QR Code Manager", icon: QrCode, path: "/business-data/qr" },
+        { label: "Help & Support", icon: LifeBuoy, path: "/support" },
+        ...baseItems
+      ];
+    }
+  };
+
+  const moreItems = getMoreItems();
 
   const handleTabPress = (tab) => {
     if (tab.id === "more") {
