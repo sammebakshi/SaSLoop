@@ -4,7 +4,6 @@ import { Zap, ShieldCheck, Heart, ArrowRight, CheckCircle2, Loader2, Landmark, Q
 import { createPortal } from "react-dom";
 
 function RechargeHub() {
-  const [, setLoading] = useState(false);
   const [masterPayment, setMasterPayment] = useState(null);
   const [history, setHistory] = useState([]);
   
@@ -123,7 +122,6 @@ function RechargeHub() {
                </div>
 
                <button 
-                  disabled={_loading}
                   onClick={() => handleOpenPaymentModal(pack)}
                   className={`mt-auto w-full py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest transition-all shadow-xl flex items-center justify-center gap-2 active:scale-95 ${pack.popular ? 'bg-indigo-600 hover:bg-indigo-700 text-white' : 'bg-slate-900 hover:bg-black text-white'}`}
                >
