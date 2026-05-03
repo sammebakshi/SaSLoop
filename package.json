@@ -8,7 +8,7 @@
     "build": "npm run build-frontend",
     "tunnel": "node start-tunnel.js",
     "dev": "concurrently \"node server.js\" \"node start-tunnel.js\"",
-    "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && NODE_OPTIONS=--max-old-space-size=4096 npm run build",
+    "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && NODE_OPTIONS=--max-old-space-size=4096 npm run build && cd .. && rm -rf dist && cp -r SaSLoop-dashboard/build dist",
     "update-live": "git pull origin main && npm install && npm run build-frontend && pm2 restart SaSLoop-Backend && pm2 save",
     "test": "echo \"Error: no test specified\" && exit 1"
   },

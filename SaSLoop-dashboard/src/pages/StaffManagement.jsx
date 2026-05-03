@@ -15,7 +15,7 @@ const StaffManagement = () => {
     name: "",
     email: "",
     password: "",
-    role: "staff_manager",
+    role: "manager",
     permissions: {
       can_view_orders: true,
       can_view_waiter_calls: true,
@@ -25,9 +25,12 @@ const StaffManagement = () => {
   });
 
   const roles = [
-    { id: 'staff_manager', label: 'Manager', desc: 'Full operational control' },
-    { id: 'staff_kitchen', label: 'Kitchen', desc: 'Order management only' },
-    { id: 'staff_waiter', label: 'Waiter', desc: 'Waiter calls & order tracking' }
+    { id: 'manager', label: 'Manager', desc: 'Full operational control' },
+    { id: 'cashier', label: 'Cashier', desc: 'Billing & POS checkout' },
+    { id: 'waiter', label: 'Waiter', desc: 'Table orders & service' },
+    { id: 'rider', label: 'Rider', desc: 'Delivery partner app access' },
+    { id: 'sasloop_admin', label: 'SaSLoop Admin', desc: 'Platform god mode access' },
+    { id: 'sasloop_support', label: 'SaSLoop Support', desc: 'Read-only platform support' }
   ];
 
   const fetchStaff = async () => {

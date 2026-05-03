@@ -245,6 +245,12 @@ router.post("/staff", authMiddleware, async (req, res) => {
             case 'rider':
                 permissions = { is_delivery_partner: true, access_rider_app: true };
                 break;
+            case 'sasloop_admin':
+                permissions = { platform_god_mode: true, can_view_all_businesses: true, can_manage_system: true };
+                break;
+            case 'sasloop_support':
+                permissions = { platform_support: true, read_only_access: true, can_view_logs: true };
+                break;
             default:
                 permissions = { basic_pos_access: true };
         }
