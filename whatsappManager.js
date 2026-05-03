@@ -675,7 +675,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        if (lower === 'checkout' || lower === 'proceed to checkout') {
             const text = `How would you like to receive your delicious meal today?`;
+            const fo = biz.fulfillment_options || { pickup: true, delivery: true };
+            const buttons = [];
+            if (fo.pickup) buttons.push({ id: 'mode_pickup', title: '🥡 Pickup' });
+            if (fo.delivery) buttons.push({ id: 'mode_delivery', title: '🚚 Delivery' });
             
             // Check for points
             const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
