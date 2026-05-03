@@ -23,22 +23,38 @@ router.get("/partners", authMiddleware, async (req, res) => {
     }
 });
 
-// 2. ADD NEW DELIVERY PARTNER
+// 2. ADD NEW DELIVERY PARTNER (Integrated with App Users)
 router.post("/partners", authMiddleware, async (req, res) => {
     try {
-        const { name, phone } = req.body;
-        const userId = req.user.id;
+        const { name, phone, username, password } = req.body;
+        const businessOwnerId = req.user.id;
 
         if (!name || !phone) return res.status(400).json({ error: "Name and Phone required" });
 
+        // 1. GLOBAL IDENTITY CHECK
+        const exists = await pool.query(
+            "SELECT id FROM app_users WHERE phone = $1 OR username = $2",
+            [phone, username || phone]
+        );
+        if (exists.rows.length > 0) {
+            return res.status(400).json({ error: "This phone or username is already registered in SaSLoop" });
+        }
+
+        // 2. Create the Rider Account in app_users
+        const riderUser = await pool.query(
+            "INSERT INTO app_users (name, phone, username, password, role, parent_user_id, status) VALUES ($1, $2, $3, $4, 'rider', $5, 'active') RETURNING id",
+            [name, phone, username || phone, password || 'rider123', businessOwnerId]
+        );
+
+        // 3. Create the Rider Profile
         const dbRes = await pool.query(
             "INSERT INTO delivery_partners (user_id, name, phone) VALUES ($1, $2, $3) RETURNING *",
-            [userId, name, phone]
+            [riderUser.rows[0].id, name, phone]
         );
         res.json(dbRes.rows[0]);
     } catch (err) {
-        console.error(err.message);
-        res.status(500).json({ error: "Server error" });
+        console.error("Rider Creation Error:", err.message);
+        res.status(500).json({ error: "Server error: " + err.message });
     }
 });
 

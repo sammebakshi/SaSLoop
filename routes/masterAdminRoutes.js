@@ -78,6 +78,13 @@ router.post("/create-user", authMiddleware, requireCanCreateAccounts, async (req
        }
     }
 
+    if (phone) {
+       const phoneCheck = await pool.query("SELECT id FROM app_users WHERE phone = $1", [phone]);
+       if (phoneCheck.rows.length > 0) {
+          return res.status(400).json({ error: "This phone number is already registered to another account" });
+       }
+    }
+
     // Hash the password before saving
     const hashedPassword = await bcrypt.hash(password || "123456", 10);
 
@@ -202,6 +209,13 @@ router.put("/users/:id/edit", authMiddleware, requireAdminOrMaster, async (req, 
        const emailCheck = await pool.query("SELECT id FROM app_users WHERE email = $1 AND id != $2", [email, id]);
        if (emailCheck.rows.length > 0) {
           return res.status(400).json({ error: "Email address is already mapped to another account" });
+       }
+    }
+
+    if (phone) {
+       const phoneCheck = await pool.query("SELECT id FROM app_users WHERE phone = $1 AND id != $2", [phone, id]);
+       if (phoneCheck.rows.length > 0) {
+          return res.status(400).json({ error: "This phone number is already registered to another account" });
        }
     }
 

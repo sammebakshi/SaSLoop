@@ -11,12 +11,12 @@ async function initializeDatabase() {
                 name VARCHAR(255),
                 first_name VARCHAR(255),
                 last_name VARCHAR(255),
-                username VARCHAR(255),
+                username VARCHAR(255) UNIQUE,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
                 role VARCHAR(100) DEFAULT 'user',
                 status VARCHAR(50) DEFAULT 'active',
-                phone VARCHAR(30),
+                phone VARCHAR(30) UNIQUE,
                 address TEXT,
                 parentage VARCHAR(255),
                 dof DATE,
@@ -64,6 +64,8 @@ async function initializeDatabase() {
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS parent_user_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS staff_permissions JSONB DEFAULT '{}'`,
             `ALTER TABLE app_users ADD COLUMN IF NOT EXISTS pos_pin VARCHAR(10) DEFAULT NULL`,
+            `ALTER TABLE app_users ADD CONSTRAINT app_users_username_key UNIQUE (username) ON CONFLICT DO NOTHING`,
+            `ALTER TABLE app_users ADD CONSTRAINT app_users_phone_key UNIQUE (phone) ON CONFLICT DO NOTHING`,
 
             // 3. Create business_items table
             `CREATE TABLE IF NOT EXISTS business_items (

@@ -214,17 +214,21 @@ router.get("/staff", authMiddleware, async (req, res) => {
 // POST /api/business/staff
 const bcrypt = require("bcrypt");
 router.post("/staff", authMiddleware, async (req, res) => {
-    const { name, email, password, role, permissions, target_user_id, phone, pos_pin } = req.body;
-    try {
-        let userId = req.user.id;
-        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin'))) {
-           userId = target_user_id;
+        const { name, email, password, role, permissions, target_user_id, phone, pos_pin, username } = req.body;
+        
+        // 1. GLOBAL IDENTITY CHECK
+        const exists = await pool.query(
+            "SELECT id FROM app_users WHERE email = $1 OR phone = $2 OR username = $3",
+            [email, phone, username || email]
+        );
+        if (exists.rows.length > 0) {
+            return res.status(400).json({ error: "One of these details (email, phone, or username) is already registered in SaSLoop" });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const result = await pool.query(
-            "INSERT INTO app_users (name, email, password, role, parent_user_id, staff_permissions, phone, pos_pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, name, email, role, phone, pos_pin",
-            [name, email, hashedPassword, role, userId, JSON.stringify(permissions || {}), phone, pos_pin]
+            "INSERT INTO app_users (name, email, username, password, role, parent_user_id, staff_permissions, phone, pos_pin) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, name, email, role, phone, pos_pin",
+            [name, email, username || email, hashedPassword, role, userId, JSON.stringify(permissions || {}), phone, pos_pin]
         );
         res.json(result.rows[0]);
     } catch (err) {

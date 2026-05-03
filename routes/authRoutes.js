@@ -188,4 +188,31 @@ router.post("/pos-login", async (req, res) => {
     }
 });
 
+// GET PROFILE (Includes Business DNA for Universal POS)
+router.get("/profile", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const bizId = req.user.bizId || userId;
+
+        const userResult = await pool.query(
+            "SELECT id, name, email, role, phone, business_name, business_type, created_at FROM app_users WHERE id = $1",
+            [userId]
+        );
+
+        const bizResult = await pool.query(
+            "SELECT * FROM restaurants WHERE user_id = $1",
+            [bizId]
+        );
+
+        res.json({
+            ...userResult.rows[0],
+            business_details: bizResult.rows[0] || null,
+            business_type: bizResult.rows[0]?.business_type || userResult.rows[0]?.business_type || 'Restaurant'
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: "Failed to fetch profile" });
+    }
+});
+
 module.exports = router;
