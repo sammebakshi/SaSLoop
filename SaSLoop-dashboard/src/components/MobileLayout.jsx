@@ -262,13 +262,22 @@ const MobileLayout = () => {
   // ================================================================
   // 🗂️ Tab Configuration
   // ================================================================
-  const tabs = [
-    { id: "dashboard", label: "Home", icon: LayoutDashboard, path: "/dashboard" },
-    { id: "orders", label: "Orders", icon: Package, path: "/orders", badge: newOrderCount },
-    { id: "chats", label: "Chats", icon: MessageSquare, path: "/chats", badge: notifCounts.chats },
-    { id: "reports", label: "Reports", icon: BarChart3, path: "/reports" },
-    { id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) },
-  ];
+  const getTabs = () => {
+    const baseTabs = [
+      { id: "dashboard", label: "Home", icon: LayoutDashboard, path: "/dashboard" },
+      { id: "orders", label: "Orders", icon: Package, path: "/orders", badge: newOrderCount },
+      { id: "chats", label: "Chats", icon: MessageSquare, path: "/chats", badge: notifCounts.chats },
+    ];
+
+    if (user?.role === 'master_admin' || user?.role?.startsWith('admin')) {
+      baseTabs.push({ id: "reports", label: "Reports", icon: BarChart3, path: "/reports" });
+    }
+
+    baseTabs.push({ id: "more", label: "More", icon: MoreHorizontal, action: () => setMoreMenuOpen(true) });
+    return baseTabs;
+  };
+
+  const tabs = getTabs();
 
   // ================================================================
   // 📋 "More" Menu Items

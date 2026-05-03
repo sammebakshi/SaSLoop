@@ -182,20 +182,29 @@ const StaffManagement = () => {
                     </div>
                   </div>
                   <div className="space-y-2">
-                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1">Access Role</label>
-                     <div className="grid grid-cols-1 gap-2">
+                     <label className="text-[9px] font-black uppercase tracking-widest text-slate-500 ml-1 italic">Access Role</label>
+                     <div className="grid grid-cols-1 gap-3">
                         {roles.map(r => (
                            <button 
                              key={r.id} type="button" onClick={() => setFormData({...formData, role: r.id})}
-                             className={`p-4 rounded-2xl border text-left transition-all ${formData.role === r.id ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10 opacity-40 hover:opacity-100'}`}
+                             className={`p-5 rounded-[1.8rem] border-2 text-left transition-all relative overflow-hidden group/role ${formData.role === r.id ? 'bg-[#1e293b] border-indigo-500 shadow-[0_0_20px_rgba(99,102,241,0.2)]' : 'bg-[#0f172a] border-slate-800 opacity-60 hover:opacity-100 hover:border-slate-700'}`}
                            >
-                              <p className="text-[11px] font-black uppercase tracking-widest mb-0.5">{r.label}</p>
-                              <p className="text-[9px] font-medium opacity-60">{r.desc}</p>
+                              {formData.role === r.id && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 bg-indigo-500 rounded-full shadow-[0_0_10px_rgba(99,102,241,0.8)]" />
+                              )}
+                              <p className={`text-[11px] font-black uppercase tracking-widest mb-1 ${formData.role === r.id ? 'text-white' : 'text-slate-400'}`}>{r.label}</p>
+                              <p className={`text-[9px] font-medium ${formData.role === r.id ? 'text-slate-400' : 'text-slate-500'}`}>{r.desc}</p>
                            </button>
                         ))}
                      </div>
                   </div>
-                  <button type="submit" className="w-full py-5 bg-indigo-500 text-white rounded-2xl font-black text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-indigo-500/20 active:scale-95 transition-all mt-4">Generate Account</button>
+                  <button 
+                    type="submit" 
+                    className="w-full py-6 bg-gradient-to-r from-indigo-600 to-blue-600 text-white rounded-[2rem] font-black text-[12px] uppercase tracking-[0.2em] shadow-[0_10px_25px_rgba(79,70,229,0.3)] hover:shadow-[0_15px_35px_rgba(79,70,229,0.4)] active:scale-[0.98] transition-all mt-6 relative overflow-hidden group"
+                  >
+                    <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    Generate Account
+                  </button>
                </form>
             </div>
           )}

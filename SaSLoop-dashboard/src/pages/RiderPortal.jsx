@@ -14,15 +14,6 @@ function RiderPortal() {
     const [error, setError] = useState("");
     const watchId = useRef(null);
 
-    useEffect(() => {
-        fetchAssignedOrders();
-        const itv = setInterval(fetchAssignedOrders, 10000);
-        return () => {
-            clearInterval(itv);
-            if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
-        };
-    }, [riderId, fetchAssignedOrders]);
-
     const fetchAssignedOrders = React.useCallback(async () => {
         try {
             // We fetch orders where rider_id matches and status is DISPATCHED
@@ -35,6 +26,15 @@ function RiderPortal() {
             console.error(err);
         }
     }, [riderId]);
+
+    useEffect(() => {
+        fetchAssignedOrders();
+        const itv = setInterval(fetchAssignedOrders, 10000);
+        return () => {
+            clearInterval(itv);
+            if (watchId.current) navigator.geolocation.clearWatch(watchId.current);
+        };
+    }, [riderId, fetchAssignedOrders]);
 
     const startTracking = () => {
         if (!navigator.geolocation) {

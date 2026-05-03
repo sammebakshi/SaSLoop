@@ -11,21 +11,15 @@ import {
   Utensils,
   RefreshCw,
   Zap,
-  LayoutGrid,
-  X,
   Printer,
   ChevronRight,
   Grid,
   History,
-  Receipt,
-  Users,
-  Star,
   Settings,
   LogOut,
   Bell,
   Box,
   Layers,
-  ChevronDown
 } from "lucide-react";
 import API_BASE from "../config";
 import { useNavigate } from "react-router-dom";
@@ -62,31 +56,7 @@ const POS = () => {
   const [theme, setTheme] = useState(localStorage.getItem("pos_theme") || "dark");
   const [notificationSound] = useState(new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3")); // iPhone-like tone
 
-  useEffect(() => {
-    const token = localStorage.getItem("pos_token");
-    const storedUser = localStorage.getItem("pos_user");
-    if (!token) {
-        navigate("/pos/login");
-        return;
-    }
-    if (storedUser) setUser(JSON.parse(storedUser));
-    
-    fetchData();
-    const tableInterval = setInterval(fetchTables, 10000);
-    const orderInterval = setInterval(checkForNewOrders, 5000);
-
-    const handleThemeUpdate = () => {
-      setTheme(localStorage.getItem("pos_theme") || "dark");
-    };
-    window.addEventListener("storage", handleThemeUpdate);
-    return () => {
-      clearInterval(tableInterval);
-      clearInterval(orderInterval);
-      window.removeEventListener("storage", handleThemeUpdate);
-    };
-  }, []);
-
-  const checkForNewOrders = async () => {
+  const checkForNewOrders = React.useCallback(async () => {
     try {
         const token = localStorage.getItem("pos_token");
         const res = await fetch(`${API_BASE}/api/orders`, { headers: { "Authorization": `Bearer ${token}` } });
@@ -99,9 +69,9 @@ const POS = () => {
             setLastOrderCount(orders.length);
         }
     } catch (e) {}
-  };
+  }, [lastOrderCount, notificationSound]);
 
-  const fetchData = async () => {
+  const fetchData = React.useCallback(async () => {
     try {
       const token = localStorage.getItem("pos_token");
       const [bizRes, itemsRes, tablesRes, ordersRes] = await Promise.all([
@@ -125,16 +95,40 @@ const POS = () => {
       setCategories(cats);
     } catch (err) { console.error("POS Load Error:", err); }
     finally { setLoading(false); }
-  };
+  }, []);
 
-  const fetchTables = async () => {
+  const fetchTables = React.useCallback(async () => {
     try {
       const token = localStorage.getItem("pos_token");
       const res = await fetch(`${API_BASE}/api/pos/tables`, { headers: { "Authorization": `Bearer ${token}` } });
       const data = await res.json();
       setPosTables(data);
     } catch (e) {}
-  };
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem("pos_token");
+    const storedUser = localStorage.getItem("pos_user");
+    if (!token) {
+        navigate("/pos/login");
+        return;
+    }
+    if (storedUser) setUser(JSON.parse(storedUser));
+    
+    fetchData();
+    const tableInterval = setInterval(fetchTables, 10000);
+    const orderInterval = setInterval(checkForNewOrders, 5000);
+
+    const handleThemeUpdate = () => {
+      setTheme(localStorage.getItem("pos_theme") || "dark");
+    };
+    window.addEventListener("storage", handleThemeUpdate);
+    return () => {
+      clearInterval(tableInterval);
+      clearInterval(orderInterval);
+      window.removeEventListener("storage", handleThemeUpdate);
+    };
+  }, [navigate, fetchData, fetchTables, checkForNewOrders]);
 
   const filteredItems = useMemo(() => {
     return items.filter(item => {

@@ -4,7 +4,6 @@ import { Truck, CheckCircle2, Clock, MapPin, ChevronRight, AlertCircle, RefreshC
 
 // ── Web Audio API notification chime ────────
 let audioCtx = null;
-let _audioUnlocked = false;
 
 function ensureAudioContext() {
   if (!audioCtx) {
@@ -13,7 +12,6 @@ function ensureAudioContext() {
   if (audioCtx.state === "suspended") {
     audioCtx.resume();
   }
-  _audioUnlocked = true;
   return audioCtx;
 }
 
@@ -40,7 +38,6 @@ function playChime() {
 function OrderBoard() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [_lastUpdated, setLastUpdated] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("orderBoardSound") === "true");
   const [mobileTab, setMobileTab] = useState("Incoming");
   const [newOrderFlash, setNewOrderFlash] = useState(false);
@@ -73,7 +70,6 @@ function OrderBoard() {
         }
         prevCountRef.current = incomingCount;
         setOrders(data);
-        setLastUpdated(new Date());
       }
     } catch (err) {
       console.error("Order Fetch Fail:", err);
@@ -87,9 +83,9 @@ function OrderBoard() {
     fetchRiders();
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [fetchOrders, fetchRiders]);
 
-  const fetchRiders = async () => {
+  const fetchRiders = useCallback(async () => {
     try {
         const token = localStorage.getItem("token");
         const targetId = sessionStorage.getItem("impersonate_id");
@@ -99,7 +95,7 @@ function OrderBoard() {
         const data = await res.json();
         setRiders(data);
     } catch (err) { console.error(err); }
-  };
+  }, []);
 
   const assignRider = async (orderId, riderId) => {
     try {
@@ -233,18 +229,33 @@ function OrderBoard() {
                   {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
                 </select>
               )}
-              <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="w-full bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
-                  {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
-              </button>
+              <div className="flex gap-2">
+                <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
+                    {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="p-2.5 bg-rose-50 text-rose-500 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all" title="Cancel Order">
+                  <XCircle className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
           {col.title === "Dispatched" && (
-            <button onClick={() => updateStatus(order.id, 'COMPLETED')} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-200">
-                {order.table_number ? 'Served Successfully' : 'Deliver Case'} <CheckCircle2 className="w-3.5 h-3.5" />
+            <div className="flex gap-2 w-full">
+                <button onClick={() => updateStatus(order.id, 'COMPLETED')} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-200">
+                    {order.table_number ? 'Served Successfully' : 'Deliver Case'} <CheckCircle2 className="w-3.5 h-3.5" />
+                </button>
+                <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="p-2.5 bg-rose-50 text-rose-500 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all" title="Cancel Order">
+                  <XCircle className="w-4 h-4" />
+                </button>
+            </div>
+          )}
+          {col.title === "Completed" && (
+            <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="w-full bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
+                Mark as Cancelled <XCircle className="w-3.5 h-3.5" />
             </button>
           )}
           {col.title === "Cancelled" && (
-             <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest">Rejected Order</div>
+             <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest">Rejected / Cancelled</div>
           )}
       </div>
     </div>

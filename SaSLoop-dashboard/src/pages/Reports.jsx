@@ -8,7 +8,7 @@ import {
 
 function Reports() {
   const [orders, setOrders] = useState([]);
-  const [_loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
   const [filter, setFilter] = useState("ALL");
   const [search, setSearch] = useState("");
   const [selectedOrder, setSelectedOrder] = useState(null);

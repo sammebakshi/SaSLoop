@@ -125,6 +125,18 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
                     }
                 } catch (refundErr) { console.error("Refund points fail:", refundErr); }
             }
+
+            // 🛵 NOTIFY RIDER IF DISPATCHED
+            if (order.rider_id) {
+                try {
+                    const riderRes = await pool.query("SELECT phone FROM delivery_partners WHERE id = $1", [order.rider_id]);
+                    const riderPhone = riderRes.rows[0]?.phone;
+                    if (riderPhone) {
+                        const riderMsg = `🚨 *ORDER CANCELLED!* \n━━━━━━━━━━━━━━\nOrder *${ref}* for *${order.customer_name}* has been cancelled. \n\nPlease do not deliver and return to base if necessary. 🙏`;
+                        await whatsappManager.sendOfficialMessage(riderPhone, riderMsg, userId);
+                    }
+                } catch (riderNotifErr) { console.error("Rider cancellation notif fail:", riderNotifErr); }
+            }
         }
 
         // 🔥 EXTRA: If admin manually moves order from AWAITING_PAYMENT to PENDING/PROCESSING, trigger KOT

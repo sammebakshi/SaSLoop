@@ -59,7 +59,7 @@ function CustomerMenu() {
     localStorage.setItem(`sasloop_phone_${bizId}`, phone);
   };
 
-  const getStandardPhone = (p) => {
+  const getStandardPhone = React.useCallback((p) => {
     if (!p) return "";
     if (p.startsWith("+")) return p;
     // Remove all non-digits from input
@@ -68,7 +68,7 @@ function CustomerMenu() {
     if (cleanP.startsWith(countryCode)) return "+" + cleanP;
     // Otherwise prepend country code
     return `+${countryCode}${cleanP}`;
-  };
+  }, [countryCode]);
 
   const biz = data?.business;
   const symbol = biz?.currency_code === 'USD' ? '$' : '\u20B9';
@@ -116,7 +116,7 @@ function CustomerMenu() {
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
-  const fetchActiveOrders = async () => {
+  const fetchActiveOrders = React.useCallback(async () => {
     if (!customerPhone) return;
     try {
       const std = getStandardPhone(customerPhone);
@@ -124,7 +124,7 @@ function CustomerMenu() {
       const d = await res.json();
       setActiveOrders(d || []);
     } catch (e) {}
-  };
+  }, [customerPhone, bizId, getStandardPhone]);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { 
@@ -162,7 +162,7 @@ function CustomerMenu() {
       }, 3000); // âš¡ Live Sync
       return () => clearInterval(itv);
     }
-  }, [view, customerPhone]);
+  }, [view, customerPhone, fetchActiveOrders, checkLoyalty]);
 
   const handleRequestAuth = async () => {
     if (!customerName.trim()) return alert("Please enter your name first.");
@@ -224,7 +224,7 @@ function CustomerMenu() {
     return () => clearInterval(itv);
   }, [authStatus, authToken]);
 
-  const checkLoyalty = async () => {
+  const checkLoyalty = React.useCallback(async () => {
     if (!customerPhone) return;
     try {
       const std = getStandardPhone(customerPhone);
@@ -232,7 +232,7 @@ function CustomerMenu() {
       const d = await res.json();
       setLoyaltyPoints(d.points || 0);
     } catch (e) {}
-  };
+  }, [customerPhone, bizId, getStandardPhone]);
 
   const handleRedeemRequest = async () => {
     if (!isVerified) {
@@ -572,14 +572,14 @@ function CustomerMenu() {
                 </div>
              </div>
 
-             <div className="px-10 py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What would you like?" className="w-full bg-slate-50 border border-slate-100 rounded-[2.2rem] pl-16 pr-8 py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-200 outline-none focus:bg-white focus:border-emerald-500 transition-all font-sans" value={search} onChange={e => setSearch(e.target.value)} /></div>
+             <div className="px-5 sm:px-10 py-6 sm:py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
+                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What would you like?" className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] sm:rounded-[2.2rem] pl-16 pr-8 py-5 sm:py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-200 outline-none focus:bg-white focus:border-emerald-500 transition-all font-sans" value={search} onChange={e => setSearch(e.target.value)} /></div>
              </div>
-             <div className="px-10 py-4 pb-32">
+             <div className="px-5 sm:px-10 py-4 pb-32">
                 {categories.map(cat => (
                   <div key={cat} id={`cat-${cat}`} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
-                    <div className="flex items-center gap-6 mb-12"><h2 className="text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-4 sm:gap-10">
+                    <div className="flex items-center gap-4 sm:gap-6 mb-8 sm:mb-12"><h2 className="text-[12px] sm:text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-10">
                       {groupedItems[cat].map(item => {
                          const inCart = cart.find(c => c.id === item.id);
                          return (

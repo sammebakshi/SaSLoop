@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Printer, Save, RefreshCw, Smartphone, Monitor, Bluetooth, Wifi } from "lucide-react";
+import { Printer, Save, RefreshCw, Smartphone, Monitor, Wifi } from "lucide-react";
 
 const POSSettings = ({ business, posTables = [] }) => {
     const [settings, setSettings] = useState({

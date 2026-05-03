@@ -459,13 +459,47 @@ router.get("/payment-redirect/:orderRef", async (req, res) => {
             );
         }
 
-        // 3. Redirect to actual payment link
+        // 3. Serve a minimal HTML page to trigger the deep link (more reliable for mobile browsers)
         const customLink = biz?.settings?.custom_payment_link;
         const upiId = biz?.settings?.upi_id || "restaurant@upi";
         const cleanName = (biz?.name || "Restaurant").replace(/[^a-zA-Z0-9 ]/g, '');
         const finalRedirect = customLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(cleanName)}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}&mc=5812&mode=02&tr=${order.order_reference}`;
         
-        res.redirect(finalRedirect);
+        res.send(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>SaSLoop - Redirecting to Payment</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f8fafc; text-align: center; }
+                    .card { background: white; padding: 2rem; border-radius: 2rem; shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; max-width: 90%; }
+                    .spinner { border: 4px solid #f3f3f3; border-top: 4px solid #6366f1; border-radius: 50%; width: 40px; height: 40px; animate: spin 1s linear infinite; margin-bottom: 1.5rem; }
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                    h2 { font-weight: 800; color: #1e293b; margin: 0 0 0.5rem 0; }
+                    p { color: #64748b; font-size: 0.9rem; margin-bottom: 2rem; }
+                    .btn { background: #6366f1; color: white; text-decoration: none; padding: 1rem 2rem; border-radius: 1rem; font-weight: 700; display: inline-block; transition: all 0.2s; }
+                    .btn:active { transform: scale(0.95); }
+                </style>
+            </head>
+            <body>
+                <div class="card">
+                    <center><div class="spinner"></div></center>
+                    <h2>Opening Payment App</h2>
+                    <p>Please wait while we connect you to your preferred UPI app...</p>
+                    <a href="${finalRedirect}" class="btn" id="payBtn">Pay ${biz?.currency_code === 'USD' ? '$' : '₹'}${order.total_price}</a>
+                </div>
+                <script>
+                    // Try auto-redirect first
+                    setTimeout(() => {
+                        window.location.href = "${finalRedirect}";
+                    }, 500);
+
+                    // Fallback: If it doesn't open, user can click the button
+                </script>
+            </body>
+            </html>
+        `);
     } catch (err) {
         console.error("Redirect Error:", err);
         res.status(500).send("Error processing payment link");

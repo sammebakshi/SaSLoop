@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, User, ChevronRight, Terminal, Smartphone } from "lucide-react";
+import { Lock, ChevronRight, Terminal, Smartphone } from "lucide-react";
 import API_BASE from "../config";
 import { useNavigate } from "react-router-dom";
 

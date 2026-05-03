@@ -14,7 +14,7 @@ L.Icon.Default.mergeOptions({
 });
 
 function LocationPicker({ lat, lng, onChange }) {
-  const _map = useMapEvents({
+  useMapEvents({
     click(e) {
       onChange(e.latlng.lat, e.latlng.lng);
     },
@@ -23,7 +23,6 @@ function LocationPicker({ lat, lng, onChange }) {
 }
 
 function OperationalRules() {
-  const [_user, setUser] = useState(null);
   const [formData, setFormData] = useState({
      name: "",
      phone: "",
@@ -63,7 +62,7 @@ function OperationalRules() {
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
-  const fetchStatus = async () => {
+  const fetchStatus = React.useCallback(async () => {
     try {
       const impersonateId = sessionStorage.getItem("impersonate_id");
       const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
@@ -113,13 +112,11 @@ function OperationalRules() {
     } catch (err) {
       console.error("Failed to load business details", err);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
     fetchStatus();
-  }, []);
+  }, [fetchStatus]);
 
   const handleSettingChange = (field, value) => {
     setFormData(prev => ({

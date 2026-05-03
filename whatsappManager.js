@@ -569,7 +569,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             } else {
                 cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
             }
-            const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge;
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
             
             // Calculate bill but DO NOT finalize yet (Wait for confirmation)
             const customerAddress = `Location [${cLat}, ${cLon}]`;
@@ -580,6 +581,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 `───────────────`,
                 `Subtotal: ${symbol}${subtotal.toFixed(2)}`
             ];
+
+            if (discountAmount > 0) {
+                pendingBill.push(`🎁 Discount: -${symbol}${discountAmount.toFixed(0)}`);
+            }
 
             if (biz.show_gst_on_receipt) {
                 pendingBill.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
@@ -670,49 +675,66 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (lower === 'checkout' || lower === 'confirm order') {
-            if (cart.length === 0) {
-                await sendOfficialMessage(customerNumber, "Your bag is empty! Tell me what you'd like to eat first. 😋", userId);
-                return;
-            }
+            const text = `How would you like to receive your delicious meal today?`;
             
-            const fo = biz.fulfillment_options || { pickup: true, delivery: true };
-            const buttons = [];
-            if (fo.pickup) buttons.push({ id: 'mode_pickup', title: '🥡 Pickup' });
-            if (fo.delivery) buttons.push({ id: 'mode_delivery', title: '🚚 Delivery' });
+            // Check for points
+            const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            const points = loyaltyRes.rows[0]?.points || 0;
+            const minRedeem = biz.min_redeem_points || 300;
             
-            if (buttons.length === 0) {
-                await sendOfficialMessage(customerNumber, "Sorry, we are currently not accepting new orders online. Please contact us for more info.", userId);
-                return;
+            if (points >= minRedeem && !session.context.redeemedPoints) {
+                buttons.push({ id: 'redeem_pts_wa', title: '🎁 Use Rewards' });
             }
 
-            const text = `How would you like to receive your delicious meal today?`;
             await sendButtons(customerNumber, text, buttons, userId);
             await updateSession(userId, cleanNum, 'AWAITING_MODE', session.context);
             return;
         }
 
-        if (lower === 'mode_pickup') {
-            const orderRef = `WA-${Math.random().toString(36).substring(7).toUpperCase()}`;
-            const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
-            
-            const cgstR = parseFloat(biz.cgst_percent) || 0;
-            const sgstR = parseFloat(biz.sgst_percent) || 0;
-            let cgst = 0, sgst = 0;
-            if (biz.gst_included) {
-                const r = cgstR + sgstR;
-                if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
-            } else {
-                cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
+        if (lower === 'redeem_pts_wa') {
+            const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            const points = loyaltyRes.rows[0]?.points || 0;
+            const minRedeem = biz.min_redeem_points || 300;
+            const maxRedeem = biz.max_redeem_per_order || 300;
+
+            if (points < minRedeem) {
+                await sendOfficialMessage(customerNumber, `Sorry, you need at least ${minRedeem} points to redeem.`, userId);
+                return;
             }
-            const total = (biz.gst_included ? subtotal : (subtotal + cgst + sgst));
+
+            const pointsToUse = Math.min(points, maxRedeem);
+            session.context.redeemedPoints = pointsToUse;
+            await updateSession(userId, cleanNum, 'AWAITING_MODE', session.context);
+
+            const discount = pointsToUse / (biz.points_to_amount_ratio || 10);
+            await sendOfficialMessage(customerNumber, `✅ *Rewards Applied!* \n\nWe've applied a discount of *${symbol}${discount.toFixed(0)}* using ${pointsToUse} points. 🎊`, userId);
+            
+            // Show mode selection again
+            const fo = biz.fulfillment_options || { pickup: true, delivery: true };
+            const buttons = [];
+            if (fo.pickup) buttons.push({ id: 'mode_pickup', title: '🥡 Pickup' });
+            if (fo.delivery) buttons.push({ id: 'mode_delivery', title: '🚚 Delivery' });
+            await sendButtons(customerNumber, "Now, how would you like to receive your order?", buttons, userId);
+            return;
+        }
+
+        if (lower === 'mode_pickup') {
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
 
             const initialStatus = 'AWAITING_PAYMENT'; // Assuming online for now or checking payment method if added to AI later
 
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
-                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI']
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method, redeemed_points, discount_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI', session.context.redeemedPoints || 0, discountAmount]
             );
+
+            if (session.context.redeemedPoints) {
+                await pool.query(
+                    "UPDATE customer_loyalty SET points = points - $1 WHERE user_id = $2 AND customer_number = $3",
+                    [session.context.redeemedPoints, userId, cleanNum]
+                );
+            }
 
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'PICKUP', total, items: cart, customer: { name: customerName, phone: cleanNum } });
@@ -787,10 +809,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
             
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
-                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI']
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
+                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI', session.context.redeemedPoints || 0, discountAmount]
             );
+
+            if (session.context.redeemedPoints) {
+                await pool.query(
+                    "UPDATE customer_loyalty SET points = points - $1 WHERE user_id = $2 AND customer_number = $3",
+                    [session.context.redeemedPoints, userId, cleanNum]
+                );
+            }
 
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', total: pending.total, items: pending.items, address: pending.address, customer: { name: customerName, phone: cleanNum } });
@@ -1007,7 +1038,7 @@ YOUR MISSION: Extract items, quantities, and intent. Match items against the men
 REPLY in the SAME LANGUAGE as the user (English or Roman Urdu).
 
 JSON RULES:
-- "intent": "ORDER_ITEM", "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", or "UNKNOWN".
+- "intent": "ORDER_ITEM", "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", "CANCEL_ORDER", or "UNKNOWN".
 - "items": Array of { "name": string, "quantity": number }. ⚠️ CRITICAL: NEVER guess the specific dish variant. If a user says "Biryani", "Pizza", or "Chicken", and your menu context shows multiple variants (e.g. Full/Half, Veg/Non-Veg), you MUST return the generic name ONLY (e.g. "Biryani") so the system can ask for clarification.
 - "human_reply": A conversational, sales-driven response. Confirm items enthusiastically. If an item is ambiguous, tell them you'll show the options.
 - "upsell_suggestion": A short, tempting suggestion for one more item.
@@ -1117,6 +1148,28 @@ RETURN ONLY JSON:
                     await sendOfficialMessage(customerNumber, msg, userId);
                 } else {
                     await sendOfficialMessage(customerNumber, result.human_reply || "Thank you for your feedback!", userId);
+                }
+                return;
+            }
+
+            if (result.intent === 'CANCEL_ORDER') {
+                const activeOrders = await pool.query(
+                    "SELECT order_reference, status FROM orders WHERE user_id = $1 AND customer_number = $2 AND status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY created_at DESC LIMIT 1",
+                    [userId, cleanNum]
+                );
+
+                if (activeOrders.rows.length > 0) {
+                    const order = activeOrders.rows[0];
+                    const msg = `⚠️ *Cancellation Request Received*\n━━━━━━━━━━━━━━\n\nI've notified our team about your request to cancel order *${order.order_reference}*. \n\nSince it's already in the *${order.status}* stage, a member of our staff will assist you shortly to confirm the cancellation. 🙏`;
+                    await sendOfficialMessage(customerNumber, msg, userId);
+
+                    // Notify staff
+                    const staffNums = biz.notification_numbers || [];
+                    for (let num of staffNums) {
+                        await sendOfficialMessage(num, `🚨 *URGENT: CANCELLATION REQUEST!*\nCustomer ${customerName || customerNumber} wants to cancel order *${order.order_reference}* (Status: ${order.status}). Please check the dashboard!`, userId);
+                    }
+                } else {
+                    await sendOfficialMessage(customerNumber, "I couldn't find any active orders for you to cancel. If you have any concerns, please type 'support' to talk to us! 😊", userId);
                 }
                 return;
             }

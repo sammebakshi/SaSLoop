@@ -4,7 +4,7 @@ import { Zap, ShieldCheck, Heart, ArrowRight, CheckCircle2, Loader2, Landmark, Q
 import { createPortal } from "react-dom";
 
 function RechargeHub() {
-  const [_loading, setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [masterPayment, setMasterPayment] = useState(null);
   const [history, setHistory] = useState([]);
   
