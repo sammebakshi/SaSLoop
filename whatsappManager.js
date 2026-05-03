@@ -539,6 +539,24 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         const cart = session.context.cart || [];
+        
+        // --- 🧮 GLOBAL ORDER CALCULATIONS ---
+        const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+        const cgstR = parseFloat(biz.cgst_percent) || 0;
+        const sgstR = parseFloat(biz.sgst_percent) || 0;
+        let cgst = 0, sgst = 0;
+        if (biz.gst_included) {
+            const r = cgstR + sgstR;
+            if (r > 0) { 
+                const a = subtotal * (r / (100 + r)); 
+                cgst = a * (cgstR / r); 
+                sgst = a * (sgstR / r); 
+            }
+        } else {
+            cgst = (subtotal * cgstR) / 100; 
+            sgst = (subtotal * sgstR) / 100;
+        }
+        const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
 
         // --- 📍 HANDLE LOCATION PIN ---
         if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
@@ -557,18 +575,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const deliveryCharge = delivery.charge;
             const distance = delivery.distance;
 
-            let subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
-            
-            // Tax calc
-            const cgstR = parseFloat(biz.cgst_percent) || 0;
-            const sgstR = parseFloat(biz.sgst_percent) || 0;
-            let cgst = 0, sgst = 0;
-            if (biz.gst_included) {
-                const r = cgstR + sgstR;
-                if (r > 0) { const a = subtotal * (r / (100 + r)); cgst = a * (cgstR / r); sgst = a * (sgstR / r); }
-            } else {
-                cgst = (subtotal * cgstR) / 100; sgst = (subtotal * sgstR) / 100;
-            }
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
             const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
             
@@ -812,8 +818,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const pending = session.context.pendingOrder;
             if (!pending) return;
 
-            const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-            
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
             
             await pool.query(
