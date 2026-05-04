@@ -1,33 +1,41 @@
-# SaSLoop Fast Deployment Script (PowerShell)
+# SaSLoop Hyper-Speed Deployment Script
 $IP = "80.225.240.191"
 $USER = "ubuntu"
 $KEY = "./ssh-key-2026-04-19.key"
 $REMOTE_DIR = "/home/ubuntu/SaSLoop"
 
-Write-Host "--- INITIALIZING HIGH-TECH DEPLOYMENT ---" -ForegroundColor Cyan
+Write-Host "--- INITIALIZING HYPER-SPEED DEPLOYMENT ---" -ForegroundColor Cyan
 
-# 1. Force add all changes
-Write-Host "-> Committing changes..." -ForegroundColor Gray
+# 1. Build the Dashboard LOCALLY (Super Fast)
+Write-Host "-> Building Dashboard locally..." -ForegroundColor Yellow
+Push-Location backend/SaSLoop-dashboard
+npm run build
+if ($LASTEXITCODE -ne 0) { Write-Host "Build failed!" -ForegroundColor Red; Pop-Location; exit }
+Pop-Location
+
+# 2. Compress the build for fast transfer
+Write-Host "-> Compressing build files..." -ForegroundColor Gray
+if (Test-Path "dashboard_build.zip") { Remove-Item "dashboard_build.zip" }
+Compress-Archive -Path "backend/SaSLoop-dashboard/build/*" -DestinationPath "dashboard_build.zip"
+
+# 3. Sync code to GitHub
+Write-Host "-> Pushing code to GitHub..." -ForegroundColor Yellow
 git add -A
 git commit -m "Fast Deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
-
-# 2. Push to Repository
-Write-Host "-> Pushing to origin main..." -ForegroundColor Yellow
 git push origin main
 
-# 3. Find SSH path
-$SSH_EXE = "ssh"
-if (-not (Get-Command ssh -ErrorAction SilentlyContinue)) {
-    $SSH_EXE = "C:\Windows\System32\OpenSSH\ssh.exe"
-}
+# 4. Upload build to Oracle and Refresh
+Write-Host "-> Uploading build to Oracle Cloud ($IP)..." -ForegroundColor Blue
+$SSH_EXE = if (Get-Command ssh -ErrorAction SilentlyContinue) { "ssh" } else { "C:\Windows\System32\OpenSSH\ssh.exe" }
+$SCP_EXE = if (Get-Command scp -ErrorAction SilentlyContinue) { "scp" } else { "C:\Windows\System32\OpenSSH\scp.exe" }
 
-# 4. Connect to Oracle and Build Dashboard
-Write-Host "-> Connecting to Oracle Cloud ($IP)..." -ForegroundColor Blue
-Write-Host "-> Rebuilding Dashboard (This may take a minute)..." -ForegroundColor Yellow
+# Upload zip (Fixed Syntax)
+$REMOTE_DEST = "$($USER)@$($IP):$($REMOTE_DIR)/dashboard_build.zip"
+& $SCP_EXE -i $KEY -o StrictHostKeyChecking=no "dashboard_build.zip" $REMOTE_DEST
 
-# We run pull, build dashboard, and restart PM2
-$REMOTE_CMD = "cd $REMOTE_DIR && git pull origin main && npm install && cd SaSLoop-dashboard && npm install && npm run build && cd .. && pm2 restart ecosystem.config.js && pm2 save"
+# Extract zip on server and restart
+$REMOTE_CMD = "cd $REMOTE_DIR && git pull origin main && npm install && unzip -o dashboard_build.zip -d backend/SaSLoop-dashboard/build && rm dashboard_build.zip && pm2 restart ecosystem.config.js && pm2 save"
 
-& $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$USER@$IP" $REMOTE_CMD
+& $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$($USER)@$($IP)" $REMOTE_CMD
 
-Write-Host "✅ ALL SYSTEMS GO! Visit: https://sasloop.in" -ForegroundColor Green
+Write-Host "✅ DEPLOYMENT COMPLETE IN SECONDS! Visit: https://sasloop.in" -ForegroundColor Green
