@@ -1,16 +1,12 @@
-node_modules
+node_modules/
 .env
-.gemini
-uploads
-logs
-*.log
-.wwebjs_auth
-google-key.json
-migration_guide.md
-backups/
-# SaSLoop-dashboard/build (Temporarily un-ignored for production sync)
-SaSLoop-dashboard/package-lock.json
-package-lock.json
-.DS_Store
+.env.*
+dist/
+build/
 *.zip
-*.rar
+*.exe
+*.log
+.DS_Store
+.vscode/
+.idea/
+ssh-key-*.key

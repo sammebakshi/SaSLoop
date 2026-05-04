@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">SaSLoop POS</string>
+    <string name="title_activity_main">SaSLoop POS</string>
+    <string name="package_name">com.sasloop.pos</string>
+    <string name="custom_url_scheme">com.sasloop.pos</string>
+</resources>

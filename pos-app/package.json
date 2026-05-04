@@ -1,0 +1,41 @@
+{
+  "name": "pos-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "electron:dev": "concurrently \"vite\" \"wait-on http://127.0.0.1:5173 && cross-env NODE_ENV=development electron .\"",
+    "electron:build": "npm run build && electron-builder",
+    "mobile:sync": "npm run build && npx cap copy && npx cap sync"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.3.1",
+    "@capacitor/cli": "^8.3.1",
+    "@capacitor/core": "^8.3.1",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.2.1",
+    "cross-env": "^10.1.0",
+    "electron": "^41.5.0",
+    "electron-builder": "^26.8.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.10",
+    "wait-on": "^9.0.5"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.2.4",
+    "autoprefixer": "^10.5.0",
+    "axios": "^1.16.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.14.0",
+    "postcss": "^8.5.13",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "react-router-dom": "^7.14.2",
+    "react-toastify": "^11.1.0",
+    "tailwindcss": "^4.2.4"
+  }
+}
