@@ -1,10 +1,10 @@
-# SaSLoop Hyper-Speed Deployment Script (v8 - Submodule Fix)
+# SaSLoop Hyper-Speed Deployment Script (v9 - Total Sync)
 $IP = "80.225.240.191"
 $USER = "ubuntu"
 $KEY = "./ssh-key-2026-04-19.key"
 $REMOTE_DIR = "/home/ubuntu/SaSLoop"
 
-Write-Host "--- INITIALIZING SUBMODULE-AWARE DEPLOYMENT ---" -ForegroundColor Cyan
+Write-Host "--- INITIALIZING TOTAL SYNC DEPLOYMENT ---" -ForegroundColor Cyan
 
 # 1. Build the Dashboard LOCALLY
 Write-Host "-> Building Dashboard locally..." -ForegroundColor Yellow
@@ -16,15 +16,16 @@ if (-not (Test-Path "build/index.html")) {
 }
 Pop-Location
 
-# 2. Compress using TAR
-Write-Host "-> Compressing build files..." -ForegroundColor Gray
-if (Test-Path "dashboard_build.tar.gz") { Remove-Item "dashboard_build.tar.gz" }
-tar -czf dashboard_build.tar.gz -C backend/SaSLoop-dashboard/build .
+# 2. Compress the ENTIRE backend folder (Excluding node_modules)
+Write-Host "-> Compressing backend for sync..." -ForegroundColor Gray
+if (Test-Path "backend_sync.tar.gz") { Remove-Item "backend_sync.tar.gz" }
+# We use tar to grab everything except the heavy node_modules folders
+tar -czf backend_sync.tar.gz --exclude="node_modules" --exclude=".git" backend
 
-# 3. Sync code to GitHub
-Write-Host "-> Pushing code to GitHub..." -ForegroundColor Yellow
+# 3. Sync code to GitHub (For backup)
+Write-Host "-> Pushing to GitHub..." -ForegroundColor Yellow
 git add -A
-git reset dashboard_build.tar.gz
+git reset backend_sync.tar.gz
 git commit -m "Fast Deploy: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
 git push origin main
 
@@ -33,23 +34,21 @@ Write-Host "-> Uploading to Oracle Cloud ($IP)..." -ForegroundColor Blue
 $SSH_EXE = if (Get-Command ssh -ErrorAction SilentlyContinue) { "ssh" } else { "C:\Windows\System32\OpenSSH\ssh.exe" }
 $SCP_EXE = if (Get-Command scp -ErrorAction SilentlyContinue) { "scp" } else { "C:\Windows\System32\OpenSSH\scp.exe" }
 
-& $SCP_EXE -i $KEY -o StrictHostKeyChecking=no "dashboard_build.tar.gz" "$($USER)@$($IP):$($REMOTE_DIR)/dashboard_build.tar.gz"
+& $SCP_EXE -i $KEY -o StrictHostKeyChecking=no "backend_sync.tar.gz" "$($USER)@$($IP):$($REMOTE_DIR)/backend_sync.tar.gz"
 
-# 5. SUBMODULE INIT AND RESTART
+# 5. EXTRACT AND FORCE RESTART
 $REMOTE_CMD = @"
 cd $REMOTE_DIR
 git pull origin main
-# CRITICAL: Initialize submodules (The Missing Step!)
-git submodule update --init --recursive
+# Extract the entire backend we just sent
+tar -xzf backend_sync.tar.gz
+rm -f backend_sync.tar.gz
 
 cd backend
 npm install
-
-# Restore the dashboard build we uploaded
-rm -rf SaSLoop-dashboard/build
-mkdir -p SaSLoop-dashboard/build
-tar -xzf ../dashboard_build.tar.gz -C SaSLoop-dashboard/build
-rm -f ../dashboard_build.tar.gz
+cd SaSLoop-dashboard
+npm install --production
+cd ..
 
 # NUCLEAR RESTART
 pm2 delete all
@@ -59,4 +58,4 @@ pm2 save
 
 & $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$($USER)@$($IP)" $REMOTE_CMD
 
-Write-Host "✅ SUBMODULES SYNCED! Visit: https://sasloop.in" -ForegroundColor Green
+Write-Host "✅ TOTAL RECOVERY COMPLETE! Visit: https://sasloop.in" -ForegroundColor Green
