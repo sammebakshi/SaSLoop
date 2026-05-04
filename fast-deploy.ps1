@@ -1,10 +1,10 @@
-# SaSLoop Hyper-Speed Deployment Script (v6 - Nuclear Cleanup)
+# SaSLoop Hyper-Speed Deployment Script (v7 - Deep Scan)
 $IP = "80.225.240.191"
 $USER = "ubuntu"
 $KEY = "./ssh-key-2026-04-19.key"
 $REMOTE_DIR = "/home/ubuntu/SaSLoop"
 
-Write-Host "--- INITIALIZING NUCLEAR DEPLOYMENT ---" -ForegroundColor Cyan
+Write-Host "--- INITIALIZING DEEP SCAN DEPLOYMENT ---" -ForegroundColor Cyan
 
 # 1. Build the Dashboard LOCALLY
 Write-Host "-> Building Dashboard locally..." -ForegroundColor Yellow
@@ -35,24 +35,30 @@ $SCP_EXE = if (Get-Command scp -ErrorAction SilentlyContinue) { "scp" } else { "
 
 & $SCP_EXE -i $KEY -o StrictHostKeyChecking=no "dashboard_build.tar.gz" "$($USER)@$($IP):$($REMOTE_DIR)/dashboard_build.tar.gz"
 
-# 5. NUCLEAR RESTART ON SERVER
-# We stop EVERYTHING to clear up conflicts
+# 5. DEEP SCAN AND RESTART
 $REMOTE_CMD = @"
 cd $REMOTE_DIR
 git pull origin main
 npm install
-# Clean build folder
+
+# Fix permissions and recreate build folder
 rm -rf backend/SaSLoop-dashboard/build
 mkdir -p backend/SaSLoop-dashboard/build
 tar -xzf dashboard_build.tar.gz -C backend/SaSLoop-dashboard/build
 rm -f dashboard_build.tar.gz
 
-# NUCLEAR RESTART: Kill old zombie processes and start fresh
+# --- DEEP SCAN: Verify file existence ---
+echo "--- SCANNING SERVER FOR FILES ---"
+ls -la backend/SaSLoop-dashboard/build/index.html || echo "❌ index.html NOT FOUND!"
+pwd
+
+# NUCLEAR RESTART
 pm2 delete all
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.js --cwd $REMOTE_DIR/backend
 pm2 save
+pm2 logs server --lines 10 --no-daemon & sleep 5 ; kill $!
 "@
 
 & $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$($USER)@$($IP)" $REMOTE_CMD
 
-Write-Host "✅ TOTAL RECOVERY COMPLETE! Visit: https://sasloop.in" -ForegroundColor Green
+Write-Host "✅ DEPLOYMENT FINISHED. CHECK THE SCAN ABOVE!" -ForegroundColor Green
