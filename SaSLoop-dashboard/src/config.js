@@ -10,7 +10,7 @@
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
 
 // Ngrok or Production URL — update this whenever your tunnel restarts or domain changes
-const PRODUCTION_URL = "https://sasloop.in";
+const PRODUCTION_URL = "https://backend.sasloop.in";
 
 const API_BASE =
   isCapacitor

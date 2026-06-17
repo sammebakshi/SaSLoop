@@ -1,0 +1,7 @@
+{
+  "step_index": 1722,
+  "tool": "replace_file_content",
+  "description": "\"Show priceLabel on old KOT items display so waiters can see which tier previously-saved items belong to\"",
+  "instruction": "\"Update the old KOT item name display to include priceLabel\"",
+  "chunks": "\"                                                    Text(if (item.priceLabel != null) \\\"${item.displayName} (${item.priceLabel})\\\" else item.displayName, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)\\n\""
+}

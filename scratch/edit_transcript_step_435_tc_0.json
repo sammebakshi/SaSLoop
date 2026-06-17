@@ -1,0 +1,7 @@
+{
+  "step_index": 435,
+  "tool": "replace_file_content",
+  "description": "\"Add user parameter to BillingScreen signature.\"",
+  "instruction": "\"Add the optional user parameter to BillingScreen.\"",
+  "chunks": "\"@OptIn(ExperimentalMaterial3Api::class)\\n@Composable\\nfun BillingScreen(billingViewModel: BillingViewModel, user: com.example.sasloopmanager.data.UserProfile? = null) {\""
+}

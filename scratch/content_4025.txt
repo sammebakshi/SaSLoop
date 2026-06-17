@@ -1,0 +1,1 @@
+I am going to write a script `c:\Users\Sajad\Desktop\SaSLoop\scratch\find_dex_methods.js` to search the decompiled `.java` file from the dex cache for any method definitions and inspect their names. This will help us understand why we couldn't find `MenuSubTab` or other helper functions.

@@ -1,337 +1,1151 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import API_BASE, { isMobileDevice } from "../config";
-import { Truck, CheckCircle2, Clock, MapPin, ChevronRight, AlertCircle, RefreshCw, Bell, BellOff, XCircle } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { 
+  ShoppingBag, Search, Filter, Clock, CheckCircle2, 
+  XCircle, MoreHorizontal, ChefHat, MapPin, Phone,
+  RefreshCw, Plus, MoreVertical, Utensils, Truck, 
+  Activity, ArrowRight, User, AlertCircle, Trash2, Calendar
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import API_BASE from "../config";
 
-// ── Web Audio API notification chime ────────
-let audioCtx = null;
+const OrderBoard = () => {
+    const [orders, setOrders] = useState([]);
+    const [kots, setKots] = useState([]);
+    const [posState, setPosState] = useState({ tableBills: {}, tableStatuses: {}, tableBillNumbers: {}, tableActiveTimestamps: {}, tables: [] });
+    const [business, setBusiness] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [activeTab, setActiveTab] = useState('ALL');
+    const [selectedOrderId, setSelectedOrderId] = useState(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [actionLoading, setActionLoading] = useState(false);
+    
+    // Cancellation Modal State
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancelOrderId, setCancelOrderId] = useState(null);
+    const [cancelIsKot, setCancelIsKot] = useState(false);
+    const [cancelIsPosTable, setCancelIsPosTable] = useState(false);
+    const [rejectionReason, setRejectionReason] = useState('');
 
-function ensureAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
-  }
-  return audioCtx;
-}
+    // Message notification toast
+    const [toastMsg, setToastMsg] = useState(null);
 
-function playChime() {
-  try {
-    const ctx = ensureAudioContext();
-    const now = ctx.currentTime;
-    [523.25, 659.25].forEach((freq, i) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0.35, now + i * 0.18);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.5);
-      osc.connect(gain).connect(ctx.destination);
-      osc.start(now + i * 0.18);
-      osc.stop(now + i * 0.18 + 0.5);
-    });
-  } catch (e) {
-    console.error("Audio chime error", e);
-  }
-}
+    const showToast = (type, text) => {
+        setToastMsg({ type, text });
+        setTimeout(() => setToastMsg(null), 4000);
+    };
 
-function OrderBoard() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("orderBoardSound") === "true");
-  const [mobileTab, setMobileTab] = useState("Incoming");
-  const [newOrderFlash, setNewOrderFlash] = useState(false);
-  const [riders, setRiders] = useState([]);
-  const isMobile = isMobileDevice();
+    const fetchData = async (silent = false) => {
+        if (!silent) setLoading(true);
+        try {
+            const impersonateId = sessionStorage.getItem("impersonate_id");
+            const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
+            const headers = { "Authorization": `Bearer ${localStorage.getItem("token")}` };
 
-  const prevCountRef = useRef(-1);
-  const soundRef = useRef(soundEnabled);
-  soundRef.current = soundEnabled;
+            const ordersPromise = fetch(`${API_BASE}/api/orders${targetParam}`, { headers });
+            const kotsPromise = fetch(`${API_BASE}/api/kots${targetParam}`, { headers });
+            const bizPromise = fetch(`${API_BASE}/api/business/status${targetParam}`, { headers });
+            const posStatePromise = fetch(`${API_BASE}/api/pos/active-state${targetParam}`, { headers });
 
-  const playNotification = useCallback(() => {
-    if (!soundRef.current) return;
-    playChime();
-    setNewOrderFlash(true);
-    setTimeout(() => setNewOrderFlash(false), 2000);
-  }, []);
+            const [ordersRes, kotsRes, bizRes, posStateRes] = await Promise.all([
+                ordersPromise, kotsPromise, bizPromise, posStatePromise
+            ]);
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const impersonateId = sessionStorage.getItem("impersonate_id");
-      const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
-      const resp = await fetch(`${API_BASE}/api/orders${targetParam}`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const incomingCount = data.filter(o => ["CONFIRMED", "PENDING", "pending"].includes(o.status)).length;
-        if (prevCountRef.current !== -1 && incomingCount > prevCountRef.current) {
-           playNotification();
+            if (ordersRes.ok) {
+                const data = await ordersRes.json();
+                setOrders(Array.isArray(data) ? data : []);
+            }
+            if (kotsRes.ok) {
+                const data = await kotsRes.json();
+                setKots(Array.isArray(data) ? data : []);
+            }
+            if (posStateRes.ok) {
+                const data = await posStateRes.json();
+                setPosState(data || { tableBills: {}, tableStatuses: {}, tableBillNumbers: {}, tableActiveTimestamps: {}, tables: [] });
+            }
+            if (bizRes.ok) {
+                const data = await bizRes.json();
+                if (data.hasBusiness && data.business) {
+                    setBusiness(data.business);
+                }
+            }
+        } catch (e) {
+            console.error("Error fetching live order matrix telemetry:", e);
+            showToast("error", "Error synchronizing active telemetry");
+        } finally {
+            if (!silent) setLoading(false);
         }
-        prevCountRef.current = incomingCount;
-        setOrders(data);
-      }
-    } catch (err) {
-      console.error("Order Fetch Fail:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [playNotification]);
+    };
 
-  useEffect(() => {
-    fetchOrders();
-    fetchRiders();
-    const interval = setInterval(fetchOrders, 5000);
-    return () => clearInterval(interval);
-  }, [fetchOrders, fetchRiders]);
+    useEffect(() => {
+        fetchData();
+        // Polling interval: 10 seconds background refresh
+        const interval = setInterval(() => {
+            fetchData(true);
+        }, 10000);
+        return () => clearInterval(interval);
+    }, []);
 
-  const fetchRiders = useCallback(async () => {
-    try {
-        const token = localStorage.getItem("token");
-        const targetId = sessionStorage.getItem("impersonate_id");
-        const res = await fetch(`${API_BASE}/api/delivery/partners${targetId ? `?target_user_id=${targetId}` : ""}`, {
-            headers: { "Authorization": `Bearer ${token}` }
+    const currencySymbol = useMemo(() => {
+        const code = business?.currency_code || business?.currency || "INR";
+        return code === "USD" ? "$" : (code === "SAR" ? "SR" : (code === "AED" ? "AED" : "₹"));
+    }, [business]);
+
+    const getOrderType = (o) => {
+        if (o.type === 'DINE_IN' || o.order_type === 'DINE_IN' || o.order_type === 'DINEIN' || String(o.address).toLowerCase() === 'dine-in' || (o.table_number && o.table_number !== '0' && o.table_number !== '')) {
+            return 'DINE_IN';
+        }
+        if (o.type === 'PICKUP' || o.order_type === 'PICKUP' || o.order_type === 'TAKEAWAY' || o.order_type === 'QUICK' || String(o.address).toLowerCase() === 'pickup' || String(o.address).toLowerCase() === 'takeaway') {
+            return 'PICKUP';
+        }
+        return 'DELIVERY';
+    };
+
+    // process and merge orders
+    const { activeDineIn, activePickup, activeDelivery, unifiedActiveList } = useMemo(() => {
+        const activeOrders = orders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED' && o.status !== 'DELETED');
+        const activeKots = kots.filter(k => k.status !== 'COMPLETED' && k.status !== 'CANCELLED' && k.status !== 'DELETED');
+
+        const dineInMap = {};
+        const activePickup = [];
+        const activeDelivery = [];
+
+        // 1. Process active KOTs from database (if any exist)
+        activeKots.forEach(kot => {
+            const table = kot.table_number || '0';
+            if (!dineInMap[table]) {
+                dineInMap[table] = {
+                    id: `kot-table-${table}`,
+                    dbId: kot.id,
+                    isKot: true,
+                    type: 'DINE_IN',
+                    title: `Table ${table}`,
+                    subtitle: `KOT #${kot.id}`,
+                    timestamp: new Date(kot.created_at).getTime(),
+                    total: 0,
+                    items: [],
+                    status: kot.status,
+                    customer_name: 'Table Guest',
+                    customer_number: '',
+                    kots: [kot]
+                };
+            } else {
+                dineInMap[table].kots.push(kot);
+                if (new Date(kot.created_at).getTime() < dineInMap[table].timestamp) {
+                    dineInMap[table].timestamp = new Date(kot.created_at).getTime();
+                }
+            }
+            const itemsList = Array.isArray(kot.items) ? kot.items : (typeof kot.items === 'string' ? JSON.parse(kot.items) : []);
+            itemsList.forEach(item => {
+                const existingItem = dineInMap[table].items.find(i => i.product_name === item.product_name);
+                if (existingItem) {
+                    existingItem.quantity = (existingItem.quantity || 0) + (item.quantity || item.qty || 1);
+                } else {
+                    dineInMap[table].items.push({ ...item, quantity: item.quantity || item.qty || 1 });
+                }
+                dineInMap[table].total += (parseFloat(item.price) || 0) * (item.quantity || item.qty || 1);
+            });
         });
-        const data = await res.json();
-        setRiders(data);
-    } catch (err) { console.error(err); }
-  }, []);
 
-  const assignRider = async (orderId, riderId) => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/delivery/assign`, {
-        method: 'PUT',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({ orderId, riderId })
-      });
-      if (resp.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'DISPATCHED', rider_id: riderId } : o));
-      }
-    } catch (err) { console.error(err); }
-  };
+        // 2. Process active POS state (tables & temporary table cards) synced from POS
+        const activePosTables = (posState.tables || []).filter(t => {
+            const status = posState.tableStatuses?.[t.id] || 'AVAILABLE';
+            const cart = posState.tableBills?.[t.id] || [];
+            return status !== 'AVAILABLE' || cart.length > 0;
+        });
 
-  const updateStatus = async (orderId, newStatus) => {
-    if (newStatus === 'CANCELLED' && !window.confirm("Are you sure you want to REJECT this order? This will notify the customer.")) return;
-    try {
-      const resp = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (resp.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-      }
-    } catch (err) {
-      console.error("Status Update Fail:", err);
-    }
-  };
+        activePosTables.forEach(t => {
+            const carts = posState.tableBills?.[t.id] || [];
+            const billNo = posState.tableBillNumbers?.[t.id] || 'Pending';
+            const timestamp = posState.tableActiveTimestamps?.[t.id] || Date.now();
+            const type = t.original_order_type === 'PICKUP' ? 'PICKUP' : (t.original_order_type === 'DELIVERY' ? 'DELIVERY' : 'DINE_IN');
+            
+            const total = carts.reduce((acc, item) => acc + (parseFloat(item.price || 0) * (item.quantity || item.qty || 1)), 0);
+            const items = carts.map(item => ({
+                product_name: item.product_name || item.name,
+                quantity: item.quantity || item.qty || 1,
+                price: parseFloat(item.price || 0)
+            }));
 
-  const togglePaymentStatus = async (orderId, currentStatus) => {
-    const newStatus = currentStatus === 'PAID' ? 'PENDING' : 'PAID';
-    try {
-      const resp = await fetch(`${API_BASE}/api/orders/${orderId}/payment`, {
-        method: 'PUT',
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({ payment_status: newStatus })
-      });
-      if (resp.ok) {
-        setOrders(prev => prev.map(o => o.id === orderId ? { ...o, payment_status: newStatus } : o));
-      }
-    } catch (err) {
-      console.error("Payment Update Fail:", err);
-    }
-  };
+            const mappedItem = {
+                id: `pos-table-${t.id}`,
+                dbId: t.id,
+                isKot: true,
+                type: type,
+                title: t.table_name,
+                subtitle: `Bill No: ${billNo}`,
+                timestamp: timestamp,
+                total: total,
+                items: items,
+                status: posState.tableStatuses?.[t.id] || 'SAVED',
+                customer_name: t.original_order_type === 'PICKUP' ? 'Walk-in Guest' : (t.original_order_type === 'DELIVERY' ? 'Delivery Guest' : 'Table Guest'),
+                customer_number: '',
+                isPosStateTable: true
+            };
 
-  const columns = [
-    { title: "Incoming", status: ["CONFIRMED", "PENDING", "pending", "AWAITING_PAYMENT", "awaiting_payment"], icon: AlertCircle, color: "rose" },
-    { title: "Processing", status: ["PROCESSING", "PREPARING", "preparing"], icon: Clock, color: "amber" },
-    { title: "Dispatched", status: ["DISPATCHED", "SHIPPED", "out_for_delivery"], icon: Truck, color: "indigo" },
-    { title: "Completed", status: ["COMPLETED", "delivered"], icon: CheckCircle2, color: "emerald" },
-    { title: "Cancelled", status: ["CANCELLED", "rejected"], icon: XCircle, color: "slate" }
-  ];
+            if (type === 'DINE_IN') {
+                const table = t.id.toString();
+                if (!dineInMap[table]) {
+                    dineInMap[table] = mappedItem;
+                } else {
+                    // Combine items uniquely or overwrite if POS has the latest tray
+                    dineInMap[table].total = total;
+                    dineInMap[table].items = items;
+                    dineInMap[table].status = mappedItem.status;
+                }
+            } else if (type === 'PICKUP') {
+                activePickup.push(mappedItem);
+            } else {
+                activeDelivery.push(mappedItem);
+            }
+        });
 
-  const getPrice = (p) => parseFloat(p || 0).toFixed(2);
+        // 3. Process active orders from the database
+        activeOrders.forEach(o => {
+            const type = getOrderType(o);
+            if (type === 'DINE_IN') {
+                const table = o.table_number || '0';
+                const oItems = Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items) : []);
+                if (!dineInMap[table]) {
+                    dineInMap[table] = {
+                        id: `order-${o.id}`,
+                        dbId: o.id,
+                        isKot: false,
+                        type: 'DINE_IN',
+                        title: `Table ${table}`,
+                        subtitle: `Ref: ${o.order_reference || o.bill_no || o.id}`,
+                        timestamp: new Date(o.created_at).getTime(),
+                        total: parseFloat(o.total_price || 0),
+                        items: oItems.map(i => ({ ...i, quantity: i.quantity || i.qty || 1 })),
+                        status: o.status,
+                        customer_name: o.customer_name || 'Table Guest',
+                        customer_number: o.customer_number || '',
+                        order: o
+                    };
+                } else {
+                    dineInMap[table].id = `order-${o.id}`;
+                    dineInMap[table].dbId = o.id;
+                    dineInMap[table].isKot = false; 
+                    dineInMap[table].subtitle = `Ref: ${o.order_reference || o.bill_no || o.id}`;
+                    dineInMap[table].customer_name = o.customer_name || dineInMap[table].customer_name;
+                    dineInMap[table].customer_number = o.customer_number || dineInMap[table].customer_number;
+                    dineInMap[table].order = o;
+                    dineInMap[table].total = parseFloat(o.total_price || 0);
+                }
+            } else if (type === 'PICKUP') {
+                const oItems = Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items) : []);
+                activePickup.push({
+                    id: `order-${o.id}`,
+                    dbId: o.id,
+                    isKot: false,
+                    type: 'PICKUP',
+                    title: o.customer_name || 'Walk-in Guest',
+                    subtitle: `Ref: ${o.order_reference || o.bill_no || o.id}`,
+                    timestamp: new Date(o.created_at).getTime(),
+                    total: parseFloat(o.total_price || 0),
+                    items: oItems.map(i => ({ ...i, quantity: i.quantity || i.qty || 1 })),
+                    status: o.status,
+                    customer_name: o.customer_name || 'Walk-in Guest',
+                    customer_number: o.customer_number || '',
+                    order: o
+                });
+            } else if (type === 'DELIVERY') {
+                const oItems = Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items) : []);
+                activeDelivery.push({
+                    id: `order-${o.id}`,
+                    dbId: o.id,
+                    isKot: false,
+                    type: 'DELIVERY',
+                    title: o.customer_name || 'Delivery Guest',
+                    subtitle: `Ref: ${o.order_reference || o.bill_no || o.id}`,
+                    timestamp: new Date(o.created_at).getTime(),
+                    total: parseFloat(o.total_price || 0),
+                    items: oItems.map(i => ({ ...i, quantity: i.quantity || i.qty || 1 })),
+                    status: o.status,
+                    customer_name: o.customer_name || 'Delivery Guest',
+                    customer_number: o.customer_number || '',
+                    order: o
+                });
+            }
+        });
 
-  const OrderCard = ({ order, col }) => (
-    <div key={order.id} className="bg-white border border-slate-200 rounded-2xl p-3 shadow-sm hover:shadow-xl transition-all group relative overflow-hidden mb-3 animate-in fade-in slide-in-from-bottom-2 duration-500">
-      <div className={`absolute top-0 left-0 w-1.5 h-full bg-${col.color}-500`}></div>
-      <div className="flex justify-between items-start mb-2">
-          <div>
-            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest leading-none mb-1">{order.order_reference || `#${order.id.toString().padStart(4, '0')}`}</p>
-            <h4 className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-sm leading-none truncate max-w-[120px]">{order.customer_name || 'Guest User'}</h4>
-            {order.customer_number && <p className="text-[8px] font-bold text-indigo-400 mt-0.5 whitespace-nowrap">📞 {order.customer_number}</p>}
-          </div>
-          <div className="text-right">
-            <span className="text-[10px] font-black text-slate-900 bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-lg whitespace-nowrap block mb-1">₹{getPrice(order.total_price)}</span>
-            <p className="text-[7px] text-slate-400 font-bold uppercase">{new Date(order.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-          </div>
-      </div>
-      
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-1.5">
-           <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md ${order.payment_method === 'UPI' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'bg-slate-100 text-slate-600 border border-slate-200'}`}>
-              {order.payment_method || 'CASH'}
-           </span>
-        </div>
-        <button 
-          onClick={() => togglePaymentStatus(order.id, order.payment_status)}
-          className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-md transition-all ${order.payment_status === 'PAID' ? 'bg-emerald-500 text-white shadow-sm' : 'bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100'}`}
-        >
-          {order.payment_status === 'PAID' ? '✓ Paid' : 'Unpaid'}
-        </button>
-      </div>
-      <div className="space-y-1 mb-2 bg-slate-50/50 p-2 rounded-xl">
-          {(() => {
-            try {
-                const itemsArray = typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []);
-                return (Array.isArray(itemsArray) ? itemsArray : []).map((item, idx) => (
-                  <div key={idx} className="flex justify-between items-center text-[10px] text-slate-600">
-                      <span className="truncate pr-2 font-bold">{item.name}</span>
-                      <span className="shrink-0 font-black bg-white border border-slate-100 px-1.5 py-0 rounded-md text-[8px]">x{item.qty}</span>
-                  </div>
-                ));
-            } catch (e) { return <div className="text-[8px] text-rose-500 font-bold italic">Items error</div>; }
-          })()}
-      </div>
-      <div className="flex items-center gap-2 text-slate-500 text-[8px] font-bold mb-3 pt-2 border-t border-slate-100">
-          <div className="flex items-center gap-1 truncate max-w-[150px]"><MapPin className="w-3 h-3 text-rose-400" /> {order.address || 'Pick Up'}</div>
-          {order.table_number && <div className="ml-auto bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded-md whitespace-nowrap">Table {order.table_number}</div>}
-      </div>
-      <div className="flex gap-1.5">
-          {col.title === "Incoming" && (
-            <div className="flex gap-1.5 w-full">
-              <button onClick={() => updateStatus(order.id, 'PROCESSING')} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-200">
-                  Accept <ChevronRight className="w-3.5 h-3.5" />
-              </button>
-              <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="flex-1 bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
-                  Reject <XCircle className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
-          {col.title === "Processing" && (
-            <div className="w-full space-y-2">
-              {!order.table_number && order.address !== 'Pickup' && (
-                <select 
-                  onChange={(e) => assignRider(order.id, e.target.value)}
-                  className="w-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-[10px] font-black py-2 rounded-xl uppercase tracking-widest outline-none px-2"
-                  defaultValue=""
-                >
-                  <option value="" disabled>Assign Rider</option>
-                  {riders.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-              )}
-              <div className="flex gap-2">
-                <button onClick={() => updateStatus(order.id, 'DISPATCHED')} className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-indigo-200">
-                    {order.table_number ? 'Mark Ready' : (order.address === 'Pickup' ? 'Order Prepared' : 'Dispatch Now')} <Truck className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="p-2.5 bg-rose-50 text-rose-500 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all" title="Cancel Order">
-                  <XCircle className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          {col.title === "Dispatched" && (
-            <div className="flex gap-2 w-full">
-                <button onClick={() => updateStatus(order.id, 'COMPLETED')} className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all shadow-lg shadow-emerald-200">
-                    {order.table_number ? 'Served Successfully' : 'Deliver Case'} <CheckCircle2 className="w-3.5 h-3.5" />
-                </button>
-                <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="p-2.5 bg-rose-50 text-rose-500 border border-rose-200 rounded-xl hover:bg-rose-100 transition-all" title="Cancel Order">
-                  <XCircle className="w-4 h-4" />
-                </button>
-            </div>
-          )}
-          {col.title === "Completed" && (
-            <button onClick={() => updateStatus(order.id, 'CANCELLED')} className="w-full bg-rose-50 text-rose-500 border border-rose-200 hover:bg-rose-100 text-[9px] font-black py-2.5 rounded-xl uppercase tracking-widest flex items-center justify-center gap-1.5 transition-all">
-                Mark as Cancelled <XCircle className="w-3.5 h-3.5" />
-            </button>
-          )}
-          {col.title === "Cancelled" && (
-             <div className="w-full text-center py-2 bg-slate-50 rounded-xl text-[9px] font-black text-slate-400 uppercase tracking-widest">Rejected / Cancelled</div>
-          )}
-      </div>
-    </div>
-  );
+        const activeDineIn = Object.values(dineInMap);
+        const unifiedActiveList = [...activeDineIn, ...activePickup, ...activeDelivery].sort((a, b) => a.timestamp - b.timestamp);
 
-  return (
-    <div className={`flex flex-col h-full bg-[#f8fafc] ${isMobile ? 'p-4' : 'p-6'} space-y-4 overflow-hidden font-sans`}>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
-        <div>
-          <h2 className={`${isMobile ? 'text-xl' : 'text-3xl'} font-black text-slate-800 tracking-tight flex items-center gap-3`}>
-            Order Board <div className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]"></div>
-          </h2>
-          {!isMobile && <p className="text-slate-500 font-medium text-sm mt-1">Real-time store operations command center.</p>}
-        </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
-           <button onClick={() => { ensureAudioContext(); const newVal = !soundEnabled; setSoundEnabled(newVal); localStorage.setItem("orderBoardSound", newVal); if (newVal) playChime(); }} className={`flex items-center gap-2 ${isMobile ? 'px-3 py-2' : 'px-4 py-2.5'} rounded-2xl text-[9px] font-black uppercase tracking-widest transition-all ${soundEnabled ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 shadow-sm' : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
-              {soundEnabled ? <Bell className={`w-3 h-3 ${newOrderFlash ? 'animate-bounce' : ''}`} /> : <BellOff className="w-3 h-3" />}
-              {soundEnabled ? 'Chime Active' : 'Board Muted'}
-           </button>
-           <button onClick={fetchOrders} className={`bg-white border border-slate-200 ${isMobile ? 'px-3 py-2' : 'px-4 py-2.5'} rounded-2xl flex items-center gap-2 shadow-sm text-[9px] font-black uppercase tracking-widest ${loading ? 'text-indigo-500' : 'text-slate-500'}`}>
-              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-              {isMobile ? 'Sync' : 'Refresh Now'}
-           </button>
-        </div>
-      </div>
-      {isMobile && (
-        <div className="flex bg-slate-100 p-1.5 rounded-[1.5rem] flex-shrink-0 overflow-x-auto no-scrollbar">
-          {columns.map(col => (
-            <button key={col.title} onClick={() => setMobileTab(col.title)} className={`flex-1 flex flex-col items-center py-2 px-3 rounded-2xl transition-all relative ${mobileTab === col.title ? 'bg-white shadow-sm ring-1 ring-slate-200' : 'text-slate-500'}`}>
-              <div className={`p-1.5 rounded-lg mb-0.5 ${mobileTab === col.title ? `bg-${col.color}-50 text-${col.color}-500` : 'bg-slate-200/50'}`}><col.icon className="w-3.5 h-3.5" /></div>
-              <span className="text-[8px] font-black uppercase tracking-tighter">{col.title}</span>
-              {orders.filter(o => col.status.includes(o.status)).length > 0 && <span className="absolute top-1 right-1 w-4 h-4 bg-rose-500 text-white text-[8px] font-black rounded-full flex items-center justify-center">{orders.filter(o => col.status.includes(o.status)).length}</span>}
-            </button>
-          ))}
-        </div>
-      )}
-      {loading && orders.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-slate-400 animate-pulse">
-           <RefreshCw className="w-12 h-12 animate-spin mb-4 opacity-10" />
-           <p className="font-black tracking-widest uppercase text-xs opacity-20">Refreshing Live Board...</p>
-        </div>
-      ) : (
-        <div className={`flex-1 min-h-0 ${isMobile ? 'overflow-y-auto pb-20' : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 overflow-x-auto pb-4 overflow-y-hidden'}`}>
-           {isMobile ? (
-            <div className="space-y-4">
-              {(() => {
-                const activeCol = columns.find(c => c.title === mobileTab);
-                const filtered = orders.filter(o => activeCol.status.includes(o.status));
-                if (filtered.length === 0) return <div className="h-48 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[2.5rem] opacity-30 italic text-[10px] uppercase font-black tracking-widest">No Active {mobileTab}</div>;
-                return filtered.map(order => <OrderCard key={order.id} order={order} col={activeCol} />);
-              })()}
-            </div>
-          ) : (
-            columns.map((col) => (
-              <div key={col.title} className="flex flex-col min-w-[240px] bg-slate-100/30 rounded-[2.5rem] border border-slate-200/60 overflow-hidden">
-                <div className={`p-4 flex items-center justify-between bg-white border-b border-slate-100 shadow-sm`}>
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 bg-${col.color}-50 text-${col.color}-500 rounded-xl`}><col.icon className="w-4 h-4" /></div>
-                      <h3 className="font-black text-slate-800 text-xs tracking-tight uppercase">{col.title}</h3>
+        return { activeDineIn, activePickup, activeDelivery, unifiedActiveList };
+    }, [orders, kots, posState]);
+
+
+    // Totals calculations
+    const totals = useMemo(() => {
+        const dineInSum = activeDineIn.reduce((sum, item) => sum + item.total, 0);
+        const pickupSum = activePickup.reduce((sum, item) => sum + item.total, 0);
+        const deliverySum = activeDelivery.reduce((sum, item) => sum + item.total, 0);
+        const grandTotal = dineInSum + pickupSum + deliverySum;
+
+        return {
+            dineInSum,
+            dineInCount: activeDineIn.length,
+            pickupSum,
+            pickupCount: activePickup.length,
+            deliverySum,
+            deliveryCount: activeDelivery.length,
+            totalActiveCount: activeDineIn.length + activePickup.length + activeDelivery.length
+        };
+    }, [activeDineIn, activePickup, activeDelivery]);
+
+    // Search and Tab filtering
+    const filteredOrders = useMemo(() => {
+        return unifiedActiveList.filter(o => {
+            // Tab filtering
+            if (activeTab !== 'ALL' && o.type !== activeTab) return false;
+
+            // Search filtering
+            const query = searchQuery.trim().toLowerCase();
+            if (!query) return true;
+
+            return (
+                (o.title || "").toLowerCase().includes(query) ||
+                (o.subtitle || "").toLowerCase().includes(query) ||
+                (o.customer_name || "").toLowerCase().includes(query) ||
+                (o.customer_number || "").includes(query) ||
+                (o.status || "").toLowerCase().includes(query)
+            );
+        });
+    }, [unifiedActiveList, activeTab, searchQuery]);
+
+    // Active Selected Order
+    const selectedOrder = useMemo(() => {
+        if (!selectedOrderId && filteredOrders.length > 0) {
+            return filteredOrders[0];
+        }
+        return filteredOrders.find(o => o.id === selectedOrderId) || filteredOrders[0] || null;
+    }, [filteredOrders, selectedOrderId]);
+
+    // Update Status Action
+    const handleUpdateStatus = async (item, newStatus) => {
+        setActionLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const impersonateId = sessionStorage.getItem("impersonate_id");
+            const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
+
+            if (item.isPosStateTable) {
+                if (newStatus === 'COMPLETED') {
+                    // Settle & Complete Bill
+                    // 1. Save finalized order to database
+                    const orderRes = await fetch(`${API_BASE}/api/orders${targetParam}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            customer_name: item.customer_name || 'Table Guest',
+                            customer_number: item.customer_number || '',
+                            items: item.items,
+                            total_price: item.total,
+                            payment_method: 'CASH',
+                            status: 'COMPLETED',
+                            table_number: item.type === 'DINE_IN' ? item.title.replace('Table ', '') : '0',
+                            order_type: item.type,
+                            bill_no: item.subtitle.includes('Bill No: ') ? item.subtitle.replace('Bill No: ', '') : ''
+                        })
+                    });
+
+                    if (!orderRes.ok) {
+                        showToast("error", "Failed to save completed order in database");
+                        setActionLoading(false);
+                        return;
+                    }
+
+                    // 2. Clear POS Table active state
+                    const updatedPosState = { ...posState };
+                    const tableId = item.dbId;
+                    
+                    if (updatedPosState.tableBills) {
+                        delete updatedPosState.tableBills[tableId];
+                    }
+                    if (updatedPosState.tableStatuses) {
+                        updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
+                    }
+                    if (updatedPosState.tableBillNumbers) {
+                        delete updatedPosState.tableBillNumbers[tableId];
+                    }
+                    if (updatedPosState.tableActiveTimestamps) {
+                        delete updatedPosState.tableActiveTimestamps[tableId];
+                    }
+                    if (updatedPosState.tables) {
+                        const tableObj = updatedPosState.tables.find(t => t.id === tableId);
+                        if (tableObj && tableObj.is_temporary) {
+                            updatedPosState.tables = updatedPosState.tables.filter(t => t.id !== tableId);
+                        }
+                    }
+
+                    // Save POS active state
+                    const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            target_user_id: impersonateId || undefined,
+                            activeState: updatedPosState
+                        })
+                    });
+
+                    if (syncRes.ok) {
+                        showToast("success", "POS Table bill settled and completed successfully");
+                        fetchData(true);
+                    } else {
+                        showToast("error", "Failed to clear POS table status on server");
+                    }
+                } else {
+                    // Update POS Table status (e.g. SAVED -> PROCESSING -> DISPATCHED)
+                    const updatedPosState = { ...posState };
+                    const tableId = item.dbId;
+                    if (updatedPosState.tableStatuses) {
+                        updatedPosState.tableStatuses[tableId] = newStatus;
+                    }
+
+                    // Save POS active state
+                    const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            target_user_id: impersonateId || undefined,
+                            activeState: updatedPosState
+                        })
+                    });
+
+                    if (syncRes.ok) {
+                        showToast("success", `POS Table status updated to ${newStatus}`);
+                        fetchData(true);
+                    } else {
+                        showToast("error", "Failed to update POS table status on server");
+                    }
+                }
+            } else if (item.isKot) {
+                const res = await fetch(`${API_BASE}/api/kots/${item.dbId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    showToast("success", `KOT Status updated to ${newStatus}`);
+                    fetchData(true);
+                } else {
+                    showToast("error", "Failed to update KOT status");
+                }
+            } else {
+                const res = await fetch(`${API_BASE}/api/orders/${item.dbId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: newStatus })
+                });
+                if (res.ok) {
+                    showToast("success", `Order Status updated to ${newStatus}`);
+                    fetchData(true);
+                } else {
+                    showToast("error", "Failed to update Order status");
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("error", "Network error updating status");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // Cancellation Action
+    const handleCancelOrder = async (e) => {
+        if (e) e.preventDefault();
+        if (!rejectionReason.trim()) {
+            showToast("error", "Reason for cancellation is required");
+            return;
+        }
+
+        setActionLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const impersonateId = sessionStorage.getItem("impersonate_id");
+            const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
+
+            if (cancelIsPosTable) {
+                // Find the selected POS table item details
+                const item = selectedOrder;
+
+                // 1. Create a cancelled order in the database for auditing
+                const orderRes = await fetch(`${API_BASE}/api/orders${targetParam}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        customer_name: item?.customer_name || 'Table Guest',
+                        customer_number: item?.customer_number || '',
+                        items: item?.items || [],
+                        total_price: item?.total || 0,
+                        payment_method: 'CASH',
+                        status: 'CANCELLED',
+                        table_number: item?.type === 'DINE_IN' ? item?.title?.replace('Table ', '') : '0',
+                        order_type: item?.type || 'DINE_IN',
+                        bill_no: item?.subtitle?.includes('Bill No: ') ? item?.subtitle?.replace('Bill No: ', '') : '',
+                        rejection_reason: rejectionReason.trim()
+                    })
+                });
+
+                if (!orderRes.ok) {
+                    showToast("error", "Failed to log cancelled order in database");
+                    setActionLoading(false);
+                    return;
+                }
+
+                // 2. Clear POS Table active state
+                const updatedPosState = { ...posState };
+                const tableId = cancelOrderId;
+                
+                if (updatedPosState.tableBills) {
+                    delete updatedPosState.tableBills[tableId];
+                }
+                if (updatedPosState.tableStatuses) {
+                    updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
+                }
+                if (updatedPosState.tableBillNumbers) {
+                    delete updatedPosState.tableBillNumbers[tableId];
+                }
+                if (updatedPosState.tableActiveTimestamps) {
+                    delete updatedPosState.tableActiveTimestamps[tableId];
+                }
+                if (updatedPosState.tables) {
+                    const tableObj = updatedPosState.tables.find(t => t.id === tableId);
+                    if (tableObj && tableObj.is_temporary) {
+                        updatedPosState.tables = updatedPosState.tables.filter(t => t.id !== tableId);
+                    }
+                }
+
+                // Save POS active state
+                const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        target_user_id: impersonateId || undefined,
+                        activeState: updatedPosState
+                    })
+                });
+
+                if (syncRes.ok) {
+                    showToast("success", "POS Table Cart cancelled and cleared successfully");
+                    setIsCancelModalOpen(false);
+                    setRejectionReason('');
+                    setCancelIsPosTable(false);
+                    fetchData(true);
+                } else {
+                    showToast("error", "Failed to sync cancelled state to POS");
+                }
+            } else if (cancelIsKot) {
+                const res = await fetch(`${API_BASE}/api/kots/${cancelOrderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: 'CANCELLED' })
+                });
+                if (res.ok) {
+                    showToast("success", "KOT successfully cancelled");
+                    setIsCancelModalOpen(false);
+                    setRejectionReason('');
+                    fetchData(true);
+                } else {
+                    showToast("error", "Failed to cancel KOT");
+                }
+            } else {
+                const res = await fetch(`${API_BASE}/api/orders/${cancelOrderId}/status`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        status: 'CANCELLED',
+                        rejection_reason: rejectionReason.trim()
+                    })
+                });
+                if (res.ok) {
+                    showToast("success", "Order successfully cancelled");
+                    setIsCancelModalOpen(false);
+                    setRejectionReason('');
+                    fetchData(true);
+                } else {
+                    showToast("error", "Failed to cancel order");
+                }
+            }
+        } catch (err) {
+            console.error(err);
+            showToast("error", "Network error cancelling order");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
+    // Aggregate items across all active order cards (Top Running KOT Items)
+    const runningKOTItems = useMemo(() => {
+        const map = {};
+        unifiedActiveList.forEach(o => {
+            o.items.forEach(item => {
+                const name = item.product_name || item.name || 'Unknown Item';
+                const qty = parseInt(item.quantity || item.qty || 1);
+                if (!map[name]) {
+                    map[name] = 0;
+                }
+                map[name] += qty;
+            });
+        });
+        return Object.entries(map)
+            .map(([name, qty]) => ({ name, qty }))
+            .sort((a, b) => b.qty - a.qty)
+            .slice(0, 10);
+    }, [unifiedActiveList]);
+
+    // Active Customers List
+    const activeCustomers = useMemo(() => {
+        const map = {};
+        unifiedActiveList.forEach(o => {
+            const key = o.customer_number || o.id;
+            if (!map[key]) {
+                map[key] = {
+                    id: o.id,
+                    name: o.customer_name || 'Table Guest',
+                    phone: o.customer_number || 'N/A',
+                    type: o.type,
+                    subtitle: o.subtitle,
+                    total: o.total,
+                    status: o.status
+                };
+            }
+        });
+        return Object.values(map).slice(0, 10);
+    }, [unifiedActiveList]);
+
+    return (
+        <div className="space-y-6 animate-in fade-in duration-500 font-sans text-slate-800 dark:text-slate-100">
+            {/* Status Toast Notification */}
+            {toastMsg && (
+                <div className={`fixed top-6 right-6 z-[1000] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border text-xs font-bold uppercase tracking-wider animate-in slide-in-from-top duration-300 ${
+                    toastMsg.type === "success" 
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" 
+                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50"
+                }`}>
+                    {toastMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
+                    {toastMsg.text}
+                </div>
+            )}
+
+            {/* Header Matrix */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between bg-white dark:bg-[#161b22] p-4 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm gap-4">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
+                        <Activity className="w-6 h-6 animate-pulse" />
                     </div>
-                    <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-2.5 py-1 rounded-full">{orders.filter(o => col.status.includes(o.status)).length}</span>
+                    <div>
+                        <h2 className="text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Live Fulfillment Matrix</h2>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Real-time telemetry of in-progress outlet orders</p>
+                    </div>
                 </div>
-                <div className="flex-1 overflow-y-auto p-3 space-y-3 no-scrollbar">
-                    {orders.filter(o => col.status.includes(o.status)).length === 0 ? (
-                      <div className="h-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-200 rounded-[2rem] opacity-10 italic text-[8px] uppercase font-black">Empty</div>
-                    ) : (
-                      orders.filter(o => col.status.includes(o.status)).map(order => <OrderCard key={order.id} order={order} col={col} />)
-                    )}
+
+                <div className="flex flex-wrap items-center gap-4">
+                    {/* Search bar */}
+                    <div className="relative min-w-[200px]">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+                        <input 
+                            type="text" 
+                            placeholder="SEARCH REFERENCE, TABLE..." 
+                            className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase outline-none focus:border-emerald-600 dark:focus:border-emerald-600 transition-all text-slate-800 dark:text-white placeholder-slate-400 tracking-wider w-full"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                    </div>
+
+                    {/* Filter tabs */}
+                    <div className="flex bg-slate-100 dark:bg-[#0d1117] p-1 rounded-xl border border-slate-200 dark:border-[#30363d]">
+                        {[
+                            { id: 'ALL', label: 'All Active' },
+                            { id: 'DINE_IN', label: 'Dine-In' },
+                            { id: 'PICKUP', label: 'Pick-Up' },
+                            { id: 'DELIVERY', label: 'Delivery' }
+                        ].map(tab => (
+                            <button 
+                                key={tab.id} 
+                                onClick={() => {
+                                    setActiveTab(tab.id);
+                                    setSelectedOrderId(null); // Reset detail selection
+                                }}
+                                className={`px-4 py-1.5 text-[9px] font-black rounded-lg uppercase tracking-wider transition-all ${
+                                    activeTab === tab.id 
+                                        ? 'bg-white dark:bg-[#161b22] shadow-sm text-slate-900 dark:text-white' 
+                                        : 'text-slate-450 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    <button 
+                        onClick={() => fetchData()} 
+                        className="p-2.5 bg-slate-55 dark:bg-[#161b22] hover:bg-slate-100 dark:hover:bg-[#21262d] border border-slate-200 dark:border-[#30363d] text-slate-600 dark:text-slate-350 rounded-xl transition-all"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
                 </div>
-              </div>
-            ))
-          )}
+            </div>
+
+            {/* TMBill-style Stats Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* 1. Dine-In Card */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-emerald-500">
+                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Utensils size={22} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">Running Dine-In</span>
+                        <span className="text-lg font-black italic tracking-tighter text-emerald-600 dark:text-emerald-400">
+                            {currencySymbol} {totals.dineInSum.toFixed(0)}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                            {totals.dineInCount} Occupied {totals.dineInCount === 1 ? 'Table' : 'Tables'}
+                        </span>
+                    </div>
+                </div>
+
+                {/* 2. Pick-Up Card */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-amber-500">
+                    <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                        <ShoppingBag size={22} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">Running Pick Up</span>
+                        <span className="text-lg font-black italic tracking-tighter text-amber-600 dark:text-amber-400">
+                            {currencySymbol} {totals.pickupSum.toFixed(0)}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                            {totals.pickupCount} Active Orders
+                        </span>
+                    </div>
+                </div>
+
+                {/* 3. Delivery Card */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-blue-500">
+                    <div className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                        <Truck size={22} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">Running Delivery</span>
+                        <span className="text-lg font-black italic tracking-tighter text-blue-600 dark:text-blue-400">
+                            {currencySymbol} {totals.deliverySum.toFixed(0)}
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                            {totals.deliveryCount} Active Orders
+                        </span>
+                    </div>
+                </div>
+
+                {/* 4. Total KOTs / Active Card */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-purple-500">
+                    <div className="w-12 h-12 rounded-full bg-purple-500/10 text-purple-650 dark:text-purple-400 flex items-center justify-center shrink-0">
+                        <Activity size={22} />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">Fulfillment Load</span>
+                        <span className="text-lg font-black italic tracking-tighter text-purple-650 dark:text-purple-400">
+                            {totals.totalActiveCount} Running
+                        </span>
+                        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                            Unified telemetry load
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            {/* Main Interactive Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-h-[500px]">
+                {/* Left Area: Active Cards Grid */}
+                <div className="lg:col-span-8 space-y-4">
+                    <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] rounded-2xl p-5 shadow-sm">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
+                                <span>Active Grid monitor</span>
+                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[9px] font-black tracking-normal text-slate-500 dark:text-slate-400">
+                                    {filteredOrders.length} orders
+                                </span>
+                            </h3>
+                        </div>
+
+                        {loading && filteredOrders.length === 0 ? (
+                            <div className="py-24 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">
+                                Reconnecting active streams...
+                            </div>
+                        ) : filteredOrders.length === 0 ? (
+                            <div className="py-24 text-center border border-dashed border-slate-200 dark:border-[#30363d] rounded-2xl flex flex-col items-center justify-center space-y-3">
+                                <div className="w-14 h-14 rounded-full bg-slate-50 dark:bg-[#0d1117] flex items-center justify-center text-slate-300 dark:text-slate-700">
+                                    <ChefHat size={28} />
+                                </div>
+                                <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider"> Fulfillments Cleared: No Active Orders</div>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <AnimatePresence mode="popLayout">
+                                    {filteredOrders.map(item => {
+                                        const isSelected = selectedOrder?.id === item.id;
+                                        
+                                        // Badge colors
+                                        let badgeStyle = "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-900/30";
+                                        if (item.type === 'PICKUP') badgeStyle = "bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-900/30";
+                                        if (item.type === 'DELIVERY') badgeStyle = "bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-900/30";
+
+                                        // Elapsed minutes
+                                        const elapsed = Math.max(1, Math.floor((Date.now() - item.timestamp) / 60000));
+
+                                        return (
+                                            <motion.div
+                                                layoutId={item.id}
+                                                initial={{ opacity: 0, scale: 0.98 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.98 }}
+                                                transition={{ duration: 0.2 }}
+                                                key={item.id}
+                                                onClick={() => setSelectedOrderId(item.id)}
+                                                className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between h-36 ${
+                                                    isSelected 
+                                                        ? 'border-2 border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/5 shadow-md shadow-emerald-500/5' 
+                                                        : 'bg-slate-50 dark:bg-[#0d1117] border-slate-200 dark:border-[#30363d] hover:border-slate-350 dark:hover:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-[#161b22]/50'
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-start gap-2">
+                                                    <div className="min-w-0">
+                                                        <div className="font-black text-sm uppercase italic truncate tracking-tight text-slate-800 dark:text-white">
+                                                            {item.title}
+                                                        </div>
+                                                        <div className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5 truncate">
+                                                            {item.subtitle}
+                                                        </div>
+                                                    </div>
+                                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0 tracking-wider ${badgeStyle}`}>
+                                                        {item.type === 'DINE_IN' ? 'Dine-In' : (item.type === 'PICKUP' ? 'Pick-Up' : 'Delivery')}
+                                                    </span>
+                                                </div>
+
+                                                <div className="space-y-1 mt-2 flex-1 overflow-hidden">
+                                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate uppercase font-medium">
+                                                        {item.items.map(it => `${it.product_name || it.name} x${it.quantity}`).join(', ')}
+                                                    </p>
+                                                </div>
+
+                                                <div className="flex justify-between items-end pt-3 border-t border-dashed border-slate-200 dark:border-[#30363d] mt-2">
+                                                    <div className="text-[9px] font-black uppercase flex items-center gap-1 text-amber-600 dark:text-amber-500">
+                                                        <Clock size={11} className="animate-pulse" /> {elapsed} {elapsed === 1 ? 'min' : 'mins'} ago
+                                                    </div>
+                                                    <span className="text-sm font-black tracking-tighter text-emerald-600 dark:text-emerald-400">
+                                                        {currencySymbol} {parseFloat(item.total).toFixed(0)}
+                                                    </span>
+                                                </div>
+                                            </motion.div>
+                                        );
+                                    })}
+                                </AnimatePresence>
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Right Area: Selected Order Details Pane */}
+                <div className="lg:col-span-4">
+                    <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] rounded-2xl p-5 shadow-sm sticky top-6">
+                        {selectedOrder ? (
+                            <div className="space-y-5">
+                                {/* Details Header */}
+                                <div className="border-b border-dashed border-slate-200 dark:border-[#30363d] pb-4">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div>
+                                            <h3 className="text-md font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
+                                                {selectedOrder.title}
+                                            </h3>
+                                            <p className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
+                                                {selectedOrder.subtitle}
+                                            </p>
+                                        </div>
+                                        <span className={`px-2.5 py-0.5 rounded-[4px] text-[8px] font-bold uppercase tracking-wider ${
+                                            selectedOrder.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-900/20' :
+                                            selectedOrder.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500 border border-blue-900/20' :
+                                            selectedOrder.status === 'DISPATCHED' ? 'bg-purple-500/10 text-purple-500 border border-purple-900/20' :
+                                            'bg-slate-500/10 text-slate-450 border border-slate-900/20'
+                                        }`}>
+                                            {selectedOrder.status}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-2 mt-3 text-[9px] text-slate-400 dark:text-slate-500 font-bold uppercase">
+                                        <Clock size={11} /> Placed {Math.max(1, Math.floor((Date.now() - selectedOrder.timestamp) / 60000))} mins ago
+                                    </div>
+                                </div>
+
+                                {/* Items list */}
+                                <div className="space-y-3">
+                                    <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Order Items</h4>
+                                    <div className="bg-slate-50 dark:bg-[#0d1117] rounded-xl border border-slate-200 dark:border-[#30363d] divide-y divide-slate-200 dark:divide-[#30363d] max-h-[220px] overflow-y-auto custom-scrollbar">
+                                        {selectedOrder.items.map((item, idx) => (
+                                            <div key={idx} className="p-3 flex justify-between items-center text-xs">
+                                                <div className="font-bold text-slate-800 dark:text-slate-200 uppercase truncate pr-2">
+                                                    {item.product_name || item.name} <span className="text-slate-400 pl-1 font-medium">x{item.quantity}</span>
+                                                </div>
+                                                <span className="font-black text-slate-700 dark:text-slate-350 shrink-0">
+                                                    {currencySymbol} {((parseFloat(item.price) || 0) * (item.quantity)).toFixed(0)}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Total summary */}
+                                <div className="border-t border-dashed border-slate-200 dark:border-[#30363d] pt-4 space-y-2">
+                                    <div className="flex justify-between items-center text-xs text-slate-450 dark:text-slate-400 font-bold uppercase">
+                                        <span>Bill Subtotal</span>
+                                        <span>{currencySymbol} {selectedOrder.total.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between items-center text-md font-black uppercase italic tracking-tighter text-slate-900 dark:text-white pt-1">
+                                        <span>Total Amount</span>
+                                        <span className="text-emerald-600 dark:text-emerald-400">{currencySymbol} {selectedOrder.total.toFixed(0)}</span>
+                                    </div>
+                                </div>
+
+                                {/* Customer Info */}
+                                {selectedOrder.customer_name && selectedOrder.customer_name !== 'Table Guest' && selectedOrder.customer_name !== 'Walk-in Guest' && (
+                                    <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] p-3 rounded-xl space-y-2 text-xs">
+                                        <div className="flex items-center gap-2 font-black uppercase text-[9px] text-slate-400 dark:text-slate-500">
+                                            <User size={12} /> Contact Information
+                                        </div>
+                                        <div className="font-bold text-slate-800 dark:text-slate-200 uppercase">{selectedOrder.customer_name}</div>
+                                        {selectedOrder.customer_number && (
+                                            <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+                                                <Phone size={11} /> {selectedOrder.customer_number}
+                                            </div>
+                                        )}
+                                        {selectedOrder.order?.address && selectedOrder.order?.address !== 'Pickup' && selectedOrder.order?.address !== 'Dine-In' && (
+                                            <div className="flex items-start gap-1.5 text-slate-500 dark:text-slate-400 mt-1">
+                                                <MapPin size={11} className="shrink-0 mt-0.5" />
+                                                <span className="break-all">{selectedOrder.order.address}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Action Buttons */}
+                                <div className="space-y-2.5 pt-2">
+                                    {/* Action Override Engine */}
+                                    {selectedOrder.status === 'PENDING' && (
+                                        <button 
+                                            disabled={actionLoading}
+                                            onClick={() => handleUpdateStatus(selectedOrder, 'PROCESSING')}
+                                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                        >
+                                            Process Order
+                                        </button>
+                                    )}
+
+                                    {selectedOrder.status === 'PROCESSING' && (
+                                        <button 
+                                            disabled={actionLoading}
+                                            onClick={() => handleUpdateStatus(selectedOrder, 'DISPATCHED')}
+                                            className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                        >
+                                            Mark Ready / Dispatched
+                                        </button>
+                                    )}
+
+                                    {(selectedOrder.status === 'DISPATCHED' || selectedOrder.status === 'SERVED' || (selectedOrder.type === 'DINE_IN' && selectedOrder.status === 'PENDING')) && (
+                                        <button 
+                                            disabled={actionLoading}
+                                            onClick={() => handleUpdateStatus(selectedOrder, 'COMPLETED')}
+                                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                        >
+                                            Settle & Complete Bill
+                                        </button>
+                                    )}
+
+                                    <button 
+                                        disabled={actionLoading}
+                                        onClick={() => {
+                                            setCancelOrderId(selectedOrder.dbId);
+                                            setCancelIsKot(selectedOrder.isKot);
+                                            setCancelIsPosTable(selectedOrder.isPosStateTable || false);
+                                            setIsCancelModalOpen(true);
+                                        }}
+                                        className="w-full py-2.5 bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                    >
+                                        Cancel Order / KOT
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="py-20 text-center text-slate-400 dark:text-slate-650 flex flex-col items-center justify-center space-y-2">
+                                <ShoppingBag size={32} className="opacity-25" />
+                                <p className="text-[10px] font-black uppercase tracking-wider">Select active order to inspect</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Bottom Widgets Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+                {/* 1. Top Running KOT Items */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <ChefHat size={14} className="text-emerald-500" /> Top Running KOT Items
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-slate-200 dark:border-[#30363d] text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                    <th className="pb-3 text-left">Item Name</th>
+                                    <th className="pb-3 text-right">Quantity Required</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-[#30363d]">
+                                {runningKOTItems.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="2" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-650 uppercase tracking-wide">
+                                            No active items in kitchen queue
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    runningKOTItems.map((item, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                            <td className="py-3 font-bold text-slate-800 dark:text-slate-200 uppercase">{item.name}</td>
+                                            <td className="py-3 font-black text-slate-900 dark:text-white text-right text-sm italic">
+                                                x{item.qty}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* 2. Customers List */}
+                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm">
+                    <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                        <User size={14} className="text-blue-500" /> Customers Queue
+                    </h3>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs">
+                            <thead>
+                                <tr className="border-b border-slate-200 dark:border-[#30363d] text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                    <th className="pb-3 text-left">Customer</th>
+                                    <th className="pb-3 text-center">Fulfillment Type</th>
+                                    <th className="pb-3 text-right">Amount</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-[#30363d]">
+                                {activeCustomers.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="3" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-650 uppercase tracking-wide">
+                                            No active customer fulfillment
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    activeCustomers.map((cust, idx) => (
+                                        <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-white/5 transition-colors">
+                                            <td className="py-3">
+                                                <div className="font-bold text-slate-800 dark:text-slate-200 uppercase">{cust.name}</div>
+                                                <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{cust.phone}</div>
+                                            </td>
+                                            <td className="py-3 text-center">
+                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                                    cust.type === 'DINE_IN' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' :
+                                                    cust.type === 'PICKUP' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' :
+                                                    'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                                                }`}>
+                                                    {cust.type}
+                                                </span>
+                                            </td>
+                                            <td className="py-3 font-black text-emerald-600 dark:text-emerald-400 text-right">
+                                                {currencySymbol} {cust.total.toFixed(0)}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {/* Cancel Rejection Reason Modal */}
+            {isCancelModalOpen && (
+                <div className="pro-modal-overlay">
+                    <div className="pro-modal-content max-w-md p-6 relative">
+                        <h3 className="text-md font-black uppercase italic tracking-tighter text-slate-900 dark:text-white flex items-center gap-2 mb-2">
+                            <XCircle className="w-5 h-5 text-rose-500 shrink-0" /> Cancel Fulfillment Order
+                        </h3>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">
+                            Provide a reason to reject/cancel this active order for auditing compliance.
+                        </p>
+
+                        <form onSubmit={handleCancelOrder} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                    Reason Description
+                                </label>
+                                <textarea
+                                    className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white transition-all outline-none focus:border-rose-500 min-h-[80px]"
+                                    placeholder="ENTER DETAILED REJECTION REASON..."
+                                    value={rejectionReason}
+                                    onChange={(e) => setRejectionReason(e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setIsCancelModalOpen(false);
+                                        setRejectionReason('');
+                                    }}
+                                    className="px-4 py-2 bg-slate-105 hover:bg-slate-100 dark:bg-[#161b22] dark:hover:bg-[#21262d] text-slate-600 dark:text-slate-450 rounded-xl text-[10px] font-black uppercase tracking-wider"
+                                >
+                                    Dismiss
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={actionLoading}
+                                    className="px-5 py-2 bg-rose-600 hover:bg-rose-550 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2"
+                                >
+                                    Confirm Cancellation
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
-      )}
-    </div>
-  );
-}
+    );
+};
 
 export default OrderBoard;

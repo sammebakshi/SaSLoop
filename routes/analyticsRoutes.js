@@ -11,7 +11,12 @@ const fs = require("fs");
 // ✅ GET SMART MARKETING SUGGESTIONS
 router.get("/suggestions", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const { target_user_id } = req.query;
+        let userId = req.user.id;
+        
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+            userId = target_user_id;
+        }
         
         // Fetch last 50 orders and top products
         const [ordersRes, topRes] = await Promise.all([
@@ -62,8 +67,12 @@ router.get("/suggestions", authMiddleware, async (req, res) => {
 // ✅ AI EXECUTIVE CONSULTANT (Deep Analysis)
 router.post("/consultant", authMiddleware, async (req, res) => {
     try {
-        const { prompt } = req.body;
-        const userId = req.user.id;
+        const { prompt, target_user_id } = req.body;
+        let userId = req.user.id;
+
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+            userId = target_user_id;
+        }
 
         // Fetch comprehensive data for context
         const [ordersRes, productsRes, customersRes] = await Promise.all([
@@ -109,7 +118,12 @@ router.post("/consultant", authMiddleware, async (req, res) => {
 // ✅ AI SENTIMENT & CHURN ANALYSIS
 router.get("/sentiment", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const { target_user_id } = req.query;
+        let userId = req.user.id;
+
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+            userId = target_user_id;
+        }
         // Mocking sentiment for premium UI feel until we have real review data
         // In production, this would scan customer feedback/chats
         res.json({
@@ -272,7 +286,12 @@ router.post("/scan-menu", authMiddleware, async (req, res) => {
 // ✅ AI GLOBAL INTELLIGENCE (Executive Command)
 router.get("/business-intelligence", authMiddleware, async (req, res) => {
     try {
-        const userId = req.user.id;
+        const { target_user_id } = req.query;
+        let userId = req.user.id;
+
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+            userId = target_user_id;
+        }
         
         const [ordersRes, itemsRes] = await Promise.all([
             pool.query("SELECT * FROM orders WHERE user_id = $1 AND created_at > NOW() - INTERVAL '24 hours'", [userId]),
@@ -314,5 +333,306 @@ router.get("/business-intelligence", authMiddleware, async (req, res) => {
     }
 });
 
+function getLocalIpAddress() {
+    const os = require('os');
+    const networkInterfaces = os.networkInterfaces();
+    for (const interfaceName in networkInterfaces) {
+        const interfaces = networkInterfaces[interfaceName];
+        for (const iface of interfaces) {
+            if (iface.family === 'IPv4' && !iface.internal) {
+                return iface.address;
+            }
+        }
+    }
+    return '127.0.0.1';
+}
+
+// ✅ GET COMPREHENSIVE DASHBOARD STATS
+router.get("/dashboard-stats", authMiddleware, async (req, res) => {
+    try {
+        const { target_user_id, from, to, terminal } = req.query;
+        let userId = req.user.bizId || req.user.id;
+
+        if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+            userId = parseInt(target_user_id);
+        }
+
+        // Fetch settings to check if we should count advances in today's sales
+        const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1", [userId]);
+        const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+        const countAdvanceInSales = !!settings.countAdvanceInSales;
+
+        // Build date filter for orders table
+        let dateFilter = "";
+        let dateParams = [userId];
+        let paramIdx = 2;
+
+        if (from) {
+            dateFilter += ` AND o.created_at >= $${paramIdx}`;
+            dateParams.push(from);
+            paramIdx++;
+        }
+        if (to) {
+            dateFilter += ` AND o.created_at <= ($${paramIdx}::date + interval '1 day')`;
+            dateParams.push(to);
+            paramIdx++;
+        }
+
+        // Build terminal filter for orders table
+        let terminalFilterNoAlias = "";
+        let terminalFilterWithAlias = "";
+
+        if (terminal === 'POS_ANDROID') {
+            terminalFilterNoAlias = " AND source IN ('POS_ANDROID', 'ONLINE_ORDER', 'WHATSAPP', 'QR_MENU')";
+            terminalFilterWithAlias = " AND o.source IN ('POS_ANDROID', 'ONLINE_ORDER', 'WHATSAPP', 'QR_MENU')";
+        } else if (terminal === 'POS_WINDOWS') {
+            terminalFilterNoAlias = " AND (source IS NULL OR source IN ('POS_WINDOWS', 'POS_WINDOWS_OFFLINE', 'POS_TERMINAL', 'POS_OFFLINE', 'POS_MANUAL', 'ONLINE_ORDER', 'WHATSAPP', 'QR_MENU'))";
+            terminalFilterWithAlias = " AND (o.source IS NULL OR o.source IN ('POS_WINDOWS', 'POS_WINDOWS_OFFLINE', 'POS_TERMINAL', 'POS_OFFLINE', 'POS_MANUAL', 'ONLINE_ORDER', 'WHATSAPP', 'QR_MENU'))";
+        }
+
+        // Device filter (Dell vs HP isolation / Android vs PC isolation)
+        const deviceId = req.headers['x-device-id'] || req.headers['X-Device-ID'] || req.query.device_id || null;
+        const devFilterNoAlias = deviceId ? ` AND device_id = '${deviceId.replace(/'/g, "''")}'` : '';
+        const devFilterWithAlias = deviceId ? ` AND o.device_id = '${deviceId.replace(/'/g, "''")}'` : '';
+
+        // Today filter (Midnight in server time)
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        // Month filter (Start of current month)
+        const monthStart = new Date();
+        monthStart.setDate(1);
+        monthStart.setHours(0, 0, 0, 0);
+
+        const [
+            todayRes,
+            totalSalesRes,
+            monthRes,
+            orderTypeRes,
+            paymentRes,
+            taxRes,
+            discountRes,
+            customerRes,
+            dueRes,
+            expenseRes,
+            dailyRes,
+            topItemsRes,
+            weeklyRes,
+            todayCreditRes,
+            totalCreditRes,
+            sourceSalesRes
+        ] = await Promise.all([
+            // a. Today's sales
+            pool.query(
+                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
+                [userId, todayStart]
+            ),
+            // b. Total sales (filtered by date)
+            pool.query(
+                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                dateParams
+            ),
+            // c. This month's sales
+            pool.query(
+                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
+                [userId, monthStart]
+            ),
+            // d. Order type breakdown
+            pool.query(
+                `SELECT COALESCE(order_type, source, address, 'QUICK') as order_type, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(order_type, source, address, 'QUICK')`,
+                dateParams
+            ),
+            // e. Payment method breakdown
+            pool.query(
+                `SELECT COALESCE(payment_method, 'CASH') as method, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(payment_method, 'CASH')`,
+                dateParams
+            ),
+            // f. Tax totals
+            pool.query(
+                `SELECT COALESCE(SUM(tax_cgst), 0) as cgst, COALESCE(SUM(tax_sgst), 0) as sgst FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                dateParams
+            ),
+            // g. Discount totals
+            pool.query(
+                `SELECT COALESCE(SUM(discount_amount), 0) as total FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                dateParams
+            ),
+            // h. Customer count
+            pool.query(
+                "SELECT COUNT(*) as total FROM customer_loyalty WHERE user_id = $1",
+                [userId]
+            ),
+            // i. Due payments
+            pool.query(
+                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.payment_status = 'PENDING' AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                dateParams
+            ),
+            // j. Expenses
+            pool.query(
+                from && to
+                    ? `SELECT COALESCE(SUM(amount), 0) as total FROM business_expenses WHERE user_id = $1 AND expense_date >= $2 AND expense_date <= $3`
+                    : `SELECT COALESCE(SUM(amount), 0) as total FROM business_expenses WHERE user_id = $1`,
+                from && to ? [userId, from, to] : [userId]
+            ),
+            // k. Daily sales for chart
+            pool.query(
+                `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date`,
+                [userId]
+            ),
+            // l. Top items for pie chart
+            pool.query(
+                `SELECT x.product_name as name, COUNT(*) as count, COALESCE(SUM((x.price)::numeric * (x.qty)::numeric), 0) as total FROM orders o, jsonb_to_recordset(o.items) as x(product_name text, price text, qty text) WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY x.product_name ORDER BY count DESC LIMIT 8`,
+                dateParams
+            ),
+            // m. Weekly heatmap (last 4 weeks)
+            pool.query(
+                `SELECT EXTRACT(DOW FROM created_at) as dow, EXTRACT(WEEK FROM created_at) as week, COALESCE(SUM(total_price), 0) as total FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '28 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY dow, week ORDER BY week, dow`,
+                [userId]
+            ),
+            // n. Today's Credit Sales
+            pool.query(
+                `SELECT COALESCE(SUM(
+                  CASE 
+                    WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN total_price
+                    ELSE COALESCE(credit_amount, 0)
+                  END
+                ), 0) as total FROM orders WHERE user_id = $1 AND created_at >= $2 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
+                [userId, todayStart]
+            ),
+            // o. Total Credit Sales
+            pool.query(
+                `SELECT COALESCE(SUM(
+                  CASE 
+                    WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN total_price
+                    ELSE COALESCE(credit_amount, 0)
+                  END
+                ), 0) as total FROM orders WHERE user_id = $1 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
+                [userId]
+            ),
+            // p. Sales by Source breakdown
+            pool.query(
+                `SELECT COALESCE(source, 'UNKNOWN') as source, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count 
+                 FROM orders o 
+                 WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} 
+                 GROUP BY COALESCE(source, 'UNKNOWN')`,
+                dateParams
+            )
+        ]);
+
+        let todayPreOrderAdvances = 0;
+        let monthPreOrderAdvances = 0;
+        let rangePreOrderAdvances = 0;
+        let dailyPreOrderAdvances = [];
+
+        if (countAdvanceInSales) {
+            const todayAdvancesRes = await pool.query(
+                `SELECT COALESCE(SUM(advance_paid), 0) as total FROM pre_orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'`,
+                [userId, todayStart]
+            );
+            todayPreOrderAdvances = parseFloat(todayAdvancesRes.rows[0].total);
+
+            const monthAdvancesRes = await pool.query(
+                `SELECT COALESCE(SUM(advance_paid), 0) as total FROM pre_orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'`,
+                [userId, monthStart]
+            );
+            monthPreOrderAdvances = parseFloat(monthAdvancesRes.rows[0].total);
+
+            let preOrderDateFilter = "";
+            let preOrderParams = [userId];
+            let poParamIdx = 2;
+            if (from) {
+                preOrderDateFilter += ` AND created_at >= $${poParamIdx}`;
+                preOrderParams.push(from);
+                poParamIdx++;
+            }
+            if (to) {
+                preOrderDateFilter += ` AND created_at <= ($${poParamIdx}::date + interval '1 day')`;
+                preOrderParams.push(to);
+                poParamIdx++;
+            }
+            const rangeAdvancesRes = await pool.query(
+                `SELECT COALESCE(SUM(advance_paid), 0) as total FROM pre_orders WHERE user_id = $1 AND status != 'CANCELLED' ${preOrderDateFilter}`,
+                preOrderParams
+            );
+            rangePreOrderAdvances = parseFloat(rangeAdvancesRes.rows[0].total);
+
+            const dailyAdvancesRes = await pool.query(
+                `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COALESCE(SUM(advance_paid), 0) as total FROM pre_orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' AND status != 'CANCELLED' GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date`,
+                [userId]
+            );
+            dailyPreOrderAdvances = dailyAdvancesRes.rows;
+        }
+
+        const orderTypes = orderTypeRes.rows;
+        const getTypeTotal = (types) => {
+            return orderTypes
+                .filter(r => types.includes(String(r.order_type).toUpperCase()))
+                .reduce((acc, r) => ({ total: acc.total + parseFloat(r.total), count: acc.count + parseInt(r.count) }), { total: 0, count: 0 });
+        };
+
+        const onlineTypes = ['ONLINE', 'WHATSAPP', 'QR', 'ONDC', 'DUNZO', 'UBER EATS', 'UBEREATS'];
+        const dineInTypes = ['DINE-IN', 'DINE_IN', 'DINEIN', 'DINE IN'];
+        const quickTypes = ['QUICK', 'QUICK_BILL', 'QUICK BILL', 'TAKEAWAY', 'POS'];
+        const pickupTypes = ['PICKUP', 'PICK-UP', 'PICK_UP', 'PICK UP'];
+
+        const allTotal = parseFloat(totalSalesRes.rows[0].total);
+        const onlineTotal = getTypeTotal(onlineTypes);
+        const dineInTotal = getTypeTotal(dineInTypes);
+        const quickTotal = getTypeTotal(quickTypes);
+        const pickupTotal = getTypeTotal(pickupTypes);
+        const offlineTotal = { total: allTotal - onlineTotal.total, count: parseInt(totalSalesRes.rows[0].count) - onlineTotal.count };
+
+        // Merge daily sales chart
+        let dailyMap = {};
+        dailyRes.rows.forEach(r => {
+            dailyMap[r.date] = { date: r.date, total: parseFloat(r.total), count: parseInt(r.count) };
+        });
+        if (countAdvanceInSales) {
+            dailyPreOrderAdvances.forEach(adv => {
+                if (dailyMap[adv.date]) {
+                    dailyMap[adv.date].total += parseFloat(adv.total);
+                } else {
+                    dailyMap[adv.date] = { date: adv.date, total: parseFloat(adv.total), count: 0 };
+                }
+            });
+        }
+        const mergedDailySales = Object.values(dailyMap).sort((a, b) => a.date.localeCompare(b.date));
+
+        res.json({
+            todaySales: { total: parseFloat(todayRes.rows[0].total) + todayPreOrderAdvances, count: parseInt(todayRes.rows[0].count) },
+            totalSales: { total: allTotal + rangePreOrderAdvances, count: parseInt(totalSalesRes.rows[0].count) },
+            thisMonth: { total: parseFloat(monthRes.rows[0].total) + monthPreOrderAdvances, count: parseInt(monthRes.rows[0].count) },
+            offlineSales: offlineTotal,
+            onlineSales: onlineTotal,
+            salesBySource: sourceSalesRes.rows.map(r => ({
+                source: r.source,
+                total: parseFloat(r.total),
+                count: parseInt(r.count)
+            })),
+            digitalSales: getTypeTotal(['DIGITAL', 'QR', 'ONLINE']),
+            dineIn: dineInTotal,
+            quickBill: quickTotal,
+            pickup: pickupTotal,
+            totalTax: parseFloat(taxRes.rows[0].cgst) + parseFloat(taxRes.rows[0].sgst),
+            totalDiscount: parseFloat(discountRes.rows[0].total),
+            totalExpenses: parseFloat(expenseRes.rows[0].total),
+            customerCount: parseInt(customerRes.rows[0].total),
+            duePayments: { total: parseFloat(dueRes.rows[0].total), count: parseInt(dueRes.rows[0].count) },
+            avgSalePerPerson: parseInt(totalSalesRes.rows[0].count) > 0 ? ((allTotal + rangePreOrderAdvances) / parseInt(totalSalesRes.rows[0].count)).toFixed(2) : '0.00',
+            closingBalance: allTotal + rangePreOrderAdvances - parseFloat(expenseRes.rows[0].total),
+            todayCreditSales: parseFloat(todayCreditRes.rows[0].total),
+            totalCreditSales: parseFloat(totalCreditRes.rows[0].total),
+            paymentBreakdown: paymentRes.rows.map(r => ({ method: r.method, total: parseFloat(r.total), count: parseInt(r.count) })),
+            dailySales: mergedDailySales,
+            topItems: topItemsRes.rows.map(r => ({ name: r.name, count: parseInt(r.count), total: parseFloat(r.total) })),
+            weeklyHeatmap: weeklyRes.rows.map(r => ({ dow: parseInt(r.dow), week: parseInt(r.week), total: parseFloat(r.total) })),
+            serverIp: getLocalIpAddress()
+        });
+    } catch (err) {
+        console.error("Dashboard Stats Error:", err);
+        res.status(500).json({ error: "Failed to load dashboard stats" });
+    }
+});
 module.exports = router;
+
 

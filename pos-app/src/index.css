@@ -1,0 +1,152 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-terminal-bg: #0f172a;
+  --color-terminal-card: #1e293b;
+  --color-terminal-accent: #10b981;
+  --font-mono: "JetBrains Mono", monospace;
+  --font-sans: "Inter", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply m-0 p-0 bg-slate-950 text-slate-100 font-sans overflow-hidden;
+  }
+}
+
+/* Custom Scrollbar for the Terminal */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+/* Light Mode Overrides for Hardcoded Dark Classes */
+.light .bg-\[\#0d1117\] { background-color: #ffffff !important; }
+.light .bg-\[\#161b22\] { background-color: #ffffff !important; }
+.light .bg-\[\#21262d\] { background-color: #f1f5f9 !important; }
+.light .border-\[\#30363d\] { border-color: #e2e8f0 !important; }
+.light .text-\[\#c9d1d9\] { color: #0f172a !important; }
+.light .text-\[\#8b949e\] { color: #64748b !important; }
+
+/* Fix for shift not started screen */
+.light .bg-\[\#0f172a\] { background-color: #f8fafc !important; }
+.light .bg-white\/5 { background-color: #ffffff !important; }
+.light .border-white\/10 { border-color: #e2e8f0 !important; }
+
+/* Fix for hover readability in cart and categories */
+.cart-item-row:hover span {
+  color: #ffffff !important;
+}
+
+.category-item:hover {
+  color: #ffffff !important;
+}
+
+/* Green scrollbar for metrics containers */
+.green-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.green-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.green-scrollbar::-webkit-scrollbar-thumb {
+  background: #18ba60;
+  border-radius: 9999px;
+}
+.green-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #10b981;
+}
+.green-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #18ba60 transparent;
+}
+
+/* ========================================================================= */
+/* ==================== CUSTOM GLOBAL DESIGN OVERRIDES ===================== */
+/* ========================================================================= */
+
+/* 1. Make all pop-up/modal windows, dialog boxes, and dropdowns square-shaped */
+.fixed .rounded-\[2\.5rem\],
+.fixed .rounded-3xl,
+.fixed .rounded-2xl,
+.fixed .rounded-xl,
+.fixed .rounded-lg,
+.fixed .rounded-md,
+.fixed .rounded-sm,
+.fixed .rounded,
+.fixed.rounded-xl,
+.fixed.rounded-2xl,
+.fixed.rounded-3xl,
+.fixed.rounded-lg,
+.fixed.rounded-md,
+.absolute .rounded-xl,
+.absolute .rounded-lg,
+.absolute .rounded-md,
+.absolute.rounded-xl,
+.absolute.rounded-lg,
+.absolute.rounded-md {
+  border-radius: 0px !important;
+}
+
+/* 2. Uniform font (sans-serif) and remove italic styles from all headings */
+body, h1, h2, h3, h4, h5, h6, span, p, div, button, input, select, textarea {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-style: normal !important;
+}
+
+/* 3. Black color font in light mode for maximum readability */
+.light,
+.light body {
+  color: #000000 !important;
+}
+
+.light .text-\[\#c9d1d9\],
+.light .text-slate-900,
+.light .text-slate-800,
+.light .text-slate-700,
+.light .text-slate-600,
+.light .text-gray-900,
+.light .text-gray-800,
+.light .text-gray-700,
+.light h1,
+.light h2,
+.light h3,
+.light h4,
+.light h5,
+.light h6,
+.light p,
+.light label {
+  color: #000000 !important;
+}
+
+.light .text-\[\#8b949e\],
+.light .text-slate-500,
+.light .text-slate-400,
+.light .text-gray-500,
+.light .text-gray-400 {
+  color: #1e293b !important;
+}
+
+/* Ensure inputs, select boxes, and textareas have black text on white backgrounds in light mode */
+.light input:not(.bg-transparent),
+.light select:not(.bg-transparent),
+.light textarea:not(.bg-transparent) {
+  color: #000000 !important;
+  background-color: #ffffff !important;
+}
+
+

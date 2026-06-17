@@ -1,0 +1,18 @@
+const { execSync } = require('child_process');
+
+try {
+    const indexContent = execSync('git show :pos-app/src/App.jsx', { 
+        encoding: 'utf8',
+        maxBuffer: 10 * 1024 * 1024
+    });
+    
+    const lines = indexContent.split('\n');
+    console.log("Searching for handleSyncRefresh or initApp inside useEffect...");
+    lines.forEach((line, idx) => {
+        if (line.includes('initApp') || line.includes('handleSyncRefresh')) {
+            console.log(`Line ${idx + 1}: ${line.trim()}`);
+        }
+    });
+} catch (e) {
+    console.error("Error:", e.message);
+}

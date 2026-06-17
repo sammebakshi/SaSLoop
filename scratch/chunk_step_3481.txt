@@ -1,0 +1,60 @@
+Created At: 2026-06-09T14:16:20Z
+Completed At: 2026-06-09T14:16:20Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 5164
+Total Bytes: 326452
+Showing lines 701 to 770
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+701:                             )
+702:                         }
+703: 
+704:                         HorizontalDivider(color = CardBorderDark)
+705: 
+706:                         when (activeSubTab) {
+707:                             "MENU" -> {
+708:                                 // ── MENU SUB-TAB ──
+709:                                 Column(modifier = Modifier.weight(1f)) {
+710:                                     // Search Bar and iOS Switch
+711:                                     Row(
+712:                                         modifier = Modifier
+713:                                             .fillMaxWidth()
+714:                                             .background(CardDark)
+715:                                             .padding(horizontal = 16.dp, vertical = 10.dp),
+716:                                         horizontalArrangement = Arrangement.SpaceBetween,
+717:                                         verticalAlignment = Alignment.CenterVertically
+718:                                     ) {
+719:                                         BasicTextField(
+720:                                             value = searchQuery,
+721:                                             onValueChange = { billingViewModel.setSearchQuery(it) },
+722:                                             textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
+723:                                             singleLine = true,
+724:                                             cursorBrush = Soli
+<truncated 1599 bytes>
+                                    modifier = Modifier.weight(1f),
+745:                                                         contentAlignment = Alignment.CenterStart
+746:                                                     ) {
+747:                                                         if (searchQuery.isEmpty()) {
+748:                                                             Text(
+749:                                                                 text = "Search menu...",
+750:                                                                 color = TextSecondary,
+751:                                                                 fontSize = 13.sp
+752:                                                             )
+753:                                                         }
+754:                                                         innerTextField()
+755:                                                     }
+756:                                                 }
+757:                                             }
+758:                                         )
+759: 
+760:                                         Spacer(modifier = Modifier.width(16.dp))
+761: 
+762:                                         Column(
+763:                                             horizontalAlignment = Alignment.CenterHorizontally,
+764:                                             verticalArrangement = Arrangement.spacedBy(4.dp)
+765:                                         ) {
+766:                                             val isVeg = foodTypeFilter == "VEG"
+767:                                             
+768:                                             // Unified Veg/Non-Veg Label (on top)
+769:                                             Text(
+770:                                                 text = "Veg/Non veg",
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

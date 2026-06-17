@@ -1,0 +1,1 @@
+I am going to search in the conversation logs (`transcript.jsonl`) for occurrences of `fun MenuSubTab` or similar symbols to see if the original sub-tab content was logged.

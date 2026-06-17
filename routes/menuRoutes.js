@@ -6,8 +6,8 @@ const authMiddleware = require("../middleware/authMiddleware");
 // GET /api/menu
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    // get user's restaurant first
-    const restRes = await pool.query("SELECT id FROM restaurants WHERE user_id = $1", [req.user.id]);
+        // get user's restaurant first
+    const restRes = await pool.query("SELECT id FROM restaurants WHERE user_id = $1", [req.user.bizId]);
     if (restRes.rows.length === 0) {
       return res.status(404).json({ error: "Business not found" });
     }
@@ -28,7 +28,7 @@ router.post("/", authMiddleware, async (req, res) => {
 
   try {
     // get user's restaurant
-    const restRes = await pool.query("SELECT id FROM restaurants WHERE user_id = $1", [req.user.id]);
+    const restRes = await pool.query("SELECT id FROM restaurants WHERE user_id = $1", [req.user.bizId]);
     if (restRes.rows.length === 0) {
       return res.status(404).json({ error: "Business not found" });
     }

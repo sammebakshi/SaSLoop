@@ -16,6 +16,7 @@ const formatToInter = (p) => {
 router.get("/menu/:userId", async (req, res) => {
     try {
         const { userId } = req.params;
+        const { menuType } = req.query; // 'pos' or 'digital'
         const bizRes = await pool.query(
             `SELECT r.*, u.phone as whatsapp_number 
              FROM restaurants r 
@@ -23,13 +24,91 @@ router.get("/menu/:userId", async (req, res) => {
              WHERE r.user_id = $1`, 
              [userId]
         );
-        const itemsRes = await pool.query("SELECT * FROM business_items WHERE user_id = $1 AND availability = true", [userId]);
         
         if (bizRes.rows.length === 0) return res.status(404).json({ error: "Business not found" });
+
+        let items = [];
+        let menuRes;
+
+        // Try to find the requested menu type
+        if (menuType === 'pos') {
+            menuRes = await pool.query(
+                "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true LIMIT 1",
+                [userId]
+            );
+        } else if (menuType === 'digital') {
+            menuRes = await pool.query(
+                "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1",
+                [userId]
+            );
+        } else {
+            // Default when no menuType is specified: try digital first, then pos
+            menuRes = await pool.query(
+                "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1",
+                [userId]
+            );
+            if (!menuRes || menuRes.rows.length === 0) {
+                menuRes = await pool.query(
+                    "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true LIMIT 1",
+                    [userId]
+                );
+            }
+        }
+
+        if (menuRes && menuRes.rows.length > 0) {
+            const menuId = menuRes.rows[0].id;
+            const itemsRes = await pool.query(
+                `SELECT omi.id, 
+                        omi.short_code as code, 
+                        omi.item_name as product_name, 
+                        omi.base_price as price, 
+                        omi.is_active as availability, 
+                        omi.image_url,
+                        omi.description,
+                        omi.food_type,
+                        COALESCE(c.name, 'General') as category,
+                        1 as tax_applicable
+                 FROM outlet_menu_items omi
+                 LEFT JOIN categories c ON omi.category_id = c.id
+                 WHERE omi.menu_id = $1 AND omi.item_type = '0' AND omi.is_active = true
+                   AND (c.id IS NULL OR c.is_active = true)
+                   AND omi.item_name NOT IN (SELECT name FROM options_list)
+                 ORDER BY omi.id ASC`,
+                [menuId]
+            );
+            items = itemsRes.rows.map(item => ({
+                ...item,
+                is_veg: item.food_type === 'veg',
+                price: parseFloat(item.price)
+            }));
+        } else {
+            // Fallback to legacy business_items
+            const itemsRes = await pool.query(
+                "SELECT *, 1 as tax_applicable FROM business_items WHERE user_id = $1 AND availability = true",
+                [userId]
+            );
+            items = itemsRes.rows.map(item => ({
+                ...item,
+                is_veg: !!item.is_veg,
+                price: parseFloat(item.price)
+            }));
+        }
+        
+        let discounts = [];
+        try {
+            const discRes = await pool.query(
+                "SELECT id, name, rate AS value, discount_type AS type, outlet_id FROM discounts WHERE user_id = $1 AND is_active = true ORDER BY name ASC",
+                [userId]
+            );
+            discounts = discRes.rows;
+        } catch (discErr) {
+            console.error("🔥 Error fetching discounts for public menu:", discErr);
+        }
         
         res.json({
             business: bizRes.rows[0],
-            items: itemsRes.rows
+            items: items,
+            discounts: discounts
         });
     } catch (err) {
         console.error(err);
@@ -84,9 +163,24 @@ router.post("/order", async (req, res) => {
             const safeItems = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
             const itemIds = safeItems.map(i => i.id).filter(id => id);
             if (itemIds.length > 0) {
-                const dbItemsRes = await pool.query("SELECT id, price FROM business_items WHERE id = ANY($1)", [itemIds]);
                 const priceMap = {};
-                dbItemsRes.rows.forEach(row => priceMap[row.id] = parseFloat(row.price));
+
+                // 1. Try fetching from outlet_menu_items first
+                const dbMenuRes = await pool.query(
+                    "SELECT id, base_price as price FROM outlet_menu_items WHERE id = ANY($1)", 
+                    [itemIds]
+                );
+                dbMenuRes.rows.forEach(row => priceMap[row.id] = parseFloat(row.price));
+
+                // 2. Check for missing IDs and fetch them from business_items
+                const missingIds = itemIds.filter(id => !priceMap[id]);
+                if (missingIds.length > 0) {
+                    const dbBizRes = await pool.query(
+                        "SELECT id, price FROM business_items WHERE id = ANY($1)", 
+                        [missingIds]
+                    );
+                    dbBizRes.rows.forEach(row => priceMap[row.id] = parseFloat(row.price));
+                }
                 
                 safeItems.forEach(item => {
                     const dbPrice = priceMap[item.id] || parseFloat(item.price) || 0;
@@ -131,6 +225,12 @@ router.post("/order", async (req, res) => {
                         await pool.query(
                             "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
                             [pointsToRedeem, userId, dbPhone]
+                        );
+                        // Log redemption transaction
+                        await pool.query(
+                            `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
+                             VALUES ($1, $2, 'POINTS_REDEEMED', 0.00, $3, $4, NOW())`,
+                            [userId, dbPhone, -pointsToRedeem, `Points redeemed for Order Ref: ${orderRef}`]
                         );
                         console.log(`🎁 Deducted ${pointsToRedeem} points from ${dbPhone} for Biz ${userId}`);
                     }
@@ -191,9 +291,17 @@ router.post("/order", async (req, res) => {
             );
         } else {
             const itemsData = typeof items === 'string' ? JSON.parse(items) : (items || []);
+            let finalSource = source;
+            if (!finalSource) {
+                if (tableNumber && tableNumber !== "0" && tableNumber !== "") {
+                    finalSource = 'QR_MENU';
+                } else {
+                    finalSource = 'ONLINE_ORDER';
+                }
+            }
             insertRes = await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) RETURNING *",
-                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints]
+                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points, source) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) RETURNING *",
+                [userId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints, finalSource]
             );
             orderId = insertRes.rows[0].id;
 
@@ -556,8 +664,27 @@ router.post("/leads", async (req, res) => {
 
         res.json({ success: true });
     } catch (err) {
-        console.error("Lead Error:", err);
-        res.status(500).json({ error: "Submission failed" });
+        console.error("🔥 Leads Error:", err);
+        res.status(500).json({ error: "Failed to save lead" });
+    }
+});
+
+// 📅 CREATE PUBLIC TABLE RESERVATION
+router.post("/reservation", async (req, res) => {
+    try {
+        const { userId, customer_name, customer_number, guests, reservation_date, reservation_time } = req.body;
+        if (!userId || !customer_name || !customer_number || !guests || !reservation_date || !reservation_time) {
+            return res.status(400).json({ error: "All fields are required" });
+        }
+        const result = await pool.query(
+            `INSERT INTO reservations (user_id, customer_name, customer_number, guests, reservation_date, reservation_time, status, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW()) RETURNING *`,
+            [userId, customer_name, customer_number, parseInt(guests), reservation_date, reservation_time]
+        );
+        res.json({ success: true, reservation: result.rows[0] });
+    } catch (err) {
+        console.error("🔥 PUBLIC CREATE RESERVATION ERROR:", err);
+        res.status(500).json({ error: "Failed to create reservation" });
     }
 });
 

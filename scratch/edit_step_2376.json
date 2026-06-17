@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Display orderType in billing header if selectedTable is null.\"",
+  "EndLine": "1682",
+  "Instruction": "\"Change selectedTable?.tableName ?: \\\"Table\\\" to selectedTable?.tableName ?: orderType.\"",
+  "ReplacementContent": "\"                                        Text(\\n                                            text = selectedTable?.tableName ?: orderType,\\n                                            color = Color.White,\\n                                            fontWeight = FontWeight.ExtraBold,\\n                                            fontSize = 15.sp,\\n                                            textAlign = TextAlign.End,\\n                                            modifier = Modifier.weight(1f)\\n                                        )\"",
+  "StartLine": "1674",
+  "TargetContent": "\"                                        Text(\\n                                            text = selectedTable?.tableName ?: \\\"Table\\\",\\n                                            color = Color.White,\\n                                            fontWeight = FontWeight.ExtraBold,\\n                                            fontSize = 15.sp,\\n                                            textAlign = TextAlign.End,\\n                                            modifier = Modifier.weight(1f)\\n                                        )\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt\"",
+  "toolAction": "\"Editing BillingScreen.kt\"",
+  "toolSummary": "\"Edit billing header text\""
+}

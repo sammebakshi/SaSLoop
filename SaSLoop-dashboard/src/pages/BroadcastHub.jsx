@@ -376,7 +376,7 @@ function BroadcastHub() {
                        <Bot className="w-6 h-6 text-[#075E54]" />
                     </div>
                     <div>
-                        <p className="text-white font-black text-xs uppercase tracking-widest leading-none italic">SaSLoop Bot</p>
+                        <p className="text-white font-black text-xs uppercase tracking-widest leading-none italic">SaSLoop ERP | AI Bot</p>
                         <p className="text-emerald-400 text-[9px] font-black uppercase tracking-widest mt-1">Typing...</p>
                     </div>
                  </div>

@@ -1,0 +1,32 @@
+const { Pool } = require('pg');
+require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
+
+const config = process.env.DATABASE_URL ? {
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+} : {
+  user: process.env.DB_USER || "postgres",
+  host: process.env.DB_HOST || "localhost",
+  database: process.env.DB_NAME || "sasloop_db",
+  password: process.env.DB_PASSWORD || "Admin@123",
+  port: process.env.DB_PORT || 5432
+};
+
+const pool = new Pool(config);
+
+async function run() {
+  try {
+    const res = await pool.query("SELECT id, name, username, role, user_type, staff_permissions FROM app_users WHERE staff_permissions IS NOT NULL AND staff_permissions != '{}' LIMIT 20");
+    console.log("Found users with permissions:", res.rows.length);
+    res.rows.forEach(u => {
+      console.log(`\nUser: ${u.name} (${u.username}), Role: ${u.role}, Type: ${u.user_type}`);
+      console.log("Permissions:", JSON.stringify(u.staff_permissions, null, 2));
+    });
+  } catch (err) {
+    console.error("Database query failed:", err);
+  } finally {
+    await pool.end();
+  }
+}
+
+run();

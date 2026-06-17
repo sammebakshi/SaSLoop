@@ -1,0 +1,1 @@
+"    // Sub-tab state for ordering view (mirroring Order/KOT and Billing tabs of Windows POS)\n    var activeSubTab by remember(flowState, activeFlow, selectedTable, editingOrderId) {\n        mutableStateOf(if ((activeFlow == \"DINEIN\" && isTableOccupied) || editingOrderId != null) \"BILLING\" else \"MENU\")\n    }"

@@ -29,32 +29,14 @@ import {
   Globe,
   Shield,
   Activity,
-  Users
+  Users,
+  Award
 } from "lucide-react";
 import { LocalNotifications } from '@capacitor/local-notifications';
 import { Haptics, ImpactStyle } from '@capacitor/haptics';
 
-// ================================================================
-// 🎨 SaSLoop Logo (Mobile Compact)
-// ================================================================
 const SaSLoopLogo = () => (
-  <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
-    <defs>
-      <linearGradient id="waGradientM" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#4ade80" />
-        <stop offset="100%" stopColor="#059669" />
-      </linearGradient>
-      <linearGradient id="loopGradientM" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#a78bfa" />
-        <stop offset="50%" stopColor="#38bdf8" />
-        <stop offset="100%" stopColor="#34d399" />
-      </linearGradient>
-    </defs>
-    <path d="M 18,50 C 18,30 32,16 50,16 C 68,16 82,30 82,50 C 82,70 68,84 50,84 C 44,84 38,82 34,79 L 18,84 L 22,70 C 19.5,64 18,57 18,50 Z"
-      stroke="url(#waGradientM)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="rgba(16,185,129,0.05)" />
-    <path d="M 36 50 C 36 40, 48 40, 50 50 C 52 60, 64 60, 64 50 C 64 40, 52 40, 50 50 C 48 60, 36 60, 36 50 Z"
-      stroke="url(#loopGradientM)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="animate-[pulse_2s_ease-in-out_infinite]" />
-  </svg>
+  <img src="/logo.png" className="w-7 h-7 object-contain bg-white rounded-lg p-0.5" alt="SaSLoop Logo" />
 );
 
 // ================================================================
@@ -302,6 +284,15 @@ const MobileLayout = () => {
   const getMoreItems = () => {
     const role = user?.role;
     const baseItems = [
+      { 
+        label: "Switch to Full Backoffice", 
+        icon: Monitor, 
+        action: () => {
+          localStorage.setItem("preferred_layout_mode", "desktop");
+          window.dispatchEvent(new CustomEvent("switchLayoutMode", { detail: "desktop" }));
+          setMoreMenuOpen(false);
+        }
+      },
       { label: "Change Password", icon: Key, action: () => { setIsChangePwdOpen(true); setMoreMenuOpen(false); } },
       { label: "Sign Out", icon: LogOut, action: () => { handleLogout(); setMoreMenuOpen(false); }, danger: true }
     ];
@@ -325,6 +316,10 @@ const MobileLayout = () => {
     } else {
       return [
         { label: "Business Profile", icon: Store, path: "/setup-business" },
+        { label: "Loyalty Settings", icon: Award, path: "/loyalty-settings" },
+        { label: "Customer Management", icon: Users, path: "/customer-management" },
+        { label: "Whatsapp Marketing", icon: MessageSquare, path: "/whatsapp-crm" },
+        { label: "Notification Settings", icon: Bell, path: "/notification-settings" },
         { label: "AI Bot Setup", icon: Bot, path: "/bot-config" },
         { label: "Broadcast Hub", icon: Megaphone, path: "/broadcast" },
         { label: "Operational Rules", icon: Settings, path: "/business-data/rules" },
@@ -355,6 +350,7 @@ const MobileLayout = () => {
     if (p === "/dashboard") return "Dashboard";
     if (p === "/orders") return "Live Orders";
     if (p === "/chats") return "Live Chats";
+    if (p.includes("/customer-management")) return "Customer CRM";
     if (p.includes("/catalog")) return "Menu & Catalog";
     if (p.includes("/rules")) return "Operational Rules";
     if (p.includes("/knowledge")) return "Knowledge Base";
@@ -362,7 +358,7 @@ const MobileLayout = () => {
     if (p.includes("/broadcast")) return "Broadcast Hub";
     if (p.includes("/setup-business")) return "Business Profile";
     if (p.includes("/support")) return "Help & Support";
-    return "SaSLoop";
+    return "SaSLoop ERP | AI";
   };
 
   useEffect(() => {
@@ -458,8 +454,14 @@ const MobileLayout = () => {
 
       {/* 📄 CONTENT AREA */}
       <main className="flex-1 overflow-y-auto bg-white mobile-safe-scroll relative">
-        <div className="min-h-full flex flex-col">
-          <Outlet />
+        <div className="min-h-full flex flex-col justify-between">
+          <div className="flex-1">
+            <Outlet />
+          </div>
+          <footer className="py-4 px-6 border-t border-slate-100 bg-white flex flex-col items-center justify-between text-[9px] font-bold text-slate-400 uppercase tracking-wider gap-2">
+            <span>Copyright © 2016-2027 Powered by SaSLoop POS.</span>
+            <span className="flex items-center gap-1">Support: <a href="mailto:support@sasloop.com" className="text-emerald-600 hover:text-emerald-500 font-black normal-case font-sans">support@sasloop.com</a></span>
+          </footer>
         </div>
       </main>
 

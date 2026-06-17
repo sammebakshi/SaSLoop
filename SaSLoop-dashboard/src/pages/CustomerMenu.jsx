@@ -5,8 +5,7 @@ import {
   Plus, Minus, ShoppingBag, Utensils, Search, 
   X, MapPin, ChevronRight, Clock, Star, 
   RefreshCw, CheckCircle2, Package, History, Activity, MessageCircle, LayoutGrid, BellRing, Sparkles, Gift,
-  Globe,
-  Eye, CreditCard, Scan, QrCode, ArrowUpRight
+  Globe, Eye, CreditCard, Scan, QrCode, ArrowUpRight, User, ShoppingCart, Award, HelpCircle, LogOut, Percent
 } from "lucide-react";
 import { countryCodes } from "../countryCodes";
 
@@ -23,6 +22,8 @@ function CustomerMenu() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [countryCode, setCountryCode] = useState("91");
+  const [customerAddress, setCustomerAddress] = useState(""); // 🛵 Delivery address state
+  const [fulfillmentMode, setFulfillmentMode] = useState(tableId && tableId !== "0" ? "DINEIN" : "PICKUP"); // 🛍️ Mode selector
   
   const [orderRef, setOrderRef] = useState("");
   const [finalPaidAmount, setFinalPaidAmount] = useState(0);
@@ -42,6 +43,38 @@ function CustomerMenu() {
   const [authToken, setAuthToken] = useState(null);
   const [tasteProfile, setTasteProfile] = useState([]); // e.g. ["spicy", "veg"]
   const [showVIPKey, setShowVIPKey] = useState(false);
+  const [showSidebarDrawer, setShowSidebarDrawer] = useState(false);
+  const [showReservationModal, setShowReservationModal] = useState(false);
+  const [appliedDiscount, setAppliedDiscount] = useState(null);
+  const [showHeaderDropdown, setShowHeaderDropdown] = useState(false);
+
+  const getCategoryImg = (catName) => {
+    const map = {
+      "Burgers": "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?auto=format&fit=crop&q=80&w=600",
+      "Fresh Juice": "https://images.unsplash.com/photo-1579619173026-2a7102e3b2a6?auto=format&fit=crop&q=80&w=600",
+      "Fresh Juice, Kuluki & Mojitos": "https://images.unsplash.com/photo-1579619173026-2a7102e3b2a6?auto=format&fit=crop&q=80&w=600",
+      "Mojito": "https://images.unsplash.com/photo-1579619173026-2a7102e3b2a6?auto=format&fit=crop&q=80&w=600",
+      "Drinks": "https://images.unsplash.com/photo-1579619173026-2a7102e3b2a6?auto=format&fit=crop&q=80&w=600",
+      "Beverages": "https://images.unsplash.com/photo-1579619173026-2a7102e3b2a6?auto=format&fit=crop&q=80&w=600",
+      "Desserts": "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=600",
+      "Ice Cream": "https://images.unsplash.com/photo-1551024601-bec78aea704b?auto=format&fit=crop&q=80&w=600",
+      "Shakes": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&q=80&w=600",
+      "Falooda & Smoothie": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&q=80&w=600",
+      "Smoothies": "https://images.unsplash.com/photo-1553530666-ba11a7da3888?auto=format&fit=crop&q=80&w=600",
+      "Pizza": "https://images.unsplash.com/photo-1513104890138-7c749659a591?auto=format&fit=crop&q=80&w=600",
+      "Biryani": "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?auto=format&fit=crop&q=80&w=600",
+      "Breakfast": "https://images.unsplash.com/photo-1525351484163-7529414344d8?auto=format&fit=crop&q=80&w=600",
+      "Sandwiches & Rolls": "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&q=80&w=600",
+      "Sandwiches": "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&q=80&w=600",
+      "Rolls": "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&q=80&w=600",
+      "Wraps": "https://images.unsplash.com/photo-1509722747041-616f39b57569?auto=format&fit=crop&q=80&w=600",
+      "Main Course": "https://images.unsplash.com/photo-1545247181-516773cae76d?auto=format&fit=crop&q=80&w=600",
+      "Chinese": "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=600",
+      "Noodles": "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=600",
+      "Rice": "https://images.unsplash.com/photo-1585032226651-759b368d7246?auto=format&fit=crop&q=80&w=600"
+    };
+    return map[catName] || "https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&q=80&w=600";
+  };
 
   // --- 🔒 SESSION PERSISTENCE ---
   useEffect(() => {
@@ -62,11 +95,8 @@ function CustomerMenu() {
   const getStandardPhone = React.useCallback((p) => {
     if (!p) return "";
     if (p.startsWith("+")) return p;
-    // Remove all non-digits from input
     const cleanP = p.replace(/\D/g, "");
-    // If it already starts with country code, just add +
     if (cleanP.startsWith(countryCode)) return "+" + cleanP;
-    // Otherwise prepend country code
     return `+${countryCode}${cleanP}`;
   }, [countryCode]);
 
@@ -96,7 +126,21 @@ function CustomerMenu() {
     return { cgst, sgst, totalTax: cgst + sgst, isIncluded: isInc };
   }, [cart, data, biz]);
 
-  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)));
+  const promoDiscountAmount = useMemo(() => {
+    if (!appliedDiscount) return 0;
+    if (appliedDiscount.type === 'percent') {
+      return (subtotal * parseFloat(appliedDiscount.value)) / 100;
+    } else {
+      return parseFloat(appliedDiscount.value);
+    }
+  }, [appliedDiscount, subtotal]);
+
+  const finalTotal = Math.max(
+    0, 
+    (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) 
+      - promoDiscountAmount 
+      - (pointsToRedeem / (biz?.points_to_amount_ratio || 10))
+  );
   
   const filteredItems = useMemo(() => {
     let items = (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase()));
@@ -126,8 +170,18 @@ function CustomerMenu() {
     } catch (e) {}
   }, [customerPhone, bizId, getStandardPhone]);
 
+  const checkLoyalty = React.useCallback(async () => {
+    if (!customerPhone) return;
+    try {
+      const std = getStandardPhone(customerPhone);
+      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
+      const d = await res.json();
+      setLoyaltyPoints(d.points || 0);
+    } catch (e) {}
+  }, [customerPhone, bizId, getStandardPhone]);
+
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { 
+    fetch(`${API_BASE}/api/public/menu/${bizId}?menuType=pos`).then(r => r.json()).then(d => { 
         const surge = d.business?.current_surge_multiplier || 1.0;
         const optimizedItems = (d.items || []).map(item => ({
           ...item,
@@ -159,7 +213,7 @@ function CustomerMenu() {
       const itv = setInterval(() => {
         fetchActiveOrders();
         checkLoyalty();
-      }, 3000); // âš¡ Live Sync
+      }, 3000); // ⚡ Live Sync
       return () => clearInterval(itv);
     }
   }, [view, customerPhone, fetchActiveOrders, checkLoyalty]);
@@ -176,7 +230,7 @@ function CustomerMenu() {
         const d = await res.json();
         if (d.success) {
             setAuthToken(d.token);
-            const waMsg = `ðŸš€ Verify my number for ${biz?.name}! âœ¨ [ID: ${d.token}]`;
+            const waMsg = `🚀 Verify my number for ${biz?.name}! ✨ [ID: ${d.token}]`;
             const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
             window.open(waUrl, "_blank");
         } else {
@@ -222,17 +276,7 @@ function CustomerMenu() {
       }, 2500);
     }
     return () => clearInterval(itv);
-  }, [authStatus, authToken]);
-
-  const checkLoyalty = React.useCallback(async () => {
-    if (!customerPhone) return;
-    try {
-      const std = getStandardPhone(customerPhone);
-      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
-      const d = await res.json();
-      setLoyaltyPoints(d.points || 0);
-    } catch (e) {}
-  }, [customerPhone, bizId, getStandardPhone]);
+  }, [authStatus, authToken, bizId]);
 
   const handleRedeemRequest = async () => {
     if (!isVerified) {
@@ -259,7 +303,7 @@ function CustomerMenu() {
         const d = await res.json();
         if (d.success) {
             setRedemptionToken(d.token);
-            const waMsg = `ðŸŽ Redeem ${pointsToUse} points for ${biz?.name}! âœ¨ [ID: ${d.token}]`;
+            const waMsg = `🎁 Redeem ${pointsToUse} points for ${biz?.name}! ✨ [ID: ${d.token}]`;
             const waUrl = `https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}?text=${encodeURIComponent(waMsg)}`;
             window.open(waUrl, "_blank");
             
@@ -291,6 +335,10 @@ function CustomerMenu() {
         alert("Please provide your Name and Phone number to place the order.");
         return;
     }
+    if (fulfillmentMode === "DELIVERY" && !customerAddress.trim()) {
+        alert("Please enter a valid delivery address.");
+        return;
+    }
     setPlacing(true);
     const fullPhone = getStandardPhone(customerPhone);
     try {
@@ -309,7 +357,10 @@ function CustomerMenu() {
           customerPhone: fullPhone,
           pointsToRedeem,
           redemptionToken,
-          source: "QR_MENU"
+          source: "QR_MENU",
+          fulfillmentMode: fulfillmentMode,
+          discount_amount: promoDiscountAmount,
+          address: fulfillmentMode === "DINEIN" ? `Table ${tableId || '0'}` : (fulfillmentMode === "DELIVERY" ? customerAddress : "Pickup")
         })
       });
       const o = await res.json();
@@ -318,13 +369,14 @@ function CustomerMenu() {
         setFinalPaidAmount(o.finalPrice || 0); 
         setView("confirmed"); 
         setCart([]); 
+        setAppliedDiscount(null);
         fetchActiveOrders(); 
         // ✅ RESET LOYALTY STATE
         setPointsToRedeem(0);
         setRedemptionToken(null);
         setRedemptionStatus("IDLE");
       }
-      else alert(o.error || "Failed");
+      else alert(o.error || "Failed to place order: " + (o.error || ""));
     } finally { setPlacing(false); }
   };
 
@@ -344,653 +396,1321 @@ function CustomerMenu() {
     }
   };
 
-  if (loading) return (<div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight"><RefreshCw className="animate-spin w-10 h-10 text-emerald-500" /><p className="mt-4 text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Synchronizing Menu...</p></div>);
+  const handleLogout = () => {
+    localStorage.removeItem(`sasloop_name_${bizId}`);
+    localStorage.removeItem(`sasloop_phone_${bizId}`);
+    setCustomerName("");
+    setCustomerPhone("");
+    setIsVerified(false);
+    setAuthStatus("IDLE");
+    setAuthToken(null);
+    setLoyaltyPoints(0);
+    setPointsToRedeem(0);
+    setRedemptionToken(null);
+    setRedemptionStatus("IDLE");
+    setView("auth");
+  };
 
+  // 1. Loading View
+  if (loading) {
+    return (
+      <div className="h-screen bg-white flex flex-col items-center justify-center font-sans tracking-tight">
+        <div className="relative flex items-center justify-center">
+          <div className="w-16 h-16 border-4 border-emerald-600/20 border-t-emerald-600 rounded-full animate-spin"></div>
+          <Utensils className="absolute w-6 h-6 text-emerald-600 animate-pulse" />
+        </div>
+        <p className="mt-6 text-[10px] font-black uppercase tracking-[0.25em] text-emerald-600 animate-pulse">
+          Synchronizing Menu...
+        </p>
+      </div>
+    );
+  }
+
+  // 2. Auth View (Lagoon Landing UI - Matches User Screenshot visually)
   if (view === "auth") {
     return (
-      <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-100 overflow-hidden font-sans">
-        {/* VIBRANT GLASS BACKGROUND */}
-        <div className="absolute inset-0 z-0 scale-110 opacity-60">
-          <img src="https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?auto=format&fit=crop&q=80&w=2070" className="w-full h-full object-cover" alt="bg" />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-200/80 via-white/20 to-transparent" />
+      <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-950 overflow-hidden font-sans">
+        {/* PREMIUM DARK FOOD COLLAGE BACKGROUND (AS SEEN IN SCREENSHOT) */}
+        <div className="absolute inset-0 z-0 scale-105">
+          <img 
+            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2000" 
+            className="w-full h-full object-cover" 
+            alt="Food background" 
+          />
+          <div className="absolute inset-0 bg-black/40" />
         </div>
-        <div className="relative z-10 w-full max-w-[400px] animate-in fade-in zoom-in duration-700">
-          <div className="bg-white/30 backdrop-blur-3xl px-6 sm:px-8 py-10 rounded-[2.5rem] border border-white/40 shadow-2xl text-center overflow-hidden">
-              <div className="w-16 h-16 bg-white p-3 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl border border-slate-100">
-                {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-xl" alt="logo" /> : <Utensils className="w-8 h-8 text-emerald-600" />}
-              </div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tighter mb-1 uppercase italic">{biz?.name}</h1>
-              <p className="text-emerald-600 text-[9px] font-black uppercase tracking-[0.3em] mb-10 opacity-60">Digital Concierge</p>
-              <div className="space-y-6 text-left">
-                  <div className="space-y-1.5 w-full">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Full Name</label>
-                    <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Enter your name" className="w-full bg-slate-50 border border-slate-100 px-5 py-4 rounded-2xl text-sm font-bold text-slate-800 outline-none focus:border-emerald-500 transition-all" autoFocus />
-                  </div>
 
-                  <div className="space-y-1.5 w-full">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">Phone Number</label>
-                    <div className="flex items-center bg-slate-50 border border-slate-100 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
-                       <select 
-                         className="bg-transparent pl-4 pr-1 py-4 text-sm font-bold text-slate-800 outline-none border-r border-slate-100" 
-                         value={countryCode} 
-                         onChange={e => setCountryCode(e.target.value)}
-                       >
-                          {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
-                       </select>
-                       <input 
-                         type="tel" 
-                         value={customerPhone} 
-                         onChange={e => setCustomerPhone(e.target.value)} 
-                         placeholder="Enter mobile" 
-                         className="flex-1 bg-transparent px-4 py-4 text-sm font-bold text-slate-800 outline-none" 
-                       />
-                    </div>
-                  </div>
-                         {authStatus === "PENDING" ? (
-                    <div className="py-6 text-center animate-pulse">
-                      <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <RefreshCw className="animate-spin w-5 h-5 text-emerald-600" />
-                      </div>
-                      <p className="text-[11px] font-black text-slate-900 uppercase tracking-widest">Waiting for Verification...</p>
-                      <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase">Please send the message in WhatsApp</p>
-                      <button onClick={() => setAuthStatus("IDLE")} className="mt-4 text-[9px] font-black text-rose-500 uppercase tracking-widest underline">Cancel</button>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                        <button 
-                          onClick={() => {
-                             if(!customerName || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
-                             saveSession(customerName, customerPhone);
-                             setView("menu");
-                          }}
-                          className="w-full bg-slate-900 text-white font-black py-5 rounded-[1.8rem] text-[11px] uppercase tracking-[0.2em] shadow-xl shadow-slate-200 active:scale-95 transition-all mt-4 flex items-center justify-center gap-3"
-                        >
-                          Continue to Menu <ChevronRight className="w-4 h-4 text-emerald-400" />
-                        </button>
-                        {loyaltyPoints >= (biz?.min_redeem_points || 300) && !isVerified && (
-                           <button 
-                             onClick={handleRequestAuth}
-                             className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-200 hover:bg-emerald-600 transition-all flex items-center justify-center gap-3"
-                           >
-                             <MessageCircle className="w-5 h-5" /> Verify via WhatsApp to Redeem
-                           </button>
-                        )}
-                    </div>
-                  )}
+        <div className="relative z-10 w-full max-w-[540px] animate-in fade-in zoom-in duration-500">
+          <div className="bg-black/60 backdrop-blur-md px-6 sm:px-10 py-10 rounded-[2rem] border border-white/10 shadow-2xl text-center">
+            {/* Centered Circular Logo */}
+            <div className="w-20 h-20 bg-blue-900/90 p-2.5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border border-white/10">
+              {logoUrl ? (
+                <img src={logoUrl} className="w-full h-full object-contain rounded-full" alt="logo" />
+              ) : (
+                <Utensils className="w-8 h-8 text-white" />
+              )}
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
+              {biz?.name || "The Lagoon Restaurant"}
+            </h1>
+            
+            <p className="text-xs text-slate-300 font-medium mb-2 leading-relaxed">
+              {biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}
+            </p>
+
+            {/* Open Timing */}
+            <p className="text-[11px] font-bold text-slate-300 mb-6">
+              <span className="text-emerald-500 mr-1.5 font-bold">Open</span>
+              {biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}
+            </p>
+
+            {/* Fulfillment Options (Outline Pills matching UI exactly) */}
+            <div className="flex justify-center flex-wrap gap-2 mb-8">
+              {tableId && tableId !== "0" ? (
+                <button 
+                  onClick={() => setFulfillmentMode("DINEIN")}
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                    fulfillmentMode === "DINEIN" 
+                      ? "bg-white/20 border-white text-white font-bold" 
+                      : "border-white/20 text-slate-300 hover:border-white/40"
+                  }`}
+                >
+                  <Utensils className="w-4 h-4 text-white" />
+                  <span className="text-xs">Dine-In</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => alert("Please scan a table QR code for Dine-In ordering.")}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 text-slate-500 cursor-not-allowed"
+                >
+                  <Utensils className="w-4 h-4" />
+                  <span className="text-xs">Dine-In</span>
+                </button>
+              )}
+
+              <button 
+                onClick={() => setFulfillmentMode("PICKUP")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                  fulfillmentMode === "PICKUP" 
+                    ? "bg-white/20 border-white text-white font-bold" 
+                    : "border-white/20 text-slate-300 hover:border-white/40"
+                }`}
+              >
+                <ShoppingBag className="w-4 h-4 text-white" />
+                <span className="text-xs">Pickup</span>
+              </button>
+
+              <button 
+                onClick={() => setFulfillmentMode("DELIVERY")}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                  fulfillmentMode === "DELIVERY" 
+                    ? "bg-white/20 border-white text-white font-bold" 
+                    : "border-white/20 text-slate-300 hover:border-white/40"
+                }`}
+              >
+                <MapPin className="w-4 h-4 text-white" />
+                <span className="text-xs">Delivery</span>
+              </button>
+            </div>
+
+            {/* Input Form Details (UX preserved on UI) */}
+            <div className="space-y-4 text-left">
+              <div className="space-y-1 w-full">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
+                  Full Name
+                </label>
+                <div className="relative flex items-center">
+                  <User className="absolute left-4 w-4 h-4 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={customerName} 
+                    onChange={e => setCustomerName(e.target.value)} 
+                    placeholder="Enter your name" 
+                    className="w-full bg-white/5 border border-white/10 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all placeholder:text-white/20"
+                  />
+                </div>
               </div>
+
+              <div className="space-y-1 w-full">
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
+                  Phone Number
+                </label>
+                <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-400 transition-all">
+                  <select 
+                    className="bg-transparent pl-4 pr-1 py-3.5 text-sm font-bold text-white outline-none border-r border-white/10" 
+                    value={countryCode} 
+                    onChange={e => setCountryCode(e.target.value)}
+                  >
+                    {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
+                  </select>
+                  <input 
+                    type="tel" 
+                    value={customerPhone} 
+                    onChange={e => setCustomerPhone(e.target.value)} 
+                    placeholder="Enter mobile number" 
+                    className="flex-1 bg-transparent px-4 py-3.5 text-sm font-bold text-white outline-none placeholder:text-white/20" 
+                  />
+                </div>
+              </div>
+
+              {fulfillmentMode === "DELIVERY" && (
+                <div className="space-y-1 w-full animate-in slide-in-from-top duration-300">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
+                    Delivery Address
+                  </label>
+                  <div className="relative flex items-center">
+                    <MapPin className="absolute left-4 w-4 h-4 text-slate-400" />
+                    <input 
+                      type="text" 
+                      value={customerAddress} 
+                      onChange={e => setCustomerAddress(e.target.value)} 
+                      placeholder="Street, Building, Flat No." 
+                      className="w-full bg-white/5 border border-white/10 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all placeholder:text-white/20"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {authStatus === "PENDING" ? (
+                <div className="py-6 text-center animate-pulse bg-black/40 rounded-2xl border border-white/5 mt-4">
+                  <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
+                    <RefreshCw className="animate-spin w-5 h-5 text-emerald-400" />
+                  </div>
+                  <p className="text-[11px] font-black text-white uppercase tracking-widest">
+                    Verifying via WhatsApp...
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase">
+                    Please send the generated message in WhatsApp
+                  </p>
+                  <button 
+                    onClick={() => setAuthStatus("IDLE")} 
+                    className="mt-4 text-[9px] font-black text-rose-400 uppercase tracking-widest underline"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-3 pt-4">
+                  <button 
+                    onClick={() => {
+                      if (!customerName.trim() || customerPhone.length < 5) {
+                        return alert("Please enter your name and valid phone number");
+                      }
+                      saveSession(customerName, customerPhone);
+                      setView("menu");
+                    }}
+                    className="w-full bg-white hover:bg-slate-100 text-slate-950 font-black py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+                  >
+                    Continue to Menu <ChevronRight className="w-4 h-4 text-slate-950" />
+                  </button>
+
+                  {loyaltyPoints >= (biz?.min_redeem_points || 300) && !isVerified && (
+                    <button 
+                      onClick={handleRequestAuth}
+                      className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
+                    >
+                      <MessageCircle className="w-5 h-5 text-white" /> Verify via WhatsApp to Redeem
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // 3. Order Confirmed View (Light Theme)
   if (view === "confirmed") {
     return (
-      <div className="min-h-screen bg-white flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
-         <div className="w-20 h-20 bg-emerald-500/10 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-2xl"><CheckCircle2 className="w-10 h-10 text-emerald-600" /></div>
-         <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase italic">Success!</h1>
-         <p className="text-xs font-black text-slate-400 uppercase tracking-widest mb-10">We're fulfilling your order</p>
-         <div className="bg-slate-50 border border-slate-100 rounded-[2.5rem] p-8 w-full max-w-sm mb-10 text-center">
-            <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-2">Reference</p>
-            <p className="text-4xl font-black text-slate-900 tracking-tighter mb-8 font-mono italic">{orderRef}</p>
-         </div>
-         <button onClick={() => setView("menu")} className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest">Back to Flavors</button>
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700 font-sans">
+        <div className="w-24 h-24 bg-emerald-50 rounded-[2.5rem] flex items-center justify-center mb-6 shadow-md border border-emerald-100">
+          <CheckCircle2 className="w-12 h-12 text-emerald-600" />
+        </div>
+        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2 uppercase italic font-serif">
+          Success!
+        </h1>
+        <p className="text-xs font-black text-emerald-600 uppercase tracking-widest mb-10">
+          We're preparing your food
+        </p>
+
+        <div className="bg-white border border-slate-150 rounded-[3rem] p-8 w-full max-w-sm mb-10 text-center shadow-lg">
+          <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-2">
+            Order Reference
+          </p>
+          <p className="text-4xl font-extrabold text-slate-900 tracking-tighter mb-4 font-mono italic">
+            {orderRef}
+          </p>
+          <p className="text-[10px] text-slate-550 uppercase tracking-widest leading-relaxed">
+            Amount Paid: {symbol}{parseFloat(finalPaidAmount).toFixed(2)}
+          </p>
+        </div>
+
+        <button 
+          onClick={() => setView("menu")} 
+          className="w-full max-w-[280px] bg-slate-900 text-white py-5 rounded-[2rem] font-black text-[11px] uppercase tracking-widest shadow-lg hover:bg-slate-800 transition-all active:scale-95"
+        >
+          Back to Menu
+        </button>
       </div>
     );
   }
 
+  // 4. Main Menu View (LIGHT THEME)
   return (
-    <div className="min-h-screen bg-white lg:bg-slate-50 font-sans tracking-tight">
-      <header className="bg-white/80 backdrop-blur-xl border-b border-slate-50 sticky top-0 z-[100] shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-           <div className="flex flex-col">
-              <h1 className="text-sm font-black text-slate-900 uppercase tracking-tighter truncate max-w-[150px] italic">{biz?.name}</h1>
-              {customerPhone && (
-                 <p className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Available Points: {loyaltyPoints}</p>
+    <div className="min-h-screen bg-slate-50 text-slate-800 font-sans tracking-tight pb-24 relative">
+      {/* Dynamic Header matching Lagoon Restaurant UI */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-slate-150 sticky top-0 z-[100] shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+          
+          {/* Left Section: Logo & Restaurant Name with Caret & Status */}
+          <div className="flex items-center gap-3 relative">
+            <div className="w-10 h-10 bg-blue-900/90 rounded-full overflow-hidden border border-slate-200 shrink-0 p-1 flex items-center justify-center shadow-sm">
+              {logoUrl ? (
+                <img src={logoUrl} className="w-full h-full object-contain rounded-full" alt="logo" />
+              ) : (
+                <Utensils className="w-5 h-5 text-white" />
               )}
-           </div>
-           <div className="flex gap-2">
-              <button onClick={() => setShowOrders(true)} className="flex items-center gap-2 bg-slate-900 text-white px-4 py-2.5 rounded-2xl shadow-xl transition-all active:scale-95">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">{activeOrders.length > 0 ? `${activeOrders.length} ORDERS` : 'MY HUB'}</span>
+            </div>
+            <div className="flex flex-col text-left">
+              <button 
+                onClick={() => setShowHeaderDropdown(!showHeaderDropdown)}
+                className="flex items-center gap-1 text-sm font-black text-slate-900 uppercase tracking-tight hover:text-slate-700 transition-colors font-serif italic"
+              >
+                <span>{biz?.name || "The Lagoon Restaurant"}</span>
+                <ChevronRight className={`w-3.5 h-3.5 transform transition-transform ${showHeaderDropdown ? 'rotate-90' : ''}`} />
               </button>
-              {tableId && <div className="h-10 bg-slate-100 flex items-center px-4 rounded-2xl text-[10px] font-black text-slate-500 border border-slate-200 uppercase tracking-widest italic">Table {tableId}</div>}
-           </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-[10px] font-bold text-slate-500">
+                  Open {biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}
+                </span>
+              </div>
+            </div>
+
+            {/* Header Dropdown for Store Info */}
+            {showHeaderDropdown && (
+              <div className="absolute left-0 top-12 w-72 bg-white border border-slate-150 rounded-2xl p-5 shadow-xl z-[200] animate-in fade-in slide-in-from-top-4 duration-300">
+                <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest mb-3">Store Details</h4>
+                <div className="space-y-2.5 text-xs text-slate-600">
+                  <div className="flex gap-2">
+                    <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>{biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <Clock className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>{biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <MessageCircle className="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>{biz?.whatsapp_number || biz?.phone || "WhatsApp Support"}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Middle/Right Section: Search box, language icon, cart icon, and hamburger */}
+          <div className="flex items-center gap-3">
+            {/* Desktop/Tablet Search Input */}
+            <div className="hidden md:flex relative w-48 lg:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input 
+                placeholder="Search menu..." 
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 focus:bg-white transition-all" 
+                value={search} 
+                onChange={e => setSearch(e.target.value)} 
+              />
+            </div>
+
+            {/* Language Selection Button */}
+            <button 
+              onClick={() => alert("Language translation menu (Arabic/English) is loading...")}
+              className="w-9 h-9 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors shadow-sm"
+              title="Change Language"
+            >
+              <Globe className="w-4 h-4" />
+            </button>
+
+            {/* Cart Bag Icon with badge */}
+            <button 
+              onClick={() => setShowCartDrawer(true)} 
+              className="w-9 h-9 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-center text-slate-700 hover:bg-slate-100 transition-colors relative shadow-sm active:scale-95"
+              title="View Cart"
+            >
+              <ShoppingBag className="w-4 h-4" />
+              {totalCartItems > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-slate-900 text-white rounded-full flex items-center justify-center text-[9px] font-black font-mono border-2 border-white shadow-sm animate-pulse">
+                  {totalCartItems}
+                </span>
+              )}
+            </button>
+
+            {/* Hamburger Menu Icon */}
+            <button 
+              onClick={() => setShowSidebarDrawer(true)}
+              className="w-9 h-9 bg-slate-900 hover:bg-slate-800 text-white rounded-xl flex items-center justify-center transition-colors shadow-sm active:scale-95"
+              title="Open Menu"
+            >
+              <LayoutGrid className="w-4 h-4 text-emerald-400" />
+            </button>
+          </div>
         </div>
       </header>
 
-      {/* TRACKING & HISTORY HUB */}
+      {/* TRACKING & HISTORY HUB DRAWER (LIGHT THEME) */}
       {showOrders && (
         <div className="fixed inset-0 z-[200]">
-           <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
-           <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col font-sans">
-              <div className="p-8 border-b border-slate-50 flex items-center justify-between"><h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3">My Hub <Activity className="w-6 h-6 text-emerald-500" /></h2><button onClick={() => setShowOrders(false)} className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center"><X className="w-5 h-5 text-slate-400" /></button></div>
-              <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-[1.5rem] border border-slate-100">
-                 <button onClick={() => setOrderTab("tracking")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Tracking</button>
-                 <button onClick={() => setOrderTab("history")} className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>History</button>
-              </div>
-               <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
-                  {/* VIP KEY PASS CARD */}
-                  <div className="bg-gradient-to-br from-indigo-900 to-slate-900 p-8 rounded-[2.5rem] text-white shadow-2xl relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
-                     <div className="relative z-10">
-                        <div className="flex justify-between items-start mb-6">
-                           <div>
-                              <p className="text-[8px] font-black uppercase tracking-[0.4em] text-white/40 mb-1">Exclusive Member</p>
-                              <h4 className="text-2xl font-black tracking-tighter uppercase italic">{customerName || 'Loyal Guest'}</h4>
-                           </div>
-                           <Gift className="w-6 h-6 text-indigo-400" />
-                        </div>
-                        <div className="flex justify-between items-end">
-                           <div>
-                              <p className="text-[8px] font-black uppercase text-white/40 mb-1">Loyalty Points</p>
-                              <p className="text-2xl font-black tracking-tighter">{loyaltyPoints}</p>
-                           </div>
-                           <button 
-                             onClick={() => setShowVIPKey(true)}
-                             className="px-4 py-2 bg-white text-indigo-900 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-xl active:scale-95 transition-all"
-                           >
-                              Wallet Pass
-                           </button>
-                        </div>
-                     </div>
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowOrders(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-full max-w-[400px] bg-white border-l border-slate-100 shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col font-sans">
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+              <h2 className="text-xl font-black uppercase tracking-tighter flex items-center gap-3 text-slate-900">
+                My Hub <Activity className="w-6 h-6 text-emerald-600" />
+              </h2>
+              <button 
+                onClick={() => setShowOrders(false)} 
+                className="w-10 h-10 bg-slate-50 rounded-full flex items-center justify-center border border-slate-100"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+            
+            <div className="flex bg-slate-50 p-2 mx-8 mt-6 rounded-2xl border border-slate-150">
+              <button 
+                onClick={() => setOrderTab("tracking")} 
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  orderTab === 'tracking' ? 'bg-white text-emerald-600 shadow-sm font-bold' : 'text-slate-400'
+                }`}
+              >
+                Tracking
+              </button>
+              <button 
+                onClick={() => setOrderTab("history")} 
+                className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                  orderTab === 'history' ? 'bg-white text-emerald-600 shadow-sm font-bold' : 'text-slate-400'
+                }`}
+              >
+                History
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 no-scrollbar">
+              {/* VIP Key Card Pass (Retained Dark Premium Style for luxury contrast) */}
+              <div className="bg-gradient-to-br from-indigo-900 via-slate-950 to-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group border border-indigo-500/20">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-full blur-3xl group-hover:scale-150 transition-all duration-700" />
+                <div className="relative z-10">
+                  <div className="flex justify-between items-start mb-6">
+                    <div>
+                      <p className="text-[8px] font-black uppercase tracking-[0.4em] text-indigo-400 mb-1">
+                        Exclusive Member
+                      </p>
+                      <h4 className="text-2xl font-black tracking-tighter uppercase italic font-serif">
+                        {customerName || 'Loyal Guest'}
+                      </h4>
+                    </div>
+                    <Gift className="w-6 h-6 text-indigo-400" />
                   </div>
-                 {orderTab === "tracking" ? (
-                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? <div className="h-44 flex flex-col items-center justify-center opacity-20"><Package className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest text-center">No Active Orders<br/>Start Ordering!</p></div> : 
-                   activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
-                        <div key={order.id} className="bg-slate-50 rounded-[2rem] p-6 border border-slate-100 shadow-sm transition-all hover:bg-white hover:shadow-2xl">
-                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-400 uppercase">{order.order_reference}</span><div className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${order.status === 'PENDING' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700 animate-pulse'}`}>{order.status}</div></div>
-                           <p className="text-xs font-black text-slate-900 uppercase truncate mb-1">{(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || [])).map(i => i.name).join(", ")}</p>
-                           <p className="text-lg font-black text-slate-950 uppercase italic">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
-                        </div>
-                   ))
-                 ) : (
-                   activeOrders.length === 0 ? <div className="h-44 flex flex-col items-center justify-center opacity-20"><History className="w-12 h-12 mb-4" /><p className="text-[10px] font-black uppercase tracking-widest">History is Empty</p></div> : 
-                   activeOrders.map(order => (
-                        <div key={order.id} className="bg-white rounded-[2rem] p-6 border border-slate-100 shadow-sm opacity-90 mb-4">
-                           <div className="flex items-center justify-between mb-2"><span className="text-[9px] font-black text-slate-300 uppercase">{new Date(order.created_at).toLocaleDateString()}</span><span className={`text-[8px] font-black uppercase tracking-widest ${order.status === 'COMPLETED' ? 'text-emerald-500' : 'text-slate-400'}`}>{order.status}</span></div>
-                           <p className="text-xs font-black text-slate-900 uppercase truncate line-clamp-1">{(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || [])).map(i => i.name).join(", ")}</p>
-                           <p className="text-sm font-black text-slate-400 mt-1 uppercase italic">{symbol}{parseFloat(order.total_price).toFixed(0)}</p>
-                        </div>
-                   ))
-                 )}
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <p className="text-[8px] font-black uppercase text-slate-500 mb-1">
+                        Loyalty Points
+                      </p>
+                      <p className="text-2xl font-black tracking-tighter text-emerald-400 font-mono">
+                        {loyaltyPoints}
+                      </p>
+                    </div>
+                    <button 
+                      onClick={() => setShowVIPKey(true)}
+                      className="px-4 py-2 bg-white text-indigo-950 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-md active:scale-95 transition-all"
+                    >
+                      Wallet Pass
+                    </button>
+                  </div>
+                </div>
               </div>
-           </div>
+
+              {orderTab === "tracking" ? (
+                activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length === 0 ? (
+                  <div className="h-44 flex flex-col items-center justify-center opacity-40">
+                    <Package className="w-12 h-12 mb-4 text-slate-400" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-center text-slate-500">
+                      No Active Orders<br/>Start Ordering!
+                    </p>
+                  </div>
+                ) : (
+                  activeOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').map(order => (
+                    <div key={order.id} className="bg-slate-50 rounded-3xl p-6 border border-slate-150 shadow-sm transition-all hover:bg-slate-100/50">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-slate-450 uppercase">{order.order_reference}</span>
+                        <div className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
+                          order.status === 'PENDING' ? 'bg-amber-50 text-amber-600 border border-amber-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100 animate-pulse'
+                        }`}>
+                          {order.status}
+                        </div>
+                      </div>
+                      <p className="text-xs font-bold text-slate-900 uppercase truncate mb-1">
+                        {(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []).map(i => i.name || i.product_name)).join(", ")}
+                      </p>
+                      <p className="text-lg font-extrabold text-slate-900 uppercase italic font-serif">
+                        {symbol}{parseFloat(order.total_price).toFixed(0)}
+                      </p>
+                    </div>
+                  ))
+                )
+              ) : (
+                activeOrders.length === 0 ? (
+                  <div className="h-44 flex flex-col items-center justify-center opacity-40">
+                    <History className="w-12 h-12 mb-4 text-slate-400" />
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                      History is Empty
+                    </p>
+                  </div>
+                ) : (
+                  activeOrders.map(order => (
+                    <div key={order.id} className="bg-slate-50 rounded-3xl p-6 border border-slate-150 shadow-sm mb-4 opacity-90">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-[9px] font-black text-slate-400 uppercase">
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </span>
+                        <span className={`text-[8px] font-black uppercase tracking-widest ${
+                          order.status === 'COMPLETED' ? 'text-emerald-600' : 'text-slate-500'
+                        }`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <p className="text-xs font-bold text-slate-900 uppercase truncate mb-1">
+                        {(typeof order.items === 'string' ? JSON.parse(order.items || '[]') : (order.items || []).map(i => i.name || i.product_name)).join(", ")}
+                      </p>
+                      <p className="text-sm font-black text-emerald-600 mt-1 uppercase italic font-serif">
+                        {symbol}{parseFloat(order.total_price).toFixed(0)}
+                      </p>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
+          </div>
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto lg:p-10 lg:grid lg:grid-cols-[260px_1fr_360px] lg:gap-12 items-start">
-          <aside className="hidden lg:block sticky top-32 space-y-2 max-h-[70vh] overflow-y-auto no-scrollbar pr-6">
-             <h2 className="text-[10px] font-black text-slate-300 uppercase tracking-[0.3em] mb-8 pl-4">Explore Flavors</h2>
-             {categories.map(cat => (
-               <button key={cat} onClick={() => categoryRefs.current[cat]?.scrollIntoView({ behavior: 'smooth', block: 'start' })} className={`w-full text-left px-8 py-5 rounded-[2.5rem] text-[11px] font-black uppercase transition-all ${activeCategory === cat ? 'bg-slate-900 text-white shadow-2xl translate-x-2' : 'text-slate-400 hover:text-slate-900'}`}>{cat}</button>
-             ))}
-          </aside>
+      {/* Main Single Column Layout Container */}
+      <div className="max-w-4xl mx-auto px-4 py-6 font-sans">
+        
+        {/* 1. TOP BANNERS SECTION (Matches Lagoon styling exactly) */}
+        <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth mb-8 py-1">
+          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
+            <img src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Chicken Feast" />
+          </div>
+          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
+            <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Healthy Salmon" />
+          </div>
+          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
+            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Veg Salmon Bowl" />
+          </div>
+        </div>
 
-          <div className="bg-white lg:rounded-[3.5rem] lg:shadow-2xl lg:border lg:border-white overflow-hidden min-h-screen">
-             <div className="relative">
-                {bannerUrl && (
-                   <div className="w-full overflow-hidden bg-slate-100 relative" style={{ height: `${biz?.settings?.banner_height || 160}px` }}>
-                      <img 
-                         src={bannerUrl} 
-                         className="w-full h-full object-cover transition-all" 
-                         alt="b" 
-                         style={{ 
-                            transform: `scale(${biz?.settings?.banner_zoom || 1}) translate(${biz?.settings?.banner_x || 0}px, ${biz?.settings?.banner_y || 0}px)`
-                         }}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-white via-white/20 to-transparent" />
-                   </div>
-                )}
-                <div className="px-10 py-4 flex items-center gap-6 relative -mt-12">
-                   <div className="w-24 h-24 rounded-full border-4 border-white shadow-2xl bg-white flex items-center justify-center shrink-0 overflow-hidden">
-                      {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain p-2" alt="l" /> : <Utensils className="w-10 h-10 text-emerald-600 opacity-20" />}
-                   </div>
-                   <div className="flex-1 min-w-0 pt-12">
-                      <h1 className="text-2xl font-black text-slate-900 tracking-tighter truncate uppercase italic">{biz?.name}</h1>
-                      <p className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-2 mt-1 truncate"><MapPin className="w-3.5 h-3.5 text-emerald-500" /> {biz?.address || 'Scan QR for Service'}</p>
-
-                      {/* Social & Review Links */}
-                      <div className="flex items-center gap-3 mt-4">
-                         {biz?.social_instagram && (
-                            <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-10 h-10 bg-gradient-to-tr from-yellow-400 via-pink-500 to-purple-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Globe className="w-5 h-5" />
-                            </a>
-                         )}
-                         {biz?.social_website && (
-                            <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Globe className="w-5 h-5" />
-                            </a>
-                         )}
-                         {biz?.settings?.google_review_link && (
-                            <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-10 h-10 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg hover:scale-110 transition-all border-2 border-white">
-                               <Star className="w-5 h-5 fill-white" />
-                            </a>
-                         )}
+        {/* 2. PROMOTIONS & OFFERS (Dashed cards shown dynamically only if database has active discounts) */}
+        {data?.discounts && data.discounts.length > 0 && (
+          <div className="mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {data.discounts.map((disc, idx) => {
+                const isApplied = appliedDiscount?.id === disc.id;
+                return (
+                  <button 
+                    key={disc.id || idx}
+                    onClick={() => {
+                      if (isApplied) setAppliedDiscount(null);
+                      else setAppliedDiscount(disc);
+                    }}
+                    className={`w-full text-left bg-white border-2 border-dashed rounded-2xl p-5 flex items-center justify-between shadow-sm relative transition-all active:scale-[0.98] ${
+                      isApplied 
+                        ? 'border-emerald-500 bg-emerald-50/15' 
+                        : 'border-slate-200 hover:border-emerald-500/40'
+                    }`}
+                  >
+                    <div className="flex items-start gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
+                        isApplied ? 'bg-emerald-500 border-transparent text-white' : 'bg-slate-50 border-slate-100 text-slate-800'
+                      }`}>
+                        <Percent className="w-5 h-5" />
                       </div>
-                   </div>
-                </div>
-             </div>
+                      <div className="min-w-0">
+                        <h4 className="font-extrabold text-sm text-slate-900 tracking-tight truncate">{disc.name}</h4>
+                        <p className="text-[10px] font-bold text-slate-500 mt-1 font-mono">
+                          {disc.type === 'percent' ? `${disc.value}% OFF` : `${symbol}${disc.value} OFF`}
+                        </p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">Click to {isApplied ? 'Remove' : 'Apply'} discount</p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="text-xs font-black text-slate-400 tracking-widest">{idx + 1}/{data.discounts.length}</span>
+                      {isApplied && (
+                        <span className="text-[8px] bg-emerald-500 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-wider">Applied</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
-             <div className="px-5 sm:px-10 py-6 sm:py-8 lg:sticky lg:top-0 lg:z-[80] lg:bg-white/90 lg:backdrop-blur-xl">
-                <div className="relative group"><Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-300" /><input placeholder="What would you like?" className="w-full bg-slate-50 border border-slate-100 rounded-[2rem] sm:rounded-[2.2rem] pl-16 pr-8 py-5 sm:py-5.5 text-sm font-black text-slate-800 placeholder:text-slate-200 outline-none focus:bg-white focus:border-emerald-500 transition-all font-sans" value={search} onChange={e => setSearch(e.target.value)} /></div>
-             </div>
-             <div className="px-5 sm:px-10 py-4 pb-32">
-                {categories.map(cat => (
-                  <div key={cat} id={`cat-${cat}`} ref={el => { categoryRefs.current[cat] = el; }} className="mb-20 scroll-mt-6">
-                    <div className="flex items-center gap-4 sm:gap-6 mb-8 sm:mb-12"><h2 className="text-[12px] sm:text-[14px] font-black text-slate-950 uppercase tracking-[0.3em] font-sans italic">{cat}</h2><div className="flex-1 h-[2px] bg-slate-100 rounded-full" /></div>
-                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-2 gap-3 sm:gap-10">
-                      {groupedItems[cat].map(item => {
-                         const inCart = cart.find(c => c.id === item.id);
-                         return (
-                          <div key={item.id} className="group flex flex-col bg-white rounded-[2rem] sm:rounded-[3rem] p-3 sm:p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
-                            <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">
-                              {item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}
-                              <div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-5 sm:py-2.5 bg-white shadow-2xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950">{symbol}{item.price}</div>
-                              
-                              {/* AR PREVIEW BUTTON */}
+        {/* 3. CATEGORIES FOLDER GRID (What would you like to order?) */}
+        <div className="mb-10 text-left">
+          <h3 className="text-xl font-extrabold text-slate-950 tracking-tight mb-5">
+            What would you like to order?
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {categories.map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => {
+                  const el = document.getElementById(`cat-${cat}`);
+                  if (el) {
+                     const offset = 90;
+                     const elementPosition = el.getBoundingClientRect().top;
+                     const offsetPosition = elementPosition + window.pageYOffset - offset;
+                     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                  }
+                  setActiveCategory(cat);
+                }}
+                className="group relative aspect-[4/3] rounded-3xl overflow-hidden bg-slate-100 shadow-sm border border-slate-150 transition-all hover:scale-[1.02] hover:shadow-md text-left active:scale-[0.98]"
+              >
+                <img 
+                  src={getCategoryImg(cat)} 
+                  className="w-full h-full object-cover filter brightness-[0.7] group-hover:scale-105 transition-all duration-500" 
+                  alt={cat} 
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+                <div className="absolute bottom-4 left-4 right-4">
+                  <h4 className="text-white font-black text-sm tracking-tight leading-tight uppercase font-serif italic drop-shadow-sm group-hover:text-emerald-300 transition-colors">
+                    {cat}
+                  </h4>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Search bar & Mobile category links */}
+        <div className="py-5 border-b border-slate-150 sticky top-16 z-[80] bg-slate-50/90 backdrop-blur-md mb-8">
+          <div className="relative group md:hidden">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+            <input 
+              placeholder="Search dishes, drinks..." 
+              className="w-full bg-white border border-slate-200 rounded-2xl pl-16 pr-8 py-4 text-sm font-bold text-slate-900 placeholder:text-slate-400 outline-none focus:border-emerald-500 transition-all" 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+            />
+          </div>
+          {/* Sticky categories horizontal list (Mobile/Tablet) */}
+          <div className="flex gap-2 mt-3 md:mt-0 overflow-x-auto no-scrollbar py-1">
+            {categories.map(cat => (
+              <button 
+                key={cat} 
+                onClick={() => {
+                  const el = document.getElementById(`cat-${cat}`);
+                  if (el) {
+                     const offset = 90;
+                     const elementPosition = el.getBoundingClientRect().top;
+                     const offsetPosition = elementPosition + window.pageYOffset - offset;
+                     window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                  }
+                  setActiveCategory(cat);
+                }}
+                className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 transition-all ${
+                  activeCategory === cat 
+                    ? 'bg-emerald-600 text-white shadow-md font-bold' 
+                    : 'bg-white text-slate-550 border border-slate-200 hover:text-slate-900'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Item Grid Listing */}
+        <div className="space-y-14">
+          {categories.map(cat => (
+            <div key={cat} id={`cat-${cat}`} className="scroll-mt-24">
+              <div className="flex items-center gap-4 mb-6 text-left">
+                <h3 className="text-sm font-black text-slate-950 uppercase tracking-[0.25em] font-serif italic">
+                  {cat}
+                </h3>
+                <div className="flex-1 h-[1px] bg-slate-200 rounded-full" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                {groupedItems[cat].map(item => {
+                  const inCart = cart.find(c => c.id === item.id);
+                  return (
+                    <div key={item.id} className="group bg-white border border-slate-100 hover:border-slate-200 rounded-3xl p-3 flex flex-col justify-between transition-all duration-300 hover:shadow-lg">
+                      <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 mb-3 border border-slate-100">
+                        {item.image_url ? (
+                          <img 
+                            src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} 
+                            className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" 
+                            alt="Item media" 
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center opacity-25">
+                            <Utensils className="w-8 h-8 text-slate-400" />
+                          </div>
+                        )}
+
+                        {/* Veg/Non-Veg Icon Badge */}
+                        {item.food_type && (
+                          <div className="absolute top-2 left-2 px-1.5 py-1 rounded bg-white/95 border border-slate-100 flex items-center justify-center shadow-sm">
+                            <div className={`w-2.5 h-2.5 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                          </div>
+                        )}
+
+                        {/* Recommended Indicator Badge */}
+                        {item.recommended === 1 && (
+                          <div className="absolute top-2 right-2 px-2 py-1 rounded bg-amber-400 text-slate-950 text-[7px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                            <Star className="w-2.5 h-2.5 fill-slate-950" /> Recommended
+                          </div>
+                        )}
+
+                        {/* Float Price Tag */}
+                        <div className="absolute bottom-2 right-2 px-3 py-1.5 bg-white/95 border border-slate-150 rounded-xl text-xs font-black text-slate-900 font-mono shadow-sm">
+                          {symbol}{item.price}
+                        </div>
+
+                        {/* AR PREVIEW BUTTON */}
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); alert("✨ Reality Engine Initializing... \n\n This feature allows customers to see a 3D AR model of " + item.product_name + " on their table. (Premium Demo Mode)"); }}
+                          className="absolute top-2 left-9 w-7 h-7 bg-white/85 backdrop-blur-md rounded-lg flex items-center justify-center text-slate-800 border border-slate-200 hover:bg-slate-900 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                        >
+                          <Scan className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="flex-1 flex flex-col justify-between text-left">
+                        <div>
+                          <h4 className="text-[12px] sm:text-[13px] font-black text-slate-900 leading-tight uppercase tracking-tight italic font-serif line-clamp-1 mb-1">
+                            {item.product_name}
+                          </h4>
+                          <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-3">
+                            {item.description || "Freshly cooked culinary delight prepared with finest selection of authentic handpicked ingredients."}
+                          </p>
+                        </div>
+
+                        <div className="mt-auto">
+                          {inCart ? (
+                            <div className="flex items-center justify-between bg-white text-slate-900 rounded-xl p-1 h-9 border border-slate-200 shadow-sm">
                               <button 
-                                onClick={(e) => { e.stopPropagation(); alert("✨ Reality Engine Initializing... \n\n This feature allows customers to see a 3D AR model of " + item.product_name + " on their table. (Premium Demo Mode)"); }}
-                                className="absolute top-2 left-2 sm:top-5 sm:left-5 w-8 h-8 sm:w-12 sm:h-12 bg-white/20 backdrop-blur-md rounded-xl sm:rounded-2xl flex items-center justify-center text-white border border-white/30 hover:bg-white hover:text-slate-900 transition-all opacity-0 group-hover:opacity-100"
+                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} 
+                                className="w-7 h-full flex items-center justify-center hover:bg-slate-100 rounded-lg transition-all"
                               >
-                                 <Scan className="w-4 h-4 sm:w-6 sm:h-6" />
+                                <Minus className="w-3 h-3 text-slate-500" />
+                              </button>
+                              <span className="text-[11px] font-black font-mono w-6 text-center text-slate-900">{inCart.qty}</span>
+                              <button 
+                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} 
+                                className="w-7 h-full flex items-center justify-center hover:bg-slate-100 rounded-lg transition-all"
+                              >
+                                <Plus className="w-3 h-3 text-slate-500" />
                               </button>
                             </div>
-                            <h3 className="px-1 sm:px-4 text-[12px] sm:text-[15px] font-black text-slate-900 leading-tight mb-2 sm:mb-3 uppercase tracking-tight italic line-clamp-2">{item.product_name}</h3>
-                            <p className="px-1 sm:px-4 text-[10px] sm:text-[11px] text-slate-400 font-medium mb-4 sm:mb-8 line-clamp-2 leading-relaxed flex-1">{item.description}</p>
-                            <div className="px-1 sm:px-4 mt-auto">
-                               {inCart ? (
-                                 <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.2rem] sm:rounded-[2rem] p-1 h-10 sm:h-14 shadow-2xl">
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Minus className="w-3 sm:w-4 h-3 sm:h-4" /></button>
-                                   <span className="text-[11px] sm:text-[13px] font-black w-6 sm:w-8 text-center">{inCart.qty}</span>
-                                   <button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button>
-                                 </div>
-                               ) : (
-                                 <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-3 sm:py-5 rounded-[1.2rem] sm:rounded-[2rem] font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-1 sm:gap-2 font-sans active:scale-95">Add <Plus className="w-3 sm:w-3.5 h-3 sm:h-3.5" /></button>
-                               )}
-                            </div>
-                          </div>
-                        );
-                      })}
+                          ) : (
+                            <button 
+                              onClick={() => setCart([...cart, { ...item, qty: 1 }])} 
+                              className="w-full bg-slate-50 text-slate-650 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border border-slate-150 transition-all hover:bg-emerald-600 hover:text-white hover:border-transparent shadow-sm flex items-center justify-center gap-1 active:scale-95"
+                            >
+                              Add <Plus className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Store Info Footer (Matches screenshot 3 visually) */}
+        <div className="border-t border-slate-200 pt-12 pb-10 text-center mt-16">
+          <div className="flex justify-center gap-5 mb-8">
+            <a href={`tel:${biz?.phone || ''}`} className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-slate-950 flex items-center justify-center shadow-sm transition-colors">
+              <MessageCircle className="w-4.5 h-4.5" />
+            </a>
+            {biz?.social_instagram && (
+              <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-pink-600 flex items-center justify-center shadow-sm transition-colors">
+                <Globe className="w-4.5 h-4.5" />
+              </a>
+            )}
+            {biz?.social_website && (
+              <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-9 h-9 rounded-full bg-white border border-slate-200 text-slate-600 hover:text-emerald-600 flex items-center justify-center shadow-sm transition-colors">
+                <Globe className="w-4.5 h-4.5" />
+              </a>
+            )}
+          </div>
+
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 text-left max-w-md mx-auto shadow-sm space-y-4">
+            <h4 className="text-xs font-black text-slate-900 uppercase tracking-widest">Store Info</h4>
+            <div className="space-y-3 text-xs text-slate-600">
+              <div className="flex gap-3">
+                <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                <span>{biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}</span>
+              </div>
+              <div className="flex gap-3">
+                <Clock className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                <span>{biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}</span>
+              </div>
+              <div className="flex gap-3">
+                <MessageCircle className="w-4.5 h-4.5 text-slate-400 shrink-0" />
+                <span>{biz?.whatsapp_number || biz?.phone || "WhatsApp Support"}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 text-[11px] text-slate-500 font-medium">
+            Made With <span className="text-rose-500 mx-0.5">❤️</span> in Saudi Arabia
+          </div>
+          <div className="text-[10px] text-emerald-600 mt-1.5 uppercase tracking-widest font-black flex items-center justify-center gap-1">
+            <span>Powered By</span>
+            <span className="font-serif italic font-extrabold text-slate-900">SaSLoop POS</span>
+          </div>
+        </div>
+      </div>
+
+      {/* HAMBURGER SIDEBAR DRAWER (LIGHT THEME) */}
+      {showSidebarDrawer && (
+        <div className="fixed inset-0 z-[500]">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowSidebarDrawer(false)} />
+          <div className="absolute right-0 top-0 bottom-0 w-[80%] max-w-[320px] bg-white border-l border-slate-150 shadow-2xl animate-in slide-in-from-right duration-500 flex flex-col justify-between font-sans">
+            
+            {/* Drawer Header */}
+            <div className="p-6 border-b border-slate-100 flex flex-col relative text-left">
+              <button 
+                onClick={() => setShowSidebarDrawer(false)} 
+                className="absolute top-6 right-6 w-8 h-8 bg-slate-50 rounded-full flex items-center justify-center border border-slate-150"
+              >
+                <X className="w-4 h-4 text-slate-400" />
+              </button>
+
+              {/* Logo & Name */}
+              <div className="flex items-center gap-3 mb-4 mt-2">
+                <div className="w-12 h-12 rounded-full overflow-hidden border border-slate-200 p-0.5 bg-blue-900 flex items-center justify-center shrink-0 shadow-sm">
+                  {logoUrl ? <img src={logoUrl} className="w-full h-full object-contain rounded-full" alt="logo" /> : <Utensils className="w-6 h-6 text-white" />}
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-sm text-slate-900 uppercase italic font-serif leading-none mb-1">
+                    {biz?.name || "The Lagoon Restaurant"}
+                  </h4>
+                  <p className="text-[10px] font-bold text-slate-400 truncate max-w-[160px]">
+                    {biz?.address || "Kuwait City"}
+                  </p>
+                </div>
+              </div>
+
+              <a 
+                href={`https://maps.google.com/?q=${encodeURIComponent(biz?.address || "The Lagoon Restaurant, Kuwait City")}`} 
+                target="_blank" 
+                rel="noreferrer"
+                className="w-fit flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 border border-slate-200 rounded-xl text-[9px] font-black uppercase tracking-wider text-slate-700 transition-colors shadow-sm"
+              >
+                <MapPin className="w-3.5 h-3.5 text-slate-500" /> Direction
+              </a>
+            </div>
+
+            {/* Drawer Links */}
+            <div className="flex-1 py-6 px-4 space-y-2 text-left overflow-y-auto no-scrollbar">
+              <button 
+                onClick={() => { setShowSidebarDrawer(false); setShowReservationModal(true); }}
+                className="w-full px-5 py-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-3 text-sm font-bold text-slate-800 transition-all active:scale-[0.98]"
+              >
+                <Clock className="w-5 h-5 text-emerald-600" />
+                <span>Table Reservation</span>
+              </button>
+
+              <button 
+                onClick={() => { setShowSidebarDrawer(false); setShowOrders(true); }}
+                className="w-full px-5 py-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-3 text-sm font-bold text-slate-800 transition-all active:scale-[0.98]"
+              >
+                <Activity className="w-5 h-5 text-emerald-600" />
+                <span>Account & Orders</span>
+              </button>
+
+              {tableId && tableId !== "0" && (
+                <button 
+                  onClick={() => { setShowSidebarDrawer(false); callWaiter(); }}
+                  className="w-full px-5 py-4 bg-amber-50 hover:bg-amber-100 border border-amber-100 hover:border-amber-250 rounded-2xl flex items-center gap-3 text-sm font-bold text-slate-850 transition-all active:scale-[0.98]"
+                >
+                  <BellRing className="w-5 h-5 text-amber-600 animate-bounce" />
+                  <span>Call Waiter</span>
+                </button>
+              )}
+
+              {customerPhone ? (
+                <button 
+                  onClick={() => { setShowSidebarDrawer(false); handleLogout(); }}
+                  className="w-full px-5 py-4 bg-rose-50 hover:bg-rose-100 border border-rose-100 hover:border-rose-200 rounded-2xl flex items-center gap-3 text-sm font-bold text-rose-700 transition-all active:scale-[0.98]"
+                >
+                  <LogOut className="w-5 h-5 text-rose-600" />
+                  <span>Logout</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => { setShowSidebarDrawer(false); setView("auth"); }}
+                  className="w-full px-5 py-4 bg-slate-50 hover:bg-slate-100 border border-slate-100 hover:border-slate-200 rounded-2xl flex items-center gap-3 text-sm font-bold text-slate-800 transition-all active:scale-[0.98]"
+                >
+                  <User className="w-5 h-5 text-emerald-600" />
+                  <span>Login</span>
+                </button>
+              )}
+            </div>
+
+            {/* Drawer Footer */}
+            <div className="p-6 border-t border-slate-100 bg-slate-50/50 text-center">
+              <div className="text-[10px] text-slate-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1">
+                <span>Powered By</span>
+                <span className="font-serif italic font-extrabold text-slate-800">SaSLoop POS</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TABLE RESERVATION MODAL */}
+      {showReservationModal && (
+        <div className="fixed inset-0 z-[600] flex items-center justify-center p-4 bg-slate-950/65 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="bg-white w-full max-w-md rounded-[2.5rem] border border-slate-150 shadow-2xl p-8 relative animate-in zoom-in-95 duration-300 text-left">
+            <button 
+              onClick={() => setShowReservationModal(false)}
+              className="absolute top-6 right-6 w-10 h-10 bg-slate-50 border border-slate-150 rounded-full flex items-center justify-center active:scale-90 transition-transform"
+            >
+              <X className="w-5 h-5 text-slate-400" />
+            </button>
+            <h3 className="text-xl font-black text-slate-900 uppercase italic font-serif tracking-tight mb-1">Book a Table</h3>
+            <p className="text-[10px] font-bold text-slate-450 uppercase tracking-widest mb-6">Select your table preferences</p>
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              const fd = new FormData(e.target);
+              const name = fd.get('name');
+              const phone = fd.get('phone');
+              const guests = fd.get('guests');
+              const date = fd.get('date');
+              const time = fd.get('time');
+              
+              try {
+                const res = await fetch(`${API_BASE}/api/public/reservation`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ userId: bizId, customer_name: name, customer_number: phone, guests, reservation_date: date, reservation_time: time })
+                });
+                const r = await res.json();
+                if (r.success) {
+                  alert("📅 Table reservation requested successfully! We'll confirm via WhatsApp.");
+                  setShowReservationModal(false);
+                } else {
+                  alert(r.error || "Failed to book table.");
+                }
+              } catch (err) {
+                alert("Something went wrong. Please try again.");
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Name</label>
+                <input required defaultValue={customerName} name="name" type="text" className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500" placeholder="Enter name" />
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Phone Number</label>
+                <input required defaultValue={customerPhone} name="phone" type="tel" className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500" placeholder="Enter phone" />
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="col-span-1">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Guests</label>
+                  <input required defaultValue="2" name="guests" type="number" min="1" className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500" />
+                </div>
+                <div className="col-span-2">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Date</label>
+                  <input required defaultValue={new Date().toISOString().split('T')[0]} name="date" type="date" className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Time</label>
+                <input required defaultValue="19:00" name="time" type="time" className="w-full bg-slate-50 border border-slate-150 rounded-xl px-4 py-3 text-xs font-bold text-slate-900 outline-none focus:border-emerald-500" />
+              </div>
+              <button type="submit" className="w-full bg-slate-900 hover:bg-slate-800 text-white py-4 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-md transition-all active:scale-95">
+                Book Table
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 🛒 MOBILE CART SYSTEM BUTTON */}
+      {cart.length > 0 && !showCartDrawer && (
+        <div className="lg:hidden fixed bottom-8 left-6 right-6 z-[100] animate-in slide-in-from-bottom-12">
+          <button 
+            onClick={() => setShowCartDrawer(true)}
+            className="w-full bg-slate-900 text-white rounded-[2.5rem] p-3.5 flex items-center justify-between shadow-2xl border border-white/5 active:scale-95 transition-all"
+          >
+            <div className="flex items-center gap-3.5 pl-3">
+              <div className="relative">
+                <div className="w-11 h-11 bg-white/5 rounded-2xl flex items-center justify-center border border-white/10">
+                  <ShoppingBag className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-slate-950 rounded-full flex items-center justify-center border-2 border-slate-900">
+                  <span className="text-[9px] font-black font-mono">{totalCartItems}</span>
+                </div>
+              </div>
+              <div className="text-left">
+                <p className="text-[8px] font-black uppercase text-slate-400 tracking-widest leading-none mb-1 font-sans">
+                  View Bag
+                </p>
+                <p className="text-base font-extrabold font-mono text-emerald-400">
+                  {symbol}{finalTotal.toFixed(0)}
+                </p>
+              </div>
+            </div>
+            <div className="bg-emerald-500 text-slate-950 px-5 py-3 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center gap-1.5 font-sans shadow-lg">
+              Next <ChevronRight className="w-4 h-4" />
+            </div>
+          </button>
+        </div>
+      )}
+
+      {/* 🎁 CART DRAWER OVERLAY (LIGHT THEME, RESPONSIVE SLIDE-OUT) */}
+      {showCartDrawer && (
+        <div className="fixed inset-0 z-[300] flex items-end lg:items-stretch lg:justify-end justify-center font-sans">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowCartDrawer(false)} />
+          <div className="relative w-full max-w-lg lg:max-w-md bg-white rounded-t-[3rem] lg:rounded-t-none lg:rounded-l-[2rem] border-t lg:border-t-0 lg:border-l border-slate-100 shadow-2xl animate-in slide-in-from-bottom-full lg:slide-in-from-right duration-500 flex flex-col max-h-[90vh] lg:max-h-full lg:h-full">
+            {/* Header */}
+            <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-black text-slate-950 uppercase tracking-tight italic font-serif">
+                  My Order Bag
+                </h3>
+                <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                  {totalCartItems} Items Selected
+                </p>
+              </div>
+              <button 
+                onClick={() => setShowCartDrawer(false)} 
+                className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center border border-slate-100 active:scale-90 transition-all"
+              >
+                <X className="w-5 h-5 text-slate-400" />
+              </button>
+            </div>
+
+            {/* Cart Content */}
+            <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-6">
+              {/* Item List */}
+              <div className="space-y-4">
+                {cart.map(item => (
+                  <div key={item.id} className="flex items-center gap-3.5 py-1.5 animate-in fade-in slide-in-from-right-4">
+                    <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
+                      {item.image_url ? (
+                        <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover" alt="p" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center opacity-20"><Utensils className="w-5 h-5 text-slate-400" /></div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-black text-slate-900 leading-tight uppercase italic truncate font-serif">
+                        {item.product_name}
+                      </p>
+                      <p className="text-[9px] font-black text-slate-400 uppercase mt-0.5">
+                        {symbol}{item.price} per item
+                      </p>
+                    </div>
+                    <div className="bg-slate-50 rounded-xl p-1 flex items-center gap-2.5 border border-slate-100">
+                      <button 
+                        onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))}
+                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-600 active:scale-90 transition-all"
+                      >
+                        <Minus className="w-3.5 h-3.5" />
+                      </button>
+                      <span className="text-xs font-black text-slate-900 font-mono w-4 text-center">{item.qty}</span>
+                      <button 
+                        onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
+                        className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-600 active:scale-90 transition-all"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   </div>
                 ))}
-             </div>
-          </div>
-          <aside className="hidden lg:block sticky top-32 space-y-8 font-sans">
-             <div className="bg-white rounded-[3.5rem] shadow-2xl border border-white p-12">
-                <div className="flex items-center justify-between mb-12">
-                   <h2 className="text-lg font-black text-slate-950 uppercase tracking-tighter flex items-center gap-4 italic"><ShoppingBag className="w-7 h-7 text-emerald-500" /> My Bag</h2>
-                   <span className="bg-slate-100 text-slate-500 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest">{totalCartItems}</span>
-                </div>
-                {cart.length === 0 ? <div className="py-24 text-center opacity-10 flex flex-col items-center"><ShoppingBag className="w-16 h-16 mb-6" /><p className="text-[12px] font-black uppercase tracking-widest">Bag is Empty</p></div> : (
-                  <div className="space-y-12">
-                     <div className="max-h-[400px] overflow-y-auto no-scrollbar pr-3 space-y-8">
-                        {cart.map(ci => (
-                          <div key={ci.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
-                             <div className="flex-1 text-left"><p className="text-[12px] font-black text-slate-900 leading-tight mb-1 uppercase italic">{ci.product_name}</p><p className="text-[10px] font-black text-slate-400 uppercase">{symbol}{ci.price} x {ci.qty}</p></div>
-                             <div className="bg-slate-50 rounded-2xl p-1.5 flex items-center gap-2 border border-slate-100"><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: Math.max(0, i.qty - 1)} : i).filter(i => i.qty > 0))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-rose-500 transition-all"><Minus className="w-3.5 h-3.5" /></button><span className="text-[11px] font-black text-slate-950 px-2">{ci.qty}</span><button onClick={() => setCart(cart.map(i => i.id === ci.id ? {...i, qty: ci.qty + 1} : i))} className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-emerald-500 transition-all"><Plus className="w-3.5 h-3.5" /></button></div>
-                          </div>
-                        ))}
-                     </div>
-                      <div className="border-t-2 border-slate-50 pt-10 space-y-5">
-                          {(!customerPhone || customerPhone.length < 5) ? (
-                            <div className="space-y-4 mb-8 bg-slate-50 p-6 rounded-[2rem] border border-slate-100">
-                               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Order Details</p>
-                               <input 
-                                 type="text" 
-                                 placeholder="Your Name" 
-                                 className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
-                                 value={customerName}
-                                 onChange={e => setCustomerName(e.target.value)}
-                               />
-                               <div className="flex items-center bg-white border border-slate-200 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
-                                 <select 
-                                   className="bg-transparent pl-4 pr-1 py-3.5 text-xs font-bold outline-none border-r border-slate-100" 
-                                   value={countryCode} 
-                                   onChange={e => setCountryCode(e.target.value)}
-                                 >
-                                     {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
-                                 </select>
-                                 <input 
-                                   type="tel" 
-                                   placeholder="Phone Number" 
-                                   className="flex-1 bg-transparent px-4 py-3.5 text-xs font-bold outline-none" 
-                                   value={customerPhone}
-                                   onChange={e => setCustomerPhone(e.target.value)}
-                                 />
-                               </div>
-                            </div>
-                          ) : (
-                             <div className="mb-8 bg-slate-900 p-6 rounded-[2.5rem] shadow-xl border border-white/5 relative overflow-hidden text-left">
-                                <div className="absolute top-0 right-0 p-4 opacity-10"><CheckCircle2 className="w-10 h-10 text-white" /></div>
-                                <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest mb-1">Loyalty Account</p>
-                                <h3 className="text-xl font-black text-white uppercase italic truncate pr-10">{customerName || 'Guest'}</h3>
-                                <div className="mt-4 flex items-center gap-3">
-                                   <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/5">
-                                      <p className="text-[8px] font-black text-slate-500 uppercase">Points Balance</p>
-                                      <p className="text-lg font-black text-emerald-400">{loyaltyPoints}</p>
-                                   </div>
-                                   {loyaltyPoints >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                                      <button 
-                                        onClick={handleRequestAuth}
-                                        className="flex-1 py-3 px-4 rounded-xl bg-emerald-500 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 active:scale-95 transition-all"
-                                      >
-                                        Redeem
-                                      </button>
-                                   )}
-                                </div>
-                             </div>
-                          )}
+              </div>
 
-                          {pointsToRedeem > 0 && (
-                             <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-lg">
-                                <span>Points Applied ({pointsToRedeem})</span>
-                                <span>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
-                             </div>
-                          )}
-
-                          <div className="flex justify-between text-2xl items-center text-slate-950 font-black pt-8 tracking-tighter uppercase italic"><span>Payable</span><span>{symbol}{finalTotal.toFixed(0)}</span></div>
+              {/* Loyalty & Auth in Drawer */}
+              <div className="pt-4 border-t border-slate-100">
+                {(!customerPhone || customerPhone.length < 5 || customerPhone === 'undefined') ? (
+                  <div className="bg-slate-55 p-5 rounded-3xl border border-slate-100 space-y-4">
+                    <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest ml-1">
+                      Identify for Rewards
+                    </p>
+                    <input 
+                      type="text" 
+                      placeholder="Full Name" 
+                      className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-600 transition-all placeholder:text-slate-400"
+                      value={customerName || ''}
+                      onChange={e => setCustomerName(e.target.value)}
+                    />
+                    <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden focus-within:border-emerald-600 transition-all">
+                      <select 
+                        className="bg-transparent pl-3 pr-1 py-3.5 text-xs font-bold text-slate-800 outline-none border-r border-slate-100" 
+                        value={countryCode} 
+                        onChange={e => setCountryCode(e.target.value)}
+                      >
+                        {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
+                      </select>
+                      <input 
+                        type="tel" 
+                        placeholder="Phone Number" 
+                        className="flex-1 bg-transparent px-3 py-3.5 text-xs font-bold text-slate-800 outline-none placeholder:text-slate-400" 
+                        value={customerPhone || ''}
+                        onChange={e => setCustomerPhone(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-slate-900 text-white p-5 rounded-3xl border border-slate-850 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5"><Sparkles className="w-10 h-10 text-white" /></div>
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <p className="text-[8px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">
+                          Loyalty Profile
+                        </p>
+                        <p className="text-sm font-black text-white uppercase italic font-serif">
+                          {customerName || 'Loyal Guest'}
+                        </p>
                       </div>
-                     <div className="space-y-3">
-                        <button onClick={placeOrder} disabled={placing} className="w-full bg-slate-950 hover:bg-black text-white py-6 rounded-[2.2rem] font-black text-[13px] uppercase tracking-widest shadow-2xl active:scale-95 transition-all flex items-center justify-center gap-5">
-                          {placing ? <RefreshCw className="animate-spin w-5 h-5 font-sans" /> : <>Complete Order <ChevronRight className="w-5 h-5 text-emerald-500" /></>}
-                        </button>
-                        <button 
-                          onClick={() => alert("💎 Premium Instant Pay (Apple/Google/UPI) is being integrated for your region.")}
-                          className="w-full bg-white border-2 border-slate-100 text-slate-900 py-4 rounded-[1.8rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-50 transition-all"
-                        >
-                           <CreditCard className="w-4 h-4 text-indigo-500" /> Instant Checkout
-                        </button>
-                     </div>
+                      <div className="text-right">
+                        <p className="text-[8px] font-black text-slate-450 uppercase tracking-widest leading-none mb-1">
+                          Balance
+                        </p>
+                        <p className="text-sm font-extrabold text-emerald-400 font-mono">
+                          {loyaltyPoints || 0}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
+                      <button 
+                        onClick={handleRedeemRequest}
+                        className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-black uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Gift className="w-3.5 h-3.5" /> Redeem Points Now
+                      </button>
+                    )}
+
+                    {pointsToRedeem > 0 && (
+                      <div className="w-full py-2.5 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-emerald-400 font-mono">
+                        <p>Applied Points: {pointsToRedeem}</p>
+                        <p>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</p>
+                      </div>
+                    )}
+
+                    {promoDiscountAmount > 0 && (
+                      <div className="w-full mt-2.5 py-2.5 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-emerald-400 font-mono">
+                        <p>Applied Promo: {appliedDiscount.name}</p>
+                        <p>-{symbol}{promoDiscountAmount.toFixed(0)}</p>
+                      </div>
+                    )}
                   </div>
                 )}
-             </div>
-          </aside>
-       </div>
+              </div>
 
-       {/* 🛒 MOBILE CART SYSTEM */}
-       {cart.length > 0 && !showCartDrawer && (
-          <div className="lg:hidden fixed bottom-10 left-8 right-8 z-[100] animate-in slide-in-from-bottom-12">
-             <button 
-               onClick={() => setShowCartDrawer(true)}
-               className="w-full bg-slate-950 text-white rounded-[3rem] p-4 flex items-center justify-between shadow-2xl shadow-slate-950/50 border border-white/10 active:scale-95 transition-all"
-             >
-                <div className="flex items-center gap-4 pl-4">
-                   <div className="relative">
-                      <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center">
-                         <ShoppingBag className="w-6 h-6 text-emerald-400" />
-                      </div>
-                      <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center border-2 border-slate-950">
-                         <span className="text-[9px] font-black">{totalCartItems}</span>
-                      </div>
-                   </div>
-                   <div className="text-left">
-                      <p className="text-[9px] font-black uppercase text-white/30 tracking-widest leading-none mb-1 font-sans">View Cart</p>
-                      <p className="text-lg font-black">{symbol}{finalTotal.toFixed(0)}</p>
-                   </div>
+              {/* Delivery Address Mode in Mobile */}
+              {fulfillmentMode === "DELIVERY" && (
+                <div className="space-y-2 mt-4">
+                  <p className="text-[9px] font-black text-slate-450 uppercase tracking-widest ml-1">
+                    Delivery Address
+                  </p>
+                  <input 
+                    type="text" 
+                    placeholder="Enter street, flat / house no, building name" 
+                    className="w-full bg-white border border-slate-200 px-5 py-3.5 rounded-xl text-xs font-bold text-slate-800 outline-none focus:border-emerald-600 transition-all placeholder:text-slate-400"
+                    value={customerAddress}
+                    onChange={e => setCustomerAddress(e.target.value)}
+                  />
                 </div>
-                <div className="bg-emerald-500 text-slate-950 px-6 py-3.5 rounded-[2rem] font-black text-[11px] uppercase tracking-widest flex items-center gap-2 font-sans">
-                   Next <ChevronRight className="w-4 h-4" />
-                </div>
-             </button>
-          </div>
-       )}
-
-       {/* 🎁 FULL CART DRAWER OVERLAY */}
-       {showCartDrawer && (
-         <div className="fixed inset-0 z-[300] flex items-end justify-center font-sans">
-            <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setShowCartDrawer(false)} />
-            <div className="relative w-full max-w-lg bg-white rounded-t-[3.5rem] shadow-2xl animate-in slide-in-from-bottom-full duration-500 flex flex-col max-h-[90vh]">
-               {/* Header */}
-               <div className="p-8 border-b border-slate-50 flex items-center justify-between">
-                  <div>
-                     <h2 className="text-xl font-black text-slate-950 uppercase tracking-tighter italic">My Order</h2>
-                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">{totalCartItems} Items Selected</p>
-                  </div>
-                  <button onClick={() => setShowCartDrawer(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center active:scale-90 transition-all">
-                     <X className="w-6 h-6 text-slate-400" />
-                  </button>
-               </div>
-
-               {/* Cart Content */}
-               <div className="flex-1 overflow-y-auto no-scrollbar p-8 space-y-8">
-                  {/* Item List */}
-                  <div className="space-y-6">
-                     {cart.map(item => (
-                        <div key={item.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
-                           <div className="w-16 h-16 rounded-2xl bg-slate-50 overflow-hidden shrink-0">
-                              {item.image_url ? (
-                                 <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover" alt="p" />
-                              ) : (
-                                 <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-6 h-6" /></div>
-                              )}
-                           </div>
-                           <div className="flex-1 min-w-0">
-                              <p className="text-sm font-black text-slate-900 leading-tight uppercase italic truncate">{item.product_name}</p>
-                              <p className="text-[10px] font-black text-slate-400 uppercase mt-1">{symbol}{item.price} per item</p>
-                           </div>
-                           <div className="bg-slate-100 rounded-xl p-1 flex items-center gap-3">
-                              <button 
-                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))}
-                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-rose-500 active:scale-90 transition-all"
-                              >
-                                 <Minus className="w-3.5 h-3.5" />
-                              </button>
-                              <span className="text-xs font-black text-slate-900 w-4 text-center">{item.qty}</span>
-                              <button 
-                                onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))}
-                                className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-emerald-500 active:scale-90 transition-all"
-                              >
-                                 <Plus className="w-3.5 h-3.5" />
-                              </button>
-                           </div>
-                        </div>
-                     ))}
-                  </div>
-
-                  {/* Loyalty Section */}
-                  <div className="pt-4">
-                     {(!customerPhone || customerPhone.length < 5 || customerPhone === 'undefined') ? (
-                        <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 space-y-4">
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identify for Rewards</p>
-                           <input 
-                             type="text" 
-                             placeholder="Full Name" 
-                             className="w-full bg-white border border-slate-200 px-6 py-4 rounded-2xl text-xs font-bold outline-none focus:border-emerald-500 transition-all"
-                             value={customerName || ''}
-                             onChange={e => setCustomerName(e.target.value)}
-                           />
-                           <div className="flex items-center bg-white border border-slate-200 rounded-2xl overflow-hidden focus-within:border-emerald-500 transition-all">
-                              <select 
-                                className="bg-transparent pl-4 pr-1 py-4 text-xs font-bold outline-none border-r border-slate-100" 
-                                value={countryCode} 
-                                onChange={e => setCountryCode(e.target.value)}
-                              >
-                                 {countryCodes.map(c => <option key={c.code} value={c.code}>+{c.code}</option>)}
-                              </select>
-                              <input 
-                                type="tel" 
-                                placeholder="Phone Number" 
-                                className="flex-1 bg-transparent px-4 py-4 text-xs font-bold outline-none" 
-                                value={customerPhone || ''}
-                                onChange={e => setCustomerPhone(e.target.value)}
-                              />
-                           </div>
-                        </div>
-                     ) : (
-                        <div className="bg-slate-900 p-6 rounded-[2.5rem] shadow-xl relative overflow-hidden">
-                           <div className="absolute top-0 right-0 p-4 opacity-10"><Sparkles className="w-12 h-12 text-white" /></div>
-                           <div className="flex items-center justify-between mb-6">
-                              <div>
-                                 <p className="text-[10px] font-black text-emerald-400 uppercase tracking-widest leading-none mb-1">Your Rewards</p>
-                                 <p className="text-lg font-black text-white uppercase italic">{customerName || 'Loyal Guest'}</p>
-                              </div>
-                              <div className="text-right">
-                                 <p className="text-[10px] font-black text-white/30 uppercase tracking-widest leading-none mb-1">Balance</p>
-                                 <p className="text-xl font-black text-emerald-400">{loyaltyPoints || 0}</p>
-                              </div>
-                           </div>
-                           
-                           {(loyaltyPoints || 0) >= (biz?.min_redeem_points || 300) && pointsToRedeem === 0 && (
-                              <button 
-                                onClick={handleRedeemRequest}
-                                className="w-full py-4 rounded-2xl bg-emerald-500 text-slate-950 text-[11px] font-black uppercase tracking-widest shadow-xl shadow-emerald-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
-                              >
-                                <Gift className="w-4 h-4" /> Redeem Points Now
-                              </button>
-                           )}
-
-                           {pointsToRedeem > 0 && (
-                              <div className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/5 flex justify-between items-center">
-                                 <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Points Applied: {pointsToRedeem}</p>
-                                 <p className="text-sm font-black text-white">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</p>
-                              </div>
-                           )}
-                        </div>
-                     )}
-                  </div>
-               </div>
-
-               {/* Footer / Confirm */}
-               <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-t-[3.5rem]">
-                  <div className="flex justify-between items-center mb-6 px-4">
-                     <p className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Final Bill</p>
-                     <p className="text-3xl font-black text-slate-950 tracking-tighter">{symbol}{finalTotal.toFixed(0)}</p>
-                  </div>
-                  <div className="space-y-3">
-                     <button 
-                       onClick={() => {
-                          if(!customerName || !customerPhone || customerPhone.length < 5) return alert("Please enter your name and valid phone number");
-                          placeOrder();
-                       }} 
-                       disabled={placing}
-                       className="w-full bg-emerald-500 hover:bg-emerald-600 text-slate-950 py-6 rounded-[2.5rem] font-black text-sm uppercase tracking-[0.2em] shadow-2xl shadow-emerald-500/30 flex items-center justify-center gap-4 active:scale-95 transition-all"
-                     >
-                        {placing ? <RefreshCw className="w-6 h-6 animate-spin" /> : <>Place Order <ChevronRight className="w-6 h-6" /></>}
-                     </button>
-                     <button 
-                        onClick={() => alert("💎 Premium Instant Pay (Apple/Google/UPI) is being integrated for your region.")}
-                        className="w-full bg-white border border-slate-200 text-slate-900 py-4 rounded-[2rem] font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2"
-                     >
-                        <CreditCard className="w-4 h-4 text-emerald-500" /> One-Tap Pay
-                     </button>
-                  </div>
-                  <div className="mt-12 py-10 border-t border-slate-100 text-center">
-                      <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] mb-4">Powered by SaSLoop</p>
-                      <div className="flex justify-center gap-3 mb-6">
-                         {biz?.social_instagram && (
-                            <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-pink-600 transition-all border border-slate-100 shadow-sm">
-                               <Globe className="w-4 h-4" />
-                            </a>
-                         )}
-                         {biz?.social_website && (
-                            <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-emerald-600 transition-all border border-slate-100 shadow-sm">
-                               <Globe className="w-4 h-4" />
-                            </a>
-                         )}
-                         {biz?.settings?.google_review_link && (
-                            <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400 hover:text-amber-500 transition-all border border-slate-100 shadow-sm">
-                               <Star className="w-4 h-4" />
-                            </a>
-                         )}
-                      </div>
-                      <div className="flex justify-center gap-4">
-                         <div className="w-8 h-8 bg-slate-50 rounded-xl flex items-center justify-center grayscale opacity-30 shadow-inner"><Utensils className="w-4 h-4" /></div>
-                      </div>
-                   </div>
-               </div>
+              )}
             </div>
-         </div>
-       )}
-      
-      {/* FLOATING ACTION BUTTONS */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-[150]">
-         <button 
-           onClick={() => setShowCategories(true)}
-           className="w-14 h-14 bg-white text-slate-900 rounded-full shadow-2xl flex items-center justify-center border border-slate-100 active:scale-90 transition-all"
-         >
-           <LayoutGrid className="w-6 h-6" />
-         </button>
 
-         <button 
-          onClick={callWaiter}
-          className="w-14 h-14 bg-amber-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
-        >
-          <BellRing className="w-7 h-7" />
-        </button>
+            {/* Footer Summary and Place Order */}
+            <div className="p-8 bg-slate-50 border-t border-slate-100 rounded-t-[3rem]">
+              <div className="flex justify-between items-center mb-6 px-4">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
+                  Total Payable
+                </p>
+                <p className="text-3xl font-extrabold text-slate-950 tracking-tighter font-mono text-emerald-600">
+                  {symbol}{finalTotal.toFixed(0)}
+                </p>
+              </div>
 
-        <a 
-           href={`https://wa.me/${biz?.phone || ''}`} 
-           target="_blank" 
-           rel="noreferrer"
-           className="w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl flex items-center justify-center active:scale-90 transition-all"
-         >
-           <MessageCircle className="w-7 h-7" />
-         </a>
-      </div>
+              <div className="space-y-2">
+                <button 
+                  onClick={() => {
+                     if (!customerName || !customerPhone || customerPhone.length < 5) {
+                       return alert("Please enter your name and valid phone number");
+                     }
+                     placeOrder();
+                  }} 
+                  disabled={placing}
+                  className="w-full bg-slate-900 hover:bg-slate-800 text-white py-5 rounded-[2rem] font-black text-xs uppercase tracking-[0.15em] shadow-xl flex items-center justify-center gap-3 transition-all active:scale-95"
+                >
+                  {placing ? <RefreshCw className="w-5 h-5 animate-spin" /> : <>Confirm & Place Order <ChevronRight className="w-5 h-5 text-white" /></>}
+                </button>
+                <button 
+                  onClick={() => alert("💎 Premium Instant Pay (Apple/Google/UPI) is being integrated for your region.")}
+                  className="w-full bg-white border border-slate-200 text-slate-900 py-3.5 rounded-[1.5rem] font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 transition-all"
+                >
+                  <CreditCard className="w-3.5 h-3.5 text-indigo-600" /> One-Tap Pay
+                </button>
+              </div>
 
-      {/* CATEGORIES MODAL */}
-      {showCategories && (
-        <div className="fixed inset-0 z-[300] flex items-end justify-center p-4 animate-in fade-in duration-300">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowCategories(false)} />
-          <div className="relative w-full max-w-sm bg-white rounded-[3rem] shadow-2xl p-8 pb-12 animate-in slide-in-from-bottom-full duration-500">
-             <div className="flex items-center justify-between mb-8">
-                <div>
-                   <h3 className="text-xl font-black text-slate-900 italic">Menu Sections</h3>
-                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Jump to any category</p>
+              <div className="mt-8 pt-6 border-t border-slate-100 text-center text-slate-450">
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] mb-3">
+                  Powered by SaSLoop
+                </p>
+                <div className="flex justify-center gap-3">
+                  {biz?.social_instagram && (
+                    <a href={biz.social_instagram} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-800">
+                      <Globe className="w-4 h-4" />
+                    </a>
+                  )}
+                  {biz?.social_website && (
+                    <a href={biz.social_website} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-800">
+                      <Globe className="w-4 h-4" />
+                    </a>
+                  )}
+                  {biz?.settings?.google_review_link && (
+                    <a href={biz.settings.google_review_link} target="_blank" rel="noreferrer" className="w-8 h-8 bg-slate-100 rounded-xl flex items-center justify-center border border-slate-200 text-slate-500 hover:text-slate-800">
+                      <Star className="w-4 h-4" />
+                    </a>
+                  )}
                 </div>
-                <button onClick={() => setShowCategories(false)} className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center active:scale-90 transition-all"><X className="w-5 h-5 text-slate-400" /></button>
-             </div>
-             <div className="grid grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto no-scrollbar pr-1">
-                {categories.map(cat => (
-                  <button 
-                    key={cat} 
-                    onClick={() => {
-                      const el = document.getElementById(`cat-${cat}`);
-                      if (el) {
-                         const offset = 100;
-                         const elementPosition = el.getBoundingClientRect().top;
-                         const offsetPosition = elementPosition + window.pageYOffset - offset;
-                         window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-                      }
-                      setShowCategories(false);
-                    }}
-                    className="p-5 bg-slate-50 hover:bg-emerald-50 text-slate-600 hover:text-emerald-700 rounded-[1.8rem] text-[10px] font-black uppercase tracking-widest text-center transition-all border-2 border-transparent hover:border-emerald-100 active:scale-95"
-                  >
-                    {cat}
-                  </button>
-                ))}
-             </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
-      {/* VIP KEY MODAL */}
-      {showVIPKey && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-950/60 backdrop-blur-md animate-in fade-in duration-300">
-           <div className="bg-white w-full max-w-sm rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 font-sans">
-              <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
-                 <h3 className="text-3xl font-black tracking-tighter uppercase italic italic-shadow mb-1">Elite VIP</h3>
-                 <p className="text-[9px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-8">Digital Pass Key</p>
-                 
-                 <div className="w-32 h-32 bg-white rounded-3xl mx-auto mb-8 p-3 shadow-2xl flex items-center justify-center">
-                    <QrCode className="w-full h-full text-slate-900" />
-                 </div>
-                 
-                 <p className="text-xs font-bold opacity-60 mb-8 uppercase tracking-widest">Scan at store for instant points</p>
-                 
-                 <div className="flex flex-col gap-3">
-                    <button className="w-full py-4 bg-white text-slate-950 rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
-                       Add to Apple Wallet <ArrowUpRight className="w-4 h-4" />
-                    </button>
-                    <button className="w-full py-4 bg-slate-800 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
-                       Google Pay <ArrowUpRight className="w-4 h-4" />
-                    </button>
-                 </div>
+      
+      {/* FLOATING ACTION UTILITY BUTTONS */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-3 z-[150]">
+        <button 
+          onClick={() => setShowCategories(true)}
+          className="w-14 h-14 bg-white border border-slate-200 text-slate-800 rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          title="Categories"
+        >
+          <LayoutGrid className="w-5 h-5 text-emerald-600" />
+        </button>
+
+        {tableId && tableId !== "0" && (
+          <button 
+            onClick={callWaiter}
+            className="w-14 h-14 bg-amber-500 text-slate-950 rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+            title="Call Waiter"
+          >
+            <BellRing className="w-6 h-6 animate-pulse" />
+          </button>
+        )}
+
+        <a 
+          href={`https://wa.me/${(biz?.whatsapp_number || biz?.phone || '').replace(/\D/g, '')}`} 
+          target="_blank" 
+          rel="noreferrer"
+          className="w-14 h-14 bg-emerald-600 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all"
+          title="Contact Store"
+        >
+          <MessageCircle className="w-6 h-6" />
+        </a>
+      </div>
+
+      {/* CATEGORIES NAVIGATION MODAL */}
+      {showCategories && (
+        <div className="fixed inset-0 z-[300] flex items-end justify-center p-4 animate-in fade-in duration-300">
+          <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm" onClick={() => setShowCategories(false)} />
+          <div className="relative w-full max-w-sm bg-white border border-slate-100 rounded-[2.5rem] shadow-2xl p-8 pb-12 animate-in slide-in-from-bottom-full duration-500">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-lg font-black text-slate-900 italic font-serif uppercase tracking-tight">
+                  Menu Sections
+                </h3>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Jump to any category
+                </p>
               </div>
-              <button onClick={() => setShowVIPKey(false)} className="w-full py-5 text-slate-400 font-black text-[10px] uppercase tracking-widest border-t border-slate-50">Close Pass</button>
-           </div>
+              <button 
+                onClick={() => setShowCategories(false)} 
+                className="w-10 h-10 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-center active:scale-90 transition-all"
+              >
+                <X className="w-5 h-5 text-slate-450" />
+              </button>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2.5 max-h-[45vh] overflow-y-auto no-scrollbar pr-1">
+              {categories.map(cat => (
+                <button 
+                  key={cat} 
+                  onClick={() => {
+                    const el = document.getElementById(`cat-${cat}`);
+                    if (el) {
+                       const offset = 140;
+                       const elementPosition = el.getBoundingClientRect().top;
+                       const offsetPosition = elementPosition + window.pageYOffset - offset;
+                       window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                    }
+                    setActiveCategory(cat);
+                    setShowCategories(false);
+                  }}
+                  className="p-4 bg-slate-55 hover:bg-emerald-50 text-slate-500 hover:text-emerald-700 rounded-2xl text-[9px] font-black uppercase tracking-widest text-center transition-all border border-slate-100 hover:border-emerald-100 active:scale-95"
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* VIP PASS KEY MODAL (Retained dark style for luxury contrast) */}
+      {showVIPKey && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="bg-slate-900 w-full max-w-sm rounded-[3rem] border border-white/10 overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300 font-sans">
+            <div className="bg-slate-950 p-10 text-white text-center relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-500/10 rounded-full blur-2xl" />
+              <h3 className="text-2xl font-black tracking-tight uppercase italic mb-1 font-serif">
+                Elite VIP
+              </h3>
+              <p className="text-[8px] font-black text-indigo-400 uppercase tracking-[0.45em] mb-8">
+                Digital Pass Key
+              </p>
+              
+              <div className="w-36 h-36 bg-white rounded-[2rem] mx-auto mb-8 p-4 shadow-2xl flex items-center justify-center border-4 border-indigo-500/20">
+                <QrCode className="w-full h-full text-slate-950" />
+              </div>
+              
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">
+                Scan QR at outlet for instant cashback points
+              </p>
+              
+              <div className="flex flex-col gap-2.5">
+                <button className="w-full py-4 bg-white hover:bg-slate-100 text-slate-950 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all">
+                  Add to Apple Wallet <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+                <button className="w-full py-4 bg-slate-800 hover:bg-slate-750 text-white rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2.5 transition-all border border-white/5">
+                  Google Pay Wallet <ArrowUpRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+            <button 
+              onClick={() => setShowVIPKey(false)} 
+              className="w-full py-5 text-slate-400 hover:text-white font-black text-[10px] uppercase tracking-widest border-t border-white/5 bg-slate-900 transition-all"
+            >
+              Close Pass
+            </button>
+          </div>
         </div>
       )}
     </div>

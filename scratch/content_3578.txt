@@ -1,0 +1,68 @@
+Created At: 2026-06-09T14:21:49Z
+Completed At: 2026-06-09T14:21:50Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 2450
+Total Bytes: 124879
+Showing lines 750 to 830
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+750:                                     posSettings = posSettings,
+751:                                     billingViewModel = billingViewModel,
+752:                                     user = user,
+753:                                     context = context,
+754:                                     onActiveSubTabChange = { activeSubTab = it }
+755:                                 )
+756:                             }
+757:                             "BILLING" -> {
+758:                                 BillingSubTab(
+759:                                     billingItems = billingItems,
+760:                                     posSettings = posSettings,
+761:                                     orderType = orderType,
+762:                                     discountInput = discountInput,
+763:                                     onDiscountInputChange = { discountInput = it },
+764:                                     serviceChargeInput = serviceChargeInput,
+765:                                     onServiceChargeInputChange = { serviceChargeInput = it },
+766:                                     deliveryChargeInput = deliveryChargeInput,
+767:                                     onDeliveryChargeInputChange = { deliveryChargeInput = it },
+768:                                     advancePaidInput = advancePaidInput,
+769:                                     onAdvancePaidInputChange = { advancePaidInput = it },
+770:                                     isComplimentaryOrder = isComplimentaryOrder,
+771:                              
+<truncated 1843 bytes>
+                                )
+795:                             }
+796: 
+797:             if (showPaymentDialog) {
+798:                 PaymentDialog(
+799:                     onDismissRequest = { showPaymentDialog = false },
+800:                     billingItems = billingItems,
+801:                     discountInput = discountInput,
+802:                     serviceChargeInput = serviceChargeInput,
+803:                     deliveryChargeInput = deliveryChargeInput,
+804:                     posSettings = posSettings,
+805:                     orderType = orderType,
+806:                     isComplimentaryOrder = isComplimentaryOrder,
+807:                     advancePaidInput = advancePaidInput,
+808:                     paymentMethod = paymentMethod,
+809:                     onPaymentMethodChange = { paymentMethod = it },
+810:                     customerName = customerName,
+811:                     customerPhone = customerPhone,
+812:                     selectedDialCode = selectedDialCode,
+813:                     customerAddress = customerAddress,
+814:                     activeFlow = activeFlow,
+815:                     preOrderDate = preOrderDate,
+816:                     preOrderTime = preOrderTime,
+817:                     preOrderTypeInput = preOrderTypeInput,
+818:                     preOrderIdInput = preOrderIdInput,
+819:                     selectedTable = selectedTable,
+820:                     selectedWaiter = selectedWaiter,
+821:                     user = user,
+822:                     billingViewModel = billingViewModel,
+823:                     context = context
+824:                 )
+825:             }
+826: 
+827:             val itemForModifiers = selectedItemForModifiers
+828:             if (itemForModifiers != null) {
+829:                 ItemCustomizationDialog(
+830:                     item = itemForModifiers,
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

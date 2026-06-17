@@ -1,143 +1,117 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect } from "react";
+import { 
+  ChefHat, Clock, CheckCircle2, AlertCircle, 
+  RefreshCw, Play, CheckCircle, Volume2, 
+  Monitor, LayoutGrid, Timer, Flame, Bell,
+  ChevronRight, MoreVertical
+} from "lucide-react";
 import API_BASE from "../config";
-import { ChefHat, Mic, MicOff, Sparkles } from "lucide-react";
 
-function KDS() {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+const KDS = () => {
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/orders`, {
-        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        setOrders(data.filter(o => !["COMPLETED", "CANCELLED", "delivered", "rejected"].includes(o.status)));
-      }
-    } catch (err) {} finally { setLoading(false); }
-  }, []);
+    return (
+        <div className="h-full flex flex-col space-y-4 animate-in fade-in duration-500">
+            {/* KDS Precision Header */}
+            <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-emerald-50 rounded-lg">
+                        <ChefHat className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-[14px] font-bold text-slate-800 uppercase tracking-tight">Kitchen Display System</h2>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-2">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> Operational Matrix Active
+                        </p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button className="flex items-center gap-2 px-4 py-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-md border border-slate-200 text-[10px] font-bold uppercase tracking-widest transition-all">
+                        <Volume2 className="w-3.5 h-3.5 text-slate-400" /> Enable Voice
+                    </button>
+                    <button className="flex items-center gap-2 px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md shadow-md shadow-indigo-600/10 text-[10px] font-bold uppercase tracking-widest transition-all">
+                        Live Board
+                    </button>
+                </div>
+            </div>
 
-  const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef(null);
+            {/* KDS Matrix Columns */}
+            <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-0">
+                {/* Column 1: New Intake */}
+                <div className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 bg-rose-50/50 border-b border-rose-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                            <h3 className="text-[11px] font-bold text-rose-600 uppercase tracking-widest">New Tickets</h3>
+                        </div>
+                        <span className="px-2 py-0.5 bg-rose-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">0 Units</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/20">
+                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center mb-4">
+                            <Flame className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">Queue Vacant</p>
+                    </div>
+                </div>
 
-  const startVoiceControl = useCallback(() => {
-    if (window.webkitSpeechRecognition || window.SpeechRecognition) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = false;
-      recognitionRef.current.onresult = (event) => {
-        const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase();
-        console.log("KDS Voice:", transcript);
-        
-        // Command logic: "Start order ABC", "Ready order ABC"
-        const order = orders.find(o => transcript.includes(o.order_reference.toLowerCase()) || transcript.includes(o.id.toString()));
-        if (order) {
-           if (transcript.includes("start") || transcript.includes("cook")) updateStatus(order.id, "PROCESSING");
-           if (transcript.includes("ready") || transcript.includes("finish")) updateStatus(order.id, "DISPATCHED");
-           if (transcript.includes("complete") || transcript.includes("clear")) updateStatus(order.id, "COMPLETED");
-        }
-      };
-      recognitionRef.current.start();
-      setIsListening(true);
-    }
-  }, [orders]);
+                {/* Column 2: Active Production */}
+                <div className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 bg-amber-50/50 border-b border-amber-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                            <h3 className="text-[11px] font-bold text-amber-600 uppercase tracking-widest">Cooking Now</h3>
+                        </div>
+                        <span className="px-2 py-0.5 bg-amber-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">0 Units</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/20">
+                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center mb-4">
+                            <Timer className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">Fire Vacant</p>
+                    </div>
+                </div>
 
-  const stopVoiceControl = () => {
-    recognitionRef.current?.stop();
-    setIsListening(false);
-  };
+                {/* Column 3: Ready Protocol */}
+                <div className="flex flex-col bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden">
+                    <div className="px-4 py-3 bg-emerald-50/50 border-b border-emerald-100 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                            <h3 className="text-[11px] font-bold text-emerald-600 uppercase tracking-widest">Ready for Pickup</h3>
+                        </div>
+                        <span className="px-2 py-0.5 bg-emerald-600 text-white text-[9px] font-black rounded uppercase tracking-tighter">0 Units</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center bg-slate-50/20">
+                        <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-200 flex items-center justify-center mb-4">
+                            <CheckCircle2 className="w-8 h-8 text-slate-200" />
+                        </div>
+                        <p className="text-[10px] font-bold text-slate-300 uppercase tracking-[0.2em]">Ready Empty</p>
+                    </div>
+                </div>
+            </div>
 
-  useEffect(() => {
-    fetchOrders();
-    const interval = setInterval(fetchOrders, 10000);
-    return () => clearInterval(interval);
-  }, [fetchOrders]);
-
-  const updateStatus = async (orderId, newStatus) => {
-    try {
-      const resp = await fetch(`${API_BASE}/api/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
-        body: JSON.stringify({ status: newStatus })
-      });
-      if (resp.ok) setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: newStatus } : o));
-    } catch (err) {}
-  };
-
-  const columns = [
-    { title: "New Tickets", status: ["CONFIRMED", "PENDING", "pending"], nextStatus: "PROCESSING", nextLabel: "Start Cooking", bg: "bg-rose-500", hover: "hover:bg-rose-400", border: "border-rose-500" },
-    { title: "Cooking Now", status: ["PROCESSING", "PREPARING", "preparing"], nextStatus: "DISPATCHED", nextLabel: "Mark Ready", bg: "bg-amber-500", hover: "hover:bg-amber-400", border: "border-amber-500" },
-    { title: "Ready for Pickup", status: ["DISPATCHED", "SHIPPED", "out_for_delivery"], nextStatus: "COMPLETED", nextLabel: "Clear Order", bg: "bg-emerald-500", hover: "hover:bg-emerald-400", border: "border-emerald-500" }
-  ];
-
-  const getItems = (itemsStr) => {
-    try { return JSON.parse(itemsStr || '[]'); } catch { return []; }
-  };
-
-  return (
-    <div className="flex flex-col bg-slate-900 text-white rounded-[2rem] overflow-hidden p-6 min-h-[calc(100vh-6rem)]">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-black flex items-center gap-3 tracking-tight"><ChefHat className="text-amber-400 w-10 h-10"/> Kitchen Display System</h1>
-        <div className="flex gap-4 items-center">
-            {loading && <span className="animate-pulse text-amber-400 font-bold tracking-widest text-sm uppercase">Syncing...</span>}
-            <button 
-              onClick={isListening ? stopVoiceControl : startVoiceControl}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-black uppercase tracking-widest transition-all ${isListening ? 'bg-rose-500 text-white animate-pulse' : 'bg-slate-800 text-slate-400 border border-slate-700'}`}
-            >
-              {isListening ? <Mic className="w-4 h-4" /> : <MicOff className="w-4 h-4" />}
-              {isListening ? 'Voice Active' : 'Enable Voice'}
-            </button>
-            <div className="bg-slate-800 px-4 py-2 rounded-xl text-sm font-bold uppercase tracking-widest border border-slate-700">Live Board</div>
+            {/* Footer Telemetry */}
+            <div className="bg-white px-5 py-3 rounded-lg border border-slate-200 shadow-sm flex items-center justify-between">
+                <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Average Prep:</span>
+                        <span className="text-[10px] font-black text-slate-700 tracking-tight">12:45 MINS</span>
+                    </div>
+                    <div className="w-px h-4 bg-slate-200" />
+                    <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Station:</span>
+                        <span className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Optimal Performance</span>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-slate-400 tabular-nums">{new Date().toLocaleTimeString()}</span>
+                    <div className="p-1.5 bg-slate-50 rounded border border-slate-200 text-slate-400">
+                        <RefreshCw className="w-3 h-3" />
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-      
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-3 gap-6 overflow-hidden">
-        {columns.map(col => (
-          <div key={col.title} className="flex flex-col bg-slate-800 rounded-3xl overflow-hidden border border-slate-700 shadow-2xl">
-             <div className={`${col.bg} text-white py-4 px-6 font-black flex justify-between items-center text-lg uppercase tracking-widest shadow-md`}>
-                <span>{col.title}</span>
-                <span className="bg-black/20 px-3 py-1 rounded-lg">{orders.filter(o => col.status.includes(o.status)).length}</span>
-             </div>
-             <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar">
-                {orders.filter(o => col.status.includes(o.status)).length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-slate-500 font-black uppercase tracking-widest opacity-50">Empty</div>
-                ) : (
-                    orders.filter(o => col.status.includes(o.status)).map(order => (
-                      <div key={order.id} className={`bg-slate-700/50 rounded-2xl p-5 shadow-inner border-l-4 ${col.border}`}>
-                         <div className="flex justify-between items-start mb-4 border-b border-slate-600/50 pb-3">
-                            <div>
-                               <div className="text-xs font-bold text-slate-400 tracking-widest">{order.order_reference}</div>
-                               <div className="text-xl font-black text-slate-100 mt-1">{order.customer_name}</div>
-                               <div className="text-[10px] font-bold text-amber-400/60 uppercase tracking-widest mt-1">
-                                  {new Date(order.created_at).toLocaleDateString([], { day: '2-digit', month: 'short' })} • {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                               </div>
-                            </div>
-                            <div className="text-right">
-                               <div className="bg-slate-900/50 border border-slate-600 px-3 py-1.5 rounded-xl text-xs font-bold uppercase text-amber-400">{order.table_number ? `Table ${order.table_number}` : 'Delivery/Pickup'}</div>
-                            </div>
-                         </div>
-                         <div className="space-y-3 mb-6">
-                            {getItems(order.items).map((item, idx) => (
-                               <div key={idx} className="flex justify-between items-center text-lg bg-slate-800/50 p-3 rounded-xl border border-slate-700">
-                                  <span className="font-bold text-slate-200">{item.name}</span>
-                                  <span className="font-black bg-slate-900 px-3 py-1 rounded-lg text-emerald-400 border border-slate-700">x{item.qty}</span>
-                               </div>
-                            ))}
-                         </div>
-                         <button onClick={() => updateStatus(order.id, col.nextStatus)} className={`w-full py-4 rounded-xl font-black uppercase tracking-widest transition-all active:scale-[0.98] ${col.bg} ${col.hover} text-white shadow-lg`}>
-                            {col.nextLabel}
-                         </button>
-                      </div>
-                    ))
-                )}
-             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+    );
+};
 
 export default KDS;

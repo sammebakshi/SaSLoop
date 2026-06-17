@@ -1,0 +1,354 @@
+{
+  "status": 200,
+  "outlet": [
+    {
+      "tmpos_id": "53456436",
+      "store_id": "53456436209790",
+      "name": "The Lagoon Restaurant",
+      "address": "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait",
+      "geo_latitude": "23.5880307",
+      "geo_longitude": "58.3828717",
+      "country_id": 191,
+      "brand_id": 4244,
+      "logo": "https://cdn.tmbill.com/backoffice/store-logo/1779362515803.png",
+      "digital_ordering_settings": {
+        "items": {
+          "description": 1,
+          "preparation_time": 1,
+          "show_nutritioninfo": 1,
+          "show_price_upto_decimal": 3
+        },
+        "other": {
+          "dinein": 1,
+          "pickup": 1,
+          "loyalty": 1,
+          "tagline": "Smart ordering. Seamless experience.  Click. Order. Relax.",
+          "delivery": 1,
+          "language": "all",
+          "skip_otp": true,
+          "send_ebill": 1,
+          "sendotpVia": 2,
+          "auto_accept": 1,
+          "auto_settle": 0,
+          "is_grid_view": 1,
+          "is_list_view": 0,
+          "item_sort_by": 1,
+          "category_sort": 1,
+          "dine_in_title": "Drive Thru",
+          "disable_ordernow": 0,
+          "card_category_view": 0,
+          "enable_subcat_view": 1,
+          "show_install_popup": 1,
+          "show_whatsapp_link": 1,
+          "login_with_whatsapp": 1,
+          "login_with_truecaller": 1,
+          "hide_food_type_from_ui": 0,
+          "enable_collapsible_view": 0,
+          "auto_accept_cash_payment": 1,
+          "dine_in_title_placeholder": "Please enter your car number",
+          "ask_for_ordertype_before_placing_order": 1
+        },
+        "pages": {
+          "aboutus": "https://cdn.tmbill.com/menu/53456436209790/aboutus.txt"
+        },
+        "theme": {
+          "font": "Cabin",
+          "title": "Default Theme",
+          "bgColor": "#ffffff",
+          "fontColor": "#000000",
+          "landingPage": {
+            "backgroundColor": null,
+            "backgroundImage": "https://cdn.tmbill.com/digimenu/assets/1770647497028.jpeg"
+          },
+          "mainbgColor": "#ffffff",
+          "primaryColor": "#1e7646",
+          "secondaryColor": "#000000"
+        },
+        "config": {
+          "custom_timing": {
+            "days": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ],
+            "every_day": 1,
+            "time_slots": []
+          },
+          "show_category_first": 1,
+          "delivery_areawise_charges": 0,
+          "auto_fulfill_on_delivery_done": 1
+        },
+        "customer": {
+          "promocode": {
+            "dinein": 1,
+            "pickup": 1,
+            "delivery": 1
+          },
+          "show_logo": 1,
+          "ask_for_tip": true,
+          "email_login": 0,
+          "order_later": 1,
+          "login_method": 1,
+          "reject_order": 1,
+          "pre_order_start_from": 3,
+          "delivery_within_limit": 1000,
+          "order_later_days_limit": 3,
+          "order_later_time_slots": [
+            {
+              "end_time": "01:30 PM",
+              "start_time": "01:00 PM"
+            },
+            {
+              "end_time": "03:30 PM",
+              "start_time": "02:30 PM"
+            },
+            {
+              "end_time": "10:00 AM",
+              "start_time": "09:00 AM"
+            }
+          ],
+          "pre_order_custom_range": {
+            "endDate": null,
+            "startDate": null
+          },
+          "ask_dob_while_registration": 1,
+          "ask_email_while_registration": 1,
+          "custom_msg_when_store_offline": "Currently offline? Bad luck! But don’t worry – we’re live on Talabat, Zomato, and Keeta!",
+          "verify_otp_while_registration": 1,
+          "ask_anniversary_while_registration": 1
+        },
+        "order_limit": {
+          "dinein": 0,
+          "pickup": 1,
+          "delivery": 20,
+          "cod_after_amount": 50
+        },
+        "pay_gateway": {
+          "dinein": [
+            {
+              "key": "cash",
+              "flag": 0,
+              "active": 1
+            },
+            {
+              "key": "pk_test_q4FgwBsVMTX7ovfUkCRAJ1hu",
+              "flag": 9,
+              "active": 1
+            },
+            {
+              "key": "noon",
+              "flag": 13,
+              "active": 1
+            },
+            {
+              "key": "pk_live_51PqaLd08YzHs48bLrjPqBHp2rQwjCIdJK88Myyrc2zhs8chNGa1izt4GV5sTmHCdDu14x6M0mkKRCNzkT6t44LoF008MJxMWpR",
+              "flag": 10,
+              "active": 1
+            },
+            {
+              "key": "JlIIDQ1LF5rPwUvbOkZT2TaDPUWTmR",
+              "flag": 12,
+              "active": 1
+            },
+            {
+              "key": "rzp_live_QrBY4PXddATwyD",
+              "flag": 1,
+              "active": 1
+            },
+            {
+              "key": "662033c361649ab785328c137f330266",
+              "flag": 11,
+              "active": 1
+            }
+          ],
+          "pickup": [
+            {
+              "key": "cash",
+              "flag": 0,
+              "active": 1
+            },
+            {
+              "key": "noon",
+              "flag": 13,
+              "active": 1
+            },
+            {
+              "key": "pk_live_51PqaLd08YzHs48bLrjPqBHp2rQwjCIdJK88Myyrc2zhs8chNGa1izt4GV5sTmHCdDu14x6M0mkKRCNzkT6t44LoF008MJxMWpR",
+              "flag": 10,
+              "active": 1
+            },
+            {
+              "key": "JlIIDQ1LF5rPwUvbOkZT2TaDPUWTmR",
+              "flag": 12,
+              "active": 1
+            },
+            {
+              "key": "rzp_live_QrBY4PXddATwyD",
+              "flag": 1,
+              "active": 1
+            },
+            {
+              "key": "662033c361649ab785328c137f330266",
+              "flag": 11,
+              "active": 1
+            },
+            {
+              "key": "pk_test_q4FgwBsVMTX7ovfUkCRAJ1hu",
+              "flag": 9,
+              "active": 1
+            }
+          ],
+          "webhook": {
+            "ayu_success_url": null,
+            "payu_failure_url": null
+          },
+          "delivery": [
+            {
+              "key": "cod",
+              "flag": 3,
+              "active": 1
+            },
+            {
+              "key": "pk_live_51PqaLd08YzHs48bLrjPqBHp2rQwjCIdJK88Myyrc2zhs8chNGa1izt4GV5sTmHCdDu14x6M0mkKRCNzkT6t44LoF008MJxMWpR",
+              "flag": 10,
+              "active": 1
+            },
+            {
+              "key": "JlIIDQ1LF5rPwUvbOkZT2TaDPUWTmR",
+              "flag": 12,
+              "active": 1
+            },
+            {
+              "key": "rzp_live_QrBY4PXddATwyD",
+              "flag": 1,
+              "active": 1
+            },
+            {
+              "key": "noon",
+              "flag": 13,
+              "active": 1
+            },
+            {
+              "key": "662033c361649ab785328c137f330266",
+              "flag": 11,
+              "active": 1
+            },
+            {
+              "key": "pk_test_q4FgwBsVMTX7ovfUkCRAJ1hu",
+              "flag": 9,
+              "active": 1
+            }
+          ]
+        },
+        "digi_banners": [
+          {
+            "link": "https://cdn.tmbill.com/backoffice/banner/1757403331895.jpeg",
+            "isactive": 1
+          },
+          {
+            "link": "https://cdn.tmbill.com/backoffice/banner/1757403344423.jpeg",
+            "isactive": 1
+          }
+        ],
+        "social_media": {
+          "fb": "https://www.facebook.com/TMBill/",
+          "call": 971543994488,
+          "insta": "https://www.instagram.com/tmbillapp/",
+          "show_fb": 1,
+          "website": "https://tmbill.com/",
+          "youtube": "https://www.youtube.com/@TMBillSoftware",
+          "linkedin": "https://www.linkedin.com/company/tmbill-software",
+          "pinterest": null,
+          "show_call": 1,
+          "show_insta": 1,
+          "show_website": 1,
+          "show_youtube": 1,
+          "show_linkedin": 1,
+          "show_pinterest": 1
+        },
+        "table_ordering": {
+          "show_pay": true,
+          "skip_otp": true,
+          "ask_for_tip": true,
+          "show_getbill": true,
+          "skip_callwaiter_auth": true,
+          "allow_request_assistance": true,
+          "request_assistance_types": [
+            "CW",
+            "GB",
+            "CT",
+            "GW",
+            "GC"
+          ]
+        },
+        "sent_msgto_customer": {
+          "via": 2,
+          "order_placed": 1,
+          "order_accepted": 1,
+          "order_cancelled": 1,
+          "order_fullfiled": 1,
+          "order_dispatched": 1,
+          "order_food_ready": 1
+        }
+      },
+      "disable_ordering": false,
+      "digital_ordering": 1,
+      "day_start_time": "07:05:00",
+      "day_close_time": "23:59:00",
+      "timezone": "Asia/Riyadh",
+      "website": null,
+      "table_reservation": 1,
+      "roundoff_upto_decimal": 3,
+      "enabled_round_off": 0,
+      "allowMultipleTax": null,
+      "dunzo_delivery_enabled": 0,
+      "menu": [
+        {
+          "id": 838,
+          "menu_name": "Clone Menu from PCM Menu"
+        }
+      ],
+      "country_name": "Saudi Arabia",
+      "country_code": "SA",
+      "dial_code": "+966",
+      "currency_symbol": "﷼",
+      "currency_code": "SAR"
+    }
+  ],
+  "brand": {
+    "id": 4244,
+    "title": "TMBill Global Brands",
+    "short_name": "TMBill",
+    "tmpos_id": "53456436",
+    "address": null,
+    "gst_no": null,
+    "phone": null,
+    "logo": "backoffice/brand/1721664081354.png",
+    "is_active": 1,
+    "website": null,
+    "extra_details": {
+      "g_id": "G-5MMMJXQQCY",
+      "ga_id": "G-5MMMJXQQCY",
+      "banners": [
+        {
+          "link": "https://cdn.tmbill.com/backoffice/brand/banner/1748261127139.jpeg",
+          "isactive": 1
+        }
+      ]
+    },
+    "settings": {
+      "delivery_types": {
+        "pickup": 1,
+        "delivery": 1
+      },
+      "allowMultipleTax": 1,
+      "select_outlet_manually": 0,
+      "delivery_areawise_charges": 0
+    }
+  },
+  "msg": "Success"
+}

@@ -1,0 +1,59 @@
+Created At: 2026-06-09T13:57:26Z
+Completed At: 2026-06-09T13:57:27Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 4606
+Total Bytes: 290638
+Showing lines 670 to 1100
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+670: 
+671:                         HorizontalDivider(color = CardBorderDark)
+672: 
+673:                         when (activeSubTab) {
+674:                             "MENU" -> {
+675:                                 // ── MENU SUB-TAB ──
+676:                                 Column(modifier = Modifier.weight(1f)) {
+677:                                     // Search Bar and iOS Switch
+678:                                     Row(
+679:                                         modifier = Modifier
+680:                                             .fillMaxWidth()
+681:                                             .background(CardDark)
+682:                                             .padding(horizontal = 16.dp, vertical = 10.dp),
+683:                                         horizontalArrangement = Arrangement.SpaceBetween,
+684:                                         verticalAlignment = Alignment.CenterVertically
+685:                                     ) {
+686:                                         BasicTextField(
+687:                                             value = searchQuery,
+688:                                             onValueChange = { billingViewModel.setSearchQuery(it) },
+689:                                             textStyle = TextStyle(color = TextPrimary, fontSize = 13.sp),
+690:                                             singleLine = true,
+691:                                             cursorBrush = SolidColor(SaSGreen),
+692:                                            
+<truncated 30890 bytes>
+rId }
+1075:                                     }
+1076:                                     Row(
+1077:                                         modifier = Modifier
+1078:                                             .fillMaxWidth()
+1079:                                             .background(SaSGreen)
+1080:                                             .padding(horizontal = 16.dp, vertical = 8.dp),
+1081:                                         horizontalArrangement = Arrangement.SpaceBetween,
+1082:                                         verticalAlignment = Alignment.CenterVertically
+1083:                                     ) {
+1084:                                         Text(
+1085:                                             text = selectedTable?.tableName ?: "Table",
+1086:                                             color = Color.White,
+1087:                                             fontWeight = FontWeight.ExtraBold,
+1088:                                             fontSize = 15.sp,
+1089:                                             modifier = Modifier.weight(1f)
+1090:                                         )
+1091:                                         Text(
+1092:                                             text = "K O T ${activeOrder?.id ?: "New"}",
+1093:                                             color = Color.White,
+1094:                                             fontWeight = FontWeight.ExtraBold,
+1095:                                             fontSize = 15.sp,
+1096:                                             textAlign = TextAlign.Center,
+1097:                                             modifier = Modifier.weight(1f)
+1098:                                         )
+1099:                                         OutlinedButton(
+1100:                                             onClick = {
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

@@ -1,0 +1,51 @@
+Created At: 2026-06-09T14:16:38Z
+Completed At: 2026-06-09T14:16:38Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 5164
+Total Bytes: 326452
+Showing lines 850 to 900
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+850:                                                         text = label,
+851:                                                         color = if (isSelected) Color.White else TextSecondary,
+852:                                                         fontSize = 10.sp,
+853:                                                         fontWeight = FontWeight.Bold
+854:                                                     )
+855:                                                 }
+856:                                             }
+857:                                         }
+858:                                         HorizontalDivider(color = CardBorderDark)
+859:                                     }
+860: 
+861:                                     // Menu Items Grid + Category FAB
+862:                                     Box(modifier = Modifier.weight(1f)) {
+863:                                         if (isLoading) {
+864:                                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+865:                                                 CircularProgressIndicator(color = SaSGreen)
+866:                                             }
+867:                                         } else if (error != null) {
+868:                                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+869:                                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+870:                          
+<truncated 973 bytes>
+s.isEmpty()) {
+881:                                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+882:                                                 Text("No items match filters", color = TextSecondary)
+883:                                             }
+884:                                         } else {
+885:                                             LazyVerticalGrid(
+886:                                                 columns = GridCells.Fixed(if (posSettings.showCompactItemView) 3 else 2),
+887:                                                 modifier = Modifier.fillMaxSize(),
+888:                                                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 80.dp),
+889:                                                 horizontalArrangement = Arrangement.spacedBy(12.dp),
+890:                                                 verticalArrangement = Arrangement.spacedBy(12.dp)
+891:                                             ) {
+892:                                                 items(sortedItems, key = { it.id }) { item ->
+893:                                                     val qtyInCart = remember(item.id, cart) {
+894:                                                         cart.filterKeys { it.id == item.id }.values.sum()
+895:                                                     }
+896:                                                     val punchedQty = remember(item.id, oldKotItems) {
+897:                                                         oldKotItems.filterKeys { it.id == item.id }.values.sum()
+898:                                                     }
+899: 
+900:                                                     val resolvedPrice = billingViewModel.resolveItemPrice(item, selectedPriceTier, currentOrderType)
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

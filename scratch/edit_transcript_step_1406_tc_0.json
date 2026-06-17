@@ -1,0 +1,7 @@
+{
+  "step_index": 1406,
+  "tool": "replace_file_content",
+  "description": "\"Sync local orderType state to ViewModel in BillingScreen.kt\"",
+  "instruction": "\"Add a LaunchedEffect(orderType) to synchronize the local UI orderType state with the ViewModel's currentOrderType.\"",
+  "chunks": "\"    LaunchedEffect(orderType) {\\n        billingViewModel.setCurrentOrderType(orderType)\\n    }\\n\\n    // Populate customer details automatically if editing an active order\\n    LaunchedEffect(selectedTable, activeOrders) {\""
+}

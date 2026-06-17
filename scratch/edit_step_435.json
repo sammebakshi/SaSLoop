@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add user parameter to BillingScreen signature.\"",
+  "EndLine": "64",
+  "Instruction": "\"Add the optional user parameter to BillingScreen.\"",
+  "ReplacementContent": "\"@OptIn(ExperimentalMaterial3Api::class)\\n@Composable\\nfun BillingScreen(billingViewModel: BillingViewModel, user: com.example.sasloopmanager.data.UserProfile? = null) {\"",
+  "StartLine": "60",
+  "TargetContent": "\"@OptIn(ExperimentalMaterial3Api::class)\\n@Composable\\nfun BillingScreen(billingViewModel: BillingViewModel) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\sasloop-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\example\\\\sasloopmanager\\\\ui\\\\BillingScreen.kt\"",
+  "toolAction": "\"Updating BillingScreen signature\"",
+  "toolSummary": "\"BillingScreen signature update\""
+}

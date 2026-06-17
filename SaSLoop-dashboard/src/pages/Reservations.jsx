@@ -1,101 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Calendar, Users, Clock, Check, X, Loader } from 'lucide-react';
-import API_BASE from '../config';
+import React, { useState, useEffect } from "react";
+import { 
+  Calendar, Clock, User, Phone, 
+  CheckCircle2, AlertCircle, RefreshCw, 
+  Plus, Search, Filter, History
+} from "lucide-react";
+import API_BASE from "../config";
 
 const Reservations = () => {
-    const [reservations, setReservations] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    const fetchReservations = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            const res = await fetch(`${API_BASE}/api/reservations`, {
-                headers: { 'Authorization': `Bearer ${user.token}` }
-            });
-            if (res.ok) {
-                const data = await res.json();
-                setReservations(data);
-            }
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchReservations();
-        const interval = setInterval(fetchReservations, 30000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const updateStatus = async (id, status) => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            const res = await fetch(`${API_BASE}/api/reservations/${id}/status`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${user.token}` },
-                body: JSON.stringify({ status })
-            });
-            if (res.ok) {
-                fetchReservations();
-            }
-        } catch (err) {
-            console.error(err);
-        }
-    };
-
-    if (loading) return <div className="p-8 flex justify-center"><Loader className="animate-spin text-slate-400" /></div>;
-
-    const pending = reservations.filter(r => r.status === 'pending');
-    const confirmed = reservations.filter(r => r.status === 'confirmed');
-
-    const renderCard = (res) => (
-        <div key={res.id} className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex justify-between items-center">
-            <div>
-                <h3 className="font-bold text-lg text-slate-800">{res.customer_name}</h3>
-                <p className="text-sm text-slate-500 mb-3">{res.customer_number}</p>
-                <div className="flex gap-4 text-sm font-semibold text-slate-600">
-                    <span className="flex items-center gap-1"><Calendar size={14} className="text-indigo-500"/> {new Date(res.reservation_date).toLocaleDateString()}</span>
-                    <span className="flex items-center gap-1"><Clock size={14} className="text-orange-500"/> {res.reservation_time}</span>
-                    <span className="flex items-center gap-1"><Users size={14} className="text-emerald-500"/> {res.guests} Guests</span>
-                </div>
-            </div>
-            {res.status === 'pending' && (
-                <div className="flex gap-2">
-                    <button onClick={() => updateStatus(res.id, 'confirmed')} className="p-3 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-200 transition-colors">
-                        <Check size={20} />
-                    </button>
-                    <button onClick={() => updateStatus(res.id, 'cancelled')} className="p-3 bg-rose-100 text-rose-600 rounded-xl hover:bg-rose-200 transition-colors">
-                        <X size={20} />
-                    </button>
-                </div>
-            )}
-            {res.status === 'confirmed' && (
-                <span className="px-4 py-2 bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider rounded-lg border border-emerald-200">
-                    Confirmed
-                </span>
-            )}
-        </div>
-    );
-
     return (
-        <div className="p-8 max-w-5xl mx-auto space-y-8">
-            <div className="flex justify-between items-end">
-                <div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900">Table Reservations</h1>
-                    <p className="text-slate-500 font-medium mt-1">Manage AI and manual bookings.</p>
+        <div className="space-y-3 animate-pro-in">
+            {/* Precision Reservation Header */}
+            <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                    <h2 className="pro-heading uppercase tracking-tighter">Table Reservations</h2>
+                    <p className="pro-subheading uppercase tracking-widest text-[9px]">AI-driven bookings and manual seat orchestration</p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                    <button className="pro-btn-secondary h-7 px-2"><History className="w-3 h-3" /> History</button>
+                    <button className="pro-btn-primary h-7 px-3"><Plus className="w-3 h-3" /> New Booking</button>
                 </div>
             </div>
 
-            <div className="space-y-4">
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Action Required ({pending.length})</h2>
-                {pending.length === 0 ? <p className="text-slate-400 italic">No pending reservations.</p> : pending.map(renderCard)}
-            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                {/* Pending Protocol */}
+                <div className="pro-card min-h-[300px] flex flex-col">
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> Action Required
+                        </h3>
+                        <span className="text-[9px] font-black text-slate-400">0 PENDING</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-30">
+                        <div className="w-12 h-12 rounded-full border border-slate-100 flex items-center justify-center mb-3">
+                            <RefreshCw className="w-5 h-5 text-slate-300" />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No pending protocols</p>
+                    </div>
+                </div>
 
-            <div className="space-y-4 pt-4 border-t border-slate-200">
-                <h2 className="text-sm font-black uppercase tracking-widest text-slate-400">Upcoming ({confirmed.length})</h2>
-                {confirmed.length === 0 ? <p className="text-slate-400 italic">No upcoming reservations.</p> : confirmed.map(renderCard)}
+                {/* Scheduled Matrix */}
+                <div className="pro-card min-h-[300px] flex flex-col">
+                    <div className="p-3 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                        <h3 className="text-[11px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
+                            <Calendar className="w-3.5 h-3.5 text-indigo-500" /> Upcoming
+                        </h3>
+                        <span className="text-[9px] font-black text-slate-400">0 SCHEDULED</span>
+                    </div>
+                    <div className="flex-1 flex flex-col items-center justify-center p-8 text-center opacity-30">
+                        <div className="w-12 h-12 rounded-full border border-slate-100 flex items-center justify-center mb-3">
+                            <Clock className="w-5 h-5 text-slate-300" />
+                        </div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">No upcoming reservations</p>
+                    </div>
+                </div>
             </div>
         </div>
     );

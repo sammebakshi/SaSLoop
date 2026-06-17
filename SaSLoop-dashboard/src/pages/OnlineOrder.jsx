@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import API_BASE from "../config";
 import { 
@@ -56,7 +56,6 @@ function OnlineOrder() {
   const [activeOrders, setActiveOrders] = useState([]);
   const [showOrders, setShowOrders] = useState(false);
   const [orderTab, setOrderTab] = useState("tracking"); // "tracking" or "history"
-  const [pollInterval, setPollInterval] = useState(null);
   
   const [view, setView] = useState("auth"); 
   const [isVerified, setIsVerified] = useState(false);
@@ -80,7 +79,7 @@ function OnlineOrder() {
     localStorage.setItem(`sasloop_phone_${bizId}`, phone);
   };
 
-  const getStandardPhone = (p) => {
+  const getStandardPhone = useCallback((p) => {
     if (!p) return "";
     if (p.startsWith("+")) return p;
     // Remove all non-digits from input
@@ -89,9 +88,15 @@ function OnlineOrder() {
     if (cleanP.startsWith(countryCode)) return "+" + cleanP;
     // Otherwise prepend country code
     return `+${countryCode}${cleanP}`;
-  };
+  }, [countryCode]);
 
   const biz = data?.business;
+  const bizSettings = useMemo(() => {
+    if (!biz?.settings) return {};
+    return typeof biz.settings === 'string' ? JSON.parse(biz.settings) : biz.settings;
+  }, [biz?.settings]);
+  const isDistanceMode = bizSettings?.custDeliveryLimitType === "distance";
+
   const symbol = '\u20B9';
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
@@ -113,7 +118,7 @@ function OnlineOrder() {
   const categories = Object.keys(groupedItems);
   const totalCartItems = cart.reduce((acc, i) => acc + i.qty, 0);
 
-  const fetchActiveOrders = async () => {
+  const fetchActiveOrders = useCallback(async () => {
     if (!customerPhone) return;
     try {
       const std = getStandardPhone(customerPhone);
@@ -121,10 +126,20 @@ function OnlineOrder() {
       const d = await res.json();
       setActiveOrders(d || []);
     } catch (e) {}
-  };
+  }, [bizId, customerPhone, getStandardPhone]);
+
+  const checkLoyalty = useCallback(async () => {
+    if (!customerPhone) return;
+    try {
+      const std = getStandardPhone(customerPhone);
+      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
+      const d = await res.json();
+      setLoyaltyPoints(d.points || 0);
+    } catch (e) {}
+  }, [bizId, customerPhone, getStandardPhone]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}`).then(r => r.json()).then(d => { 
+    fetch(`${API_BASE}/api/public/menu/${bizId}?menuType=digital`).then(r => r.json()).then(d => { 
         const surge = d.business?.current_surge_multiplier || 1.0;
         const optimizedItems = (d.items || []).map(item => ({
           ...item,
@@ -151,7 +166,47 @@ function OnlineOrder() {
       }, 3000); // ⚡ Live Sync
       return () => clearInterval(itv);
     }
-  }, [view, customerPhone]);
+  }, [view, fetchActiveOrders, checkLoyalty]);
+
+  const updateMapLocation = useCallback(async (lat, lng) => {
+    setDeliveryCoords({ lat, lng });
+    const R = 6371; 
+    const dLat = (lat - (biz?.latitude || 0)) * Math.PI / 180;
+    const dLon = (lng - (biz?.longitude || 0)) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((biz?.latitude || 0) * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const straightLineDist = R * c;
+
+    // Parse business settings
+    const settings = typeof biz?.settings === 'string' ? JSON.parse(biz.settings) : (biz?.settings || {});
+    const limitType = settings.custDeliveryLimitType || "radius";
+
+    let dist = straightLineDist;
+
+    if (limitType === "distance") {
+      try {
+        const response = await fetch(`https://router.project-osrm.org/route/v1/driving/${biz?.longitude},${biz?.latitude};${lng},${lat}?overview=false`);
+        if (response.ok) {
+          const resData = await response.json();
+          if (resData.routes && resData.routes[0]) {
+            dist = resData.routes[0].distance / 1000; // convert meters to km
+          }
+        }
+      } catch (err) {
+        console.error("OSRM Route Error, falling back to straight-line:", err);
+      }
+    }
+
+    const radius = parseFloat(biz?.delivery_radius_km) || 10;
+    let allowed = dist <= radius;
+    let charge = 0;
+    const tiersRaw = biz?.delivery_tiers;
+    const tiers = typeof tiersRaw === 'string' ? JSON.parse(tiersRaw) : (tiersRaw || []);
+    const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
+    if (matchedTier) charge = parseFloat(matchedTier.charge);
+    setDeliveryRadiusStatus({ allowed, charge, distance: dist });
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(r => r.json()).then(g => setCustomerAddress(g.display_name));
+  }, [biz]);
 
   // --- 📍 AUTOMATIC GEOLOCATION ---
   useEffect(() => {
@@ -168,17 +223,7 @@ function OnlineOrder() {
         });
       }
     }
-  }, [fulfillmentMode, biz]);
-
-  const checkLoyalty = async () => {
-    if (!customerPhone) return;
-    try {
-      const std = getStandardPhone(customerPhone);
-      const res = await fetch(`${API_BASE}/api/public/loyalty/${bizId}/${encodeURIComponent(std)}`);
-      const d = await res.json();
-      setLoyaltyPoints(d.points || 0);
-    } catch (e) {}
-  };
+  }, [fulfillmentMode, biz, deliveryCoords, updateMapLocation]);
 
   const handleRequestAuth = async () => {
     if (!customerName.trim()) return alert("Please enter your name first.");
@@ -238,24 +283,6 @@ function OnlineOrder() {
     return () => clearInterval(itv);
   }, [authStatus, authToken]);
 
-  const updateMapLocation = async (lat, lng) => {
-    setDeliveryCoords({ lat, lng });
-    const R = 6371; 
-    const dLat = (lat - (biz?.latitude || 0)) * Math.PI / 180;
-    const dLon = (lng - (biz?.longitude || 0)) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos((biz?.latitude || 0) * Math.PI / 180) * Math.cos(lat * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const dist = R * c;
-    const radius = parseFloat(biz?.delivery_radius_km) || 10;
-    let allowed = dist <= radius;
-    let charge = 0;
-    const tiersRaw = biz?.delivery_tiers;
-    const tiers = typeof tiersRaw === 'string' ? JSON.parse(tiersRaw) : (tiersRaw || []);
-    const matchedTier = tiers.find(t => dist >= t.min && dist <= t.max);
-    if (matchedTier) charge = parseFloat(matchedTier.charge);
-    setDeliveryRadiusStatus({ allowed, charge, distance: dist });
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`).then(r => r.json()).then(g => setCustomerAddress(g.display_name));
-  };
 
   const handleRedeemRequest = async () => {
     if (!isVerified) {
@@ -500,13 +527,13 @@ function OnlineOrder() {
                            <p className="text-[10px] font-black uppercase text-slate-900 truncate">{customerAddress || "Detecting location..."}</p>
                            {!deliveryRadiusStatus.allowed && (
                               <p className="text-[9px] font-black text-rose-600 uppercase mt-1 leading-tight">
-                                 🚨 Area Not Serviceable. We only deliver within {biz?.delivery_radius_km}km. 
+                                 🚨 Area Not Serviceable. We only deliver within {biz?.delivery_radius_km}km {isDistanceMode ? "(road distance)" : "(radius)"}. 
                                  (You are {deliveryRadiusStatus.distance?.toFixed(1)}km away)
                               </p>
                            )}
                            {deliveryRadiusStatus.allowed && deliveryRadiusStatus.distance > 0 && (
                               <p className="text-[9px] font-black text-emerald-600 uppercase mt-1">
-                                 ✅ You are in our delivery zone ({deliveryRadiusStatus.distance?.toFixed(1)}km)
+                                 ✅ You are in our delivery zone ({deliveryRadiusStatus.distance?.toFixed(1)}km {isDistanceMode ? "road distance" : "radius"})
                               </p>
                            )}
                         </div>

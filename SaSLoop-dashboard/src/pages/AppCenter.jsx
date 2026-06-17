@@ -16,7 +16,7 @@ function AppCenter() {
       icon: Download
     },
     {
-      title: "Launch SaSLoop AI",
+      title: "Launch SaSLoop ERP | AI",
       desc: "A native-looking SaSLoop icon will appear on your phone. Open it to manage chats and orders on the go!",
       icon: Zap
     }
@@ -29,7 +29,7 @@ function AppCenter() {
           <Smartphone className="w-10 h-10" />
         </div>
         <h2 className="text-5xl font-black text-slate-900 tracking-tighter mb-4">Mobile App Hub</h2>
-        <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.3em] opacity-60">Install SaSLoop AI on your Android or iOS Device</p>
+        <p className="text-slate-500 font-bold uppercase text-xs tracking-[0.3em] opacity-60">Install SaSLoop ERP | AI on your Android or iOS Device</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center mb-20">

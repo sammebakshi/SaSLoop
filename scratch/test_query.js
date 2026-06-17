@@ -1,22 +1,17 @@
-const pool = require('../db');
+const { Pool } = require('pg');
+const pool = new Pool({
+  connectionString: 'postgres://postgres:Admin@123@localhost:5432/sasloop_db'
+});
+
 async function run() {
-  const adminId = 49;
   try {
-    const result = await pool.query(
-      `SELECT id, username, first_name, last_name, email, role, status, 
-              phone, business_type, business_name, gst_number, created_at,
-              meta_phone_id, admin_permissions
-       FROM app_users 
-       WHERE created_by = $1 AND role = 'user'
-       ORDER BY id DESC`,
-      [adminId]
-    );
-    console.log("Admin 49's Users:", result.rows.length);
-    console.log(JSON.stringify(result.rows, null, 2));
-  } catch (err) {
-    console.error(err);
+    const res = await pool.query("SELECT id, name, user_id FROM restaurants");
+    console.log("Restaurants in database:");
+    res.rows.forEach(r => console.log(`  id:${r.id}, name:${r.name}, user_id:${r.user_id}`));
+  } catch (e) {
+    console.error(e);
   } finally {
-    process.exit();
+    await pool.end();
   }
 }
 run();

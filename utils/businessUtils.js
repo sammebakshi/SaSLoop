@@ -39,22 +39,37 @@ function isBusinessOpen(settings) {
         return { isOpen: true };
     }
 
+    const parseTimeToMinutes = (timeStr) => {
+        if (!timeStr) return 0;
+        const clean = timeStr.trim().toUpperCase();
+        const match = clean.match(/^(\d+):(\d+)\s*(AM|PM)?$/);
+        if (!match) return 0;
+        let hours = parseInt(match[1]);
+        const minutes = parseInt(match[2]);
+        const ampm = match[3];
+        if (ampm) {
+            if (ampm === 'PM' && hours < 12) hours += 12;
+            if (ampm === 'AM' && hours === 12) hours = 0;
+        }
+        return hours * 60 + minutes;
+    };
+
     const now = new Date();
     // India is UTC+5:30
     const indiaTime = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
-    const hours = String(indiaTime.getUTCHours()).padStart(2, '0');
-    const minutes = String(indiaTime.getUTCMinutes()).padStart(2, '0');
-    const currentTimeStr = `${hours}:${minutes}`;
+    const currentMinutes = indiaTime.getUTCHours() * 60 + indiaTime.getUTCMinutes();
 
     const { openingTime, closingTime } = settings;
+    const openMinutes = parseTimeToMinutes(openingTime);
+    const closeMinutes = parseTimeToMinutes(closingTime);
     
     // Handle overnight shifts (e.g. 18:00 to 02:00)
-    if (openingTime > closingTime) {
-        const isOpen = currentTimeStr >= openingTime || currentTimeStr <= closingTime;
+    if (openMinutes > closeMinutes) {
+        const isOpen = currentMinutes >= openMinutes || currentMinutes <= closeMinutes;
         return { isOpen, openingTime, closingTime };
     }
 
-    const isOpen = currentTimeStr >= openingTime && currentTimeStr <= closingTime;
+    const isOpen = currentMinutes >= openMinutes && currentMinutes <= closeMinutes;
     return { isOpen, openingTime, closingTime };
 }
 
@@ -63,17 +78,33 @@ async function getDeliveryDetails(biz, customerLat, customerLon) {
         return { serviceable: true, charge: 0, distance: 0, radius: 0 };
     }
 
-    // We use road distance for pricing and radius check
-    const distance = await getRoadDistance(biz.latitude, biz.longitude, customerLat, customerLon);
-    const radius = parseFloat(biz.delivery_radius_km) || 10;
+    const settings = typeof biz.settings === 'string' ? JSON.parse(biz.settings) : (biz.settings || {});
+    const limitType = settings.custDeliveryLimitType || "radius";
 
-    const serviceable = distance <= radius;
+    let distance = 0;
+    if (limitType === "distance") {
+        distance = await getRoadDistance(biz.latitude, biz.longitude, customerLat, customerLon);
+    } else {
+        distance = calculateDistance(biz.latitude, biz.longitude, customerLat, customerLon);
+    }
+
+    const radius = parseFloat(biz.delivery_radius_km) || 10;
+    const tiers = typeof biz.delivery_tiers === 'string' ? JSON.parse(biz.delivery_tiers) : (biz.delivery_tiers || []);
+    
+    let serviceable = false;
     let charge = 0;
 
-    if (serviceable) {
-        const tiers = typeof biz.delivery_tiers === 'string' ? JSON.parse(biz.delivery_tiers) : (biz.delivery_tiers || []);
-        const matched = tiers.find(t => distance >= t.min && distance <= t.max);
-        charge = matched ? parseFloat(matched.charge) : 0;
+    if (tiers && tiers.length > 0) {
+        // If tiers are configured, distance-wise configuration determines serviceability and charges
+        const matched = tiers.find(t => distance >= parseFloat(t.min) && distance <= parseFloat(t.max));
+        if (matched) {
+            serviceable = true;
+            charge = parseFloat(matched.charge);
+        }
+    } else {
+        // Fallback to legacy radius check
+        serviceable = distance <= radius;
+        charge = 0;
     }
 
     return { serviceable, charge, distance, radius };

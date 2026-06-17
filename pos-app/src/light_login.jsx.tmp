@@ -1,0 +1,96 @@
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans bg-slate-50">
+        <ChatAnimationBackground />
+        
+        {/* Login Card */}
+        <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(24,186,96,0.1)] mx-2">
+          
+          {/* Top Decorative Header */}
+          <div className="h-32 bg-gradient-to-br from-[#0d1117] to-[#1c4934] relative flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-cover bg-center mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.15\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+            <div className="z-10 text-center">
+              <h1 className="text-2xl font-extrabold text-white tracking-tighter flex items-center justify-center gap-1">
+                 <SaSLoopLogo />
+                 SaSTech <span className="text-[#18ba60]">POS</span>
+              </h1>
+              <p className="text-emerald-400 font-medium mt-1 text-[10px] tracking-widest uppercase h-[20px] flex justify-center items-center">
+                <TypewriterText />
+              </p>
+            </div>
+          </div>
+
+          {/* Form Container */}
+          <div className="p-8 pb-10">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-slate-800">Terminal Access</h2>
+              <p className="text-[11px] text-slate-500 mt-1 font-semibold uppercase tracking-widest">Authorized Personnel Only</p>
+            </div>
+
+            <form onSubmit={handleLogin} className="space-y-4">
+              {/* Username Input */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+                  <User className="w-5 h-5" />
+                </div>
+                <input
+                  className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  placeholder="Operator ID or Username"
+                  value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  type="password"
+                  id="pos-pass"
+                  placeholder="Passcode"
+                  value={password}
+                  required
+                  onChange={e => setPassword(e.target.value)}
+                />
+                <button 
+                  onClick={() => {
+                    const el = document.getElementById('pos-pass');
+                    if (el) el.type = el.type === 'password' ? 'text' : 'password';
+                  }}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                  type="button"
+                >
+                  <Eye className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Form Actions */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={isLoggingIn}
+                  className="w-full bg-[#18ba60] hover:bg-[#15a353] text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl transition-all shadow-lg shadow-[#18ba60]/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                >
+                  {isLoggingIn ? <RefreshCcw className="animate-spin w-5 h-5" /> : 'START TERMINAL'}
+                </button>
+              </div>
+            </form>
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-slate-50 border-t border-slate-100 text-center flex justify-between items-center px-6 py-4">
+              <p className="text-[10px] text-slate-500 font-bold">
+                SaSTech POS v7.3.128
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold">
+                 <WifiOff size={10} className="rotate-180"/> 100% Offline Ready
+              </div>
+          </div>
+        </div>
+      </div>
+    );
+  }

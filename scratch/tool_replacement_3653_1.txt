@@ -1,0 +1,1 @@
+"for (let idx = 0; idx < lines.length; idx++) {\n    if (lines[idx].includes('foodTypeFilter')) {\n        console.log(`Line ${idx + 1}: ${lines[idx].trim()}`);\n    }\n}"

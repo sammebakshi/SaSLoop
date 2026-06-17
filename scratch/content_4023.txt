@@ -1,0 +1,1 @@
+I am going to search our newly decompiled `BillingScreenKt.java` (from the cached dex) for the helper functions `MenuSubTab`, `KotSubTab`, and `BillingSubTab` to see if they are present and decompiled.

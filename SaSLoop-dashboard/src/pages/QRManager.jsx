@@ -1,210 +1,413 @@
 import React, { useState, useEffect } from "react";
+import { 
+  QrCode, Copy, Printer, Save, 
+  Plus, Search, RefreshCw, ExternalLink, 
+  Download, Check, Trash2, Globe, LayoutGrid
+} from "lucide-react";
 import API_BASE from "../config";
-import { QrCode, Download, Printer, Plus, Trash2, ExternalLink, ShoppingBag } from "lucide-react";
-import { generateStandee } from "../utils/standeeGenerator";
 
-function QRManager() {
-  const [user, setUser] = useState(null);
-  const [tables, setTables] = useState(["1", "2", "3", "4", "5"]);
-  const [newTable, setNewTable] = useState("");
-  const [liveUrl, setLiveUrl] = useState(""); 
-  const [bizData, setBizData] = useState(null);
+const QRManager = () => {
+    const [tables, setTables] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [searchTerm, setSearchTerm] = useState("");
+    const [provisionName, setProvisionName] = useState("");
+    const [maxPersons, setMaxPersons] = useState("4");
+    const [copiedId, setCopiedId] = useState(null);
+    const [customDomain, setCustomDomain] = useState(window.location.origin);
+    const [showDomainInput, setShowDomainInput] = useState(false);
+    
+    // Retrieve business info
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const bizId = user.bizId || user.id || 48;
 
-  useEffect(() => {
-    const userData = localStorage.getItem("user");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      fetchBizProfile(parsedUser.id);
-    }
-    if (window.location.hostname.includes("ngrok") || window.location.hostname.includes("onrender")) {
-       setLiveUrl(window.location.origin);
-    }
-  }, []);
+    const fetchTables = async () => {
+        setLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const targetId = sessionStorage.getItem("impersonate_id");
+            const queryParams = targetId ? `?target_user_id=${targetId}` : "";
+            
+            const res = await fetch(`${API_BASE}/api/brand/tables${queryParams}`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (Array.isArray(data)) {
+                setTables(data);
+            }
+        } catch (e) {
+            console.error("Failed to load tables:", e);
+        } finally {
+            setLoading(false);
+        }
+    };
 
-  const fetchBizProfile = async (userId) => {
-    try {
-      const res = await fetch(`${API_BASE}/api/public/menu/${userId}`);
-      const data = await res.json();
-      if (data.business) setBizData(data.business);
-    } catch (err) { console.error("Failed to fetch biz profile:", err); }
-  };
+    useEffect(() => {
+        fetchTables();
+    }, []);
 
-  const addTable = () => {
-    if (!newTable || tables.includes(newTable)) return;
-    setTables([...tables, newTable]);
-    setNewTable("");
-  };
+    const handleCopy = (text, id) => {
+        navigator.clipboard.writeText(text);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+    };
 
-  const removeTable = (t) => {
-    setTables(tables.filter(tab => tab !== t));
-  };
+    const handleProvisionTable = async (e) => {
+        e.preventDefault();
+        if (!provisionName.trim()) return;
 
-  // Base URL is the Live Link if provided, otherwise the current origin
-  const baseUrl = liveUrl || window.location.origin;
+        try {
+            const token = localStorage.getItem("token");
+            const targetId = sessionStorage.getItem("impersonate_id");
+            
+            const res = await fetch(`${API_BASE}/api/brand/tables`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    name: provisionName.toUpperCase(),
+                    max_persons: parseInt(maxPersons) || 4,
+                    is_active: true,
+                    target_user_id: targetId
+                })
+            });
 
-  const downloadStandee = async (qrUrl, tableNum = null) => {
-    await generateStandee(qrUrl, bizData, "ORDER", tableNum);
-  };
+            if (res.ok) {
+                setProvisionName("");
+                fetchTables();
+            } else {
+                const err = await res.json();
+                alert(err.error || "Failed to provision table");
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Connection error provisioning table");
+        }
+    };
 
-  return (
-    <div className="p-8 space-y-8 bg-slate-50 min-h-full">
-      <div className="flex justify-between items-start">
-        <div>
-           <h2 className="text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3">
-              <QrCode className="w-8 h-8 text-indigo-500" /> QR Code Manager
-           </h2>
-           <p className="text-slate-500 mt-1.5 text-sm font-medium leading-relaxed">
-              Generate unique QR codes. Use a **Live URL** to test on your phone.
-           </p>
-        </div>
+    const handleDeleteTable = async (id) => {
+        if (!window.confirm("Are you sure you want to delete this table?")) return;
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE}/api/brand/tables/${id}`, {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                fetchTables();
+            }
+        } catch (e) {
+            console.error("Failed to delete table:", e);
+        }
+    };
 
-        {/* Live URL Input Box */}
-        <div className="bg-white p-4 rounded-3xl shadow-lg border-2 border-indigo-100 flex items-center gap-3 w-80">
-           <ExternalLink className="w-5 h-5 text-indigo-500" />
-           <div className="flex-1">
-              <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Public Live URL</p>
-              <input 
-                 value={liveUrl} 
-                 onChange={e => setLiveUrl(e.target.value)} 
-                 placeholder="https://your-ngrok-link.com" 
-                 className="w-full bg-transparent text-xs font-bold text-slate-700 outline-none" 
-              />
-           </div>
-        </div>
-      </div>
+    const triggerPrint = (qrUrl, title) => {
+        const printWindow = window.open("", "_blank");
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print QR Code - ${title}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            text-align: center;
+                        }
+                        .container {
+                            border: 2px solid #ccc;
+                            padding: 30px;
+                            border-radius: 15px;
+                            background: white;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        }
+                        h1 {
+                            font-size: 28px;
+                            margin-bottom: 5px;
+                            text-transform: uppercase;
+                            letter-spacing: 2px;
+                        }
+                        p {
+                            font-size: 14px;
+                            color: #666;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            margin-bottom: 25px;
+                        }
+                        img {
+                            width: 250px;
+                            height: 250px;
+                        }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    <div class="container">
+                        <h1>${title}</h1>
+                        <p>Scan to view Menu & Place Order</p>
+                        <img src="${qrUrl}" alt="QR Code" />
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-         
-         {/* Table Management */}
-         <div className="lg:col-span-1 space-y-6">
-            <div className="bg-[#0f172a] p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden group">
-               <div className="relative z-10">
-                  <div className="w-12 h-12 bg-emerald-500/20 rounded-2xl flex items-center justify-center mb-6">
-                     <ShoppingBag className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-1">GLOBAL ACCESS</p>
-                  <h3 className="text-xl font-black text-white mb-2">Online Order QR</h3>
-                  <p className="text-slate-400 text-xs font-medium mb-6">Use this for Home Delivery stickers, Instagram, or Flyers. No table number attached.</p>
-                  
-                  {(() => {
-                     const onlineUrl = `${baseUrl}/order/${user?.id || '50'}`;
-                     const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(onlineUrl)}`;
-                     
-                     const copyToClipboard = () => {
-                        navigator.clipboard.writeText(onlineUrl);
-                        alert("Link copied to clipboard!");
-                     };
+    // Download helper
+    const triggerDownload = (qrUrl, filename) => {
+        const link = document.createElement("a");
+        link.href = qrUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
-                     return (
-                        <div className="flex flex-col items-center">
-                           <div className="bg-white p-4 rounded-3xl mb-6">
-                              <img src={qrUrl} alt="Online QR" className="w-32 h-32" />
-                           </div>
-                           <div className="flex flex-col gap-3 w-full">
-                              <button onClick={copyToClipboard} className="w-full bg-white/10 text-white border border-white/20 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-white/20 transition-all">
-                                 <ExternalLink className="w-3.5 h-3.5" /> Copy Link
-                              </button>
-                              <button 
-                                 onClick={() => downloadStandee(qrUrl)} 
-                                 className="w-full bg-emerald-500 text-white py-3 rounded-xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all"
-                               >
-                                  <Download className="w-3.5 h-3.5" /> Save Standee
-                               </button>
-                           </div>
+    const filteredTables = tables.filter(t => 
+        t.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const onlineOrderUrl = `${customDomain}/order/${bizId}`;
+
+    return (
+        <div className="space-y-4 animate-in fade-in duration-500">
+            {/* Header Control Hub */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white dark:bg-[#1e2129] p-4 rounded-xl border border-slate-200 dark:border-white/5 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg">
+                        <QrCode className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
+                    <div>
+                        <h2 className="pro-heading">QR Orchestration Hub</h2>
+                        <p className="pro-subheading">Generate and manage scan-to-order QR codes for tables and digital ordering</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-2">
+                    {showDomainInput ? (
+                        <div className="flex items-center gap-1.5 bg-slate-50 dark:bg-black/20 px-2 py-1 rounded-lg border border-slate-200 dark:border-white/10">
+                            <Globe className="w-3.5 h-3.5 text-slate-400" />
+                            <input 
+                                type="text" 
+                                value={customDomain} 
+                                onChange={e => setCustomDomain(e.target.value)} 
+                                className="bg-transparent text-[11px] font-bold text-slate-700 dark:text-white outline-none border-none max-w-[160px]"
+                                placeholder="https://domain.com"
+                            />
+                            <button 
+                                onClick={() => setShowDomainInput(false)}
+                                className="px-2 py-0.5 bg-indigo-600 text-white rounded text-[10px] font-bold uppercase"
+                            >
+                                Set
+                            </button>
                         </div>
-                     );
-                  })()}
-               </div>
-               <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-600/10 rounded-full blur-3xl" />
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
-               <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Add New Table</h3>
-               <div className="flex gap-3">
-                  <input 
-                    type="text"
-                    value={newTable}
-                    onChange={(e) => setNewTable(e.target.value)}
-                    placeholder="Table #"
-                    className="flex-1 bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 text-sm font-bold text-slate-800 outline-none focus:border-indigo-500 transition-all"
-                  />
-                  <button onClick={addTable} className="bg-indigo-600 text-white p-4 rounded-2xl hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100">
-                     <Plus className="w-6 h-6" />
-                  </button>
-               </div>
-            </div>
-
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100">
-               <h3 className="text-xs font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Current Tables</h3>
-               <div className="space-y-3">
-                  {tables.map(t => (
-                     <div key={t} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl group">
-                        <span className="font-black text-slate-700 uppercase tracking-tighter">Table {t}</span>
-                        <button onClick={() => removeTable(t)} className="text-rose-400 opacity-0 group-hover:opacity-100 transition-all hover:text-rose-600">
-                           <Trash2 className="w-4 h-4" />
+                    ) : (
+                        <button 
+                            onClick={() => setShowDomainInput(true)}
+                            className="px-3 py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded-lg flex items-center gap-2 text-slate-500 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white transition-all text-[11px] font-bold shadow-sm"
+                        >
+                            <Globe className="w-3.5 h-3.5" />
+                            <span className="max-w-[140px] truncate">{customDomain}</span>
                         </button>
-                     </div>
-                  ))}
-               </div>
+                    )}
+                    <button 
+                        onClick={fetchTables}
+                        className="h-9 w-9 flex items-center justify-center bg-white dark:bg-white/5 text-slate-400 hover:text-slate-600 dark:hover:text-white rounded-lg border border-slate-200 dark:border-white/5 transition-all shadow-sm"
+                    >
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                    </button>
+                </div>
             </div>
-         </div>
 
-         {/* QR Grid */}
-         <div className="lg:col-span-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {tables.map(t => {
-                  const menuUrl = `${baseUrl}/menu/${user?.id || '50'}/${t}`;
-                  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(menuUrl)}`;
-                  
-                  return (
-                     <div key={t} className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-slate-100 flex flex-col items-center group relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4">
-                           <a href={menuUrl} target="_blank" rel="noreferrer" className="text-slate-300 hover:text-indigo-500 transition-all">
-                              <ExternalLink className="w-4 h-4" />
-                           </a>
-                        </div>
-                        
-                        <div className="w-full text-center mb-6">
-                           <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">SCAN TO ORDER</p>
-                           <h4 className="text-3xl font-black text-slate-800 tracking-tighter">TABLE {t}</h4>
-                        </div>
-                        
-                        <div className="bg-slate-50 p-6 rounded-[2rem] border-2 border-dashed border-slate-200 mb-8 w-fit mx-auto">
-                           <img src={qrUrl} alt={`Table ${t} QR`} className="w-40 h-40 mix-blend-multiply" />
-                        </div>
-                        
-                        <div className="flex flex-col gap-3 w-full">
-                           <button 
-                             onClick={() => {
-                                navigator.clipboard.writeText(menuUrl);
-                                alert("Table Link Copied!");
-                             }} 
-                             className="w-full bg-slate-50 border border-slate-100 text-slate-500 p-3 rounded-2xl font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-100 transition-all"
-                           >
-                              <ExternalLink className="w-3 h-3" /> Copy Link
-                           </button>
-                           <div className="flex gap-3 w-full">
-                              <button onClick={() => window.print()} className="flex-1 bg-slate-100 text-slate-600 p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-200 transition-all">
-                                 <Printer className="w-4 h-4" /> Print
-                              </button>
-                               <button 
-                                 onClick={() => downloadStandee(qrUrl, t)} 
-                                 className="flex-1 bg-indigo-600 text-white p-4 rounded-3xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-100"
-                               >
-                                  <Download className="w-4 h-4" /> Save
-                               </button>
-                           </div>
-                        </div>
-                     </div>
-                  );
-               })}
+            {/* Filter Hub */}
+            <div className="bg-white dark:bg-[#1e2129] p-3 rounded-lg border border-slate-200 dark:border-white/5 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-3 flex-1">
+                    <Search className="w-4 h-4 text-slate-400" />
+                    <input 
+                        type="text" 
+                        placeholder="SEARCH PROVISIONED TABLES..." 
+                        className="bg-transparent text-[11px] font-bold text-slate-600 dark:text-slate-300 placeholder:text-slate-300 outline-none w-full uppercase"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
             </div>
-         </div>
 
-      </div>
-    </div>
-  );
-}
+            {/* Industrial Data Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                
+                {/* Global Online Order QR Card */}
+                <div className="pro-card p-5 bg-slate-900 text-white flex flex-col items-center gap-4 group relative overflow-hidden rounded-xl shadow-md border border-slate-800">
+                    <div className="absolute top-0 left-0 w-full h-1.5 bg-emerald-500" />
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+                        <Globe className="w-5 h-5" />
+                    </div>
+                    <div className="text-center space-y-0.5">
+                        <h3 className="text-[13px] font-black uppercase tracking-tight text-white">Online Order QR</h3>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-tight">Global flyer/bag scan protocol</p>
+                    </div>
+                    <div className="w-full aspect-square bg-white rounded-lg p-4 flex items-center justify-center group-hover:scale-[1.02] transition-transform duration-500 shadow-2xl">
+                        <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(onlineOrderUrl)}`} 
+                            alt="Online Order QR"
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
+                    <div className="w-full space-y-2 mt-auto">
+                        <button 
+                            onClick={() => handleCopy(onlineOrderUrl, 'global')}
+                            className="w-full py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2"
+                        >
+                            {copiedId === 'global' ? (
+                                <>
+                                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                                    <span className="text-emerald-400">Copied!</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Copy className="w-3.5 h-3.5" />
+                                    <span>Copy URL</span>
+                                </>
+                            )}
+                        </button>
+                        <div className="grid grid-cols-2 gap-2">
+                            <button 
+                                onClick={() => triggerPrint(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(onlineOrderUrl)}`, "Online Order QR")}
+                                className="py-1.5 bg-white/5 border border-white/10 hover:bg-white/10 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5"
+                            >
+                                <Printer className="w-3 h-3" /> Print
+                            </button>
+                            <button 
+                                onClick={() => triggerDownload(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(onlineOrderUrl)}`, "online_order_qr.png")}
+                                className="py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-600/20"
+                            >
+                                <Download className="w-3 h-3" /> Save
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Provisioned Tables QR Codes */}
+                {loading ? (
+                    Array(3).fill(0).map((_, i) => (
+                        <div key={i} className="pro-card p-6 flex flex-col items-center justify-center gap-4 bg-white dark:bg-[#1e2129] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm animate-pulse h-[340px]">
+                            <div className="w-24 h-6 bg-slate-100 dark:bg-white/5 rounded" />
+                            <div className="w-full aspect-square bg-slate-50 dark:bg-black/20 rounded-lg" />
+                            <div className="w-full h-8 bg-slate-100 dark:bg-white/5 rounded-lg" />
+                        </div>
+                    ))
+                ) : filteredTables.length === 0 ? (
+                    <div className="col-span-full py-16 bg-white dark:bg-[#1e2129] border border-slate-200 dark:border-white/5 rounded-xl text-center opacity-30">
+                        <QrCode className="w-12 h-12 mx-auto mb-3" />
+                        <p className="text-[11px] font-bold uppercase tracking-widest">No Tables Found to Generate QRs</p>
+                    </div>
+                ) : (
+                    filteredTables.map(table => {
+                        const tableUrl = `${customDomain}/menu/${bizId}/${table.id}`;
+                        return (
+                            <div key={table.id} className="pro-card p-5 bg-white dark:bg-[#1e2129] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm flex flex-col items-center gap-3.5 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all group relative">
+                                <button 
+                                    onClick={() => handleDeleteTable(table.id)}
+                                    className="absolute top-3.5 right-3.5 p-1 bg-slate-50 dark:bg-white/5 hover:bg-rose-50 dark:hover:bg-rose-500/10 text-slate-400 hover:text-rose-600 rounded transition-all opacity-0 group-hover:opacity-100 border border-slate-200/50 dark:border-white/5"
+                                    title="Delete Table"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                                <div className="text-center space-y-0.5">
+                                    <p className="text-[9px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">TABLE ACCESS NODE</p>
+                                    <h3 className="text-[14px] font-black text-slate-900 dark:text-white uppercase italic tracking-tight">{table.name}</h3>
+                                </div>
+                                <div className="w-full aspect-square bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 rounded-lg p-3 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-[#15171c] transition-colors shadow-inner">
+                                    <img 
+                                        src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(tableUrl)}`} 
+                                        alt={`QR Code ${table.name}`}
+                                        className="w-full h-full object-contain"
+                                        loading="lazy"
+                                    />
+                                </div>
+                                <div className="w-full space-y-2 mt-auto">
+                                    <button 
+                                        onClick={() => handleCopy(tableUrl, table.id)}
+                                        className="w-full py-1 text-[9px] font-black text-slate-400 dark:text-slate-500 hover:text-indigo-600 dark:hover:text-indigo-400 uppercase tracking-widest transition-all flex items-center justify-center gap-1.5"
+                                    >
+                                        {copiedId === table.id ? (
+                                            <>
+                                                <Check className="w-3 h-3 text-emerald-500" />
+                                                <span className="text-emerald-500">Copied!</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Copy className="w-3 h-3" />
+                                                <span>Copy Access Link</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button 
+                                            onClick={() => triggerPrint(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(tableUrl)}`, table.name)}
+                                            className="py-1.5 bg-slate-50 dark:bg-white/5 border border-slate-100 dark:border-white/5 hover:bg-slate-100 dark:hover:bg-white/10 text-[9px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-sm"
+                                        >
+                                            <Printer className="w-3 h-3" /> Print
+                                        </button>
+                                        <button 
+                                            onClick={() => triggerDownload(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(tableUrl)}`, `${table.name.replace(/\s+/g, '_')}_qr.png`)}
+                                            className="py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-[9px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-indigo-600/10"
+                                        >
+                                            <Save className="w-3 h-3" /> Save
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+
+                {/* Provision New Seating Node Card */}
+                <div className="pro-card p-5 border-dashed border-slate-300 dark:border-white/15 flex flex-col items-center justify-center gap-4 bg-slate-50/30 dark:bg-white/[0.01] hover:bg-white dark:hover:bg-[#1e2129] hover:border-indigo-400 transition-all rounded-xl shadow-sm group">
+                    <div className="w-10 h-10 rounded-full border border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 flex items-center justify-center text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 group-hover:scale-105 transition-all">
+                        <Plus className="w-5 h-5" />
+                    </div>
+                    <div className="text-center">
+                        <p className="text-[12px] font-black text-slate-900 dark:text-white uppercase tracking-tight">Provision Seating Node</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Create table & compile QR protocol</p>
+                    </div>
+                    <form onSubmit={handleProvisionTable} className="w-full space-y-3">
+                        <div className="space-y-1">
+                            <input 
+                                required
+                                type="text" 
+                                placeholder="E.G. TABLE 21" 
+                                className="w-full p-2 bg-white dark:bg-black/25 border border-slate-200 dark:border-white/10 rounded-lg text-[11px] font-bold outline-none text-center uppercase text-slate-900 dark:text-white focus:border-indigo-500"
+                                value={provisionName}
+                                onChange={e => setProvisionName(e.target.value)}
+                            />
+                            <div className="flex items-center gap-2 bg-white dark:bg-black/25 border border-slate-200 dark:border-white/10 rounded-lg px-2 py-1">
+                                <span className="text-[8px] font-black text-slate-400 uppercase tracking-wider whitespace-nowrap">SEATS:</span>
+                                <input 
+                                    type="number" 
+                                    className="bg-transparent text-[11px] font-bold text-slate-900 dark:text-white outline-none w-full text-right"
+                                    value={maxPersons}
+                                    onChange={e => setMaxPersons(e.target.value)}
+                                    min="1"
+                                    max="50"
+                                />
+                            </div>
+                        </div>
+                        <button 
+                            type="submit"
+                            className="w-full h-8 bg-slate-900 dark:bg-indigo-600 hover:bg-slate-800 dark:hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-lg shadow-md transition-all flex items-center justify-center gap-1.5"
+                        >
+                            <LayoutGrid className="w-3.5 h-3.5" /> Compile QR
+                        </button>
+                    </form>
+                </div>
+
+            </div>
+        </div>
+    );
+};
 
 export default QRManager;

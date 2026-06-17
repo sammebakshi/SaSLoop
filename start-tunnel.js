@@ -39,11 +39,19 @@ async function startTunnel() {
     const tunnelUrl = listener.url();
 
     console.log("\n========================================");
-    console.log("✅ NGROK TUNNEL ACTIVE");
+    console.log("      SaSLoop Ngrok Tunnel Starter      ");
     console.log("========================================");
     console.log(`🌐 Tunnel URL:     ${tunnelUrl}`);
     console.log(`📡 Webhook URL:    ${tunnelUrl}/api/whatsapp/webhook`);
     console.log("========================================");
+
+    // Save to active_tunnel.txt
+    const fs = require("fs");
+    const path = require("path");
+    const scratchDir = path.join(__dirname, "scratch");
+    if (!fs.existsSync(scratchDir)) fs.mkdirSync(scratchDir);
+    fs.writeFileSync(path.join(scratchDir, "active_tunnel.txt"), `Tunnel URL: ${tunnelUrl}\nWebhook URL: ${tunnelUrl}/api/whatsapp/webhook\nUpdated At: ${new Date().toLocaleString()}\n`, "utf8");
+
     console.log("\n📋 NEXT STEPS:");
     console.log("  1. Copy the Webhook URL above");
     console.log("  2. Go to: https://developers.facebook.com → Your App → WhatsApp → Configuration");

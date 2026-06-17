@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import API_BASE from "../config";
-import { Mail, Lock, Building2, EyeOff, Eye, ChevronDown, Infinity, AlertCircle, X, Shield, Loader2 } from "lucide-react";
+import { User, Mail, Lock, Building2, EyeOff, Eye, ChevronDown, Infinity, AlertCircle, X, Shield, Loader2, Utensils, Receipt, MessageSquare, ShoppingCart, Layers, Truck } from "lucide-react";
 
 const SaSLoopLogo = () => (
   <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5 drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
@@ -70,24 +70,14 @@ const TypewriterText = () => {
   );
 };
 
-const CONVERSATIONS = [
-  { c: "Hi, I'd like to schedule a viewing for the downtown apartment.", r: "Great! We have slots open tomorrow at 10 AM and 2 PM. Which works best for you? 🏢" },
-  { c: "My package hasn't arrived yet!", r: "Let me check... Your package is out for delivery and will arrive by 4 PM. 📦" },
-  { c: "Is the summer discount still active?", r: "Yes! Use code SUMMER20 to get 20% off all subscriptions until tomorrow! ☀️" },
-  { c: "Can you resend the invoice for last month's consultation?", r: "Certainly! I've sent the PDF to your email. Would you like a secure link to pay now? 📄" },
-  { c: "¿Tienen soporte en español?", r: "¡Sí! Nuestro sistema detecta el idioma. ¿En qué le puedo ayudar? 🌎" },
-  { c: "Need to reschedule my 3PM call.", r: "No problem. I've sent you a link to pick a new time from the calendar. 📅" },
-  { c: "How do I upgrade to the enterprise tier?", r: "I can help with that! Let me connect you with our technical sales team. 💼" },
-  { c: "Where can I find your developer API documents?", r: "Our core API documentation is available at developer.sasloop.ai. 💻" }
-];
-
-const POSITIONS = [
-  { left: '4%', top: '12%' },
-  { left: '8%', top: '68%' },
-  { right: '6%', top: '10%' },
-  { right: '10%', top: '65%' },
-  { left: '6%', top: '40%' },
-  { right: '8%', top: '38%' },
+const FLOATING_ITEMS = [
+  { type: 'receipt', id: '9824', items: [{n: 'Cappuccino', q: 2, p: 120}, {n: 'Choco Lava', q: 1, p: 120}], total: 360 },
+  { type: 'receipt', id: '9825', items: [{n: 'Veg Biryani', q: 1, p: 250}, {n: 'Lime Soda', q: 2, p: 60}], total: 370 },
+  { type: 'kot', id: '4410', table: 'Table 5', items: [{n: 'Butter Chicken', q: 1}, {n: 'Butter Naan', q: 3}] },
+  { type: 'kot', id: '4411', table: 'Table 2', items: [{n: 'Veg Noodles', q: 2}, {n: 'Spring Roll', q: 1}] },
+  { type: 'pos_terminal' },
+  { type: 'delivery', id: '#443', dest: 'Sector 4, Main Rd', driver: 'Rajesh', status: 'On The Way' },
+  { type: 'delivery', id: '#444', dest: 'Tech Park, Bldg 3', driver: 'Suresh', status: 'Picked Up' }
 ];
 
 const ChatAnimationBackground = () => {
@@ -95,54 +85,68 @@ const ChatAnimationBackground = () => {
 
   useEffect(() => {
     let bubbleId = 0;
+    const regions = [
+      { id: 0, left: '4%', top: '10%' },
+      { id: 1, left: '26%', top: '12%' },
+      { id: 2, left: '48%', top: '10%' },
+      { id: 3, left: '4%', top: '35%' },
+      { id: 4, left: '26%', top: '38%' },
+      { id: 5, left: '48%', top: '42%' }
+    ];
 
-    const spawnBubble = () => {
-      const regions = [
-        { left: '4%', top: '12%' },
-        { left: '8%', top: '65%' },
-        { right: '6%', top: '10%' },
-        { right: '10%', top: '62%' },
-        { left: '6%', top: '38%' },
-        { right: '8%', top: '35%' }
-      ];
-      
-      const region = regions[Math.floor(Math.random() * regions.length)];
-      
-      // Jitter positions randomly on spawn to feel organic
-      const jX = Math.floor(Math.random() * 8) - 4;
-      const jY = Math.floor(Math.random() * 8) - 4;
-      const pos = {};
-      if (region.left) pos.left = `calc(${region.left} + ${jX}%)`;
-      if (region.right) pos.right = `calc(${region.right} + ${jX}%)`;
-      if (region.top) pos.top = `calc(${region.top} + ${jY}%)`;
-
+    const spawnInitial = () => {
+      const initialRegion = regions[Math.floor(Math.random() * regions.length)];
+      const jX = Math.floor(Math.random() * 6) - 3;
+      const jY = Math.floor(Math.random() * 6) - 3;
       return {
         id: ++bubbleId,
-        pos,
-        convo: CONVERSATIONS[Math.floor(Math.random() * CONVERSATIONS.length)],
+        regionId: initialRegion.id,
+        pos: {
+          left: `calc(${initialRegion.left} + ${jX}%)`,
+          top: `calc(${initialRegion.top} + ${jY}%)`
+        },
+        item: FLOATING_ITEMS[Math.floor(Math.random() * FLOATING_ITEMS.length)],
         createdAt: Date.now()
       };
     };
 
-    // Spawn the first initial conversation immediately
-    setBubbles([spawnBubble()]);
+    setBubbles([spawnInitial()]);
 
-    // Continuously cycle: Sweep old, Spawn new organically
     const interval = setInterval(() => {
       setBubbles(prev => {
         const now = Date.now();
-        // Remove conversations older than 14 seconds (matching their CSS fade out lifespan)
         const alive = prev.filter(b => now - b.createdAt < 14000);
-        // Continuously spawn exactly 1 new random conversation pulse
-        return [...alive, spawnBubble()];
+        
+        const occupiedIds = alive.map(b => b.regionId);
+        const available = regions.filter(r => !occupiedIds.includes(r.id));
+        const selected = available.length > 0
+          ? available[Math.floor(Math.random() * available.length)]
+          : regions[Math.floor(Math.random() * regions.length)];
+          
+        const jX = Math.floor(Math.random() * 6) - 3;
+        const jY = Math.floor(Math.random() * 6) - 3;
+        const pos = {
+          left: `calc(${selected.left} + ${jX}%)`,
+          top: `calc(${selected.top} + ${jY}%)`
+        };
+
+        const newBubble = {
+          id: ++bubbleId,
+          regionId: selected.id,
+          pos,
+          item: FLOATING_ITEMS[Math.floor(Math.random() * FLOATING_ITEMS.length)],
+          createdAt: now
+        };
+
+        return [...alive, newBubble];
       });
-    }, 2600); // Spawning roughly every 2.6s guarantees 5-6 ongoing overlapping conversations
+    }, 2600);
 
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden bg-slate-900 pointer-events-none">
+    <div className="absolute inset-0 z-0 overflow-hidden bg-slate-50 pointer-events-none">
       <style>{`
         @keyframes dynamicFade {
           0% { opacity: 0; transform: translateY(20px) scale(0.95); }
@@ -154,63 +158,203 @@ const ChatAnimationBackground = () => {
           50% { transform: translateY(-10px); }
         }
         .dyn-bubble-c1 { animation: dynamicFade 14s ease-in-out forwards, dynamicFloat 4s ease-in-out infinite; }
-        .dyn-bubble-c2 { animation: dynamicFade 12.8s ease-in-out forwards, dynamicFloat 5s ease-in-out infinite; }
       `}</style>
       
-      {/* Background gradients */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-slate-800 via-slate-900 to-black opacity-90"></div>
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-emerald-500/10 blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
+      {/* Background Image of Restaurant */}
+      <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: 'url("/login_bg.png")' }}></div>
+      <div className="absolute inset-0 bg-slate-50/80 backdrop-blur-[3px]"></div>
+      
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white/60 via-slate-50/70 to-slate-200/80 opacity-90"></div>
+      
+      {/* Premium Dot Grid Pattern */}
+      <div className="absolute inset-0 bg-[radial-gradient(#e2e8f0_1.5px,transparent_1.5px)] [background-size:20px_20px] opacity-60"></div>
+      
+      {/* Rich Ambient Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-[#18ba60]/15 blur-[100px]" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-500/15 blur-[100px]" />
+      <div className="absolute top-[35%] right-[15%] w-[35%] h-[35%] rounded-full bg-indigo-500/10 blur-[90px]" />
 
-      {/* Floating Chat Bubbles */}
       <div className="absolute inset-0 flex items-center justify-center opacity-70">
-        <div className="relative w-full max-w-7xl h-full hidden lg:block">
-          
+        <div className="relative w-full max-w-7xl h-full hidden md:block">
           {bubbles.map((b) => (
-              <div key={b.id} style={{...b.pos, position: 'absolute', zIndex: b.id}}>
-                
-                {/* Customer Message */}
-                <div 
-                  className="max-w-[260px] w-full p-4 rounded-2xl rounded-bl-sm bg-slate-800/80 border border-slate-700/50 backdrop-blur-md shadow-2xl dyn-bubble-c1 opacity-0"
-                  style={{ animationDelay: '0s, 0s' }}
-                >
-                  <div className="text-[10px] text-slate-400 mb-1 font-semibold uppercase tracking-wider">Customer</div>
-                  <div className="text-sm text-slate-200">{b.convo.c}</div>
-                </div>
-                
-                {/* AI Response Message (enters 1.2s after customer naturally) */}
-                <div 
-                  className="absolute top-[80%] left-4 max-w-[300px] w-max lg:w-[300px] p-4 rounded-2xl rounded-tl-sm bg-emerald-900/40 border border-emerald-500/30 backdrop-blur-md shadow-2xl dyn-bubble-c2 opacity-0"
-                  style={{ animationDelay: '1.2s, 1s' }}
-                >
-                  <div className="flex items-center gap-2 text-[10px] text-emerald-400 mb-1 font-semibold uppercase tracking-wider">
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </span>
-                    SaS Loop AI
-                  </div>
-                  <div className="text-sm text-slate-200">{b.convo.r}</div>
-                </div>
+              <div key={b.id} style={{...b.pos, position: 'absolute', zIndex: b.id}} className="dyn-bubble-c1 opacity-0">
+                {b.item.type === 'receipt' ? (
+                   <div className="w-[200px] bg-white shadow-xl border border-slate-100 relative pb-4 text-slate-800" style={{ filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.06))' }}>
+                      <div className="p-4 flex flex-col font-mono text-[9px] leading-tight">
+                         <div className="text-center font-black uppercase text-[11px] tracking-wider border-b border-dashed border-slate-300 pb-2 mb-2">
+                            SaSLoop Receipt<br/>
+                            <span className="text-[8px] text-slate-400 font-bold">INV-{b.item.id}</span>
+                          </div>
+                          <div className="space-y-1 mb-2">
+                             {b.item.items.map((it, i) => (
+                                <div key={i} className="flex justify-between"><span>{it.q}x {it.n}</span><span>₹{it.q * it.p}</span></div>
+                             ))}
+                          </div>
+                          <div className="border-t border-dashed border-slate-300 pt-2 flex justify-between font-black text-[10px]">
+                             <span>Total</span><span>₹{b.item.total}</span>
+                          </div>
+                      </div>
+                      <div className="absolute bottom-[-6px] left-0 w-full h-[6px]" style={{ backgroundImage: 'linear-gradient(-45deg, transparent 4px, white 4px), linear-gradient(45deg, transparent 4px, white 4px)', backgroundSize: '12px 12px', backgroundRepeat: 'repeat-x' }}></div>
+                   </div>
+                ) : b.item.type === 'kot' ? (
+                   <div className="w-[200px] bg-[#fdfaf2] shadow-xl border border-amber-100 relative pb-4 text-amber-900" style={{ filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.06))' }}>
+                      <div className="p-4 flex flex-col font-mono text-[9px] leading-tight">
+                         <div className="text-center font-black uppercase text-[11px] tracking-wider border-b border-dashed border-amber-200 pb-2 mb-2 text-amber-800">
+                            Kitchen Ticket<br/>
+                            <span className="text-[8px] text-amber-500 font-bold">KOT #{b.item.id}</span>
+                         </div>
+                         <div className="text-[10px] font-black mb-1.5 text-slate-800">{b.item.table.toUpperCase()}</div>
+                         <div className="space-y-1 mb-1">
+                            {b.item.items.map((it, i) => (
+                               <div key={i} className="font-bold">{it.q}x {it.n}</div>
+                            ))}
+                         </div>
+                      </div>
+                      <div className="absolute bottom-[-6px] left-0 w-full h-[6px]" style={{ backgroundImage: 'linear-gradient(-45deg, transparent 4px, #fdfaf2 4px), linear-gradient(45deg, transparent 4px, #fdfaf2 4px)', backgroundSize: '12px 12px', backgroundRepeat: 'repeat-x' }}></div>
+                   </div>
+                ) : b.item.type === 'pos_terminal' ? (
+                   <div className="w-[200px] bg-slate-900 text-white rounded-2xl p-4 shadow-xl border border-slate-800 flex flex-col items-center gap-2" style={{ filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.12))' }}>
+                      <svg width="48" height="48" viewBox="0 0 100 100" fill="none" className="text-emerald-400">
+                         <rect x="15" y="20" width="70" height="45" rx="6" fill="currentColor" fillOpacity="0.15" stroke="currentColor" strokeWidth="4"/>
+                         <rect x="22" y="27" width="56" height="31" rx="2" fill="currentColor"/>
+                         <path d="M30 65 L20 85 H80 L70 65" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+                         <rect x="25" y="82" width="50" height="6" rx="3" fill="currentColor"/>
+                      </svg>
+                      <div className="flex flex-col text-center">
+                         <span className="text-[10px] font-black uppercase tracking-wider text-emerald-400">SaSLoop POS</span>
+                         <span className="text-[8px] text-slate-400 font-bold mt-0.5">Terminal Active</span>
+                      </div>
+                   </div>
+                ) : (
+                   <div className="w-[200px] bg-white rounded-2xl p-4 shadow-xl border border-slate-100 flex flex-col gap-2.5 text-slate-800" style={{ filter: 'drop-shadow(0 15px 20px rgba(0,0,0,0.06))' }}>
+                      <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                         <div className="w-7 h-7 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                            <Truck size={14} strokeWidth={2.5}/>
+                         </div>
+                         <div>
+                            <div className="text-[10px] font-black uppercase tracking-tight leading-none">Delivery</div>
+                            <div className="text-[8px] font-bold text-amber-500 animate-pulse mt-0.5">{b.item.status}</div>
+                         </div>
+                      </div>
+                      <div className="space-y-1.5 text-[8.5px] font-bold text-slate-500 leading-none">
+                         <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/> {b.item.dest}</div>
+                         <div className="flex items-center gap-1.5"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"/> Driver: {b.item.driver}</div>
+                      </div>
+                   </div>
+                )}
               </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
+const featuresList = [
+  {
+    title: "Kitchen Order Tickets (KOT)",
+    desc: "Instantly route order items to kitchen departments, configure multi-printer layouts, and optimize chef workflows with real-time preparation tracking.",
+    icon: Utensils,
+    color: "from-emerald-500 to-teal-600",
+    badge: "KDS & KOT Engine"
+  },
+  {
+    title: "Receipts & Billing",
+    desc: "Generate professional thermal invoices, process cash/UPI/card settlements, track outstanding customer dues, and print custom layouts.",
+    icon: Receipt,
+    color: "from-blue-500 to-indigo-600",
+    badge: "Finance & POS"
+  },
+  {
+    title: "WhatsApp Orders",
+    desc: "Direct customer booking via WhatsApp channels, automated receipt broadcasting, and CRM marketing engines.",
+    icon: MessageSquare,
+    color: "from-green-500 to-emerald-600",
+    badge: "Marketing & CRM"
+  },
+  {
+    title: "Online Orders",
+    desc: "Accept incoming digital channel sales, coordinate delivery driver assignments, track delivery ETAs, and auto-sync online platforms.",
+    icon: ShoppingCart,
+    color: "from-orange-500 to-rose-600",
+    badge: "Digital Channels"
+  },
+  {
+    title: "Table Orders",
+    desc: "Orchestrate dine-in table layouts, manage reservations, visual table status colors, and coordinate waiter table order mappings.",
+    icon: Layers,
+    color: "from-purple-500 to-violet-600",
+    badge: "Floor Plan Seating"
+  }
+];
+
+const FeatureShowcase = () => {
+  const [index, setIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    setProgress(0);
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 100) {
+          setIndex(idx => (idx + 1) % featuresList.length);
+          return 0;
+        }
+        return prev + 2;
+      });
+    }, 80);
+
+    return () => clearInterval(progressInterval);
+  }, [index]);
+
+  const activeFeature = featuresList[index];
+  const IconComponent = activeFeature.icon;
+
+  return (
+    <div className="absolute bottom-6 left-6 hidden lg:flex flex-col max-w-[440px] text-slate-800 z-10 space-y-4 select-none text-left">
+      <div className="flex items-center gap-2">
+        <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-[#18ba60]/10 text-[#18ba60] border border-[#18ba60]/20 rounded-full">
+          Core Features
+        </span>
+        <span className="w-1.5 h-1.5 rounded-full bg-[#18ba60] animate-pulse"></span>
+      </div>
+
+      <div className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-[2rem] p-8 shadow-2xl shadow-slate-200/50 flex flex-col relative overflow-hidden transition-all duration-500 hover:shadow-[0_20px_60px_rgba(24,186,96,0.05)]">
+        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br ${activeFeature.color} opacity-5 blur-[40px] transition-all duration-500`} />
+
+        <div className="flex items-start gap-5">
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${activeFeature.color} flex items-center justify-center text-white shadow-lg shrink-0 transition-all duration-500 transform hover:scale-105`}>
+            <IconComponent size={24} strokeWidth={2.5} />
+          </div>
+
+          <div className="flex flex-col min-w-0">
+            <span className="text-[9px] font-black uppercase tracking-widest text-[#18ba60]">{activeFeature.badge}</span>
+            <h3 className="text-xl font-extrabold text-slate-900 mt-1 uppercase tracking-tight leading-tight transition-all duration-500">
+              {activeFeature.title}
+            </h3>
+          </div>
         </div>
 
-        {/* Typing Indicator for smaller screens / overall center aesthetic */}
-        <div className="absolute left-[50%] -translate-x-[50%] top-[85%] max-w-[280px] w-full p-4 rounded-2xl rounded-br-sm bg-emerald-900/40 border border-emerald-500/30 backdrop-blur-md shadow-2xl dyn-bubble-c2" style={{ animationDelay: '0s, 0s' }}>
-          <div className="flex items-center gap-2 text-[10px] text-emerald-400 mb-2 font-semibold uppercase tracking-wider">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            Auto Replying
-          </div>
-          <div className="flex gap-1.5 items-center h-5 px-1 bg-slate-900/50 w-max rounded-full py-2">
-            <span className="w-1.5 h-1.5 bg-emerald-500/80 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
-            <span className="w-1.5 h-1.5 bg-emerald-500/80 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
-            <span className="w-1.5 h-1.5 bg-emerald-500/80 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
-          </div>
+        <p className="text-slate-600 text-[12px] font-semibold leading-relaxed mt-5 min-h-[56px] transition-all duration-500">
+          {activeFeature.desc}
+        </p>
+
+        <div className="flex items-center gap-2.5 mt-8">
+          {featuresList.map((f, i) => (
+            <button
+              key={f.title}
+              onClick={() => { setIndex(i); setProgress(0); }}
+              className={`h-2.5 rounded-full transition-all duration-300 ${i === index ? `w-8 bg-gradient-to-r ${f.color}` : 'w-2.5 bg-slate-300 hover:bg-slate-400'}`}
+              title={f.title}
+            />
+          ))}
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
+          <div 
+            className={`h-full bg-gradient-to-r ${activeFeature.color} transition-all duration-75`}
+            style={{ width: `${progress}%` }}
+          />
         </div>
       </div>
     </div>
@@ -224,16 +368,21 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (token && user?.id && user?.role) {
-      if (user.role === "master_admin") window.location.href = "/master-dashboard";
-      else if (user.role.startsWith("admin")) window.location.href = "/admin-dashboard";
-      else window.location.href = "/dashboard";
-    } else if (token) {
-      // Clear stale/incomplete sessions
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    try {
+      const token = localStorage.getItem("token");
+      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      if (token && user?.id && user?.role) {
+        if (user.role === "master_admin") window.location.href = "/master-dashboard";
+        else if (user.role.startsWith("admin") || user.role === "brand_owner") window.location.href = "/admin-dashboard";
+        else window.location.href = "/dashboard";
+      } else if (token) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        sessionStorage.clear();
+      }
+    } catch (err) {
+      console.error("Session Restoration Error:", err);
+      localStorage.clear();
       sessionStorage.clear();
     }
   }, []);
@@ -314,7 +463,7 @@ function Login() {
 
         if (userData.role === "master_admin") {
           window.location.href = "/master-dashboard";
-        } else if (userData.role && userData.role.startsWith("admin")) {
+        } else if (userData.role && (userData.role.startsWith("admin") || userData.role === "brand_owner")) {
           window.location.href = "/admin-dashboard";
         } else {
           window.location.href = "/dashboard";
@@ -333,116 +482,123 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans">
-      <ChatAnimationBackground />
-      
-      {/* Login Card */}
-      <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(0,0,0,0.12)] mx-2">
+    <div className="min-h-screen flex flex-col font-sans bg-slate-50 relative select-none">
+      <div className="flex-1 flex items-center justify-center lg:justify-end p-4 lg:pr-28 relative overflow-hidden">
+        <ChatAnimationBackground />
         
-        {/* Top Decorative Header */}
-        <div className="h-32 bg-gradient-to-br from-slate-900 to-slate-800 relative flex items-center justify-center overflow-hidden">
-          <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2694&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay" />
-          <div className="z-10 text-center">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight flex items-center justify-center gap-1">
-               <SaSLoopLogo />
-               SaS <span className="text-emerald-400">Loop AI</span>
-            </h1>
-            <p className="text-slate-400 font-medium mt-1 text-xs tracking-widest uppercase h-[20px] flex justify-center items-center">
-              <TypewriterText />
-            </p>
-          </div>
-        </div>
-
-        {/* Form Container */}
-        <div className="p-8 pb-10">
+        {/* Bottom Left: Animated Features Showcase */}
+        <FeatureShowcase />
+        
+        {/* Login Card */}
+        <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(24,186,96,0.1)] mx-2">
           
-          <div className="text-center mb-6">
-            <h2 className="text-xl font-bold text-slate-800">Welcome Back</h2>
-            <p className="text-sm text-slate-500 mt-1">Sign in to manage your AI automations</p>
+          {/* Top Decorative Header */}
+          <div className="h-32 bg-gradient-to-br from-[#0d1117] to-[#1c4934] relative flex items-center justify-center overflow-hidden">
+            <div className="absolute inset-0 opacity-10 bg-cover bg-center mix-blend-overlay" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'60\' height=\'60\' viewBox=\'0 0 60 60\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cg fill=\'none\' fill-rule=\'evenodd\'%3E%3Cg fill=\'%23ffffff\' fill-opacity=\'0.15\'%3E%3Cpath d=\'M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z\'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")' }} />
+            <div className="z-10 text-center">
+              <h1 className="text-2xl font-extrabold text-white tracking-tighter flex items-center justify-center gap-1">
+                 <img src="/logo.png" alt="SaSLoop Logo" className="w-9 h-9 object-contain mr-1 bg-white rounded-full p-1" />
+                 SaSLoop <span className="text-[#18ba60]">POS</span>
+              </h1>
+              <p className="text-emerald-400 font-medium mt-1 text-[10px] tracking-widest uppercase h-[20px] flex justify-center items-center">
+                <TypewriterText />
+              </p>
+            </div>
           </div>
 
-          <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
-            {/* Custom Error Dialog */}
-            {errorMsg && (
-              <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl border border-red-100 flex items-start gap-2 animate-[pulse_0.4s_ease-in-out]">
-                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                 <span className="font-medium">{errorMsg}</span>
-              </div>
-            )}
-
-            {/* Email/Username Input */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-                <Mail className="w-5 h-5" />
-              </div>
-              <input
-                className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 outline-none text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
-                placeholder="Email or Username"
-                value={identifier}
-                onChange={(e)=>setIdentifier(e.target.value)}
-                required
-              />
+          {/* Form Container */}
+          <div className="p-8 pb-10">
+            <div className="text-center mb-6">
+              <h2 className="text-xl font-bold text-slate-800">SaSLoop POS</h2>
+              <p className="text-[11px] text-slate-500 mt-1 font-semibold uppercase tracking-widest">Backoffice Access</p>
             </div>
 
-            {/* Password Input */}
-            <div className="relative group">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-                <Lock className="w-5 h-5" />
-              </div>
-              <input
-                className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 outline-none text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
-                type={showPassword ? "text" : "password"}
-                placeholder="Password"
-                value={password}
-                required
-                onChange={(e)=>setPassword(e.target.value)}
-              />
-              <button 
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                type="button"
-              >
-                {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-              </button>
-            </div>
+            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="space-y-4">
+              {/* Custom Error Dialog */}
+              {errorMsg && (
+                <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl border border-red-100 flex items-start gap-2 animate-[pulse_0.4s_ease-in-out]">
+                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                   <span className="font-medium">{errorMsg}</span>
+                </div>
+              )}
 
-            {/* Form Actions */}
-            <div className="pt-2">
-              <button
-                type="submit"
-                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-semibold py-4 rounded-2xl transition-all shadow-[0_4px_14px_0_rgba(15,23,42,0.2)] hover:shadow-[0_6px_20px_rgba(15,23,42,0.3)] hover:-translate-y-0.5 active:translate-y-0"
-              >
-                Sign In
-              </button>
-              
-              <div className="text-center mt-5">
+              {/* Email/Username Input */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+                  <User className="w-5 h-5" />
+                </div>
+                <input
+                  className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  placeholder="Email or Username"
+                  value={identifier}
+                  onChange={(e) => setIdentifier(e.target.value)}
+                  required
+                />
+              </div>
+
+              {/* Password Input */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+                  <Lock className="w-5 h-5" />
+                </div>
+                <input
+                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Password"
+                  value={password}
+                  required
+                  onChange={(e) => setPassword(e.target.value)}
+                />
                 <button 
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
                   type="button"
-                  onClick={() => setIsForgotModalOpen(true)}
-                  className="text-sm font-semibold text-slate-500 hover:text-emerald-600 transition-colors"
                 >
-                  Forgot password?
+                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
                 </button>
               </div>
-            </div>
-          </form>
-        </div>
-        
-        {/* Footer */}
-        <div className="bg-slate-50/80 p-4 border-t border-slate-100 text-center">
-            <p className="text-xs text-slate-500 font-medium">
-              Don't have an account? <a href="https://wa.me/919469697216?text=Hi,%20I%20need%20help%20with%20my%20SaS%20Loop%20AI%20account" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:text-emerald-700 font-semibold">Contact Support</a>
-            </p>
-        </div>
 
+              {/* Form Actions */}
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  className="w-full bg-[#18ba60] hover:bg-[#15a353] text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl transition-all shadow-lg shadow-[#18ba60]/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+                >
+                  SIGN IN
+                </button>
+                
+                <div className="text-center mt-5">
+                  <button 
+                    type="button"
+                    onClick={() => setIsForgotModalOpen(true)}
+                    className="text-xs font-bold text-slate-500 hover:text-[#18ba60] transition-colors uppercase tracking-wider"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+          
+          {/* Footer */}
+          <div className="bg-slate-50 border-t border-slate-100 text-center flex justify-between items-center px-6 py-4">
+              <p className="text-[10px] text-slate-500 font-bold">
+                SaSLoop POS v1.0.1
+              </p>
+              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold">
+                 <Shield size={10} /> Secure Connection
+              </div>
+          </div>
+
+        </div>
       </div>
 
       {/* RECOVERY MODAL */}
       {isForgotModalOpen && createPortal(
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-md" onClick={() => setIsForgotModalOpen(false)} />
-          <div className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl p-8 animate-in fade-in zoom-in-95 duration-300">
+        <div className="pro-modal-overlay">
+          <div className="pro-modal-content max-w-md p-8 relative">
              <button onClick={() => { setIsForgotModalOpen(false); setRecoveryStep(1); }} className="absolute top-6 right-6 text-slate-400 hover:text-slate-900"><X /></button>
+
              
              <div className="text-center mb-8">
                 <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4">

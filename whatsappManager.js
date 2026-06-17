@@ -38,21 +38,23 @@ const sendOfficialMessage = async (to, content, userId) => {
             payload.type = "template";
             payload.template = {
                 name: content.templateName,
-                language: { code: content.lang || "en" },
-                components: [
+                language: { code: content.lang || "en" }
+            };
+            if (content.params && content.params.length > 0) {
+                payload.template.components = [
                     {
                         type: "body",
-                        parameters: (content.params || []).map(p => ({ type: "text", text: String(p) }))
+                        parameters: content.params.map(p => ({ type: "text", text: String(p) }))
                     }
-                ]
-            };
+                ];
+            }
         } else if (content.imageUrl && content.button) {
             // Interactive message with Image header and CTA button
             payload.type = "interactive";
             payload.interactive = {
                 type: "button",
                 header: { type: "image", image: { link: content.imageUrl } },
-                body: { text: content.message || "Message from SaSLoop" },
+                body: { text: content.message || "Message from SaSLoop ERP | AI" },
                 action: {
                     buttons: [
                         { type: "reply", reply: { id: "cta_btn", title: content.button.text || "Click Here" } }
@@ -66,7 +68,7 @@ const sendOfficialMessage = async (to, content, userId) => {
             payload.type = "interactive";
             payload.interactive = {
                 type: "button",
-                body: { text: content.message || "Message from SaSLoop" },
+                body: { text: content.message || "Message from SaSLoop ERP | AI" },
                 action: {
                     buttons: [
                         { type: "reply", reply: { id: "cta_btn", title: content.button.text || "Click Here" } }
@@ -108,20 +110,46 @@ const sendOfficialMessage = async (to, content, userId) => {
 };
 const deductInventory = async (userId, cart) => {
     try {
-        const bizRes = await pool.query("SELECT name, notification_numbers FROM restaurants WHERE user_id = $1", [userId]);
+        const bizRes = await pool.query("SELECT name, notification_numbers, track_inventory FROM restaurants WHERE user_id = $1", [userId]);
         const biz = bizRes.rows[0];
+        if (!biz || !biz.track_inventory) {
+            console.log(`[INVENTORY] Skipping inventory deduction for User ${userId} (track_inventory is disabled)`);
+            return;
+        }
         const staffNums = biz?.notification_numbers || [];
 
         for (const item of cart) {
             const itemName = item.name || item.product_name;
+            const baseItemName = itemName.replace(/\s*\(.*\)$/, '').trim();
             const res = await pool.query(
                 `UPDATE business_items 
                  SET stock_count = GREATEST(stock_count - $1, 0),
                      availability = CASE WHEN GREATEST(stock_count - $1, 0) = 0 THEN false ELSE availability END
                  WHERE user_id = $2 AND product_name = $3 AND stock_count IS NOT NULL
                  RETURNING stock_count`,
-                [item.qty || 1, userId, itemName]
+                [item.qty || 1, userId, baseItemName]
             );
+
+            // Deduct from outlet_menu_items
+            if (item.id) {
+                await pool.query(
+                    `UPDATE outlet_menu_items 
+                     SET stock_qty = GREATEST(stock_qty - $1, 0),
+                         is_active = CASE WHEN GREATEST(stock_qty - $1, 0) = 0 THEN false ELSE is_active END
+                     WHERE (item_id = $2 OR id = $2) AND stock_qty IS NOT NULL`,
+                    [item.qty || 1, item.id]
+                );
+            } else {
+                await pool.query(
+                    `UPDATE outlet_menu_items omi
+                     SET stock_qty = GREATEST(stock_qty - $1, 0),
+                         is_active = CASE WHEN GREATEST(stock_qty - $1, 0) = 0 THEN false ELSE is_active END
+                     FROM outlet_menus m
+                     WHERE omi.menu_id = m.id AND (m.outlet_id = $2 OR m.user_id = $2)
+                       AND omi.item_name = $3 AND omi.stock_qty IS NOT NULL`,
+                    [item.qty || 1, userId, itemName]
+                );
+            }
 
             if (res.rows.length > 0) {
                 const newStock = res.rows[0].stock_count;
@@ -140,13 +168,22 @@ const deductInventory = async (userId, cart) => {
 
 const upsertContact = async (userId, phone, name) => {
     try {
+        const cleanNum = normalizePhone(phone);
         await pool.query(
             `INSERT INTO marketing_contacts (user_id, phone_number, name, last_order_at) 
              VALUES ($1, $2, $3, NOW()) 
              ON CONFLICT (user_id, phone_number) DO UPDATE SET name = EXCLUDED.name, last_order_at = NOW()`,
-            [userId, normalizePhone(phone), name]
+            [userId, cleanNum, name]
         );
-    } catch (e) {}
+        await pool.query(
+            `INSERT INTO customers (user_id, name, number) 
+             VALUES ($1, $2, $3) 
+             ON CONFLICT (user_id, number) DO UPDATE SET name = EXCLUDED.name`,
+            [userId, name || 'Customer', cleanNum]
+        );
+    } catch (e) {
+        console.error("Error upserting customer contact:", e);
+    }
 };
 
 const logChat = async (userId, customerNumber, role, text, waMessageId = null) => {
@@ -243,6 +280,150 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
     return R * c;
 };
 
+const getItemOptions = async (itemId, userId) => {
+    try {
+        // Find menu ID for this user/outlet
+        const menuRes = await pool.query(
+            "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1",
+            [userId]
+        );
+        let menuId = menuRes.rows[0]?.id;
+        if (!menuId) {
+            const posMenuRes = await pool.query(
+                "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true LIMIT 1",
+                [userId]
+            );
+            menuId = posMenuRes.rows[0]?.id;
+        }
+        if (!menuId) return null;
+
+        let resolvedItemId = itemId;
+        // Try to resolve outlet_menu_items.id from business_items.id (itemId)
+        const mapRes = await pool.query(
+            "SELECT id FROM outlet_menu_items WHERE menu_id = $1 AND item_id = $2 LIMIT 1",
+            [menuId, itemId]
+        );
+        if (mapRes.rows.length > 0) {
+            resolvedItemId = mapRes.rows[0].id;
+        } else {
+            // Fallback: match by product_name/item_name
+            const nameRes = await pool.query(
+                `SELECT omi.id FROM outlet_menu_items omi
+                 JOIN business_items bi ON omi.item_name = bi.product_name
+                 WHERE omi.menu_id = $1 AND bi.id = $2 LIMIT 1`,
+                [menuId, itemId]
+            );
+            if (nameRes.rows.length > 0) {
+                resolvedItemId = nameRes.rows[0].id;
+            }
+        }
+
+        const ogRes = await pool.query(
+            `SELECT og.id, og.name, og.min_selectable, og.max_selectable
+             FROM option_groups og
+             JOIN item_option_groups iog ON og.id = iog.group_id
+             WHERE iog.item_id = $1 AND og.is_active = true LIMIT 1`,
+            [resolvedItemId]
+        );
+        if (ogRes.rows.length === 0) {
+            const fallbackRes = await pool.query(
+                `SELECT id, item_name as name, base_price as price
+                 FROM outlet_menu_items
+                 WHERE menu_id = $1
+                   AND item_type = '1'
+                   AND id > $2
+                   AND id < COALESCE(
+                     (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $1 AND id > $2),
+                     99999999
+                   )
+                 ORDER BY id ASC`,
+                [menuId, resolvedItemId]
+            );
+            if (fallbackRes.rows.length > 0) {
+                return {
+                    groupId: resolvedItemId,
+                    groupName: "Size/Portion",
+                    minSelectable: 1,
+                    maxSelectable: 1,
+                    options: fallbackRes.rows.map(o => ({
+                        id: o.id,
+                        name: o.name,
+                        price: parseFloat(o.price) || 0
+                    }))
+                };
+            }
+            return null;
+        }
+        
+        const og = ogRes.rows[0];
+        
+        const optionsRes = await pool.query(
+            `SELECT DISTINCT ON (ol.id) ol.id, ol.name, COALESCE(NULLIF(ol.price_override, 0.00), omi.base_price) as price, omi.id as menu_item_id
+             FROM options_list ol
+             LEFT JOIN outlet_menu_items omi ON ol.name = omi.item_name 
+               AND omi.menu_id = $2
+               AND (
+                 omi.item_type = '1' 
+                 AND omi.id > $1 
+                 AND omi.id < COALESCE(
+                   (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $2 AND id > $1), 
+                   99999999
+                 )
+               )
+             WHERE ol.group_id = $3 AND ol.is_active = true 
+             ORDER BY ol.id, omi.id ASC`,
+            [resolvedItemId, menuId, og.id]
+        );
+        
+        if (optionsRes.rows.length === 0) return null;
+        
+        return {
+            groupId: og.id,
+            groupName: og.name,
+            minSelectable: og.min_selectable,
+            maxSelectable: og.max_selectable,
+            options: optionsRes.rows.map(o => ({
+                id: o.menu_item_id || o.id, // Prefer actual menu_item_id
+                name: o.name,
+                price: parseFloat(o.price) || 0
+            }))
+        };
+    } catch (e) {
+        console.error("Error fetching item options:", e);
+        return null;
+    }
+};
+
+const sendTypingIndicator = async (to, messageId, userId) => {
+    try {
+        const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        if (token) token = token.trim();
+        if (phoneId) phoneId = phoneId.trim();
+
+        if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
+
+        const cleanTo = formatToInter(to);
+        const payload = {
+            messaging_product: "whatsapp",
+            status: "read",
+            message_id: messageId,
+            typing_indicator: {
+                type: "text"
+            }
+        };
+
+        const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        return { success: true, data: response.data };
+    } catch (e) {
+        console.error(`[META-TYPING-FAILURE] To: ${to} | Error:`, e.response?.data || e.message);
+        return { success: false, error: e.response?.data || e.message };
+    }
+};
+
 const getSession = async (userId, customerNumber) => {
     try {
         const cleanNum = normalizePhone(customerNumber);
@@ -252,9 +433,29 @@ const getSession = async (userId, customerNumber) => {
         );
         if (res.rows.length > 0) {
             const sess = res.rows[0];
+            const context = typeof sess.context === 'string' ? JSON.parse(sess.context) : (sess.context || { cart: [] });
+            
+            // Auto-timeout after 30 minutes of inactivity
+            const lastActive = new Date(sess.updated_at || sess.last_interaction).getTime();
+            const now = Date.now();
+            if (now - lastActive > 30 * 60 * 1000) {
+                console.log(`🕒 [TIMEOUT] Resetting session state to IDLE and clearing pending context variables for ${cleanNum}`);
+                sess.state = 'IDLE';
+                delete context.pending_selection;
+                delete context.pending_option_selection;
+                delete context.pending_item;
+                delete context.pending_ambiguous;
+                delete context.pendingOrder;
+                
+                await pool.query(
+                    "UPDATE conversation_sessions SET state = 'IDLE', context = $1, updated_at = NOW() WHERE id = $2",
+                    [JSON.stringify(context), sess.id]
+                );
+            }
+            
             return {
                 ...sess,
-                context: typeof sess.context === 'string' ? JSON.parse(sess.context) : (sess.context || { cart: [] })
+                context
             };
         }
         const newSession = await pool.query(
@@ -375,8 +576,56 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         const symbol = biz.currency_code === 'INR' ? '₹' : '$';
-        const itemsRes = await pool.query("SELECT product_name, price, availability, stock_count FROM business_items WHERE user_id = $1", [userId]);
-        const allItems = itemsRes.rows;
+        let allItems = [];
+        const menuRes = await pool.query(
+            `SELECT id FROM outlet_menus 
+             WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1`,
+            [userId]
+        );
+        
+        if (menuRes.rows.length > 0) {
+            const menuId = menuRes.rows[0].id;
+            const itemsRes = await pool.query(
+                `SELECT omi.id, 
+                        omi.item_name AS product_name, 
+                        omi.base_price AS price, 
+                        omi.is_active AS availability, 
+                        omi.stock_qty AS stock_count,
+                        COALESCE(c.name, 'General') as category
+                 FROM outlet_menu_items omi
+                 LEFT JOIN categories c ON omi.category_id = c.id
+                 WHERE omi.menu_id = $1 AND omi.item_type = '0' AND omi.is_active = true
+                   AND (c.id IS NULL OR c.is_active = true)
+                   AND omi.item_name NOT IN (SELECT name FROM options_list)
+                 ORDER BY omi.id ASC`,
+                [menuId]
+            );
+            allItems = itemsRes.rows.map(item => ({
+                id: item.id,
+                product_name: item.product_name,
+                price: parseFloat(item.price),
+                availability: item.availability,
+                stock_count: item.stock_count !== null ? parseFloat(item.stock_count) : null,
+                category: item.category
+            }));
+        } else {
+            const itemsRes = await pool.query(
+                `SELECT id, product_name, price, availability, stock_count 
+                 FROM business_items 
+                 WHERE user_id = $1 AND availability = true
+                   AND product_name NOT IN (SELECT name FROM options_list)
+                 ORDER BY id ASC`,
+                [userId]
+            );
+            allItems = itemsRes.rows.map(item => ({
+                id: item.id,
+                product_name: item.product_name,
+                price: parseFloat(item.price),
+                availability: item.availability,
+                stock_count: item.stock_count !== null ? parseFloat(item.stock_count) : null,
+                category: 'General'
+            }));
+        }
 
         // --- 🧠 SMART MENU FILTERING (Fuzzy & Robust) ---
         const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
@@ -442,17 +691,20 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 ];
 
                 await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
-                await logChat(userId, cleanNum, 'bot', welcomeText);
             } else {
                 // NEW CUSTOMER: Show VIP Offer + Buttons
-                const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 *SPECIAL OFFER:* Join our *VIP Club* today and get *50 Points* instantly! 🎊\n\n*What would you like to do today?*`;
+                const joiningPoints = parseInt(biz.loyalty_joining_points) || 0;
+                let pointsPromo = "";
+                if (joiningPoints > 0) {
+                    pointsPromo = ` and get *${joiningPoints} Free Points* instantly`;
+                }
+                const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 Join our *VIP Club* today${pointsPromo} to start tracking your purchases and earn loyalty rewards! 🎊\n\n*What would you like to do today?*`;
                 
                 await sendButtons(customerNumber, welcomeText, [
-                    { id: 'join_loyalty', title: '🎁 Join VIP (+50 Pts)' },
+                    { id: 'join_loyalty', title: joiningPoints > 0 ? `🎁 Claim ${joiningPoints} Pts` : '🎁 Join VIP Club' },
                     { id: 'view_menu', title: '📜 View Menu' },
                     { id: 'place_order', title: '🛍️ Place Order' }
                 ], userId);
-                await logChat(userId, cleanNum, 'bot', welcomeText);
             }
             return;
         }
@@ -486,10 +738,31 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const selection = menu.find(i => i.product_name.toLowerCase() === lower);
             if (selection) {
                 const qty = pending.qty || 1;
+                
+                // Check if item has option groups
+                const optData = await getItemOptions(selection.id, userId);
+                if (optData) {
+                    const buttons = optData.options.map(opt => ({
+                        id: `opt_${opt.id}`,
+                        title: `${opt.name} (${symbol}${opt.price})`
+                    }));
+                    const body = `😋 *Choose size/option for ${selection.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                    await sendButtons(customerNumber, body, buttons, userId);
+                    
+                    session.context.pending_option_selection = {
+                        mainItem: { id: selection.id, name: selection.product_name },
+                        options: optData.options,
+                        qty: qty
+                    };
+                    delete session.context.pending_selection;
+                    await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                    return;
+                }
+
                 const cart = session.context.cart || [];
                 const existing = cart.find(c => c.name === selection.product_name);
                 if (existing) existing.qty += qty;
-                else cart.push({ name: selection.product_name, qty, price: selection.price });
+                else cart.push({ id: selection.id, name: selection.product_name, qty, price: selection.price });
                 
                 session.context.cart = cart;
                 delete session.context.pending_selection;
@@ -497,18 +770,43 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 // --- 🔄 CHECK FOR MORE AMBIGUOUS ITEMS ---
                 if (session.context.pending_ambiguous && session.context.pending_ambiguous.length > 0) {
                     const nextAmb = session.context.pending_ambiguous.shift();
-                    session.context.pending_selection = { keyword: nextAmb.keyword, qty: nextAmb.qty };
-                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+                    
+                    if (nextAmb.is_option_selection) {
+                        const item = nextAmb.item;
+                        const optData = nextAmb.optData;
+                        const nextQty = nextAmb.qty || 1;
+                        
+                        const buttons = optData.options.map(opt => ({
+                            id: `opt_${opt.id}`,
+                            title: `${opt.name} (${symbol}${opt.price})`
+                        }));
+                        
+                        let body = `✅ *Added: ${qty}x ${selection.product_name}*\n\n`;
+                        body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                        
+                        await sendButtons(customerNumber, body, buttons, userId);
+                        
+                        session.context.pending_option_selection = {
+                            mainItem: { id: item.id, name: item.product_name },
+                            options: optData.options,
+                            qty: nextQty
+                        };
+                        await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                        return;
+                    } else {
+                        session.context.pending_selection = { keyword: nextAmb.keyword, qty: nextAmb.qty };
+                        await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                    const rows = nextAmb.matches.slice(0, 10).map(m => ({
-                        id: m.product_name,
-                        title: m.product_name.substring(0, 24),
-                        description: `${symbol}${m.price}`
-                    }));
+                        const rows = nextAmb.matches.slice(0, 10).map(m => ({
+                            id: m.product_name,
+                            title: m.product_name.substring(0, 24),
+                            description: `${symbol}${m.price}`
+                        }));
 
-                    const body = `✅ *Added: ${qty}x ${selection.product_name}*\n\n🤔 *And which "${nextAmb.keyword}" did you mean?*`;
-                    await sendList(customerNumber, "Select Next", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
-                    return;
+                        const body = `✅ *Added: ${qty}x ${selection.product_name}*\n\n🤔 *And which "${nextAmb.keyword}" did you mean?*`;
+                        await sendList(customerNumber, "Select Next", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                        return;
+                    }
                 }
 
                 await updateSession(userId, cleanNum, 'IDLE', session.context);
@@ -557,6 +855,138 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             sgst = (subtotal * sgstR) / 100;
         }
         const orderRef = `W${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+
+        // --- ⚙️ HANDLE OPTION SELECTION ---
+        if (session.state === 'AWAITING_OPTION_SELECTION' && session.context.pending_option_selection) {
+            const pending = session.context.pending_option_selection;
+            let selectedOpt = null;
+            
+            if (lower.startsWith('opt_')) {
+                const optId = parseInt(lower.substring(4));
+                selectedOpt = pending.options.find(o => o.id === optId);
+            } else {
+                selectedOpt = pending.options.find(o => o.name.toLowerCase() === lower || lower.includes(o.name.toLowerCase()));
+            }
+            
+            if (selectedOpt) {
+                const cart = session.context.cart || [];
+                const itemName = `${pending.mainItem.name} (${selectedOpt.name})`;
+                const qty = pending.qty || 1;
+                
+                const existing = cart.find(c => c.name === itemName);
+                if (existing) existing.qty += qty;
+                else cart.push({ name: itemName, qty, price: selectedOpt.price, id: selectedOpt.id });
+                
+                session.context.cart = cart;
+                delete session.context.pending_option_selection;
+                
+                // --- Check for next pending ambiguous or option selection ---
+                if (session.context.pending_ambiguous && session.context.pending_ambiguous.length > 0) {
+                    const nextAmb = session.context.pending_ambiguous.shift();
+                    
+                    if (nextAmb.is_option_selection) {
+                        const item = nextAmb.item;
+                        const optData = nextAmb.optData;
+                        const nextQty = nextAmb.qty || 1;
+                        
+                        const buttons = optData.options.map(opt => ({
+                            id: `opt_${opt.id}`,
+                            title: `${opt.name} (${symbol}${opt.price})`
+                        }));
+                        
+                        let body = `✅ *Added: ${qty}x ${itemName}*\n\n`;
+                        body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                        
+                        await sendButtons(customerNumber, body, buttons, userId);
+                        
+                        session.context.pending_option_selection = {
+                            mainItem: { id: item.id, name: item.product_name },
+                            options: optData.options,
+                            qty: nextQty
+                        };
+                        await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                        return;
+                    } else {
+                        session.context.pending_selection = { keyword: nextAmb.keyword, qty: nextAmb.qty };
+                        await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                        const rows = nextAmb.matches.slice(0, 10).map(m => ({
+                            id: m.product_name,
+                            title: m.product_name.substring(0, 24),
+                            description: `${symbol}${m.price}`
+                        }));
+
+                        let body = `✅ *Added: ${qty}x ${itemName}*\n\n`;
+                        body += `🤔 *Which "${nextAmb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
+                        
+                        await sendList(customerNumber, "Select Next", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                        return;
+                    }
+                }
+                
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+                
+                const cartSummaryLines = cart.map(item => `• ${item.qty}x *${item.name}*`).join('\n');
+                const cartTotal = cart.reduce((sum, item) => sum + (item.qty * item.price), 0);
+                
+                const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
+                await sendButtons(customerNumber, msg, [
+                    { id: 'checkout', title: '🛒 Checkout Now' },
+                    { id: 'place_order', title: '➕ Add More' }
+                ], userId);
+                return;
+            } else {
+                if (lower === 'cancel' || lower.includes('cancel')) {
+                    delete session.context.pending_option_selection;
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+                    await sendOfficialMessage(customerNumber, "❌ Selection cancelled. What would you like to do?", userId);
+                    return;
+                }
+                
+                // Check if user is shifting intent (sending a command, greeting, or mentioning other menu items)
+                const isGreeting = greetings.includes(lower);
+                const isCommand = botCommands.includes(lower) || ['checkout', 'redeem_pts_wa', 'mode_pickup', 'mode_delivery', 'join_loyalty'].includes(lower);
+                
+                const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
+                const matchedOtherItems = allItems.filter(item => {
+                    if (item.product_name.toLowerCase() === pending.mainItem.name.toLowerCase()) return false;
+                    const pName = item.product_name.toLowerCase();
+                    return searchWords.some(word => pName.includes(word) || word.includes(pName));
+                });
+                
+                if (isGreeting || isCommand || matchedOtherItems.length > 0) {
+                    console.log(`🔄 [INTENT SHIFT] Clearing pending option selection for ${pending.mainItem.name} and falling through.`);
+                    delete session.context.pending_option_selection;
+                    session.state = 'IDLE';
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+                    // Let it fall through to normal AI/flow processing
+                } else {
+                    const buttons = pending.options.map(opt => ({
+                        id: `opt_${opt.id}`,
+                        title: `${opt.name} (${symbol}${opt.price})`
+                    }));
+                    const body = `⚠️ *Invalid selection.* Please choose one of the options for *${pending.mainItem.name}*:`;
+                    await sendButtons(customerNumber, body, buttons, userId);
+                    return;
+                }
+            }
+        }
+
+        // --- 📍 HANDLE LOCATION PIN STATE RESET ON INTENT SHIFT ---
+        if (session.state === 'AWAITING_LOCATION' && !isLocation) {
+            const isGreeting = greetings.includes(lower);
+            const isCommand = botCommands.includes(lower) || ['checkout', 'redeem_pts_wa', 'mode_pickup', 'mode_delivery', 'join_loyalty'].includes(lower);
+            const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
+            const matchedItems = allItems.filter(item => {
+                const pName = item.product_name.toLowerCase();
+                return searchWords.some(word => pName.includes(word) || word.includes(pName));
+            });
+            if (isGreeting || isCommand || matchedItems.length > 0) {
+                console.log(`🔄 [INTENT SHIFT] Resetting AWAITING_LOCATION to IDLE.`);
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+            }
+        }
 
         // --- 📍 HANDLE LOCATION PIN ---
         if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
@@ -629,30 +1059,37 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- 🔢 HANDLE QUANTITY REPLY ---
-        const numMatch = lower.match(/^\d+$/);
-        if (numMatch && session.state === 'AWAITING_QUANTITY' && session.context.pending_item) {
-            const qty = parseInt(numMatch[0]);
-            const item = session.context.pending_item;
-            
-            const existing = cart.find(i => i.name === item.name);
-            if (existing) existing.qty += qty;
-            else cart.push({ ...item, qty });
+        if (session.state === 'AWAITING_QUANTITY' && session.context.pending_item) {
+            const numMatch = lower.match(/^\d+$/);
+            if (numMatch) {
+                const qty = parseInt(numMatch[0]);
+                const item = session.context.pending_item;
+                
+                const existing = cart.find(i => i.name === item.name);
+                if (existing) existing.qty += qty;
+                else cart.push({ ...item, qty });
 
-            session.context.cart = cart;
-            session.context.pending_item = null;
-            
-            let cartText = cart.map(i => `• ${i.qty}x ${i.name}`).join("\n");
-            let total = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
-            
-            const text = `✅ *Excellent choice!* I've added that to your order.\n\n${cartText}\n\n*Total:* ${symbol}${total}\n\nWould you like to confirm this order or add something else?`;
-            await sendButtons(customerNumber, text, [
-                { id: 'checkout', title: '✅ Confirm Order' },
-                { id: 'place_order', title: '➕ Add More' }
-            ], userId);
-            
-            await updateSession(userId, cleanNum, 'IDLE', session.context);
-            await logChat(userId, cleanNum, 'bot', text);
-            return;
+                session.context.cart = cart;
+                session.context.pending_item = null;
+                
+                let cartText = cart.map(i => `• ${i.qty}x ${i.name}`).join("\n");
+                let total = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
+                
+                const text = `✅ *Excellent choice!* I've added that to your order.\n\n${cartText}\n\n*Total:* ${symbol}${total}\n\nWould you like to confirm this order or add something else?`;
+                await sendButtons(customerNumber, text, [
+                    { id: 'checkout', title: '✅ Confirm Order' },
+                    { id: 'place_order', title: '➕ Add More' }
+                ], userId);
+                
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+                return;
+            } else {
+                // If they typed something else, reset the quantity state
+                console.log(`🔄 [INTENT SHIFT] Resetting AWAITING_QUANTITY to IDLE.`);
+                session.state = 'IDLE';
+                session.context.pending_item = null;
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+            }
         }
 
         // --- 🔘 HANDLE BUTTON CLICKS ---
@@ -668,7 +1105,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             if (item) {
                 const text = `Perfect! I've selected the *${item.product_name}* for you.\n\nHow many would you like me to add?`;
                 await sendBrandedText(customerNumber, biz.name, text, userId);
-                session.context.pending_item = { name: item.product_name, price: item.price };
+                session.context.pending_item = { id: item.id, name: item.product_name, price: item.price };
                 await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
                 return;
             }
@@ -736,8 +1173,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const initialStatus = 'AWAITING_PAYMENT'; // Assuming online for now or checking payment method if added to AI later
 
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method, redeemed_points, discount_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
-                [userId, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI', session.context.redeemedPoints || 0, discountAmount]
+                "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
+                [userId, biz.id || null, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI', session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
             );
 
             if (session.context.redeemedPoints) {
@@ -790,7 +1227,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
             }
 
-            const baseUrl = process.env.BACKEND_URL || 'https://sasloop.in';
+            const baseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
             const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
 
             receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
@@ -821,8 +1258,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
             
             await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
-                [userId, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI', session.context.redeemedPoints || 0, discountAmount]
+                "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
+                [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI', session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
             );
 
             if (session.context.redeemedPoints) {
@@ -847,8 +1284,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // Skip immediate KOT for online payment orders
             // try { ... }
 
-            const frontendBaseUrl = process.env.FRONTEND_URL || 'https://sasloop.in';
-            const backendBaseUrl = process.env.BACKEND_URL || 'https://sasloop.in';
+            const frontendBaseUrl = process.env.FRONTEND_URL || 'https://backend.sasloop.in';
+            const backendBaseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
             const trackingLink = `${frontendBaseUrl}/track/${orderRef}`;
             const paymentLink = `${backendBaseUrl}/api/public/payment-redirect/${orderRef}`;
 
@@ -869,13 +1306,24 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
         if (lower === 'join_loyalty') {
             try {
+                const joiningPoints = parseInt(biz.loyalty_joining_points) || 0;
                 await pool.query(
                     `INSERT INTO customer_loyalty (user_id, customer_number, name, points) 
-                     VALUES ($1, $2, $3, 50) 
+                     VALUES ($1, $2, $3, $4) 
                      ON CONFLICT (user_id, customer_number) DO NOTHING`,
-                    [userId, cleanNum, customerName || "Customer"]
+                    [userId, cleanNum, customerName || "Customer", joiningPoints]
                 );
-                const successMsg = `🎉 *Congratulations!* You've joined our VIP Club.\n\n*50 Points* have been added to your account. 🎊\n\nHow can I help you today?`;
+                
+                // Log welcome transaction
+                if (joiningPoints > 0) {
+                    await pool.query(
+                        `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason) 
+                         VALUES ($1, $2, 'POINTS_EARNED', 0, $3, 'Welcome Signup Bonus')`,
+                        [userId, cleanNum, joiningPoints]
+                    );
+                }
+
+                const successMsg = `🎉 *Congratulations!* You've joined our VIP Club.\n\n*${joiningPoints} Points* have been added to your account. 🎊\n\nHow can I help you today?`;
                 await sendButtons(customerNumber, successMsg, [
                     { id: 'place_order', title: '🛍️ Place an Order' },
                     { id: 'view_menu', title: '📜 View Menu' }
@@ -944,23 +1392,77 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const isGreeting = greetings.includes(simpleLower);
         const isTooShort = simpleLower.length < 3;
 
-        const directMatches = (isGreeting || isTooShort) ? [] : menu.filter(i => 
+        const rawDirectMatches = (isGreeting || isTooShort) ? [] : menu.filter(i => 
             i.product_name.toLowerCase() === simpleLower || 
             (i.category && i.category.toLowerCase() === simpleLower) || 
             (i.sub_category && i.sub_category.toLowerCase() === simpleLower) ||
             (simpleLower.length >= 3 && i.product_name.toLowerCase().includes(simpleLower))
         );
 
+        // Deduplicate direct matches by product_name
+        const seenDirect = new Set();
+        const directMatches = [];
+        for (const item of rawDirectMatches) {
+            const key = item.product_name.toLowerCase();
+            if (!seenDirect.has(key)) {
+                seenDirect.add(key);
+                directMatches.push(item);
+            }
+        }
+
         if (directMatches.length > 0) {
             console.log(`⚡ Fast-Track Match Found for: ${simpleLower}`);
             
-            if (directMatches.length === 1) {
-                const item = directMatches[0];
-                const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
-                await sendBrandedText(customerNumber, biz.name, text, userId);
-                session.context.pending_item = { name: item.product_name, price: item.price };
-                await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+            const exactMatchItem = directMatches.find(i => i.product_name.toLowerCase() === simpleLower);
+            
+            if (exactMatchItem || directMatches.length === 1) {
+                const item = exactMatchItem || directMatches[0];
+                const optData = await getItemOptions(item.id, userId);
+                if (optData) {
+                    const buttons = optData.options.map(opt => ({
+                        id: `opt_${opt.id}`,
+                        title: `${opt.name} (${symbol}${opt.price})`
+                    }));
+                    const body = `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                    await sendButtons(customerNumber, body, buttons, userId);
+                    
+                    session.context.pending_option_selection = {
+                        mainItem: { id: item.id, name: item.product_name },
+                        options: optData.options,
+                        qty: 1
+                    };
+                    await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                } else {
+                    const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                    await sendBrandedText(customerNumber, biz.name, text, userId);
+                    session.context.pending_item = { id: item.id, name: item.product_name, price: item.price };
+                    await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                }
             } else {
+                if (directMatches.length > 10) {
+                    const groups = {};
+                    directMatches.forEach(m => {
+                        const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
+                        if (!groups[base]) groups[base] = [];
+                        groups[base].push(m);
+                    });
+
+                    const groupNames = Object.keys(groups);
+                    if (groupNames.length > 1) {
+                        const rows = groupNames.slice(0, 10).map(name => ({
+                            id: `group_${name}`,
+                            title: name.substring(0, 24),
+                            description: `See ${groups[name].length} sizes available`
+                        }));
+                        const body = `🍕 *Which flavor of ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
+                        await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
+                        
+                        session.context.pending_selection = { keyword: simpleLower, qty: 1, is_group: true, groups };
+                        await updateSession(userId, cleanNum, 'IDLE', session.context);
+                        return;
+                    }
+                }
+
                 const matches = directMatches.slice(0, 10);
                 const rows = matches.map(m => ({
                     id: m.product_name,
@@ -1023,7 +1525,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                             : `🤖 *Dish Enquiry*\n━━━━━━━━━━━━━━\n📦 *Item:* ${match.product_name}\n💰 *Price:* ${symbol}${match.price}\n✨ *Status:* ${status}\n\nWould you like to add this to your order?`;
                         
                         const buttons = [];
-                        if (isAvailable) buttons.push({ id: `order_${match.product_name}`, title: isUrdu ? `🛒 Add Karein` : `🛒 Order ${match.product_name}` });
+                        if (isAvailable) {
+                            const rawTitle = isUrdu ? `🛒 Add Karein` : `🛒 Order ${match.product_name}`;
+                            const buttonTitle = rawTitle.length > 20 ? rawTitle.substring(0, 17) + "..." : rawTitle;
+                            buttons.push({ id: `order_${match.product_name}`, title: buttonTitle });
+                        }
                         buttons.push({ id: 'place_order', title: isUrdu ? '🛍️ Aur Dekhein' : '🛍️ Browse More' });
                         await sendButtons(customerNumber, reply, buttons, userId);
                         return;
@@ -1044,13 +1550,14 @@ CONTEXT:
 - Loyalty Program: Customers can redeem points by clicking "Redeem via WhatsApp" on the digital menu. This sends a unique token (RED-XXXXXX). Once they send it, the discount is applied automatically in their browser. NO OTPs are used.
 
 YOUR MISSION: Extract items, quantities, and intent. Match items against the menu list.
+⚠️ CRITICAL MENU GATING: You can ONLY suggest, confirm, or upsell items that are explicitly listed in the "- Menu:" context above. If the user asks for a dish that is NOT in the Menu context (even if you know it is a common item or matches the restaurant style), do NOT assume we have it and do NOT say you will add it. Instead, politely inform them it is currently unavailable or out of stock, suggest they view the menu, and prompt them to select something else.
 REPLY in the SAME LANGUAGE as the user (English or Roman Urdu).
 
 JSON RULES:
 - "intent": "ORDER_ITEM", "GREETING", "CHECKOUT", "ENQUIRY", "RESERVATION", "FEEDBACK", "CANCEL_ORDER", or "UNKNOWN".
-- "items": Array of { "name": string, "quantity": number }. ⚠️ CRITICAL: NEVER guess the specific dish variant. If a user says "Biryani", "Pizza", or "Chicken", and your menu context shows multiple variants (e.g. Full/Half, Veg/Non-Veg), you MUST return the generic name ONLY (e.g. "Biryani") so the system can ask for clarification.
-- "human_reply": A conversational, sales-driven response. Confirm items enthusiastically. If an item is ambiguous, tell them you'll show the options.
-- "upsell_suggestion": A short, tempting suggestion for one more item.
+- "items": Array of { "name": string, "quantity": number }. ⚠️ CRITICAL: Only include items that are present in the provided Menu context. Never include or guess items that are not in the Menu. NEVER guess the specific dish variant. If a user says "Biryani", "Pizza", or "Chicken", and your menu context shows multiple variants (e.g. Full/Half, Veg/Non-Veg), you MUST return the generic name ONLY (e.g. "Biryani") so the system can ask for clarification.
+- "human_reply": A conversational, sales-driven response. Confirm items enthusiastically. If an item is not in the Menu context, politely explain that it is out of stock / unavailable today. If an item is ambiguous, tell them you'll show the options.
+- "upsell_suggestion": A short, tempting suggestion for one more item (must be from the Menu context).
 
 RETURN ONLY JSON:
 {
@@ -1111,9 +1618,14 @@ RETURN ONLY JSON:
                 // --- 🎁 CHECK FOR NEW CUSTOMER LOYALTY ---
                 const loyaltyCheck = await pool.query("SELECT id FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
                 if (loyaltyCheck.rows.length === 0) {
-                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* ✨\n\n${result.human_reply || "Hello! It is a pleasure to meet you. 😊"}\n\n🎁 *VIP Welcome Gift:* Join our club today and get *50 Points* instantly! 🎈🎊`;
+                    const joiningPoints = parseInt(biz.loyalty_joining_points) || 0;
+                    let pointsPromo = "";
+                    if (joiningPoints > 0) {
+                        pointsPromo = ` and get *${joiningPoints} Free Points* instantly`;
+                    }
+                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* ✨\n\n${result.human_reply || "Hello! It is a pleasure to meet you. 😊"}\n\n🎁 Join our *VIP Club* today${pointsPromo} to start earning rewards and track your orders! 🎈`;
                     await sendButtons(customerNumber, welcomeMsg, [
-                        { id: 'join_loyalty', title: '🎁 Claim 50 Points' },
+                        { id: 'join_loyalty', title: joiningPoints > 0 ? `🎁 Claim ${joiningPoints} Pts` : '🎁 Join VIP Club' },
                         { id: 'place_order', title: '🛍️ Browse Menu' }
                     ], userId);
                     return;
@@ -1210,26 +1722,57 @@ RETURN ONLY JSON:
                     
                     if (exactMatch) {
                         const qty = aiItem.quantity || aiItem.qty || 1;
+                        const optData = await getItemOptions(exactMatch.id, userId);
+                        if (optData) {
+                            ambiguousItems.push({
+                                is_option_selection: true,
+                                item: exactMatch,
+                                optData,
+                                qty
+                            });
+                            continue;
+                        }
                         const existing = newCart.find(c => c.name === exactMatch.product_name);
                         if (existing) existing.qty += qty;
-                        else newCart.push({ name: exactMatch.product_name, qty, price: exactMatch.price });
+                        else newCart.push({ id: exactMatch.id, name: exactMatch.product_name, qty, price: exactMatch.price });
                         addedSummary.push(`${qty}x *${exactMatch.product_name}*`);
                     } else {
                         // Step 2: Find ALL fuzzy matches (Check name, category, or sub-category)
-                        const fuzzyMatches = menu.filter(i => 
+                        const rawFuzzyMatches = menu.filter(i => 
                             i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
                             aiItem.name.toLowerCase().includes(i.product_name.toLowerCase()) ||
                             (i.category && i.category.toLowerCase() === aiItem.name.toLowerCase()) ||
                             (i.sub_category && i.sub_category.toLowerCase() === aiItem.name.toLowerCase())
                         );
                         
+                        // Deduplicate fuzzy matches by product_name
+                        const seenFuzzy = new Set();
+                        const fuzzyMatches = [];
+                        for (const item of rawFuzzyMatches) {
+                            const key = item.product_name.toLowerCase();
+                            if (!seenFuzzy.has(key)) {
+                                seenFuzzy.add(key);
+                                fuzzyMatches.push(item);
+                            }
+                        }
+                        
                         if (fuzzyMatches.length === 1) {
                             // Only one fuzzy match — safe to auto-select
                             const item = fuzzyMatches[0];
                             const qty = aiItem.quantity || aiItem.qty || 1;
+                            const optData = await getItemOptions(item.id, userId);
+                            if (optData) {
+                                ambiguousItems.push({
+                                    is_option_selection: true,
+                                    item: item,
+                                    optData,
+                                    qty
+                                });
+                                continue;
+                            }
                             const existing = newCart.find(c => c.name === item.product_name);
                             if (existing) existing.qty += qty;
-                            else newCart.push({ name: item.product_name, qty, price: item.price });
+                            else newCart.push({ id: item.id, name: item.product_name, qty, price: item.price });
                             addedSummary.push(`${qty}x *${item.product_name}*`);
                         } else if (fuzzyMatches.length > 1) {
                             // Multiple matches — ask user to clarify
@@ -1238,55 +1781,82 @@ RETURN ONLY JSON:
                     }
                 }
 
-                // --- 🧩 DISAMBIGUATION: IF MULTIPLE MATCHES FOUND ---
+                // --- 🧩 DISAMBIGUATION: IF MULTIPLE MATCHES OR OPTION SELECTIONS FOUND ---
                 if (ambiguousItems.length > 0) {
                     const amb = ambiguousItems[0];
                     session.context.cart = newCart;
                     session.context.pending_ambiguous = ambiguousItems.slice(1);
                     
-                    // 🔥 SMART GROUPING: If > 10 matches, group by flavor
-                    if (amb.matches.length > 10) {
-                        const groups = {};
-                        amb.matches.forEach(m => {
-                            // Extract base name by removing Small/Medium/Large/Full/Half/Regular/etc
-                            const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
-                            if (!groups[base]) groups[base] = [];
-                            groups[base].push(m);
-                        });
-
-                        const groupNames = Object.keys(groups);
-                        if (groupNames.length > 1) {
-                            // Show Flavor List
-                            const rows = groupNames.slice(0, 10).map(name => ({
-                                id: `group_${name}`,
-                                title: name.substring(0, 24),
-                                description: `See ${groups[name].length} sizes available`
-                            }));
-                            const body = `🍕 *Which flavor of ${amb.keyword} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
-                            await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
-                            
-                            session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty, is_group: true, groups };
-                            await updateSession(userId, cleanNum, 'IDLE', session.context);
-                            return;
+                    if (amb.is_option_selection) {
+                        const item = amb.item;
+                        const optData = amb.optData;
+                        const qty = amb.qty;
+                        
+                        const buttons = optData.options.map(opt => ({
+                            id: `opt_${opt.id}`,
+                            title: `${opt.name} (${symbol}${opt.price})`
+                        }));
+                        
+                        let body = "";
+                        if (addedSummary.length > 0) {
+                            body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
                         }
+                        body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                        
+                        await sendButtons(customerNumber, body, buttons, userId);
+                        
+                        session.context.pending_option_selection = {
+                            mainItem: { id: item.id, name: item.product_name },
+                            options: optData.options,
+                            qty: qty
+                        };
+                        await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                        return;
+                    } else {
+                        // 🔥 SMART GROUPING: If > 10 matches, group by flavor
+                        if (amb.matches.length > 10) {
+                            const groups = {};
+                            amb.matches.forEach(m => {
+                                // Extract base name by removing Small/Medium/Large/Full/Half/Regular/etc
+                                const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
+                                if (!groups[base]) groups[base] = [];
+                                groups[base].push(m);
+                            });
+
+                            const groupNames = Object.keys(groups);
+                            if (groupNames.length > 1) {
+                                // Show Flavor List
+                                const rows = groupNames.slice(0, 10).map(name => ({
+                                    id: `group_${name}`,
+                                    title: name.substring(0, 24),
+                                    description: `See ${groups[name].length} sizes available`
+                                }));
+                                const body = `🍕 *Which flavor of ${amb.keyword} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
+                                await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
+                                
+                                session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty, is_group: true, groups };
+                                await updateSession(userId, cleanNum, 'IDLE', session.context);
+                                return;
+                            }
+                        }
+
+                        // Standard 1-level list if <= 10 or grouping not possible
+                        session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
+                        await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                        const rows = amb.matches.slice(0, 10).map(m => ({
+                            id: m.product_name, 
+                            title: m.product_name.substring(0, 24),
+                            description: `${symbol}${m.price}`
+                        }));
+
+                        let body = "";
+                        if (addedSummary.length > 0) body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
+                        body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
+                        
+                        await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                        return;
                     }
-
-                    // Standard 1-level list if <= 10 or grouping not possible
-                    session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
-                    await updateSession(userId, cleanNum, 'IDLE', session.context);
-
-                    const rows = amb.matches.slice(0, 10).map(m => ({
-                        id: m.product_name, 
-                        title: m.product_name.substring(0, 24),
-                        description: `${symbol}${m.price}`
-                    }));
-
-                    let body = "";
-                    if (addedSummary.length > 0) body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
-                    body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
-                    
-                    await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
-                    return;
                 }
 
                 if (addedSummary.length > 0) {
@@ -1385,13 +1955,26 @@ const handleMetaWebhook = async (body) => {
                             return;
                         }
 
-                        const userRes = await pool.query("SELECT id FROM app_users WHERE meta_phone_id = $1 LIMIT 1", [metaPhoneId]);
+                        const userRes = await pool.query(
+                            `SELECT u.id 
+                             FROM app_users u 
+                             LEFT JOIN restaurants r ON r.user_id = u.id 
+                             WHERE u.meta_phone_id = $1 
+                             ORDER BY r.id IS NULL ASC, r.id ASC 
+                             LIMIT 1`,
+                            [metaPhoneId]
+                        );
                     if (userRes.rows.length === 0) {
                         console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
                         return;
                     }
                     const userId = userRes.rows[0].id;
                     console.log(`👤 Found UserID: ${userId} for this webhook.`);
+
+                    // Trigger typing indicator immediately to simulate human-like behavior
+                    if (message.id) {
+                        await sendTypingIndicator(fromNumber, message.id, userId);
+                    }
 
                     let textBody = "";
                     let isLocation = false;

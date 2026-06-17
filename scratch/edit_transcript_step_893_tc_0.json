@@ -1,0 +1,7 @@
+{
+  "step_index": 893,
+  "tool": "replace_file_content",
+  "description": "\"Add android.content.Context import to BillingScreen.kt\"",
+  "instruction": "\"Add import android.content.Context to imports list\"",
+  "chunks": "\"import androidx.compose.ui.platform.LocalContext\\nimport android.content.Context\\nimport android.widget.Toast\""
+}

@@ -15,12 +15,14 @@ router.post("/setup", authMiddleware, async (req, res) => {
   console.log("Raw Payload:", JSON.stringify(req.body, null, 2));
   
   const { 
-    name, phone, address, businessType, settings, bot_knowledge,
+    name, brand_name, phone, address, businessType, settings, bot_knowledge,
     latitude, longitude, delivery_radius_km,
     kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code,
     cgst_percent, sgst_percent, gst_included, show_gst_on_receipt,
     logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website,
     loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order,
+    loyalty_joining_points, loyalty_bill_amount_threshold, loyalty_points_earned,
+    loyalty_points_dinein, loyalty_points_pickup, loyalty_points_delivery,
     delivery_tiers, is_auth_required, fulfillment_options,
     target_user_id
   } = req.body;
@@ -47,8 +49,10 @@ router.post("/setup", authMiddleware, async (req, res) => {
               cgst_percent=$14, sgst_percent=$15, gst_included=$16, show_gst_on_receipt=$17,
               logo_url=$18, banner_url=$19, social_instagram=$20, social_facebook=$21, social_twitter=$22, social_youtube=$23, social_website=$24,
               loyalty_enabled=$25, points_per_100=$26, points_to_amount_ratio=$27, min_redeem_points=$28, max_redeem_per_order=$29,
-              delivery_tiers=$30, is_auth_required=$31, fulfillment_options=$32
-          WHERE user_id=$33 RETURNING *`,
+              delivery_tiers=$30, is_auth_required=$31, fulfillment_options=$32, brand_name=$33,
+              loyalty_joining_points=$34, loyalty_bill_amount_threshold=$35, loyalty_points_earned=$36,
+              loyalty_points_dinein=$37, loyalty_points_pickup=$38, loyalty_points_delivery=$39
+          WHERE user_id=$40 RETURNING *`,
         [
           name !== undefined ? name : e.name, 
           phone !== undefined ? phone : e.phone, 
@@ -82,6 +86,13 @@ router.post("/setup", authMiddleware, async (req, res) => {
           JSON.stringify(delivery_tiers !== undefined ? delivery_tiers : (e.delivery_tiers || [])),
           is_auth_required !== undefined ? !!is_auth_required : e.is_auth_required,
           JSON.stringify(fulfillment_options !== undefined ? fulfillment_options : (e.fulfillment_options || {dinein: true, pickup: true, delivery: true})),
+          brand_name !== undefined ? brand_name : e.brand_name,
+          loyalty_joining_points !== undefined ? parseInt(loyalty_joining_points) : e.loyalty_joining_points,
+          loyalty_bill_amount_threshold !== undefined ? parseFloat(loyalty_bill_amount_threshold) : e.loyalty_bill_amount_threshold,
+          loyalty_points_earned !== undefined ? parseInt(loyalty_points_earned) : e.loyalty_points_earned,
+          loyalty_points_dinein !== undefined ? !!loyalty_points_dinein : e.loyalty_points_dinein,
+          loyalty_points_pickup !== undefined ? !!loyalty_points_pickup : e.loyalty_points_pickup,
+          loyalty_points_delivery !== undefined ? !!loyalty_points_delivery : e.loyalty_points_delivery,
           userId
         ]
       );
@@ -95,8 +106,8 @@ router.post("/setup", authMiddleware, async (req, res) => {
       // 2. Insert new business
       const result = await pool.query(
         `INSERT INTO restaurants 
-         (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order, delivery_tiers, is_auth_required, fulfillment_options) 
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33) RETURNING *`,
+         (name, phone, address, user_id, business_type, settings, latitude, longitude, delivery_radius_km, kitchen_number, notification_numbers, track_inventory, low_stock_threshold, currency_code, cgst_percent, sgst_percent, gst_included, show_gst_on_receipt, logo_url, banner_url, social_instagram, social_facebook, social_twitter, social_youtube, social_website, loyalty_enabled, points_per_100, points_to_amount_ratio, min_redeem_points, max_redeem_per_order, delivery_tiers, is_auth_required, fulfillment_options, brand_name, loyalty_joining_points, loyalty_bill_amount_threshold, loyalty_points_earned, loyalty_points_dinein, loyalty_points_pickup, loyalty_points_delivery) 
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, $35, $36, $37, $38, $39, $40) RETURNING *`,
         [
             name, phone, address || '', userId, businessType || 'restaurant', settings || {},
             (latitude === "" ? null : latitude) || null, (longitude === "" ? null : longitude) || null, delivery_radius_km || 10,
@@ -110,7 +121,14 @@ router.post("/setup", authMiddleware, async (req, res) => {
             parseInt(max_redeem_per_order) || 300,
             JSON.stringify(delivery_tiers || []),
             !!is_auth_required,
-            JSON.stringify(fulfillment_options || {dinein: true, pickup: true, delivery: true})
+            JSON.stringify(fulfillment_options || {dinein: true, pickup: true, delivery: true}),
+            brand_name || null,
+            parseInt(loyalty_joining_points) || 0,
+            parseFloat(loyalty_bill_amount_threshold) || 100.00,
+            parseInt(loyalty_points_earned) || 1,
+            loyalty_points_dinein !== undefined ? !!loyalty_points_dinein : true,
+            loyalty_points_pickup !== undefined ? !!loyalty_points_pickup : true,
+            loyalty_points_delivery !== undefined ? !!loyalty_points_delivery : true
         ]
       );
       console.log(`✨ NEW BUSINESS CREATED FOR ${userId}:`, result.rows[0]);
@@ -273,6 +291,37 @@ router.post("/staff", authMiddleware, async (req, res) => {
     } catch (err) {
         console.error("Staff Creation Error:", err.message);
         res.status(500).json({ error: "Server error: " + err.message });
+    }
+});
+
+// PUT /api/business/staff/:id
+router.put("/staff/:id", authMiddleware, async (req, res) => {
+    const { id } = req.params;
+    const { name, email, password, role, phone, pos_pin, username } = req.body;
+    try {
+        const userId = req.user.id;
+        
+        // 1. Check if user exists and belongs to this business
+        const check = await pool.query("SELECT * FROM app_users WHERE id = $1 AND parent_user_id = $2", [id, userId]);
+        if (check.rows.length === 0) return res.status(404).json({ error: "Staff member not found" });
+
+        let query = "UPDATE app_users SET name = $1, email = $2, role = $3, phone = $4, pos_pin = $5, username = $6";
+        let params = [name, email, role, phone, pos_pin, username || email];
+
+        if (password) {
+            const hashedPassword = await bcrypt.hash(password, 10);
+            query += ", password = $7 WHERE id = $8";
+            params.push(hashedPassword, id);
+        } else {
+            query += " WHERE id = $7";
+            params.push(id);
+        }
+
+        await pool.query(query, params);
+        res.json({ success: true, message: "Staff updated successfully" });
+    } catch (err) {
+        console.error("Staff Update Error:", err.message);
+        res.status(500).json({ error: "Server error" });
     }
 });
 

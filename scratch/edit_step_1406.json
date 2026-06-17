@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Sync local orderType state to ViewModel in BillingScreen.kt\"",
+  "EndLine": "210",
+  "Instruction": "\"Add a LaunchedEffect(orderType) to synchronize the local UI orderType state with the ViewModel's currentOrderType.\"",
+  "ReplacementContent": "\"    LaunchedEffect(orderType) {\\n        billingViewModel.setCurrentOrderType(orderType)\\n    }\\n\\n    // Populate customer details automatically if editing an active order\\n    LaunchedEffect(selectedTable, activeOrders) {\"",
+  "StartLine": "208",
+  "TargetContent": "\"    // Populate customer details automatically if editing an active order\\n    LaunchedEffect(selectedTable, activeOrders) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\sasloop-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\example\\\\sasloopmanager\\\\ui\\\\BillingScreen.kt\"",
+  "toolAction": "\"Adding orderType sync LaunchedEffect\"",
+  "toolSummary": "\"Adding orderType sync LaunchedEffect\""
+}

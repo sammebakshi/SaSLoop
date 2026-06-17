@@ -1,5 +1,10 @@
-require("dotenv").config();
+// Pulse: Designation Update logic synchronized ✅ - Schema Refresh 2026-05-31 23:20
+require("dotenv").config({ path: require('path').join(__dirname, '.env') });
+// Pulse: Designation Update logic synchronized ✅
 console.log("SERVER BOOTING... 🚀");
+console.log("📍 CWD:", process.cwd());
+console.log("📍 ENV PATH:", require('path').join(process.cwd(), '.env'));
+console.log("📍 ENV EXISTS:", require('fs').existsSync(require('path').join(process.cwd(), '.env')));
 
 const express = require("express");
 const cors = require("cors");
@@ -73,16 +78,23 @@ app.use("/api/auth/login", authLimiter);
 const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:5000',
+    'http://localhost:5173',
+    'http://localhost:5174',
     'https://sasloop.in',
     'https://www.sasloop.in',
+    'https://backend.sasloop.in',
+    'https://www.backend.sasloop.in',
+    'http://80.225.240.191',
+    'https://80.225.240.191',
     process.env.FRONTEND_URL
 ].filter(Boolean);
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        if (!origin || origin === 'null' || origin === 'file://' || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
+            console.error(`🚫 [CORS BLOCKED] Origin: ${origin}`);
             callback(new Error('Blocked by CORS Security Policy'));
         }
     },
@@ -96,22 +108,65 @@ app.use(fileUpload({
     useTempFiles: false
 }));
 
-// ======================
-// ✅ API ROUTES (Register BEFORE Static)
-// ======================
+// Diagnostic Route for POS Console Errors
+app.post("/api/pos/log-error", (req, res) => {
+    console.error("❌ [FRONTEND ERROR]:", req.body);
+    const fs = require('fs');
+    const path = require('path');
+    const logMsg = `[${new Date().toISOString()}] POS FRONTEND ERROR: ${JSON.stringify(req.body)}\n`;
+    fs.appendFileSync(path.join(__dirname, 'error.log'), logMsg);
+    res.json({ success: true });
+});
+
 app.use("/api/auth", require("./routes/authRoutes"));
 app.use("/api/master", require("./routes/masterAdminRoutes"));
+app.use("/api/business/catalog", require("./routes/catalogRoutes"));
+app.use("/api/business-data/catalog", require("./routes/catalogRoutes"));
 app.use("/api/business", require("./routes/businessRoutes"));
 app.use("/api/whatsapp", require("./routes/whatsappRoutes"));
 app.use("/api/instance", require("./routes/whatsappRoutes"));
 app.use("/api/catalog", require("./routes/catalogRoutes"));
 app.use("/api/orders", require("./routes/orderRoutes"));
+app.use("/api/pre-orders", require("./routes/preOrderRoutes"));
+app.use("/api/kots", require("./routes/kotRoutes"));
+app.use("/api/waiters", require("./routes/waiterRoutes"));
+app.use("/api/tally", require("./routes/tallyRoutes"));
+app.use("/api/discounts", require("./routes/discountRoutes"));
+app.use("/api/additional-charges", require("./routes/additionalChargeRoutes"));
+
+
+
 app.use("/api/public", require("./routes/publicRoutes"));
 app.use("/api/crm", require("./routes/crmRoutes"));
 app.use("/api/reservations", require("./routes/reservationRoutes"));
 app.use("/api/delivery", require("./routes/deliveryRoutes"));
 app.use("/api/analytics", require("./routes/analyticsRoutes"));
 app.use("/api/pos", require("./routes/posRoutes"));
+app.use("/api/inventory", require("./routes/inventoryRoutes"));
+app.use("/api/brand", require("./routes/brandRoutes"));
+app.use("/api/option-groups", require("./routes/optionGroupRoutes"));
+
+// ======================
+// 📝 STANDALONE TASKS REGISTRY API
+// ======================
+app.get("/api/tasks-backlog", (req, res) => {
+    const tasksFilePath = path.join(__dirname, "tasks_data.json");
+    if (fs.existsSync(tasksFilePath)) {
+        res.sendFile(tasksFilePath);
+    } else {
+        res.json({ pages: [], activePageId: null });
+    }
+});
+
+app.post("/api/tasks-backlog", (req, res) => {
+    const tasksFilePath = path.join(__dirname, "tasks_data.json");
+    try {
+        fs.writeFileSync(tasksFilePath, JSON.stringify(req.body, null, 2), "utf8");
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 
 // ======================
@@ -137,7 +192,11 @@ app.get("/api/health-check", async (req, res) => {
 // ======================
 // ✅ STATIC ASSETS
 // ======================
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+    setHeaders: (res, path) => {
+        res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    }
+}));
 
 // ======================
 // 🎨 DESIGN & ASSETS (Prioritized)
@@ -145,8 +204,15 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 // Resolve build path relative to server.js
 let buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
 if (!fs.existsSync(buildPath)) {
+    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build_new");
+}
+if (!fs.existsSync(buildPath)) {
     const altPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
     if (fs.existsSync(altPath)) buildPath = altPath;
+}
+if (!fs.existsSync(buildPath)) {
+    const distPath = path.join(__dirname, "dist");
+    if (fs.existsSync(distPath)) buildPath = distPath;
 }
 
 console.log("🚀 FINAL FRONTEND PATH:", buildPath);
@@ -188,6 +254,9 @@ app.get(/.*/, (req, res, next) => {
     // 3. Otherwise, serve index.html for all other routes (SPA)
     const indexPath = path.join(buildPath, 'index.html');
     if (fs.existsSync(indexPath)) {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
         res.sendFile(indexPath);
     } else {
         res.status(500).send("Dashboard build missing. Please run: npm run build-frontend");

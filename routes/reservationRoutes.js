@@ -27,4 +27,24 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+// ✅ CREATE RESERVATION
+router.post("/", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.bizId || req.user.id;
+    const { customer_name, customer_number, guests, reservation_date, reservation_time } = req.body;
+
+    const result = await pool.query(
+      `INSERT INTO reservations (user_id, customer_name, customer_number, guests, reservation_date, reservation_time, status, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, 'confirmed', NOW()) RETURNING *`,
+      [userId, customer_name, customer_number, guests, reservation_date, reservation_time]
+    );
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("🔥 CREATE RESERVATION ERROR:", err);
+    res.status(500).json({ error: "Failed to create reservation" });
+  }
+});
+
 module.exports = router;
+

@@ -1,0 +1,18 @@
+{
+  "watch": [
+    "routes",
+    "middleware",
+    "utils",
+    "server.js",
+    "db.js",
+    "whatsappManager.js"
+  ],
+  "ignore": [
+    "SaSLoop-dashboard",
+    "dist",
+    "scratch",
+    "*.log",
+    "node_modules"
+  ],
+  "ext": "js,json"
+}

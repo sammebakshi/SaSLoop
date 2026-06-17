@@ -14,3 +14,10 @@ package-lock.json
 .DS_Store
 *.zip
 *.rar
+pos-app/release/
+pos-app/release-v2/
+pos-app/dist/
+*.tar.gz
+*.exe
+*.key
+*.pem

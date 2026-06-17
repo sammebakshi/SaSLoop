@@ -20,7 +20,8 @@ router.get("/users", authMiddleware, requireMasterAdmin, async (req, res) => {
   try {
     const result = await pool.query(
       `SELECT id, username, first_name, last_name, email, role, status, 
-              parentage, dob, phone, address, business_type, security_question, security_answer, password, gst_number, business_name,
+              phone, address, business_type, security_question, security_answer, password, gst_number, business_name,
+              brand_name, whatsapp_api_number, country_code, owner_id,
               meta_access_token, meta_phone_id, meta_account_id,
               admin_permissions, created_by, assigned_admin_id, subscription_plan, subscription_expires_at
        FROM app_users 
@@ -50,8 +51,9 @@ router.post("/create-user", authMiddleware, requireCanCreateAccounts, async (req
   console.log("Create user request body:", req.body);
   try {
     const {
-      first_name, last_name, username, parentage, dob, email, password, phone, address,
-      role, security_question, security_answer, business_type, gst_number, business_name,
+      first_name, last_name, username, email, password, phone, address,
+      role, security_question, security_answer, business_type, gst_number, business_name, brand_name,
+      whatsapp_api_number, country_code, owner_id,
       // Admin permissions (only used when role starts with 'admin')
       admin_permissions,
       // Who is creating this account (passed from frontend)
@@ -95,21 +97,25 @@ router.post("/create-user", authMiddleware, requireCanCreateAccounts, async (req
 
     const newUser = await pool.query(
       `INSERT INTO app_users 
-      (first_name, last_name, username, parentage, dob, email, password, phone, address, role, 
+      (first_name, last_name, username, email, password, phone, address, role, 
        security_question, security_answer, business_type, gst_number, business_name, 
-       admin_permissions, created_by, status, subscription_plan, subscription_expires_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,'active',$18,$19)
+       admin_permissions, created_by, status, subscription_plan, subscription_expires_at, 
+       brand_name, whatsapp_api_number, country_code, owner_id)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'active',$16,$17,$18,$19,$20,$21)
       RETURNING id`,
       [
-        first_name, last_name, username || null, parentage || null,
-        dob && dob !== "" ? dob : null,
+        first_name, last_name, username || null,
         email, hashedPassword, phone, address, role,
         security_question, security_answer,
         business_type || null, gst_number || null, business_name || null,
         permissionsJson,
         created_by || null,
         subscription_plan || 'free',
-        subscription_expires_at || null
+        subscription_expires_at || null,
+        brand_name || null,
+        whatsapp_api_number || null,
+        country_code || '+91',
+        owner_id || null
       ]
     );
 
@@ -164,21 +170,94 @@ router.put("/users/:id/toggle", authMiddleware, requireAdminOrMaster, async (req
 
 // ✅ DELETE USER
 router.delete("/users/:id", authMiddleware, requireAdminOrMaster, async (req, res) => {
+  const client = await pool.connect();
   try {
     const { id } = req.params;
     
     // Safety check to ensure we don't delete the only master_admin or current user
-    const userRoleQuery = await pool.query("SELECT role FROM app_users WHERE id = $1", [id]);
+    const userRoleQuery = await client.query("SELECT role FROM app_users WHERE id = $1", [id]);
     if (userRoleQuery.rows.length > 0 && userRoleQuery.rows[0].role === 'master_admin') {
        return res.status(403).json({ error: "Cannot delete a master admin" });
     }
 
-    await pool.query("DELETE FROM app_users WHERE id = $1", [id]);
+    await client.query("BEGIN");
+
+    // Fetch all user IDs associated with this business/user
+    const usersRes = await client.query(
+      "SELECT id FROM app_users WHERE id = $1 OR parent_user_id = $1 OR owner_id = $1",
+      [id]
+    );
+    let userIds = usersRes.rows.map(r => r.id);
+    if (!userIds.includes(parseInt(id))) {
+      userIds.push(parseInt(id));
+    }
+
+    // Nullify designation references beforehand to prevent foreign key violations on app_users
+    await client.query("UPDATE app_users SET designation_id = NULL WHERE id = ANY($1) OR parent_user_id = ANY($1) OR owner_id = ANY($1)", [userIds]);
+
+    // Helper to safely execute query only if the table exists
+    // Using SAVEPOINT to prevent any single query error from aborting the transaction block
+    const safeDelete = async (table, queryStr, params) => {
+      try {
+        const existsRes = await client.query(
+          "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1 AND table_schema = 'public')",
+          [table]
+        );
+        if (existsRes.rows[0].exists) {
+          await client.query("SAVEPOINT safe_del_savepoint");
+          try {
+            await client.query(queryStr, params);
+            await client.query("RELEASE SAVEPOINT safe_del_savepoint");
+          } catch (err) {
+            await client.query("ROLLBACK TO SAVEPOINT safe_del_savepoint");
+            console.warn(`[DELETE USER PRE-CLEAN] Table ${table} cleanup failed:`, err.message);
+          }
+        }
+      } catch (err) {
+        console.warn(`[DELETE USER PRE-CLEAN] Table ${table} existence check failed:`, err.message);
+      }
+    };
+
+    // 1. Delete level 3 dependencies
+    await safeDelete("rider_locations", "DELETE FROM rider_locations WHERE order_id IN (SELECT id FROM orders WHERE user_id = ANY($1))", [userIds]);
+    await safeDelete("recipes", "DELETE FROM recipes WHERE menu_item_id IN (SELECT id FROM business_items WHERE user_id = ANY($1))", [userIds]);
+    await safeDelete("outlet_menu_items", "DELETE FROM outlet_menu_items WHERE menu_id IN (SELECT id FROM outlet_menus WHERE user_id = ANY($1))", [userIds]);
+
+    // 2. Delete level 2 dependencies
+    await safeDelete("orders", "DELETE FROM orders WHERE user_id = ANY($1) OR restaurant_id = ANY($1)", [userIds]);
+    await safeDelete("outlet_menus", "DELETE FROM outlet_menus WHERE user_id = ANY($1)", [userIds]);
+    await safeDelete("delivery_partners", "DELETE FROM delivery_partners WHERE user_id = ANY($1)", [userIds]);
+
+    // 3. Delete level 1 dependencies
+    const directTables = [
+      "restaurants", "conversation_sessions", "customer_loyalty", 
+      "chat_messages", "marketing_contacts", "system_notifications", 
+      "recharge_requests", "audit_logs", "reservations", "pending_redemptions", 
+      "pending_auths", "support_tickets", "kitchen_departments", "categories",
+      "outlet_designations", "business_items", "outlet_payment_modes",
+      "master_payment_modes", "tax_product_groups", "kots", "waiters",
+      "discounts", "additional_charges", "customers", "pre_orders",
+      "whatsapp_templates", "whatsapp_campaigns", "whatsapp_chatflows",
+      "scheduled_messages", "waiter_requests", "business_expenses", 
+      "pos_tables", "customer_feedback"
+    ];
+
+    for (const table of directTables) {
+      await safeDelete(table, `DELETE FROM ${table} WHERE user_id = ANY($1)`, [userIds]);
+    }
+
+    // Finally delete the user
+    await client.query("DELETE FROM app_users WHERE id = $1", [id]);
+
+    await client.query("COMMIT");
     await logAudit(req.user.id, 'DELETE_USER', { deletedUserId: id });
     res.json({ message: "User deleted successfully" });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: "Server error" });
+    await client.query("ROLLBACK");
+    console.error("Delete User Error:", err.message);
+    res.status(500).json({ error: "Server error: " + err.message });
+  } finally {
+    client.release();
   }
 });
 
@@ -187,7 +266,8 @@ router.put("/users/:id/edit", authMiddleware, requireAdminOrMaster, async (req, 
   try {
     const { id } = req.params;
     const { 
-      first_name, last_name, username, parentage, dob, email, role, business_type, gst_number, business_name, phone, address,
+      first_name, last_name, username, email, role, business_type, gst_number, business_name, brand_name, phone, address,
+      whatsapp_api_number, country_code, owner_id,
       meta_access_token, meta_phone_id, meta_account_id,
       subscription_plan, subscription_expires_at,
       admin_permissions
@@ -221,15 +301,17 @@ router.put("/users/:id/edit", authMiddleware, requireAdminOrMaster, async (req, 
 
     await pool.query(
       `UPDATE app_users SET 
-        first_name=$1, last_name=$2, username=$3, parentage=$4, dob=$5, email=$6, role=$7, 
-        business_type=$8, gst_number=$9, business_name=$10, phone=$11, address=$12,
-        meta_access_token=$13, meta_phone_id=$14, meta_account_id=$15, 
-        subscription_plan=$16, subscription_expires_at=$17, admin_permissions=$18
-      WHERE id=$19`,
+        first_name=$1, last_name=$2, username=$3, email=$4, role=$5, 
+        business_type=$6, gst_number=$7, business_name=$8, phone=$9, address=$10,
+        meta_access_token=$11, meta_phone_id=$12, meta_account_id=$13, 
+        subscription_plan=$14, subscription_expires_at=$15, admin_permissions=$16, 
+        brand_name=$17, whatsapp_api_number=$18, country_code=$19, owner_id=$20
+      WHERE id=$21`,
       [
-        first_name, last_name, username, parentage, dob, email, role, business_type, gst_number, business_name, phone, address,
+        first_name, last_name, username, email, role, business_type, gst_number, business_name, phone, address,
         meta_access_token, meta_phone_id, meta_account_id, 
-        subscription_plan, subscription_expires_at || null, admin_permissions, id
+        subscription_plan, subscription_expires_at || null, admin_permissions, 
+        brand_name || null, whatsapp_api_number || null, country_code || '+91', owner_id || null, id
       ]
     );
 
@@ -237,6 +319,21 @@ router.put("/users/:id/edit", authMiddleware, requireAdminOrMaster, async (req, 
     res.json({ message: "User updated successfully" });
   } catch (err) {
     console.error(err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ✅ TRANSFER / UNLINK OWNERSHIP
+router.put("/users/:id/ownership", authMiddleware, requireAdminOrMaster, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { owner_id } = req.body; // can be null
+    
+    await pool.query("UPDATE app_users SET owner_id = $1 WHERE id = $2", [owner_id, id]);
+    
+    await logAudit(req.user.id, 'OWNERSHIP_UPDATE', { targetUserId: id, newOwnerId: owner_id });
+    res.json({ message: "Ownership updated successfully" });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -315,17 +412,39 @@ router.get("/audit-logs", authMiddleware, requireMasterAdmin, async (req, res) =
 // GET /api/master/admin/my-users — used by AdminPanel
 router.get("/admin/my-users", authMiddleware, async (req, res) => {
   try {
-    // The admin ID comes from the authenticated token
-    const adminId = req.user.id;
+    const { id: adminId, role } = req.user;
+    let query = "";
+    let params = [];
 
-    const result = await pool.query(
-      `SELECT id, username, first_name, last_name, email, role, status, 
-              phone, business_type, business_name, gst_number, created_at,
-              meta_phone_id, admin_permissions
-       FROM app_users 
-       WHERE role = 'user'
-       ORDER BY id DESC`
-    );
+    if (role === 'master_admin') {
+      query = `SELECT id, username, first_name, last_name, email, role, status, 
+                      phone, business_type, business_name, brand_name, gst_number, created_at,
+                      whatsapp_api_number, country_code, owner_id,
+                      meta_phone_id, admin_permissions
+               FROM app_users 
+               WHERE role = 'user'
+               ORDER BY id DESC`;
+    } else if (role === 'brand_owner') {
+      query = `SELECT id, username, first_name, last_name, email, role, status, 
+                      phone, business_type, business_name, brand_name, gst_number, created_at,
+                      whatsapp_api_number, country_code, owner_id,
+                      meta_phone_id, admin_permissions
+               FROM app_users 
+               WHERE role = 'user' AND owner_id = $1
+               ORDER BY id DESC`;
+      params = [adminId];
+    } else {
+      query = `SELECT id, username, first_name, last_name, email, role, status, 
+                      phone, business_type, business_name, brand_name, gst_number, created_at,
+                      whatsapp_api_number, country_code, owner_id,
+                      meta_phone_id, admin_permissions
+               FROM app_users 
+               WHERE role = 'user' AND created_by = $1
+               ORDER BY id DESC`;
+      params = [adminId];
+    }
+
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error(err.message);
@@ -484,4 +603,36 @@ router.post("/recharge-requests/:id/reject", authMiddleware, requireAdminOrMaste
   }
 });
 
-module.exports = router;
+// ✅ GET BRAND OWNERS (For Dropdown)
+router.get("/brand-owners", authMiddleware, requireAdminOrMaster, async (req, res) => {
+  try {
+    const result = await pool.query(
+      "SELECT id, username, brand_name, first_name FROM app_users WHERE role = 'brand_owner' ORDER BY first_name ASC"
+    );
+    res.json(result.rows);
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ✅ UPDATE OWNERSHIP (Link/Unlink/Sold)
+router.put("/users/:id/ownership", authMiddleware, requireMasterAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { owner_id } = req.body; // Can be null to unlink (Sold/Standalone)
+
+    await pool.query(
+      "UPDATE app_users SET owner_id = $1 WHERE id = $2",
+      [owner_id, id]
+    );
+
+    await logAudit(req.user.id, 'UPDATE_OWNERSHIP', { targetUserId: id, newOwnerId: owner_id });
+    res.json({ success: true, message: "Ownership architecture updated." });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+module.exports = router;

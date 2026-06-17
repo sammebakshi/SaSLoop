@@ -1,744 +1,615 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import API_BASE from "../config";
-import { Link, useLocation, Outlet } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { Link, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { 
-  LayoutDashboard, 
-  MenuSquare, 
-  ShoppingBag, 
-  Users, 
-  Settings,
-  LogOut,
-  Store,
-  Menu,
-  Key,
-  Lock,
-  Eye,
-  EyeOff,
-  X,
-  AlertCircle,
-  CheckCircle2,
-  Megaphone,
-  Bot,
-  MessageSquare,
-  BookOpen,
-  Shield,
-  LifeBuoy,
-  Package,
-  Activity,
-  Smartphone,
-  Bell,
-  BarChart3,
-  Monitor,
-  ChefHat,
-  Calendar,
-  IndianRupee,
-  Zap,
-  Brain,
-  Rocket,
-  Globe
+  LayoutDashboard, Users, ShoppingCart, 
+  Settings, ChevronDown, LogOut, Menu, X, 
+  Bell, Search, Building2, Smartphone, Monitor, MessageSquare, Megaphone,
+  Zap, Shield, Activity, Package, Globe, UserCircle,
+  Command, Box, Mail, Filter, RefreshCw, BarChart3, Database,
+  Briefcase, Key, ChevronRight, HelpCircle, AlertCircle,
+  CreditCard, Shuffle, Layers, Percent, BookOpen, Map, Calendar,
+  FileText, Grid, Heart, Truck, ClipboardList, Tag, Sliders, List, MenuSquare, Upload,
+  Clock, Hourglass, User, UserCheck, Utensils, LayoutGrid, Printer, History, Headphones, Wallet, Receipt, Award, QrCode
 } from "lucide-react";
+import API_BASE from "../config";
 
-
-const SaSLoopLogo = () => (
-  <svg width="34" height="34" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-1.5 drop-shadow-[0_0_10px_rgba(16,185,129,0.4)]">
-    <defs>
-      <linearGradient id="waGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-        <stop offset="0%" stopColor="#4ade80" />
-        <stop offset="100%" stopColor="#059669" />
-      </linearGradient>
-      <linearGradient id="loopGradient" x1="0%" y1="100%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="#a78bfa" />
-        <stop offset="50%" stopColor="#38bdf8" />
-        <stop offset="100%" stopColor="#34d399" />
-      </linearGradient>
-    </defs>
-
-    {/* WhatsApp Chat Bubble Silhouette */}
-    <path d="M 18,50 C 18,30 32,16 50,16 C 68,16 82,30 82,50 C 82,70 68,84 50,84 C 44,84 38,82 34,79 L 18,84 L 22,70 C 19.5,64 18,57 18,50 Z" 
-          stroke="url(#waGradient)" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" fill="rgba(16,185,129,0.05)" />
-
-    {/* Automation / AI Loop Core */}
-    <path d="M 36 50 C 36 40, 48 40, 50 50 C 52 60, 64 60, 64 50 C 64 40, 52 40, 50 50 C 48 60, 36 60, 36 50 Z" 
-          stroke="url(#loopGradient)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" className="animate-[pulse_2s_ease-in-out_infinite]" />
-  </svg>
-);
-
-// ── Web Audio API notification chime ────────
-let audioCtx = null;
-let audioUnlocked = false;
-
-function ensureAudioContext() {
-  if (!audioCtx) {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  }
-  if (audioCtx.state === "suspended") {
-    audioCtx.resume();
-  }
-  audioUnlocked = true;
-  return audioCtx;
-}
-
-const Layout = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
-  const [waStatus, setWaStatus] = useState("OFFLINE");
-  
-  // Change Password State
-  const [isChangePwdOpen, setIsChangePwdOpen] = useState(false);
-  const [oldPwd, setOldPwd] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-  const [confirmPwd, setConfirmPwd] = useState("");
-  const [showOld, setShowOld] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
-  const [successMsg, setSuccessMsg] = useState("");
-  const [confirmDialog, setConfirmDialog] = useState(null);
-  const [manageUsersOpen, setManageUsersOpen] = useState(false);
-  const [businessDataOpen, setBusinessDataOpen] = useState(false);
-  
+const Layout = () => {
   const location = useLocation();
-
-  const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("globalSound") === "true");
-  const lastChatCount = useRef(0);
-  const lastOrderCount = useRef(0);
-  const isInitialFetch = useRef(true);
-
-  // Reliable oscillator chime
-  const playNotification = useCallback(() => {
-     if (!soundEnabled) return;
-     try {
-        const ctx = ensureAudioContext();
-        const now = ctx.currentTime;
-        [523.25, 659.25].forEach((freq, i) => {
-          const osc = ctx.createOscillator();
-          const gain = ctx.createGain();
-          osc.type = "sine";
-          osc.frequency.value = freq;
-          gain.gain.setValueAtTime(0.3, now + i * 0.18);
-          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.18 + 0.4);
-          osc.connect(gain).connect(ctx.destination);
-          osc.start(now + i * 0.18);
-          osc.stop(now + i * 0.18 + 0.4);
-        });
-     } catch (e) {
-        console.error("Audio Notification Error:", e);
-     }
-  }, [soundEnabled]);
+  const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [desktopSidebarCollapsed, setDesktopSidebarCollapsed] = useState(false);
+  const [outlets, setOutlets] = useState([]);
+  
+  const user = JSON.parse(localStorage.getItem("user") || "{}");
+  
+  // Default to user's own ID if they are an outlet user (role === 'user') and no impersonation is set or is set to 'global'
+  const defaultOutletId = (user.role === 'user' && (!sessionStorage.getItem("impersonate_id") || sessionStorage.getItem("impersonate_id") === 'global')) 
+    ? user.id 
+    : (sessionStorage.getItem("impersonate_id") || 'global');
+    
+  const [currentOutletId, setCurrentOutletId] = useState(defaultOutletId);
+  const [permissions, setPermissions] = useState(null);
+  
+  const [openGroup, setOpenGroup] = useState(null);
+  const [openSubGroup, setOpenSubGroup] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    const userData = localStorage.getItem("user");
-    if (!token || !userData) {
-      window.location.href = "/";
-      return;
-    }
-    setUser(JSON.parse(userData));
-  }, []);
-
-  useEffect(() => {
-    const handleStorage = () => {
-      setSoundEnabled(localStorage.getItem("globalSound") === "true");
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
-
-  useEffect(() => {
-    const impersonateId = sessionStorage.getItem("impersonate_id");
-    if (user && (user.role === 'user' || impersonateId)) {
-      const checkStatus = async () => {
+    const fetchOutletsAndProfile = async () => {
         try {
-          const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
-          const reqOpt = { headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` } };
-          
-          const p1 = fetch(`${API_BASE}/api/instance/status${targetParam}`, reqOpt);
-          const p2 = fetch(`${API_BASE}/api/whatsapp/notif-counts`, reqOpt);
-          const p3 = fetch(`${API_BASE}/api/orders`, reqOpt);
+            const res = await fetch(`${API_BASE}/api/auth/my-outlets`, {
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+            });
+            const data = await res.json();
+            if (res.ok) setOutlets(data);
 
-          const [res1, res2, res3] = await Promise.all([p1, p2, p3].map(p => p.catch(() => null)));
-          
-          if (res1 && res1.ok) {
-            setWaStatus((await res1.json()).status);
-          }
-          if (res2 && res2.ok) {
-            const data2 = await res2.json();
-            if (!isInitialFetch.current && data2.chats > lastChatCount.current) { playNotification(); }
-            lastChatCount.current = data2.chats;
-          }
-          if (res3 && res3.ok) {
-            const data3 = await res3.json();
-             const pending = Array.isArray(data3) ? data3.filter(o => ["CONFIRMED","PENDING","pending"].includes(o.status)).length : 0;
-             if (!isInitialFetch.current && pending > lastOrderCount.current) { playNotification(); }
-             lastOrderCount.current = pending;
-          }
+            const profileRes = await fetch(`${API_BASE}/api/auth/profile`, {
+                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+            });
+            if (profileRes.ok) {
+                const profileData = await profileRes.json();
+                setPermissions(profileData.staff_permissions || {});
+                localStorage.setItem("user", JSON.stringify({ ...user, ...profileData }));
+            }
+        } catch (e) { console.error(e); }
+    };
+    fetchOutletsAndProfile();
+  }, []);
 
-          if (isInitialFetch.current) {
-             isInitialFetch.current = false;
-          }
-        } catch (err) {}
-      };
-      checkStatus();
-      const interval = setInterval(checkStatus, 5000);
-      return () => clearInterval(interval);
+  const handleContextSwitch = (id) => {
+    if (!id || id === "global") {
+        sessionStorage.removeItem("impersonate_id");
+        setCurrentOutletId("global");
+    } else {
+        sessionStorage.setItem("impersonate_id", id);
+        setCurrentOutletId(id);
     }
-  }, [user, playNotification]);
+    window.location.reload();
+  };
 
   const handleLogout = () => {
-    setConfirmDialog({
-      message: "Are you sure you want to sign out? Any unsaved changes in open windows will be lost.",
-      onConfirm: () => {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/";
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = "/login";
+  };
+
+  const getNavItems = () => {
+    const role = user.role || "";
+    
+    if (role === "master_admin") {
+      return [
+        { name: "Master Dashboard", icon: LayoutDashboard, path: "/master-dashboard" },
+        { name: "Manage Users", icon: Users, path: "/manage-users" },
+        { name: "System Health", icon: Activity, path: "/system-health" },
+        { name: "Audit Logs", icon: Shield, path: "/audit-logs" },
+        { name: "WhatsApp Engine", icon: Mail, path: "/whatsapp-connect" },
+        { name: "Command Center", icon: Command, path: "/command-center" },
+      ];
+    }
+
+    const baseItems = [
+      { name: "Revenue Dashboard", icon: LayoutDashboard, path: "/dashboard", badge: "New" },
+      { name: "Live Order Tracking", icon: Activity, path: "/orders" },
+      { 
+        name: "POS Configuration", 
+        icon: Smartphone, 
+        isDropdown: true,
+        subItems: [
+          { name: "Outlet Configuration", icon: Sliders, isHeader: true, subItems: [
+            { name: "Outlet Designation", icon: Briefcase, path: "/designations" },
+            { name: "Outlet User", icon: UserCircle, path: "/staff" },
+            { name: "Outlet Payment Mode", icon: CreditCard, path: "/outlet-payments" },
+            { name: "Order Type Mapping", icon: Shuffle, path: "/order-types" },
+          ]},
+          { name: "Master Configuration", icon: Box, isHeader: true, subItems: [
+            { name: "Tax Product Group", icon: Layers, path: "/tax-product-group" },
+            { name: "Tax Configuration", icon: Percent, path: "/tax-config" },
+            { name: "Kitchen Department", icon: Grid, path: "/kitchen-department" },
+            { name: "Table Department", icon: Layers, path: "/table-department" },
+            { name: "Table Management", icon: Smartphone, path: "/table-management" },
+            { name: "Discount", icon: Tag, path: "/discount-manager" },
+            { name: "Additional Charges", icon: CreditCard, path: "/additional-charges" },
+            { name: "QR Management", icon: QrCode, path: "/business-data/qr" }
+          ] },
+          { name: "Tax & Finance", icon: Percent, isHeader: true, subItems: [
+            { name: "GL Mappings", icon: BookOpen, path: "/gl-mappings" },
+          ]},
+          { name: "Floor & Seating", icon: Map, isHeader: true, subItems: [
+            { name: "Floor Plan", icon: Map, path: "/floor-plan" },
+            { name: "Reservations", icon: Calendar, path: "/reservations" },
+          ]}
+          ]
+      },
+      { 
+          name: "Menu Management", 
+          icon: Package, 
+          isDropdown: true,
+          subItems: [
+            { name: "Outlet Menu", icon: MenuSquare, path: "/outlet-menus" },
+            { name: "Unified Master Menu", icon: BookOpen, path: "/master-menu" },
+            { name: "Multiple Pricing", icon: Sliders, path: "/multiple-pricing" },
+            { name: "Option Group", icon: List, path: "/option-groups" },
+            { name: "Modifier Groups", icon: Layers, path: "/modifier-groups" },
+            { name: "Item Notes", icon: FileText, path: "/item-notes" },
+            { name: "Categories", icon: Grid, path: "/categories" },
+            { name: "Nutrition Configuration", icon: Heart, path: "/nutrition" },
+            { name: "Upload Menu In Bulk", icon: Upload, path: "/outlet-menus/bulk-upload" }
+          ]
+      },
+      { 
+          name: "Online Order", 
+          icon: ShoppingCart, 
+          isDropdown: true,
+          subItems: [
+            { name: "Orders", icon: ShoppingCart, path: "/online-orders" },
+            { name: "Digital Order Settings", icon: Settings, path: "/digital-order-settings" },
+            { name: "Delivery Platforms", icon: Truck, path: "/delivery-platforms" },
+          ]
+      },
+      { 
+          name: "Reports", 
+          icon: BarChart3, 
+          isDropdown: true,
+          subItems: [
+            { name: "Sales Report", icon: BarChart3, path: "/analytics/sales-report" },
+            { name: "DSR Report", icon: FileText, path: "/analytics/dsr-report" },
+            { name: "Z-Report", icon: Calendar, path: "/analytics/todays-report" },
+            { name: "Item Report", icon: Package, path: "/analytics/item-report" },
+            { name: "Meal Time-Based Sales Report", icon: Clock, path: "/analytics/meal-time-sales" },
+            { name: "Hourly Report", icon: Hourglass, path: "/analytics/hourly-report" },
+            { name: "Waiter Incentive Report", icon: User, path: "/analytics/waiter-incentive" },
+            { name: "Payment Report", icon: CreditCard, path: "/analytics/payment-report" },
+            { name: "Expense Tracking Report", icon: Wallet, path: "/analytics/expense-report" },
+            { name: "Order Type Report", icon: Receipt, path: "/analytics/order-type" },
+            { name: "Category Report", icon: LayoutGrid, path: "/analytics/category-report" },
+            { name: "Kitchen Department Report", icon: Utensils, path: "/analytics/kitchen-dept" },
+            { name: "Coupon History Report", icon: Tag, path: "/analytics/coupon-history" },
+            { name: "Due Payment Report", icon: AlertCircle, path: "/analytics/due-payment" },
+            { name: "Start Close Day Report", icon: LogOut, path: "/analytics/start-close-day" },
+            { name: "Shift Wise Report", icon: Users, path: "/analytics/shift-wise" },
+            { name: "Discount Report", icon: Percent, path: "/analytics/discount-report" },
+            { name: "Biller Wise Summary", icon: FileText, path: "/analytics/biller-wise" },
+            { name: "Delivery Report", icon: Truck, path: "/analytics/delivery-report" },
+            { name: "Day Wise Summary Report", icon: Calendar, path: "/analytics/day-wise" },
+            { name: "Customer Queries", icon: Headphones, path: "/analytics/customer-queries" },
+            { name: "Bill Print Report", icon: Printer, path: "/analytics/bill-print" },
+            { name: "Applied Charges Report", icon: Receipt, path: "/analytics/applied-charges" },
+            { name: "Passcode User Report", icon: UserCheck, path: "/analytics/passcode-user" },
+            { name: "Order Sync History", icon: RefreshCw, path: "/analytics/order-sync" },
+            { name: "ZATCA Report", icon: FileText, path: "/analytics/zatca-report" },
+            { name: "Logistic Report", icon: Truck, path: "/analytics/logistic-report" },
+            { name: "Order Transition Report", icon: RefreshCw, path: "/analytics/order-transition" },
+            { name: "ERP Sync History", icon: Database, path: "/analytics/erp-sync" },
+            { name: "Jordan History", icon: History, path: "/analytics/jordan-history" },
+            { name: "UPI Report", icon: CreditCard, path: "/analytics/upi-report" }
+          ]
+      },
+      {
+          name: "CRM",
+          icon: Users,
+          isDropdown: true,
+          subItems: [
+            { name: "Customer Management", icon: Users, path: "/customer-management" }
+          ]
+      },
+      {
+          name: "Whatsapp Marketing",
+          icon: Mail,
+          isDropdown: true,
+          subItems: [
+            { name: "Dashboard", icon: LayoutDashboard, path: "/whatsapp-marketing/dashboard" },
+            { name: "Templates", icon: FileText, path: "/whatsapp-marketing/templates" },
+            { name: "Campaigns", icon: Megaphone, path: "/whatsapp-marketing/campaigns" },
+            { name: "Messages", icon: MessageSquare, path: "/whatsapp-marketing/messages" },
+            { name: "Organizations", icon: Building2, path: "/whatsapp-marketing/organizations" },
+            { name: "Chat-Flow", icon: Shuffle, path: "/whatsapp-marketing/chat-flow" },
+            { name: "CRM", icon: Users, path: "/whatsapp-marketing/crm" },
+            { name: "Analytics", icon: BarChart3, path: "/whatsapp-marketing/analytics" }
+          ]
+      },
+      { 
+          name: "Command Center", 
+          icon: Command, 
+          isDropdown: true,
+          subItems: [
+            { name: "Operational Rules", icon: FileText, path: "/business-data/rules" },
+            { name: "AI Knowledge Base", icon: Database, path: "/business-data/knowledge" },
+            { name: "Geofencing Ops", icon: Globe, path: "/geofencing" }
+          ]
+      },
+      { 
+          name: "Supply Chain", 
+          icon: Database, 
+          isDropdown: true,
+          subItems: [
+            { name: "Vendors List", icon: Truck, path: "/inventory/vendors" },
+            { name: "Inventory Ops", icon: Box, path: "/business-data/inventory" },
+            { name: "Stock Entry", icon: ClipboardList, path: "/inventory/manual-stock-entry" }
+          ]
+      },
+      { 
+          name: "Digital Channels", 
+          icon: Globe, 
+          isDropdown: true,
+          subItems: [
+            { name: "Online Orders", icon: ShoppingCart, path: "/online-orders" },
+            { name: "Mobile App Config", icon: Smartphone, path: "/mobile-app" },
+            { name: "Delivery Platforms", icon: Truck, path: "/delivery-platforms" }
+          ]
+      },
+      { 
+          name: "Growth & CRM", 
+          icon: Users, 
+          isDropdown: true,
+          badge: "New",
+          subItems: [
+            { name: "Discount Engine", icon: Tag, path: "/discount-manager" },
+            { name: "CRM Dashboard", icon: Users, path: "/crm" },
+            { name: "Reports Center", icon: BarChart3, path: "/reports" }
+          ]
+      },
+      { 
+          name: "WhatsApp Engine", 
+          icon: Mail, 
+          isDropdown: true,
+          badge: "New",
+          subItems: [
+            { name: "WhatsApp Connect", icon: Mail, path: "/whatsapp-connect" },
+            { name: "Broadcast Hub", icon: Zap, path: "/broadcast" },
+            { name: "Bot Config", icon: Settings, path: "/bot-config" }
+          ]
+      },
+      { 
+          name: "Settings", 
+          icon: Settings, 
+          isDropdown: true,
+          subItems: [
+            { name: "Profile", icon: UserCircle, path: "/profile" },
+            { name: "Loyalty Settings", icon: Award, path: "/loyalty-settings" },
+            { name: "Notification Settings", icon: Bell, path: "/notification-settings" },
+            { name: "Business Setup", icon: Building2, path: "/setup-business" },
+            { name: "Business Identity", icon: Briefcase, path: "/business-identity" },
+            { name: "Integrations", icon: Globe, path: "/integrations" },
+          ]
+      },
+    ];
+
+    if ((role === "brand_owner" || role.startsWith("admin")) && currentOutletId === "global") {
+        baseItems.splice(2, 0, { name: "Admin Management", icon: Shield, path: "/admin-dashboard" });
+    }
+
+    const filterNavItems = (items) => {
+      if (role === "master_admin" || role === "brand_owner" || role?.startsWith("admin")) {
+        return items;
       }
-    });
-  };
-
-  const calculateStrength = (pwd) => {
-    let score = 0;
-    if (pwd.length >= 8) score++;
-    if (/[A-Z]/.test(pwd)) score++;
-    if (/[a-z]/.test(pwd)) score++;
-    if (/[0-9]/.test(pwd)) score++;
-    if (/[^A-Za-z0-9]/.test(pwd)) score++;
-    return score;
-  };
-
-  const handleChangePasswordSubmit = async () => {
-    setErrorMsg("");
-    setSuccessMsg("");
-    if (!oldPwd || !newPwd || !confirmPwd) {
-      setErrorMsg("Please fill in all fields.");
-      return;
-    }
-    const pwdRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/;
-    if (!pwdRegex.test(newPwd)) {
-      setErrorMsg("Password must be at least 8 characters with 1 capital, 1 small, 1 numeric and 1 symbol.");
-      return;
-    }
-    if (newPwd !== confirmPwd) {
-      setErrorMsg("New password and confirm password do not match.");
-      return;
-    }
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API_BASE}/api/auth/change-password`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ oldPassword: oldPwd, newPassword: newPwd }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSuccessMsg("Password changed successfully!");
-        setOldPwd("");
-        setNewPwd("");
-        setConfirmPwd("");
-        setTimeout(() => {
-          setIsChangePwdOpen(false);
-          setSuccessMsg("");
-        }, 1500);
-      } else {
-        setErrorMsg(data.error || data.message || "Failed to change password");
+      
+      const storeModules = permissions?.store_modules;
+      if (!storeModules || Object.keys(storeModules).length === 0) {
+        return items;
       }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg("Server error");
-    }
-  };
 
-  const getNavItems = (role) => {
-    if (role === 'master_admin') {
-        return [
-          { name: "Master Dashboard", path: "/master-dashboard", icon: LayoutDashboard },
-          { name: "Global Command", path: "/command-center", icon: Globe },
-          { name: "Manage Users", path: "#", icon: Users, isDropdown: true, isOpenState: manageUsersOpen, setOpenState: setManageUsersOpen, subItems: [
-              { name: "Add Admin", path: "/master-dashboard#add-admin" },
-              { name: "Add Business", path: "/master-dashboard#add-business" },
-              { name: "Manage Admins", path: "/master-dashboard#manage-admins" },
-              { name: "Manage Businesses", path: "/master-dashboard#manage-businesses" },
-          ]},
-          { name: "Audit Logs", path: "/audit-logs", icon: Shield },
-          { name: "System Health", path: "/system-health", icon: Activity },
-          { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
-          { name: "Support Desk", path: "/support-desk", icon: LifeBuoy },
-          { name: "WhatsApp Connect", path: "/whatsapp-connect", icon: MessageSquare },
-          { name: "Business Data", path: "#", icon: BookOpen, isDropdown: true, isOpenState: businessDataOpen, setOpenState: setBusinessDataOpen, subItems: [
-              { name: "Manage Profile", path: "/setup-business" },
-              { name: "AI Bot Setup", path: "/bot-config" },
-              { name: "Operational Rules", path: "/business-data/rules" },
-              { name: "Menu & Catalog", path: "/business-data/catalog" },
-          ]},
-        ];
-    } else if (role && role.startsWith('admin')) {
-        return [
-          { name: "Admin Dashboard", path: "/admin-dashboard", icon: LayoutDashboard },
-          { name: "Global Command", path: "/command-center", icon: Globe },
-          { name: "Manage Clients", path: "#", icon: Users, isDropdown: true, isOpenState: manageUsersOpen, setOpenState: setManageUsersOpen, subItems: [
-              { name: "Add Business", path: "/admin-dashboard#add-business" },
-              { name: "View All Businesses", path: "/admin-dashboard#manage-businesses" },
-          ]},
-          { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
-          { name: "WhatsApp Connect", path: "/whatsapp-connect", icon: MessageSquare },
-          { name: "Support Desk", path: "/support-desk", icon: LifeBuoy },
-        ];
-    } else { // business user
-        return [
-          { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-          { name: "Global Command", path: "/command-center", icon: Globe },
-          { name: "Intelligence Hub", path: "/intelligence", icon: Brain },
-          { name: "Marketing Studio", path: "/marketing-studio", icon: Rocket },
-          { name: "Broadcast Hub", path: "/broadcast", icon: Megaphone },
-          { name: "Business Data", path: "#", icon: BookOpen, isDropdown: true, isOpenState: businessDataOpen, setOpenState: setBusinessDataOpen, subItems: [
-              { name: "Manage Profile", path: "/setup-business" },
-              { name: "AI Bot Setup", path: "/bot-config" },
-              { name: "Operational Rules", path: "/business-data/rules" },
-              { name: "Freeform Knowledge", path: "/business-data/knowledge" },
-              { name: "Menu & Catalog", path: "/business-data/catalog" },
-              { name: "QR Code Manager", path: "/business-data/qr" },
-              { name: "Delivery Team", path: "/delivery-team" },
-          ]},
-          { name: "Live Chats", path: "/chats", icon: MessageSquare },
-          { name: "Floor Plan Console", path: "/floor-plan", icon: Store },
-          { name: "Order Board", path: "/orders", icon: Package },
-          { name: "Kitchen Display (KDS)", path: "/kds", icon: ChefHat },
-          { name: "Table Reservations", path: "/reservations", icon: Calendar },
-          { name: "Reports", path: "/reports", icon: BarChart3 },
-          { name: "Customer Growth", path: "/crm", icon: Users },
-          { name: "Integrations & Apps", path: "/integrations", icon: Zap },
-          { name: "Expense Tracker", path: "/expenses", icon: IndianRupee },
-
-          { name: "Staff Management", path: "/staff", icon: Shield },
-          { name: "Mobile App Hub", path: "/mobile-app", icon: Smartphone },
-          { name: "Help & Support", path: "/support", icon: LifeBuoy },
-        ];
-    }
-  };
-
-  const impersonateId = sessionStorage.getItem('impersonate_id');
-  const navItems = getNavItems(impersonateId ? 'user' : user?.role);
-
-  const getRoleBadgeColor = (role) => {
-    switch (role) {
-      case 'master_admin': return 'bg-purple-100 text-purple-800';
-      case 'admin': return 'bg-blue-100 text-blue-800';
-      default: return 'bg-green-100 text-green-800';
-    }
-  };
-
-  return (
-    <div className="h-screen w-full bg-white text-slate-600 flex overflow-hidden font-sans selection:bg-emerald-500/30">
-      {/* Sidebar - Desktop */}
-      <aside className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-slate-200 transform transition-all duration-300 ease-in-out lg:static lg:translate-x-0 flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${desktopSidebarCollapsed ? 'lg:w-[72px]' : 'lg:w-[240px]'} w-[240px]`}>
-        <div className={`h-14 flex flex-shrink-0 items-center justify-end border-b border-slate-200 px-5`}>
-            {/* Empty space matching topbar height, can add a collapse button here later */}
-        </div>
+      return items.map(item => {
+        let moduleKey = item.name;
+        if (moduleKey === "Online Order") moduleKey = "Digital Order";
+        if (moduleKey === "Supply Chain") moduleKey = "Inventory Management";
         
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto custom-scrollbar overflow-x-hidden">
-          <div className={`px-2 mb-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:opacity-0' : 'lg:opacity-100'}`}>Menu</div>
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            
-            if (item.isDropdown) {
-               const isOpen = item.isOpenState;
-               const setOpen = item.setOpenState;
-               
-               return (
-                  <div key={item.name} className="space-y-1">
-                     <button
-                        onClick={() => setOpen(!isOpen)}
-                        className={`w-full group flex items-center py-2 text-[13px] font-medium rounded-lg transition-colors overflow-hidden ${
-                           isOpen 
-                             ? 'bg-emerald-500/5 text-emerald-500' 
-                             : 'text-slate-400 hover:bg-slate-100/50 hover:text-slate-700'
-                         } ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3'}`}
-                     >
-                        <div className="flex items-center">
-                           <Icon className={`h-4 w-4 shrink-0 transition-all duration-300 ${isOpen ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'} ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2.5'}`} />
-                           <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>{item.name}</span>
-                        </div>
-                     </button>
-                     {isOpen && !desktopSidebarCollapsed && (
-                        <div className="pl-9 space-y-1 mt-1">
-                           {item.subItems.map(sub => {
-                              const isSubActive = location.pathname + location.hash === sub.path;
-                              return (
-                                 <Link 
-                                    key={sub.name}
-                                    to={sub.path}
-                                    onClick={() => setSidebarOpen(false)}
-                                    className={`block py-1.5 text-xs transition-colors font-semibold ${isSubActive ? 'text-emerald-500' : 'text-slate-500 hover:text-emerald-400'}`}
-                                 >
-                                    {sub.name}
-                                 </Link>
-                              );
-                           })}
-                        </div>
-                     )}
-                  </div>
-               );
-            }
-
-            const isPOS = item.name === 'POS Terminal';
-
-            if (isPOS) {
-              return (
-                <button
-                  key={item.name}
-                  onClick={() => {
-                    window.open(item.path, 'SaSLoopPOS', 'width=1400,height=900,menubar=no,toolbar=no,location=no,status=no');
-                    setSidebarOpen(false);
-                  }}
-                  title={desktopSidebarCollapsed ? item.name : ""}
-                  className={`group flex items-center py-2 text-[13px] font-medium rounded-lg transition-colors overflow-hidden text-slate-400 hover:bg-slate-100/50 hover:text-slate-700 ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3'}`}
-                >
-                  <Icon className={`h-4 w-4 shrink-0 transition-all duration-300 text-slate-500 group-hover:text-slate-400 ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2.5'}`} />
-                  <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>{item.name}</span>
-                </button>
-              );
-            }
-
-            return (
-              <Link
-                key={item.name}
-                to={item.path}
-                onClick={() => setSidebarOpen(false)}
-                title={desktopSidebarCollapsed ? item.name : ""}
-                className={`group flex items-center py-2 text-[13px] font-medium rounded-lg transition-colors overflow-hidden ${
-                  isActive 
-                    ? 'bg-emerald-500/10 text-emerald-400' 
-                    : 'text-slate-400 hover:bg-slate-100/50 hover:text-slate-700'
-                } ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3'}`}
-              >
-                <Icon className={`h-4 w-4 shrink-0 transition-all duration-300 ${isActive ? 'text-emerald-400' : 'text-slate-500 group-hover:text-slate-400'} ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2.5'}`} />
-                <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>{item.name}</span>
-              </Link>
-            );
-          })}
-        </nav>
-
-        <div className="p-3 border-t border-slate-200 space-y-1 overflow-hidden">
-           <button
-              onClick={() => setIsChangePwdOpen(true)}
-              title={desktopSidebarCollapsed ? "Change Password" : ""}
-              className={`flex items-center w-full py-2 text-[13px] font-medium text-slate-400 rounded-lg hover:bg-slate-100 hover:text-emerald-400 transition-colors ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3 justify-start'}`}
-           >
-              <Key className={`h-4 w-4 opacity-70 shrink-0 transition-all duration-300 ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2'}`} />
-              <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>Change Password</span>
-           </button>
-           <button
-              onClick={handleLogout}
-              title={desktopSidebarCollapsed ? "Sign out" : ""}
-              className={`flex items-center w-full py-2 text-[13px] font-medium text-slate-400 rounded-lg hover:bg-slate-100 hover:text-red-400 transition-colors ${desktopSidebarCollapsed ? 'lg:px-0 lg:justify-center' : 'px-3 justify-start'}`}
-           >
-              <LogOut className={`h-4 w-4 opacity-70 shrink-0 transition-all duration-300 ${desktopSidebarCollapsed ? 'mr-0' : 'mr-2'}`} />
-              <span className={`whitespace-nowrap transition-all duration-300 ${desktopSidebarCollapsed ? 'lg:w-0 lg:opacity-0' : 'lg:w-auto lg:opacity-100'}`}>Sign out</span>
-           </button>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 bg-slate-50/50 relative">
-        {/* Impersonation Banner */}
-        {sessionStorage.getItem('impersonate_id') && (
-           <div className="h-10 bg-indigo-600 text-white flex items-center justify-center gap-4 px-4 shadow-inner relative z-[60]">
-              <div className="flex items-center gap-2">
-                 <Shield className="w-3.5 h-3.5 animate-pulse" />
-                 <span className="text-[10px] font-black uppercase tracking-[0.2em]">Viewing Dashboard As: <span className="bg-white text-indigo-600 px-2 py-0.5 rounded ml-1">{sessionStorage.getItem('impersonate_name')}</span></span>
-              </div>
-              <button 
-                onClick={() => {
-                   sessionStorage.removeItem('impersonate_id');
-                   sessionStorage.removeItem('impersonate_name');
-                   window.location.href = user.role === 'master_admin' ? '/master-dashboard' : '/admin-dashboard';
-                }}
-                className="bg-white/10 hover:bg-white/20 px-3 py-1 rounded text-[10px] font-bold border border-white/20 transition-all uppercase tracking-tighter"
-              >
-                Exit Preview
-              </button>
-           </div>
-        )}
-
-        {/* Topbar */}
-        <header className="relative h-14 flex-shrink-0 flex items-center justify-between px-4 sm:px-6 bg-white/50 backdrop-blur-md border-b border-slate-200 z-10">
-          {/* Centered dynamic Page Title */}
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none hidden sm:block">
-            <h1 className="font-semibold text-slate-700 capitalize text-[15px] tracking-wide whitespace-nowrap">
-              {location.pathname.replace('/', '').replace('-', ' ') || 'Dashboard'}
-            </h1>
-          </div>
-
-          <div className="flex items-center">
-            <button 
-              className="p-1.5 -ml-1.5 mr-2 text-slate-400 hover:bg-slate-100 rounded-md transition-colors"
-              onClick={() => {
-                if (window.innerWidth >= 1024) {
-                  setDesktopSidebarCollapsed(!desktopSidebarCollapsed);
-                } else {
-                  setSidebarOpen(!sidebarOpen);
-                }
-              }}
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            
-            {/* App Name after hamburger */}
-            <div className="flex items-center mr-4">
-              <div className="scale-75 -ml-2 -mr-1">
-                <SaSLoopLogo />
-              </div>
-              <span className="text-base font-bold text-slate-800 tracking-wide">SaS Loop AI</span>
-            </div>
-
-
-          </div>
+        const modulePerm = storeModules[moduleKey];
+        if (modulePerm) {
+          if (modulePerm.visible === false) return null;
           
-          <div className="flex items-center space-x-4">
-            {user && (
-              <div className="flex items-center gap-4">
-                
-                {(user.role === 'user' || sessionStorage.getItem('impersonate_id')) && (
-                  <div className={`hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold tracking-widest uppercase border ${waStatus === 'CONNECTED' ? 'bg-emerald-50 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-200'}`} title="WhatsApp Gateway">
-                    {waStatus === 'CONNECTED' ? (
-                       <><Bot className="w-3.5 h-3.5" /> <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse inline-block" /> Linked</>
+          if (item.isDropdown && item.subItems) {
+            const filteredSubItems = item.subItems.map(sub => {
+              if (sub.isHeader) {
+                if (sub.subItems) {
+                  const filteredSS = sub.subItems.filter(ss => {
+                    return modulePerm.subPermissions?.[ss.name] !== false;
+                  });
+                  if (filteredSS.length === 0) return null;
+                  return { ...sub, subItems: filteredSS };
+                }
+                return sub;
+              } else {
+                return modulePerm.subPermissions?.[sub.name] !== false ? sub : null;
+              }
+            }).filter(Boolean);
+            
+            if (filteredSubItems.length === 0) return null;
+            return { ...item, subItems: filteredSubItems };
+          }
+        }
+        return item;
+      }).filter(Boolean);
+    };
+
+    let items = baseItems;
+    if (currentOutletId === "global") {
+        items = items.filter(i => i.name !== "Revenue Dashboard");
+    }
+    return filterNavItems(items);
+  };
+
+  const navItems = getNavItems();
+
+    const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+    const isExpanded = !desktopSidebarCollapsed || isSidebarHovered;
+    const currentOutlet = outlets.find(o => o.id === currentOutletId) || (currentOutletId === "global" ? { outlet_name: "Global Overview" } : null);
+
+    return (
+
+        <div className="flex h-screen bg-slate-50 dark:bg-[#14161b] transition-colors duration-500 overflow-hidden font-sans">
+            {/* Sidebar Architecture — Fixed Footprint to prevent screen shift */}
+            <div className={`${desktopSidebarCollapsed ? 'w-20' : 'w-72'} transition-all duration-300 ease-in-out`} />
+
+            <aside 
+                onMouseEnter={() => desktopSidebarCollapsed && setIsSidebarHovered(true)}
+                onMouseLeave={() => setIsSidebarHovered(false)}
+                className={`
+                    ${(desktopSidebarCollapsed && !isSidebarHovered) ? 'w-20' : 'w-72'} 
+                    flex flex-col bg-white dark:bg-[#1e2129] border-r border-slate-100 dark:border-white/5 
+                    transition-all duration-300 ease-in-out fixed inset-y-0 left-0 z-30 
+                    shadow-2xl shadow-slate-200/50 dark:shadow-none
+                `}
+            >
+                <div className="p-4 flex items-center justify-between border-b border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/20">
+                    {isExpanded ? (
+                        <div className="flex items-center gap-3 animate-in fade-in duration-300 overflow-hidden">
+                            <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white border border-emerald-500 shrink-0 shadow-lg shadow-emerald-600/20">
+                                {currentOutlet?.logo ? <img src={currentOutlet.logo} className="w-full h-full rounded-xl object-cover" /> : <img src="/logo.png" className="w-full h-full rounded-xl object-contain p-1" />}
+                            </div>
+                            <div className="flex flex-col min-w-0">
+                                <span className="text-[14px] font-black text-slate-900 dark:text-white leading-tight uppercase tracking-tight truncate">SaSLoop POS</span>
+                                <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mt-1">Operational Node</span>
+                            </div>
+                        </div>
                     ) : (
-                       <><Bot className="w-3.5 h-3.5 opacity-50" /> <span className="w-1.5 h-1.5 rounded-full bg-rose-400 inline-block" /> Offline</>
+                        <div className="w-full flex justify-center">
+                            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white border border-emerald-500 shadow-lg">
+                                {currentOutlet?.logo ? <img src={currentOutlet.logo} className="w-8 h-8 rounded-lg object-cover" /> : <img src="/logo.png" className="w-8 h-8 rounded-lg object-contain p-0.5" />}
+                            </div>
+                        </div>
                     )}
-                  </div>
-                )}
+                    {isExpanded && (
+                        <button onClick={() => {
+                            setDesktopSidebarCollapsed(!desktopSidebarCollapsed);
+                            setIsSidebarHovered(false);
+                        }} className="p-1.5 hover:bg-slate-200 dark:hover:bg-white/10 rounded-md transition-all text-slate-400 shrink-0">
+                            <Menu className="w-4 h-4" />
+                        </button>
+                    )}
+                </div>
 
-                {(user.role === 'user' || sessionStorage.getItem('impersonate_id')) && (
-                   <button 
-                       onClick={() => {
-                           ensureAudioContext();
-                           const newVal = !soundEnabled;
-                           setSoundEnabled(newVal);
-                           localStorage.setItem("globalSound", newVal);
-                           if (newVal) playNotification(); 
-                       }}
-                       className={`p-1.5 rounded-md transition-all border ${soundEnabled ? 'text-emerald-500 hover:bg-emerald-50 border-emerald-200' : 'text-slate-400 hover:bg-slate-100 border-transparent'}`}
-                       title={soundEnabled ? "Notifications On" : "Notifications Off"}
-                   >
-                     <Bell className="w-4 h-4" />
-                   </button>
-                )}
+                <nav className="flex-1 overflow-y-auto custom-scrollbar p-1 space-y-0.5 overflow-x-hidden">
+                    {navItems.map((item) => {
+                        const isGlobalAccessible = 
+                            item.path === "/dashboard" || 
+                            item.path === "/admin-dashboard" || 
+                            item.path === "/master-dashboard" || 
+                            item.path === "/manage-users" ||
+                            item.name === "Whatsapp Marketing";
+                        
+                        // If user is an outlet (role === 'user'), don't hide items even if context is 'global'
+                        if (currentOutletId === "global" && !isGlobalAccessible && user.role !== 'user') return null;
 
-                <button 
-                  onClick={handleLogout}
-                  className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-md transition-colors border border-transparent hover:border-rose-500/20"
-                  title="Sign out"
-                >
-                  <LogOut className="w-4 h-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+                        return (
+                            <div key={item.name} className="space-y-0">
+                                {item.isDropdown ? (
+                                <>
+                                    <button 
+                                        onClick={() => setOpenGroup(openGroup === item.name ? null : item.name)} 
+                                        className={`w-full flex items-center ${isExpanded ? 'px-3' : 'justify-center'} py-2 text-[11px] font-black rounded transition-all group ${openGroup === item.name ? 'text-slate-900 dark:text-white bg-slate-50 dark:bg-white/5' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                    >
+                                        <item.icon className={`h-5 w-5 ${isExpanded ? 'mr-3' : ''} shrink-0 transition-colors ${openGroup === item.name ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500 group-hover:text-emerald-500'}`} />
+                                        {isExpanded && <span className="flex-1 text-left truncate uppercase tracking-tight">{item.name}</span>}
+                                        {item.badge && isExpanded && <span className="mr-2 px-2 py-0.5 bg-emerald-600 text-white text-[9px] font-black rounded">{item.badge}</span>}
+                                        {isExpanded && <ChevronDown className={`w-4 h-4 transition-all opacity-40 ${openGroup === item.name ? 'rotate-180 opacity-100' : ''}`} />}
+                                    </button>
+                                    {openGroup === item.name && isExpanded && (
+                                    <div className="pl-11 py-1 space-y-0.5 animate-in slide-in-from-top-1 duration-200">
+                                        {item.subItems.map(sub => (
+                                        <div key={sub.name} className="space-y-0.5">
+                                            {sub.isHeader ? (
+                                            <>
+                                                <button 
+                                                 onClick={() => setOpenSubGroup(openSubGroup === sub.name ? null : sub.name)}
+                                                 className="w-full flex items-center justify-between py-1.5 mt-1 first:mt-0 group/sub"
+                                                 >
+                                                 <div className="flex items-center gap-3">
+                                                     {sub.icon && <sub.icon className={`w-4 h-4 transition-colors ${openSubGroup === sub.name ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`} />}
+                                                     <span className="text-[10px] font-black transition-colors text-slate-400 dark:text-slate-500 group-hover/sub:text-slate-600 dark:group-hover/sub:text-slate-300 truncate uppercase tracking-tight">{sub.name}</span>
+                                                 </div>
+                                                 {sub.subItems && <ChevronDown className={`w-3.5 h-3.5 transition-all opacity-40 ${openSubGroup === sub.name ? 'rotate-180 opacity-100 text-emerald-500' : ''}`} />}
+                                                 </button>
+                                                 {sub.subItems && openSubGroup === sub.name && (
+                                                 <div className="pl-4 border-l-2 border-slate-100 dark:border-white/5 space-y-0.5 ml-1.5 animate-in slide-in-from-top-1 duration-200">
+                                                     {sub.subItems.map(ss => (
+                                                      <Link 
+                                                          key={ss.name} 
+                                                          to={ss.path} 
+                                                          onClick={() => { 
+                                                              if (desktopSidebarCollapsed) setIsSidebarHovered(false);
+                                                              if (window.innerWidth < 1024) setDesktopSidebarCollapsed(true);
+                                                          }}
+                                                          className={`flex items-center gap-3 py-2 px-3 rounded text-[10px] font-black transition-all ${location.pathname === ss.path ? 'bg-emerald-600/10 text-emerald-500' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                                      >
+                                                          {ss.icon && <ss.icon className={`w-4 h-4 shrink-0 transition-colors ${location.pathname === ss.path ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`} />}
+                                                          <span className="truncate uppercase tracking-tight">{ss.name}</span>
+                                                      </Link>
+                                                     ))}
+                                                 </div>
+                                                 )}
+                                            </>
+                                            ) : (
+                                              <Link 
+                                                  key={sub.name} 
+                                                  to={sub.path} 
+                                                  onClick={() => { 
+                                                      if (desktopSidebarCollapsed) setIsSidebarHovered(false);
+                                                      if (window.innerWidth < 1024) setDesktopSidebarCollapsed(true);
+                                                  }}
+                                                  className={`flex items-center gap-3 py-2 text-[10px] font-black transition-colors hover:text-slate-900 dark:hover:text-white ${location.pathname === sub.path ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`}
+                                              >
+                                                  {sub.icon && <sub.icon className={`w-4 h-4 shrink-0 transition-colors ${location.pathname === sub.path ? 'text-emerald-500' : 'text-slate-400 dark:text-slate-500'}`} />}
+                                                  <span className="truncate uppercase tracking-tight">{sub.name}</span>
+                                              </Link>
+                                            )}
+                                        </div>
+                                        ))}
+                                    </div>
+                                    )}
+                                </>
+                                ) : (
+                                <Link 
+                                    to={item.path} 
+                                    onClick={() => { 
+                                        if (desktopSidebarCollapsed) setIsSidebarHovered(false);
+                                        if (window.innerWidth < 1024) setDesktopSidebarCollapsed(true);
+                                    }}
+                                    className={`flex items-center ${isExpanded ? 'px-3' : 'justify-center'} py-2.5 text-[11px] font-black rounded transition-all group ${location.pathname === item.path ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'}`}
+                                >
+                                    <item.icon className={`h-5 w-5 shrink-0 transition-colors ${location.pathname === item.path ? 'text-white' : 'text-slate-400 dark:text-slate-500 group-hover:text-emerald-500'} ${isExpanded ? 'mr-3' : ''}`} />
+                                    {isExpanded && <span className="flex-1 truncate uppercase tracking-tight">{item.name}</span>}
+                                    {item.badge && isExpanded && <span className={`px-2 py-0.5 text-[9px] font-black rounded ${location.pathname === item.path ? 'bg-white/20 text-white' : 'bg-emerald-600 text-white'}`}>{item.badge}</span>}
+                                </Link>
+                                )}
+                            </div>
+                        );
+                    })}
 
-        {/* Page Content View */}
-        <main className="flex-1 overflow-auto bg-slate-50/50 custom-scrollbar relative">
-          <div className="max-w-[1600px] mx-auto min-h-full flex flex-col p-4 lg:p-6">
-            <Outlet />
-          </div>
+                    {currentOutletId === "global" && isExpanded && (
+                        <div className="py-10 px-4 text-center space-y-6 opacity-40 group-hover:opacity-100 transition-opacity border-t border-slate-100 dark:border-white/5 mt-4">
+                            <div className="w-16 h-16 bg-slate-100 dark:bg-white/5 rounded-2xl flex items-center justify-center mx-auto mb-2 border border-slate-200 dark:border-white/10">
+                                <Shield className="w-8 h-8 text-slate-400" />
+                            </div>
+                            <div className="space-y-2">
+                                <p className="text-[12px] font-black text-slate-800 dark:text-white uppercase tracking-widest leading-tight">Select Outlet<br/>to Activate Tools</p>
+                                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-tighter italic">Operational Context Locked</p>
+                            </div>
+                        </div>
+                    )}
+                </nav>
+
+                <div className="p-3 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#1e2129] space-y-2">
+                    {/* Switch layout button for mobile screens */}
+                    <button
+                        onClick={() => {
+                            localStorage.setItem("preferred_layout_mode", "mobile");
+                            window.dispatchEvent(new CustomEvent("switchLayoutMode", { detail: "mobile" }));
+                        }}
+                        className="lg:hidden w-full flex items-center justify-center gap-2 py-2 bg-slate-50 hover:bg-slate-100 dark:bg-black/20 dark:hover:bg-white/5 rounded-lg border border-slate-100 dark:border-white/5 text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider transition-all active:scale-[0.98]"
+                    >
+                        <Smartphone className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
+                        {isExpanded && <span>Mobile View</span>}
+                    </button>
+
+                    <div className={`p-3 rounded-xl bg-slate-50 dark:bg-black/20 border border-slate-100 dark:border-white/5 ${(!isExpanded) ? 'flex justify-center p-2' : ''}`}>
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-emerald-600 flex items-center justify-center text-white font-black text-[14px] shrink-0">
+                                {user.name?.[0] || 'A'}
+                            </div>
+                            {isExpanded && (
+                                <div className="flex flex-col min-w-0">
+                                    <span className="text-[12px] font-black text-slate-900 dark:text-white truncate uppercase tracking-tighter">{user.name || 'Administrator'}</span>
+                                    <span className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">{user.role?.replace('_', ' ') || 'Brand Owner'}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+
+        {/* Main Content Engineering */}
+        <main className="flex-1 flex flex-col min-w-0 relative">
+            {/* Header / Top Bar */}
+            <header className="h-20 bg-white/80 dark:bg-[#1e2129]/80 backdrop-blur-md border-b border-slate-100 dark:border-white/5 flex items-center px-6 sticky top-0 z-20">
+                {/* Left Section: Mobile Menu & Global Context */}
+                <div className="flex-1 flex items-center gap-2 md:gap-4">
+                    <button 
+                        onClick={() => setDesktopSidebarCollapsed(!desktopSidebarCollapsed)} 
+                        className="p-2 hover:bg-slate-100 dark:hover:bg-white/5 rounded-lg text-slate-400"
+                        title="Toggle Sidebar"
+                    >
+                        <Menu className="w-6 h-6" />
+                    </button>
+                    
+                    <div className="flex items-center gap-2 px-3 py-1.5 md:px-4 md:py-2 bg-slate-50 dark:bg-black/20 rounded-full border border-slate-100 dark:border-white/5 transition-all hover:border-emerald-500/30">
+                        <span className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">Context</span>
+                        <select 
+                            className="bg-transparent border-none outline-none text-[10px] md:text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-tighter cursor-pointer pr-2"
+                            value={currentOutletId}
+                            onChange={(e) => handleContextSwitch(e.target.value)}
+                        >
+                            <option value="global" className="dark:bg-[#1e2129]">Global Overview</option>
+                            {outlets.map(o => (
+                                <option key={o.id} value={o.id} className="dark:bg-[#1e2129]">{o.business_name || o.name || o.brand_name || o.username}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Center Section: Core Platform Branding */}
+                <div className="hidden md:flex flex-1 justify-center items-center pointer-events-none">
+                    <div className="flex items-center gap-4 group pointer-events-auto cursor-default">
+                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-200/50 dark:shadow-none border border-slate-100 dark:border-white/5 group-hover:rotate-12 transition-all duration-500 shrink-0">
+                            <img src="/logo.png" className="w-9 h-9 object-contain" alt="Logo" />
+                        </div>
+                        <div className="flex flex-col">
+                            <h1 className="text-[22px] font-black text-slate-900 dark:text-white uppercase tracking-tighter leading-none">SaSLoop ERP | AI</h1>
+                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.4em] mt-1">Platform Orchestrator</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Section: System Actions */}
+                <div className="flex-1 flex justify-end items-center gap-4">
+                    <div className="hidden lg:flex items-center gap-3 px-4 py-2 bg-emerald-500/5 rounded-full border border-emerald-500/10">
+                        <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                        <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Connected Cluster</span>
+                    </div>
+                    
+                    <div className="w-px h-8 bg-slate-100 dark:bg-white/5 hidden sm:block mx-2" />
+                    
+                    <button 
+                        onClick={() => setConfirmDialog({
+                            message: "Initiate system logout sequence?",
+                            onConfirm: handleLogout
+                        })}
+                        className="h-10 px-6 bg-rose-600 hover:bg-rose-500 text-white rounded-full text-[11px] font-black uppercase tracking-[0.2em] transition-all shadow-xl shadow-rose-600/20 flex items-center gap-2"
+                    >
+                        <LogOut className="w-4 h-4" />
+                        <span className="hidden sm:inline">Sign Out</span>
+                    </button>
+                </div>
+            </header>
+
+            {/* Page Content Viewport */}
+            <div className="flex-1 overflow-y-auto custom-scrollbar flex flex-col justify-between">
+                <div className="pt-0 px-6 pb-6 flex-1">
+                    <Outlet />
+                </div>
+                <footer className="py-4 px-6 border-t border-slate-100 dark:border-white/5 bg-white dark:bg-[#1e2129] flex flex-col sm:flex-row items-center justify-between text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider gap-2">
+                    <span>Copyright © 2016-2027 Powered by SaSLoop POS. All Rights Reserved.</span>
+                    <span className="flex items-center gap-1">Need Support? Contact us at <a href="mailto:support@sasloop.com" className="text-emerald-600 hover:text-emerald-500 dark:text-emerald-500 dark:hover:text-emerald-400 font-black normal-case font-sans">support@sasloop.com</a></span>
+                </footer>
+            </div>
         </main>
-      </div>
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 z-40 bg-slate-900/60 lg:hidden backdrop-blur-sm"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Change Password Modal */}
-      {isChangePwdOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm" onClick={() => {
-             setIsChangePwdOpen(false);
-             setErrorMsg("");
-             setSuccessMsg("");
-          }} />
-          <div className="relative w-full max-w-[420px] bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-slate-100 overflow-hidden transform transition-all">
-            {/* Header */}
-            <div className="h-28 bg-gradient-to-br from-slate-900 to-slate-800 relative flex items-center justify-center overflow-hidden">
-              <button 
-                onClick={() => {
-                   setIsChangePwdOpen(false);
-                   setErrorMsg("");
-                   setSuccessMsg("");
-                }}
-                className="absolute top-4 right-4 text-slate-400 hover:text-slate-900 transition-colors z-20"
-              >
-                <X className="w-5 h-5" />
-              </button>
-              <div className="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1554118811-1e0d58224f24?q=80&w=2694&auto=format&fit=crop')] bg-cover bg-center mix-blend-overlay" />
-              <div className="z-10 text-center">
-                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center justify-center gap-2">
-                   <Key className="w-6 h-6 text-emerald-400" />
-                   Change Password
-                </h2>
-                <p className="text-emerald-400 font-mono text-xs mt-1 uppercase tracking-widest truncate max-w-full px-4">
-                   Secure your account
-                </p>
-              </div>
-            </div>
-
-            {/* Form */}
-            <div className="p-8 pb-10 space-y-5">
-              {/* Info UI instead of alerts */}
-              {errorMsg && (
-                <div className="bg-red-50 text-red-600 text-[13px] p-3 rounded-xl border border-red-100 flex items-start gap-2 animate-[pulse_0.4s_ease-in-out]">
-                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-                   <span className="font-medium">{errorMsg}</span>
-                </div>
-              )}
-              {successMsg && (
-                <div className="bg-emerald-50 text-emerald-600 text-[13px] p-3 rounded-xl border border-emerald-100 flex items-center gap-2 animate-[pulse_0.4s_ease-in-out]">
-                   <CheckCircle2 className="w-4 h-4 shrink-0" />
-                   <span className="font-medium">{successMsg}</span>
-                </div>
-              )}
-
-              {/* Old Password */}
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-                  <Lock className="w-5 h-5" />
-                </div>
-                <input
-                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 outline-none text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
-                  type={showOld ? "text" : "password"}
-                  placeholder="Old Password"
-                  value={oldPwd}
-                  onChange={(e) => setOldPwd(e.target.value)}
-                />
-                <button 
-                  onClick={() => setShowOld(!showOld)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  type="button"
-                >
-                  {showOld ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-              </div>
-
-              {/* New Password & Meter */}
-              <div className="space-y-2">
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-                    <Lock className="w-5 h-5" />
-                  </div>
-                  <input
-                    className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 outline-none text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
-                    type={showNew ? "text" : "password"}
-                    placeholder="New Password"
-                    value={newPwd}
-                    onChange={(e) => setNewPwd(e.target.value)}
-                  />
-                  <button 
-                    onClick={() => setShowNew(!showNew)}
-                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                    type="button"
-                  >
-                    {showNew ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                  </button>
-                </div>
-                
-                {/* Password Strength Meter */}
-                {newPwd.length > 0 && (
-                  <div className="px-2 pt-1">
-                    <div className="flex gap-1 h-1.5 w-full">
-                      {[1, 2, 3, 4, 5].map((level) => {
-                         const strength = calculateStrength(newPwd);
-                         let bgColor = "bg-slate-200";
-                         if (level <= strength) {
-                           if (strength <= 2) bgColor = "bg-red-400";
-                           else if (strength === 3) bgColor = "bg-amber-400";
-                           else if (strength === 4) bgColor = "bg-emerald-400";
-                           else if (strength === 5) bgColor = "bg-emerald-500";
-                         }
-                         return (
-                           <div key={level} className={`h-full flex-1 rounded-full transition-colors duration-300 ${bgColor}`} />
-                         );
-                      })}
+        {/* System Confirmation Dialog */}
+        {confirmDialog && createPortal(
+            <div className="pro-modal-overlay">
+                <div className="pro-modal-content w-full p-4 text-center">
+                    <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertCircle className="w-8 h-8 text-rose-500" />
                     </div>
-                    <div className="text-[10px] text-slate-400 font-medium tracking-wide mt-1.5 text-right uppercase">
-                      {calculateStrength(newPwd) <= 2 && "Weak"}
-                      {calculateStrength(newPwd) === 3 && "Fair"}
-                      {calculateStrength(newPwd) === 4 && "Good"}
-                      {calculateStrength(newPwd) === 5 && "Strong"}
+                    <h4 className="text-[14px] font-bold text-slate-800 dark:text-white uppercase tracking-tight mb-8 leading-tight">{confirmDialog.message}</h4>
+                    <div className="flex gap-4">
+                        <button onClick={() => setConfirmDialog(null)} className="flex-1 py-3 bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400 rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-white/10 transition-all">Abort</button>
+                        <button onClick={confirmDialog.onConfirm} className="flex-[2] py-3 bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest hover:bg-rose-500 transition-all shadow-xl shadow-rose-600/20">Confirm</button>
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Confirm Password */}
-              <div className="relative group">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-emerald-500 transition-colors">
-                  <Lock className="w-5 h-5" />
                 </div>
-                <input
-                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 outline-none text-sm font-medium focus:bg-white focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all placeholder:text-slate-400"
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Confirm New Password"
-                  value={confirmPwd}
-                  onChange={(e) => setConfirmPwd(e.target.value)}
-                />
-                <button 
-                  onClick={() => setShowConfirm(!showConfirm)}
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  type="button"
-                >
-                  {showConfirm ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-              </div>
-
-              <div className="pt-2">
-                <button
-                  onClick={handleChangePasswordSubmit}
-                  className="w-full bg-white hover:bg-slate-100 text-slate-900 font-semibold py-4 rounded-2xl transition-all shadow-[0_4px_14px_0_rgba(15,23,42,0.2)] hover:shadow-[0_6px_20px_rgba(15,23,42,0.3)] hover:-translate-y-0.5 active:translate-y-0"
-                >
-                  Update Password
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* CONFIRMATION DIALOG */}
-      {confirmDialog && (
-         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm" onClick={() => setConfirmDialog(null)} />
-           <div className="relative w-full max-w-sm bg-white rounded-[2rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-              <div className="p-8 text-center">
-                 <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center mx-auto mb-6 text-rose-500">
-                    <AlertCircle className="w-8 h-8" />
-                 </div>
-                 <h3 className="text-xl font-black text-slate-900 tracking-tight mb-2">Wait a second...</h3>
-                 <p className="text-sm text-slate-500 font-medium leading-relaxed mb-8">{confirmDialog.message}</p>
-                 <div className="flex gap-3">
-                    <button 
-                       onClick={() => setConfirmDialog(null)}
-                       className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-4 rounded-2xl transition-all active:scale-95"
-                    >
-                       Cancel
-                    </button>
-                    <button 
-                       onClick={confirmDialog.onConfirm}
-                       className="flex-1 bg-rose-500 hover:bg-rose-600 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-rose-500/20 active:scale-95"
-                    >
-                       Sign out
-                    </button>
-                 </div>
-              </div>
-           </div>
-         </div>
-      )}
+        , document.body)}
 
     </div>
   );

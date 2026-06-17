@@ -1,0 +1,7 @@
+{
+  "step_index": 2138,
+  "tool": "replace_file_content",
+  "description": "\"Added a refresh icon button to the top-right header in the ORDERING flow state to reload menu items/categories.\"",
+  "instruction": "\"Add Refresh button to header actions during ORDERING flow state.\"",
+  "chunks": "\"                // Header Right Actions\\n                Row(verticalAlignment = Alignment.CenterVertically) {\\n                    if (flowState == BillingFlowState.SELECT_TABLE) {\\n                        IconButton(onClick = { billingViewModel.fetchTablesAndActiveOrders() }) {\\n                            Icon(Icons.Default.Refresh, \\\"Refresh\\\", tint = SaSGreen)\\n                        }\\n                    } else if (flowState == BillingFlowState.ORDERING) {\\n                        IconButton(onClick = { billingViewModel.loadCatalogAndCategories() }) {\\n                            Icon(Icons.Default.Refresh, \\\"Refresh Menu\\\", tint = SaSGreen)\\n                        }\\n                        if (cart.isNotEmpty()) {\\n                            IconButton(onClick = { billingViewModel.clearCart() }) {\\n                                Icon(Icons.Default.Clear, \\\"Clear Cart\\\", tint = StatusDanger)\\n                            }\\n                        }\\n                    }\\n                }\""
+}

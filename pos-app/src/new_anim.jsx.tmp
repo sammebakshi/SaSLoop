@@ -1,0 +1,113 @@
+const FLOATING_ITEMS = [
+  { type: 'receipt', id: '1024', table: 'Table 4', items: [{n: 'Filter Coffee', q: 2, p: 50}, {n: 'Masala Dosa', q: 1, p: 120}], total: 220, time: '14:22' },
+  { type: 'direction', order: '#442', dest: 'Sector 4, Main Road', driver: 'Rajesh', status: 'En Route', eta: '12 mins' },
+  { type: 'feature', name: 'POS System', color: 'bg-emerald-50 border-emerald-100 text-emerald-600 shadow-emerald-200/50', svg: <svg width="50" height="50" viewBox="0 0 100 100" fill="none"><rect x="20" y="20" width="60" height="40" rx="4" fill="currentColor" fillOpacity="0.2"/><rect x="25" y="25" width="50" height="30" rx="2" fill="currentColor"/><path d="M40 60 L30 80 H70 L60 60" fill="currentColor" fillOpacity="0.5"/><rect x="25" y="80" width="50" height="5" rx="2" fill="currentColor"/></svg> },
+  { type: 'feature', name: 'Quick Bill', color: 'bg-amber-50 border-amber-100 text-amber-500 shadow-amber-200/50', svg: <svg width="50" height="50" viewBox="0 0 100 100" fill="none"><rect x="30" y="15" width="40" height="70" rx="4" fill="currentColor" fillOpacity="0.2"/><path d="M45 15 L35 50 H55 L45 85" fill="currentColor"/><line x1="40" y1="30" x2="60" y2="30" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/></svg> },
+  { type: 'receipt', id: '1025', table: 'Takeaway', items: [{n: 'Veg Biryani', q: 3, p: 250}, {n: 'Coke', q: 3, p: 40}], total: 870, time: '14:28' },
+  { type: 'feature', name: 'KOT Engine', color: 'bg-purple-50 border-purple-100 text-purple-500 shadow-purple-200/50', svg: <svg width="50" height="50" viewBox="0 0 100 100" fill="none"><path d="M25 15 H75 V75 L65 65 L50 75 L35 65 L25 75 V15 Z" fill="currentColor" fillOpacity="0.2"/><rect x="35" y="30" width="30" height="6" rx="3" fill="currentColor"/><rect x="35" y="45" width="20" height="6" rx="3" fill="currentColor"/><circle cx="60" cy="48" r="4" fill="currentColor"/></svg> },
+  { type: 'direction', order: '#443', dest: 'Tech Park, Building B', driver: 'Suresh', status: 'Picked Up', eta: '8 mins' },
+  { type: 'feature', name: 'KDS Display', color: 'bg-blue-50 border-blue-100 text-blue-500 shadow-blue-200/50', svg: <svg width="50" height="50" viewBox="0 0 100 100" fill="none"><rect x="10" y="20" width="80" height="60" rx="6" fill="currentColor" fillOpacity="0.2"/><rect x="15" y="25" width="70" height="50" rx="4" fill="currentColor" fillOpacity="0.1"/><rect x="20" y="35" width="25" height="15" rx="2" fill="currentColor"/><rect x="55" y="35" width="25" height="15" rx="2" fill="currentColor" fillOpacity="0.5"/><rect x="20" y="55" width="25" height="15" rx="2" fill="currentColor" fillOpacity="0.5"/><rect x="55" y="55" width="25" height="15" rx="2" fill="currentColor" fillOpacity="0.5"/></svg> }
+];
+
+const ChatAnimationBackground = () => {
+  const [bubbles, setBubbles] = useState([]);
+
+  useEffect(() => {
+    let bubbleId = 0;
+    const spawnBubble = () => {
+      const regions = [
+        { left: '4%', top: '12%' },
+        { left: '8%', top: '55%' },
+        { right: '6%', top: '10%' },
+        { right: '10%', top: '52%' },
+        { left: '6%', top: '38%' },
+        { right: '8%', top: '35%' }
+      ];
+      const region = regions[Math.floor(Math.random() * regions.length)];
+      const jX = Math.floor(Math.random() * 8) - 4;
+      const jY = Math.floor(Math.random() * 8) - 4;
+      const pos = {};
+      if (region.left) pos.left = `calc(${region.left} + ${jX}%)`;
+      if (region.right) pos.right = `calc(${region.right} + ${jX}%)`;
+      if (region.top) pos.top = `calc(${region.top} + ${jY}%)`;
+
+      return {
+        id: ++bubbleId,
+        pos,
+        item: FLOATING_ITEMS[Math.floor(Math.random() * FLOATING_ITEMS.length)],
+        createdAt: Date.now()
+      };
+    };
+
+    setBubbles([spawnBubble()]);
+    const interval = setInterval(() => {
+      setBubbles(prev => {
+        const now = Date.now();
+        const alive = prev.filter(b => now - b.createdAt < 14000);
+        return [...alive, spawnBubble()];
+      });
+    }, 2600);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="absolute inset-0 z-0 overflow-hidden bg-slate-50 pointer-events-none">
+      <style>{`
+        @keyframes dynamicFade {
+          0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+          10%, 85% { opacity: 1; transform: translateY(0) scale(1); }
+          95%, 100% { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        }
+        @keyframes dynamicFloat {
+          0%, 100% { transform: translateY(0); }
+          50% { transform: translateY(-10px); }
+        }
+        .dyn-bubble-c1 { animation: dynamicFade 14s ease-in-out forwards, dynamicFloat 4s ease-in-out infinite; }
+      `}</style>
+      
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-200 opacity-90"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#18ba60]/10 blur-[120px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
+
+      <div className="absolute inset-0 flex items-center justify-center opacity-70">
+        <div className="relative w-full max-w-7xl h-full hidden lg:block">
+          {bubbles.map((b) => (
+              <div key={b.id} style={{...b.pos, position: 'absolute', zIndex: b.id}} className="dyn-bubble-c1 opacity-0">
+                {b.item.type === 'receipt' ? (
+                   <div className="w-[200px] bg-white shadow-xl border border-slate-100 relative pb-3" style={{ filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.1))' }}>
+                      <div className="p-4 flex flex-col text-[#0d1117]">
+                         <div className="text-center font-black uppercase text-[12px] tracking-widest border-b-2 border-dashed border-slate-300 pb-2 mb-2 text-slate-800">SaSTech POS<br/><span className="text-[9px] text-slate-400 font-bold">Bill #{b.item.id}</span></div>
+                         <div className="space-y-1.5 mb-3 text-[10px] font-bold text-slate-500">
+                            {b.item.items.map((it, i) => (
+                               <div key={i} className="flex justify-between"><span>{it.q}x {it.n}</span><span>₹{it.q * it.p}</span></div>
+                            ))}
+                         </div>
+                         <div className="border-t-2 border-dashed border-slate-300 pt-2 flex justify-between font-black text-[12px] uppercase text-slate-800"><span>Total</span><span>₹{b.item.total}</span></div>
+                      </div>
+                      <div className="absolute bottom-[-8px] left-0 w-full h-[8px]" style={{ backgroundImage: 'linear-gradient(-45deg, transparent 6px, white 6px), linear-gradient(45deg, transparent 6px, white 6px)', backgroundSize: '16px 16px', backgroundRepeat: 'repeat-x' }}></div>
+                   </div>
+                ) : b.item.type === 'feature' ? (
+                   <div className={`w-[180px] border-2 rounded-3xl p-5 shadow-2xl flex flex-col items-center justify-center gap-3 transition-all cursor-default ${b.item.color}`}>
+                      <div className="scale-125">{b.item.svg}</div>
+                      <span className="text-[12px] font-black tracking-tight uppercase text-center">{b.item.name}</span>
+                   </div>
+                ) : (
+                   <div className="w-[240px] bg-white border border-slate-200 rounded-2xl p-4 shadow-xl flex flex-col" style={{ filter: 'drop-shadow(0 20px 25px rgba(0,0,0,0.1))' }}>
+                      <div className="flex items-center gap-3 mb-3 border-b border-slate-100 pb-3">
+                         <div className="w-8 h-8 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center shrink-0"><Truck size={14}/></div>
+                         <div><div className="text-[11px] font-black uppercase text-slate-800 tracking-widest">Delivery {b.item.order}</div><div className="text-[9px] font-bold text-amber-500 animate-pulse">{b.item.status}</div></div>
+                      </div>
+                      <div className="space-y-2.5 text-[10px] font-bold text-slate-500">
+                         <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500"/> {b.item.dest}</div>
+                         <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500"/> ETA: {b.item.eta}</div>
+                         <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500"/> Driver: {b.item.driver}</div>
+                      </div>
+                   </div>
+                )}
+              </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};

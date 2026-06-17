@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import API_BASE from "../config";
-import { Shield, Save, Key, Phone, CheckCircle2, Building2, User } from "lucide-react";
+import { Shield, Save, Key, Phone, CheckCircle2, Building2, User, Hash } from "lucide-react";
 
 function WhatsAppConnect() {
   const [loading, setLoading] = useState(false);
@@ -11,7 +11,8 @@ function WhatsAppConnect() {
   
   const [config, setConfig] = useState({
     meta_access_token: "",
-    meta_phone_id: ""
+    meta_phone_id: "",
+    meta_account_id: ""
   });
 
   useEffect(() => {
@@ -40,7 +41,7 @@ function WhatsAppConnect() {
       // If master admin, fetch ALL, else fetch only OWN
       const endpoint = role === 'master_admin' 
         ? `${API_BASE}/api/master/users` 
-        : `${API_BASE}/api/master/admin/my-users?admin_id=${adminId}`;
+        : `${API_BASE}/api/auth/my-outlets`;
       
       const res = await fetch(endpoint, {
          headers: { "Authorization": `Bearer ${token}` }
@@ -68,7 +69,8 @@ function WhatsAppConnect() {
          const data = await res.json();
          setConfig({
             meta_access_token: data.meta_access_token || "",
-            meta_phone_id: data.meta_phone_id || ""
+            meta_phone_id: data.meta_phone_id || "",
+            meta_account_id: data.meta_account_id || ""
          });
       }
     } catch(err) {
@@ -108,8 +110,30 @@ function WhatsAppConnect() {
 
   const isAdmin = user?.role === 'master_admin' || user?.role?.startsWith('admin');
 
+  if (!isAdmin) {
+     return (
+       <div className="flex flex-col items-center justify-center min-h-[60vh] p-6 text-center space-y-6 animate-in fade-in duration-500">
+          <div className="w-20 h-20 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-500 border border-rose-500/20">
+             <Shield className="w-10 h-10" />
+          </div>
+          <div className="space-y-2 max-w-md">
+             <h3 className="text-[18px] font-black text-slate-800 uppercase tracking-tight">Access Restricted</h3>
+             <p className="text-slate-500 text-sm font-medium">
+                Only the system administrators (Master Admin & Admin roles) are authorized to configure the WhatsApp API and manage Meta Developer integration credentials.
+             </p>
+          </div>
+          <a 
+             href="/dashboard"
+             className="px-6 py-3 bg-slate-900 hover:bg-black text-white rounded-xl text-[11px] font-black uppercase tracking-widest transition-all shadow-lg active:scale-95"
+          >
+             Return to Dashboard
+          </a>
+       </div>
+     );
+  }
+
   return (
-    <div className="flex flex-col space-y-8 p-4 max-w-4xl mx-auto pb-20">
+    <div className="flex flex-col space-y-4 p-4 max-w-4xl mx-auto pb-20">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
           <h2 className="text-3xl font-extrabold text-slate-800 tracking-tight flex items-center gap-3">
@@ -144,13 +168,13 @@ function WhatsAppConnect() {
         )}
       </div>
 
-      <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm relative">
+      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm relative">
         {/* Visual context indicator */}
         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
            <Building2 className="w-32 h-32" />
         </div>
 
-        <form onSubmit={handleSave} className="space-y-6 relative z-10">
+        <form onSubmit={handleSave} className="space-y-4 relative z-10">
             <div className="flex items-center gap-3 mb-2 p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
                <div className="p-2 bg-white rounded-lg shadow-sm text-emerald-600">
                   <User className="w-4 h-4" />
@@ -191,6 +215,23 @@ function WhatsAppConnect() {
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono text-sm text-slate-700 shadow-inner"
               />
               <p className="text-xs text-slate-500 mt-2">Target ID for the WhatsApp number used by this specific business.</p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                 <Hash className="w-4 h-4 text-amber-500" /> WhatsApp Business Account ID (WABA ID)
+              </label>
+              <input 
+                type="text"
+                placeholder="e.g. 109876543210987"
+                value={config.meta_account_id}
+                onChange={(e) => setConfig({...config, meta_account_id: e.target.value})}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-amber-500 focus:outline-none font-mono text-sm text-slate-700 shadow-inner"
+              />
+              <p className="text-xs text-slate-500 mt-2">
+                Required for template registration with Meta. Find it in 
+                <a href="https://developers.facebook.com" target="_blank" rel="noreferrer" className="text-indigo-600 hover:underline"> Meta Developers</a> → Your App → WhatsApp → API Setup → WhatsApp Business Account ID.
+              </p>
             </div>
 
             <div className="pt-4 border-t border-slate-100 flex items-center justify-between">

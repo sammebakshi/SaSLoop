@@ -1,0 +1,1 @@
+I am going to search the decompiled Java file for occurrences of `MenuSubTab` to locate its definition and check how JADX decompiled it.

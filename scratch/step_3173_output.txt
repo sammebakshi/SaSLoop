@@ -1,0 +1,50 @@
+Created At: 2026-06-09T13:57:34Z
+Completed At: 2026-06-09T13:57:34Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 4606
+Total Bytes: 290638
+Showing lines 1401 to 1700
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1401:                                                                 }
+1402:                                                             }
+1403:                                                         },
+1404:                                                         onClick = {
+1405:                                                             val fullPhone = customer.number ?: ""
+1406:                                                             val parsed = parsePhoneNumber(fullPhone)
+1407:                                                             selectedCountryCode = parsed.first
+1408:                                                             selectedCountryFlag = parsed.second
+1409:                                                             
+1410:                                                             val country = countryCodes.find { it.code == parsed.first }
+1411:                                                             selectedDialCode = country?.dialCode ?: "+91"
+1412:                                                             customerPhone = parsed.third
+1413:                                                             customerName = customer.name ?: ""
+1414:                                                             customerAddress = customer.address ?: ""
+1415:                                                             billingViewModel.clearSearchResults()
+1416:                                                         }
+1417:                                                  
+<truncated 19868 bytes>
+tWeight = FontWeight.ExtraBold,
+1678:                                             fontSize = 15.sp,
+1679:                                             textAlign = TextAlign.End,
+1680:                                             modifier = Modifier.weight(1f)
+1681:                                         )
+1682:                                     }
+1683: 
+1684:                                     // Grey Table Headers: Item Name, Qty, Amount
+1685:                                     Row(
+1686:                                         modifier = Modifier
+1687:                                             .fillMaxWidth()
+1688:                                             .background(InputDark)
+1689:                                             .padding(horizontal = 16.dp, vertical = 8.dp),
+1690:                                         horizontalArrangement = Arrangement.SpaceBetween,
+1691:                                         verticalAlignment = Alignment.CenterVertically
+1692:                                     ) {
+1693:                                         Text("Item Name", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+1694:                                         Text("Qty", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(60.dp), textAlign = TextAlign.Center)
+1695:                                         Text("Amount", color = TextSecondary, fontSize = 11.sp, fontWeight = FontWeight.Bold, modifier = Modifier.width(80.dp), textAlign = TextAlign.End)
+1696:                                     }
+1697: 
+1698:                                     // Billing Items List (occupies remaining height)
+1699:                                     Box(
+1700:                                         modifier = Modifier
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

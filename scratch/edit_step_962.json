@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set shouldPrint = true for KOT Print & Save button in BillingScreen.kt\"",
+  "EndLine": "1553",
+  "Instruction": "\"Change shouldPrint = false to shouldPrint = true on line 1546.\"",
+  "ReplacementContent": "\"                                                      kotNote = kotNote,\\n                                                      waiterName = selectedWaiter,\\n                                                      shouldPrint = true\\n                                                  ) { success ->\"",
+  "StartLine": "1543",
+  "TargetContent": "\"                                                      kotNote = kotNote,\\n                                                      waiterName = selectedWaiter,\\n                                                      shouldPrint = false\\n                                                  ) { success ->\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\sasloop-android\\\\app\\\\src\\\\main\\\\java\\\\com\\\\example\\\\sasloopmanager\\\\ui\\\\BillingScreen.kt\"",
+  "toolAction": "\"Enabling print on KOT print button\"",
+  "toolSummary": "\"Modify BillingScreen.kt\""
+}

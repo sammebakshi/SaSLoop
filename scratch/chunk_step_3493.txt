@@ -1,0 +1,49 @@
+Created At: 2026-06-09T14:16:40Z
+Completed At: 2026-06-09T14:16:40Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 5164
+Total Bytes: 326452
+Showing lines 901 to 1000
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+901:                                                     val resolvedItem = item.copy(price = resolvedPrice)
+902: 
+903:                                                     MenuItemCard(
+904:                                                         item = resolvedItem,
+905:                                                         qtyInCart = qtyInCart,
+906:                                                         punchedQty = punchedQty,
+907:                                                         onAdd = {
+908:                                                             val hasOpts = optionGroups.any { og -> og.itemId == item.id }
+909:                                                             if (hasOpts) {
+910:                                                                 selectedItemForModifiers = resolvedItem
+911:                                                             } else {
+912:                                                                 billingViewModel.addToCart(resolvedItem)
+913:                                                             }
+914:                                                         },
+915:                                                         onRemove = { billingViewModel.removeFromCart(resolvedItem) },
+916:                                                         isCompact = posSettings.showCompactItemView,
+917:                                                         currency = posSettings.currency,
+918:                                                         
+<truncated 4760 bytes>
+L option
+980:                                                 DropdownMenuItem(
+981:                                                     text = {
+982:                                                         Row(verticalAlignment = Alignment.CenterVertically) {
+983:                                                             Icon(
+984:                                                                 imageVector = Icons.Default.Apps,
+985:                                                                 contentDescription = null,
+986:                                                                 tint = if (selectedCategory == "ALL") SaSGreen else TextSecondary,
+987:                                                                 modifier = Modifier.size(18.dp)
+988:                                                             )
+989:                                                             Spacer(Modifier.width(12.dp))
+990:                                                             Text(
+991:                                                                 "ALL",
+992:                                                                 fontWeight = FontWeight.Bold,
+993:                                                                 fontSize = 13.sp,
+994:                                                                 color = if (selectedCategory == "ALL") SaSGreen else TextPrimary
+995:                                                             )
+996:                                                         }
+997:                                                     },
+998:                                                     onClick = {
+999:                                                         billingViewModel.setCategory("ALL")
+1000:                                                         showCategoryMenu = false
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

@@ -1,0 +1,20 @@
+Created At: 2026-06-09T14:16:59Z
+Completed At: 2026-06-09T14:16:59Z
+File Path: `file:///c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt`
+Total Lines: 5164
+Total Bytes: 326452
+Showing lines 1810 to 1821
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1810:                                          ) {
+1811:                                              if (isLoading) {
+1812:                                                  CircularProgressIndicator(color = Color.White, modifier = Modifier.size(14.dp), strokeWidth = 2.dp)
+1813:                                              } else {
+1814:                                                  Text("Print & Save", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 12.sp)
+1815:                                              }
+1816:                                          }
+1817:                                      }
+1818:                                 }
+1819:                             }
+1820:                             "BILLING" -> {
+1821:                                 Column(
+The above content does NOT show the entire file contents. If you need to view any lines of the file which were not shown to complete your task, call this tool again to view those lines.

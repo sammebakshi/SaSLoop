@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Combine old KOT items and cart items unconditionally for all flows.\"",
+  "EndLine": "194",
+  "Instruction": "\"Remove if (activeFlow == \\\"DINEIN\\\") check and combine oldKotItems with cart unconditionally.\"",
+  "ReplacementContent": "\"    // Combine old KOT items + new cart items for billing\\n    val billingItems = remember(oldKotItems, cart) {\\n        val combined = oldKotItems.toMutableMap()\\n        cart.forEach { (item, qty) ->\\n            combined[item] = (combined[item] ?: 0) + qty\\n        }\\n        combined.toMap()\\n    }\"",
+  "StartLine": "182",
+  "TargetContent": "\"    // Combine old KOT items + new cart items for billing\\n    val billingItems = remember(oldKotItems, cart, activeFlow) {\\n        if (activeFlow == \\\"DINEIN\\\") {\\n            val combined = oldKotItems.toMutableMap()\\n            cart.forEach { (item, qty) ->\\n                combined[item] = (combined[item] ?: 0) + qty\\n            }\\n            combined.toMap()\\n        } else {\\n            cart\\n        }\\n    }\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/sasloop-android/app/src/main/java/com/example/sasloopmanager/ui/BillingScreen.kt\"",
+  "toolAction": "\"Editing BillingScreen.kt\"",
+  "toolSummary": "\"Edit billing items combining\""
+}

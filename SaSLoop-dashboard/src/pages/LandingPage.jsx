@@ -141,7 +141,7 @@ const ChatAnimationBackground = () => {
                   <div className="text-sm text-slate-200">{b.convo.c}</div>
                 </div>
                 <div className="absolute top-[80%] left-4 max-w-[300px] w-[300px] p-4 rounded-2xl rounded-tl-sm bg-emerald-900/40 border border-emerald-500/30 backdrop-blur-md shadow-2xl dyn-bubble-c2 opacity-0" style={{ animationDelay: '1.2s' }}>
-                  <div className="flex items-center gap-2 text-[10px] text-emerald-400 mb-1 font-semibold uppercase tracking-wider">SaS Loop AI</div>
+                  <div className="flex items-center gap-2 text-[10px] text-emerald-400 mb-1 font-semibold uppercase tracking-wider">SaSLoop ERP | AI</div>
                   <div className="text-sm text-slate-200">{b.convo.r}</div>
                 </div>
               </div>
@@ -206,7 +206,7 @@ function LandingPage() {
       <nav className="fixed top-0 inset-x-0 h-24 bg-white/80 backdrop-blur-xl z-50 border-b border-slate-100 flex items-center justify-between px-10 md:px-20">
          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
             <SaSLoopLogo />
-            <span className="text-2xl font-black tracking-tighter uppercase italic">SaSLoop</span>
+            <span className="text-2xl font-black tracking-tighter uppercase italic">SaSLoop <span className="text-emerald-500">ERP | AI</span></span>
          </div>
          <div className="hidden md:flex items-center gap-12 text-sm font-black uppercase tracking-widest text-slate-400">
             <a href="#features" className="hover:text-indigo-600 transition-colors">Features</a>
@@ -350,7 +350,7 @@ function LandingPage() {
       <footer className="py-20 px-10 md:px-20 border-t border-slate-100 text-center">
          <div className="flex items-center justify-center gap-2 mb-8 grayscale opacity-50">
             <SaSLoopLogo />
-            <span className="text-lg font-black tracking-tighter uppercase italic text-slate-900">SaSLoop Global</span>
+            <span className="text-lg font-black tracking-tighter uppercase italic text-slate-900">SaSLoop ERP | AI</span>
          </div>
          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">© 2026 SaSLoop Cloud Technologies. All Rights Reserved.</p>
       </footer>
