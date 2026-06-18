@@ -112,7 +112,7 @@ function OnlineOrder() {
     return { cgst, sgst, totalTax: cgst + sgst, isIncluded: isInc };
   }, [cart, data, biz]);
 
-  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem / (biz?.points_to_amount_ratio || 10)) + (fulfillmentMode === 'DELIVERY' ? (deliveryRadiusStatus.charge || 0) : 0));
+  const finalTotal = Math.max(0, (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) - (pointsToRedeem * (parseFloat(biz?.points_to_amount_ratio) || 0.1)) + (fulfillmentMode === 'DELIVERY' ? (deliveryRadiusStatus.charge || 0) : 0));
   const filteredItems = useMemo(() => (data?.items || []).filter(i => i.product_name.toLowerCase().includes(search.toLowerCase())), [data, search]);
   const groupedItems = useMemo(() => filteredItems.reduce((acc, current) => { const cat = current.category || "General"; if (!acc[cat]) acc[cat] = []; acc[cat].push(current); return acc; }, {}), [filteredItems]);
   const categories = Object.keys(groupedItems);
@@ -778,7 +778,7 @@ function OnlineOrder() {
                         {pointsToRedeem > 0 && (
                            <div className="flex justify-between text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-50 px-4 py-2 rounded-lg">
                               <span>Points Applied ({pointsToRedeem})</span>
-                              <span>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</span>
+                              <span>-{symbol}{(pointsToRedeem * (parseFloat(biz?.points_to_amount_ratio) || 0.1)).toFixed(0)}</span>
                            </div>
                         )}
 
@@ -942,7 +942,7 @@ function OnlineOrder() {
                            {pointsToRedeem > 0 && (
                               <div className="w-full py-3 px-4 rounded-xl bg-white/10 border border-white/5 flex justify-between items-center">
                                  <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Points Applied: {pointsToRedeem}</p>
-                                 <p className="text-sm font-black text-white">-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</p>
+                                 <p className="text-sm font-black text-white">-{symbol}{(pointsToRedeem * (parseFloat(biz?.points_to_amount_ratio) || 0.1)).toFixed(0)}</p>
                               </div>
                            )}
                         </div>

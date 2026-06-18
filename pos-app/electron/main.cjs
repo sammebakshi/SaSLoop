@@ -71,7 +71,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "SaSLoop POS",
+    title: "SaSLoop Master POS",
     icon: path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png'),
     frame: false, // Frameless window to allow custom HTML top bar titlebar
     webPreferences: {

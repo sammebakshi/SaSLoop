@@ -149,4 +149,42 @@ h1, h2, h3, h4, h5, h6 {
   background-color: #ffffff !important;
 }
 
+/* Custom Text Outlines/Borders for High Contrast Over Honeycomb Background */
+.text-outline-white {
+  text-shadow: 
+    -2px -2px 0 #ffffff,
+     2px -2px 0 #ffffff,
+    -2px  2px 0 #ffffff,
+     2px  2px 0 #ffffff,
+    -1px -1px 0 #ffffff,
+     1px -1px 0 #ffffff,
+    -1px  1px 0 #ffffff,
+     1px  1px 0 #ffffff,
+     0px  3px 6px rgba(0, 0, 0, 0.15) !important;
+}
+
+.text-outline-white-sm {
+  text-shadow: 
+    -1.5px -1.5px 0 #ffffff,
+     1.5px -1.5px 0 #ffffff,
+    -1.5px  1.5px 0 #ffffff,
+     1.5px  1.5px 0 #ffffff,
+    -1px -1px 0 #ffffff,
+     1px -1px 0 #ffffff,
+    -1px  1px 0 #ffffff,
+     1px  1px 0 #ffffff,
+     0px  2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Premium Login Card Shadow with subtle brand glow */
+.login-card-shadow {
+  box-shadow: 0 25px 60px -15px rgba(15, 23, 42, 0.25), 0 0 40px rgba(24, 186, 96, 0.05) !important;
+  transition: all 0.3s ease-in-out !important;
+}
+
+.login-card-shadow:hover {
+  box-shadow: 0 30px 70px -10px rgba(24, 186, 96, 0.35), 0 0 50px rgba(24, 186, 96, 0.15) !important;
+  transform: translateY(-2px) !important;
+}
+
 

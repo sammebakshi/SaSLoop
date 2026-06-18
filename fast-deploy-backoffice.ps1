@@ -38,6 +38,7 @@ pm2 start ecosystem.config.js
 pm2 save
 "@
 
-& $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$($USER)@$($IP)" $REMOTE_CMD
+$REMOTE_CMD_LF = $REMOTE_CMD -replace "`r`n", "`n"
+& $SSH_EXE -i $KEY -o StrictHostKeyChecking=no "$($USER)@$($IP)" $REMOTE_CMD_LF
 
 Write-Host "✅ DEPLOYMENT COMPLETE!" -ForegroundColor Green

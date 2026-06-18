@@ -1,34 +1,39 @@
 const fs = require('fs');
 const path = require('path');
 
-const targetFileArg = process.argv[2];
-const query = process.argv[3];
+const filePath = path.join(__dirname, '../pos-app/src/App.jsx');
+let content = '';
 
-if (!targetFileArg || !query) {
-    console.error('Usage: node search_app.js <relative_file_path> <query_string>');
-    process.exit(1);
+try {
+  // Try reading as UTF-8
+  content = fs.readFileSync(filePath, 'utf8');
+} catch (err) {
+  console.error('Error reading file:', err);
+  process.exit(1);
 }
 
-const filePath = path.resolve(__dirname, '..', targetFileArg);
-if (!fs.existsSync(filePath)) {
-    console.error(`File not found: ${filePath}`);
-    process.exit(1);
+// If it starts with BOM for UTF-16LE or contains null bytes, try decoding as UTF-16LE
+if (content.includes('\u0000')) {
+  console.log('Detected null bytes, re-reading as UTF-16LE...');
+  content = fs.readFileSync(filePath, 'utf16le');
 }
 
-const content = fs.readFileSync(filePath, 'utf8');
 const lines = content.split(/\r?\n/);
+console.log(`Loaded ${lines.length} lines.`);
 
-console.log(`Searching for "${query}" in ${filePath}...`);
-
-let matches = 0;
-for (let i = 0; i < lines.length; i++) {
-    if (lines[i].toLowerCase().includes(query.toLowerCase())) {
-        console.log(`${i + 1}: ${lines[i].trim().substring(0, 150)}`);
-        matches++;
-        if (matches >= 100) {
-            console.log('Too many matches, truncating...');
-            break;
-        }
+const keywords = ['coupon', 'loyalty', 'points', 'redeem', 'discount', 'handlePrint', 'outletId'];
+keywords.forEach(keyword => {
+  console.log(`\n=== Matches for "${keyword}" ===`);
+  let matchCount = 0;
+  lines.forEach((line, index) => {
+    if (line.toLowerCase().includes(keyword.toLowerCase())) {
+      matchCount++;
+      if (matchCount <= 40) {
+        console.log(`${index + 1}: ${line.trim().substring(0, 120)}`);
+      }
     }
-}
-console.log(`Found ${matches} matches.`);
+  });
+  if (matchCount > 40) {
+    console.log(`... and ${matchCount - 40} more matches`);
+  }
+});

@@ -2870,18 +2870,71 @@ router.get("/analytics/crm-settings", authMiddleware, async (req, res) => {
 
 router.get("/analytics/coupon-codes", authMiddleware, async (req, res) => {
   const { outlet_id } = req.query;
+  const ownerId = req.user.bizId || req.user.id;
   try {
-    const query = `
-      SELECT 
-        1 as sr_no, 'WELCOME50' as coupon_code, 'ALL' as order_type,
-        50.00 as amount, 'Fixed' as fixed_perct, 500.00 as applicable_order_amt,
-        'ALL' as customer_type, 'ACTIVE' as status, 'ADMIN' as created_by,
-        now() as created_at
-      LIMIT 5
+    let query = `
+      SELECT id as sr_no, id, coupon_code, order_type, amount, fixed_perct, 
+             applicable_order_amt, customer_type, status, created_by, created_at
+      FROM coupon_codes 
+      WHERE user_id = $1
     `;
-    const result = await pool.query(query);
+    const params = [ownerId];
+    if (outlet_id && outlet_id !== 'all' && outlet_id !== 'undefined' && outlet_id !== 'null') {
+      query += ` AND (outlet_id = $2 OR outlet_id IS NULL)`;
+      params.push(parseInt(outlet_id));
+    }
+    query += ` ORDER BY created_at DESC`;
+    const result = await pool.query(query, params);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    console.error("GET coupon-codes error:", err);
+    res.status(500).json({ error: err.message }); 
+  }
+});
+
+router.post("/analytics/coupon-codes", authMiddleware, async (req, res) => {
+  const ownerId = req.user.bizId || req.user.id;
+  const { 
+    coupon_code, order_type, amount, fixed_perct, 
+    applicable_order_amt, customer_type, status, outlet_id 
+  } = req.body;
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO coupon_codes 
+       (user_id, outlet_id, coupon_code, order_type, amount, fixed_perct, 
+        applicable_order_amt, customer_type, status, created_by, created_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW()) RETURNING *`,
+      [
+        ownerId,
+        (outlet_id && outlet_id !== 'All' && outlet_id !== 'all' && outlet_id !== '') ? parseInt(outlet_id) : null,
+        coupon_code.toUpperCase().trim(),
+        order_type || 'ALL',
+        parseFloat(amount) || 0,
+        fixed_perct || 'Fixed',
+        parseFloat(applicable_order_amt) || 0,
+        customer_type || 'ALL',
+        status || 'ACTIVE',
+        req.user.username || 'ADMIN'
+      ]
+    );
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("POST coupon-codes error:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.delete("/analytics/coupon-codes/:id", authMiddleware, async (req, res) => {
+  const ownerId = req.user.bizId || req.user.id;
+  const { id } = req.params;
+  try {
+    await pool.query("DELETE FROM coupon_codes WHERE id = $1 AND user_id = $2", [id, ownerId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE coupon-codes error:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 router.get("/analytics/coupon-usage", authMiddleware, async (req, res) => {

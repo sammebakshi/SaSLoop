@@ -1,6 +1,6 @@
 {
   "name": "pos-app",
-  "productName": "sasloop-pos-v1.0.1",
+  "productName": "sasloop-master-pos-v1.0.1",
   "private": true,
   "version": "1.0.1",
   "type": "module",
@@ -25,7 +25,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SaSLoop POS",
+      "shortcutName": "SaSLoop Master POS",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     }

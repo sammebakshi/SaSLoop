@@ -139,7 +139,7 @@ function CustomerMenu() {
     0, 
     (taxData.isIncluded ? subtotal : (subtotal + taxData.totalTax)) 
       - promoDiscountAmount 
-      - (pointsToRedeem / (biz?.points_to_amount_ratio || 10))
+      - (pointsToRedeem * (parseFloat(biz?.points_to_amount_ratio) || 0.1))
   );
   
   const filteredItems = useMemo(() => {
@@ -1506,7 +1506,7 @@ function CustomerMenu() {
                     {pointsToRedeem > 0 && (
                       <div className="w-full py-2.5 px-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-emerald-400 font-mono">
                         <p>Applied Points: {pointsToRedeem}</p>
-                        <p>-{symbol}{(pointsToRedeem / (biz?.points_to_amount_ratio || 10)).toFixed(0)}</p>
+                        <p>-{symbol}{(pointsToRedeem * (parseFloat(biz?.points_to_amount_ratio) || 0.1)).toFixed(0)}</p>
                       </div>
                     )}
 

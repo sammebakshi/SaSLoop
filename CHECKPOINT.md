@@ -14,16 +14,15 @@
 - App is **built and deployed** to https://backend.sasloop.in
 - PM2 processes: `server` + `start-tunnel` are online
 - Version: `1.0.1`
-- Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`)
+- Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`) to keep the main project history clean.
 
 ## Recently Completed
-- KOT duplicate item merging (`mergeBillItems` helper across all 5 save paths)
-- Sub-tabs hidden in Quick Bill mode
-- Toolbar cleanup (Gift → points history, Coupon SVG, Tables button)
-- Version migration (19.02 → 1.0.1)
-- Receipt: version/greeting swap + loyalty points section
-- Fixed `handleOpenCouponModal` crash
-- Git backup configured and pushed to GitHub
+- Designed full pictured slideshow with zoom/crossfade transitions on the login page (using 5 high-fidelity mockups: Billing, KDS, Floor Plans, Receipts, and Reports)
+- Increased login page custom titlebar height to h-11 and made window control buttons span the full height with larger icons
+- Added dashboard support hotline numbers absolutely centered on the login page titlebar
+- Replaced login title text with a styled "SaSLoop POS" brand title
+- Removed legacy animated background lines and FeatureShowcase layout from login page
+- Electron build repackaged successfully with updated windows desktop installer (sasloop-pos-v1.0.1 Setup 1.0.1.exe)
 
 ## In Progress
 - Nothing currently in progress

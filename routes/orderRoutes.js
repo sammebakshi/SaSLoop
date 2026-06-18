@@ -7,19 +7,49 @@ const whatsappManager = require("../whatsappManager");
 const { triggerWebhook } = require("../utils/webhookUtils");
 const { Tag, tagsToBase64, ZATCA_TAGS } = require("../utils/zatcaUtils");
 
+// Helper function to extract all possible variations of a phone number
+function getPhoneVariations(phone) {
+  if (!phone) return [];
+  const cleanPhone = phone.replace(/\D/g, "");
+  const tenDigits = cleanPhone.slice(-10);
+  return [
+    phone,
+    cleanPhone,
+    `+${cleanPhone}`,
+    tenDigits,
+    `+${tenDigits}`,
+    `+91${tenDigits}`
+  ].filter((v, i, self) => v && self.indexOf(v) === i);
+}
+
+// Helper function to find standard customer_number in database
+async function findExistingCustomerNumber(userId, phone) {
+  if (!phone) return phone;
+  const phones = getPhoneVariations(phone);
+  const res = await pool.query(
+    "SELECT customer_number FROM customer_loyalty WHERE user_id = $1 AND customer_number = ANY($2) LIMIT 1",
+    [userId, phones]
+  );
+  if (res.rows.length > 0) {
+    return res.rows[0].customer_number;
+  }
+  return phone;
+}
+
 async function deductRedeemedPoints(userId, customerNumber, pointsRedeemed, orderRef) {
   if (!customerNumber || !pointsRedeemed || pointsRedeemed <= 0) return;
   try {
+    const targetPhone = await findExistingCustomerNumber(userId, customerNumber);
     await pool.query(
       "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
-      [pointsRedeemed, userId, customerNumber]
+      [pointsRedeemed, userId, targetPhone]
     );
     await pool.query(
       `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
        VALUES ($1, $2, 'POINTS_REDEEMED', 0.00, $3, $4, NOW())`,
-      [userId, customerNumber, -pointsRedeemed, `Points redeemed for Order: ${orderRef}`]
+      [userId, targetPhone, -pointsRedeemed, `Points redeemed for Order: ${orderRef}`]
     );
-    console.log(`🎁 Deducted ${pointsRedeemed} points from ${customerNumber} for Biz ${userId} on Order ${orderRef}`);
+    console.log(`🎁 Deducted ${pointsRedeemed} points from ${targetPhone} for Biz ${userId} on Order ${orderRef}`);
   } catch (err) {
     console.error("Failed to deduct redeemed points:", err);
   }
@@ -55,6 +85,7 @@ async function awardLoyaltyPoints(order, userId) {
     }
     
     if (dbPhone && bizData && (bizData.loyalty_enabled ?? true) && channelAllowed) {
+      const targetPhone = await findExistingCustomerNumber(userId, dbPhone);
       let earned = 0;
       if (bizData.loyalty_bill_amount_threshold && bizData.loyalty_points_earned) {
         const threshold = parseFloat(bizData.loyalty_bill_amount_threshold);
@@ -77,7 +108,7 @@ async function awardLoyaltyPoints(order, userId) {
             total_spent = customer_loyalty.total_spent + EXCLUDED.total_spent,
             points = COALESCE(customer_loyalty.points, 0) + EXCLUDED.points,
             last_visit = NOW() RETURNING points`,
-        [userId, dbPhone, earned, parseFloat(order.total_price) || 0]
+        [userId, targetPhone, earned, parseFloat(order.total_price) || 0]
       );
       
       if (earned > 0) {
@@ -88,7 +119,7 @@ async function awardLoyaltyPoints(order, userId) {
         await pool.query(
           `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
            VALUES ($1, $2, 'POINTS_EARNED', 0.00, $3, $4, NOW())`,
-          [userId, dbPhone, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference}`]
+          [userId, targetPhone, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference}`]
         );
       }
     }
@@ -198,31 +229,32 @@ router.post("/", authMiddleware, async (req, res) => {
           const isCreditOrSplit = (upperMethod === 'CREDIT' || (upperMethod === 'SPLIT' && finalCreditAmount > 0));
           if (isCreditOrSplit && cleanCustomerNumber) {
             try {
+              const targetCustomerNumber = await findExistingCustomerNumber(userId, cleanCustomerNumber);
               const loyaltyRes = await pool.query(
                 "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-                [userId, cleanCustomerNumber]
+                [userId, targetCustomerNumber]
               );
               if (loyaltyRes.rows.length === 0) {
-                const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, cleanCustomerNumber]);
+                const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetCustomerNumber]);
                 const custName = custRes.rows[0]?.name || customer_name || "Customer";
                 await pool.query(
                   `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
                    VALUES ($1, $2, $3, 0, $4, 0.00, NOW())`,
-                  [userId, cleanCustomerNumber, custName, -finalCreditAmount]
+                  [userId, targetCustomerNumber, custName, -finalCreditAmount]
                 );
               } else {
                 await pool.query(
                   `UPDATE customer_loyalty 
                    SET balance = COALESCE(balance, 0) - $1, last_visit = NOW() 
                    WHERE user_id = $2 AND customer_number = $3`,
-                  [finalCreditAmount, userId, cleanCustomerNumber]
+                  [finalCreditAmount, userId, targetCustomerNumber]
                 );
               }
 
               await pool.query(
                 `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
                  VALUES ($1, $2, 'CREDIT_PURCHASE', $3, 0, $4, NOW())`,
-                [userId, cleanCustomerNumber, -finalCreditAmount, `Credit purchase for Order Bill: ${bill_no || orderRef}`]
+                [userId, targetCustomerNumber, -finalCreditAmount, `Credit purchase for Order Bill: ${bill_no || orderRef}`]
               );
             } catch (balErr) {
               console.error("Failed to deduct customer balance for credit purchase:", balErr);
@@ -233,31 +265,32 @@ router.post("/", authMiddleware, async (req, res) => {
           const extraPaidAmount = Math.max(0, finalPaidAmount + finalCreditAmount - total_price);
           if (extraPaidAmount > 0 && cleanCustomerNumber) {
             try {
+              const targetCustomerNumber = await findExistingCustomerNumber(userId, cleanCustomerNumber);
               const loyaltyRes = await pool.query(
                 "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-                [userId, cleanCustomerNumber]
+                [userId, targetCustomerNumber]
               );
               if (loyaltyRes.rows.length === 0) {
-                const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, cleanCustomerNumber]);
+                const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetCustomerNumber]);
                 const custName = custRes.rows[0]?.name || customer_name || "Customer";
                 await pool.query(
                   `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
                    VALUES ($1, $2, $3, 0, $4, 0.00, NOW())`,
-                  [userId, cleanCustomerNumber, custName, extraPaidAmount]
+                  [userId, targetCustomerNumber, custName, extraPaidAmount]
                 );
               } else {
                 await pool.query(
                   `UPDATE customer_loyalty 
                    SET balance = COALESCE(balance, 0) + $1, last_visit = NOW() 
                    WHERE user_id = $2 AND customer_number = $3`,
-                  [extraPaidAmount, userId, cleanCustomerNumber]
+                  [extraPaidAmount, userId, targetCustomerNumber]
                 );
               }
 
               await pool.query(
                 `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
                  VALUES ($1, $2, 'BILL_PAYMENT', $3, 0, $4, NOW())`,
-                [userId, cleanCustomerNumber, extraPaidAmount, `Overpayment advance/payoff for Order Bill: ${bill_no || orderRef}`]
+                [userId, targetCustomerNumber, extraPaidAmount, `Overpayment advance/payoff for Order Bill: ${bill_no || orderRef}`]
               );
             } catch (balErr) {
               console.error("Failed to add customer balance for overpayment:", balErr);
@@ -362,8 +395,8 @@ router.post("/", authMiddleware, async (req, res) => {
 
     const newOrder = result.rows[0];
 
-    // Deduct redeemed points from loyalty balance if any points were redeemed
-    if ((parseInt(points_redeemed) || 0) > 0) {
+    // Deduct redeemed points from loyalty balance ONLY if the order is completed immediately (settled)
+    if (newOrder.status === 'COMPLETED' && (parseInt(points_redeemed) || 0) > 0) {
       await deductRedeemedPoints(userId, cleanCustomerNumber, parseInt(points_redeemed), newOrder.bill_no || newOrder.order_reference || orderRef);
     }
 
@@ -376,31 +409,32 @@ router.post("/", authMiddleware, async (req, res) => {
     const isCreditOrSplit = (upperMethod === 'CREDIT' || (upperMethod === 'SPLIT' && finalCreditAmount > 0));
     if (isCreditOrSplit && cleanCustomerNumber) {
       try {
+        const targetCustomerNumber = await findExistingCustomerNumber(userId, cleanCustomerNumber);
         const loyaltyRes = await pool.query(
           "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-          [userId, cleanCustomerNumber]
+          [userId, targetCustomerNumber]
         );
         if (loyaltyRes.rows.length === 0) {
-          const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, cleanCustomerNumber]);
+          const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetCustomerNumber]);
           const custName = custRes.rows[0]?.name || customer_name || "Customer";
           await pool.query(
             `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
              VALUES ($1, $2, $3, 0, $4, 0.00, NOW())`,
-            [userId, cleanCustomerNumber, custName, -finalCreditAmount]
+            [userId, targetCustomerNumber, custName, -finalCreditAmount]
           );
         } else {
           await pool.query(
             `UPDATE customer_loyalty 
              SET balance = COALESCE(balance, 0) - $1, last_visit = NOW() 
              WHERE user_id = $2 AND customer_number = $3`,
-            [finalCreditAmount, userId, cleanCustomerNumber]
+            [finalCreditAmount, userId, targetCustomerNumber]
           );
         }
 
         await pool.query(
           `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
            VALUES ($1, $2, 'CREDIT_PURCHASE', $3, 0, $4, NOW())`,
-          [userId, cleanCustomerNumber, -finalCreditAmount, `Credit purchase for Order Bill: ${bill_no || orderRef}`]
+          [userId, targetCustomerNumber, -finalCreditAmount, `Credit purchase for Order Bill: ${bill_no || orderRef}`]
         );
       } catch (balErr) {
         console.error("Failed to deduct customer balance for credit purchase:", balErr);
@@ -411,31 +445,32 @@ router.post("/", authMiddleware, async (req, res) => {
     const extraPaidAmount = Math.max(0, finalPaidAmount + finalCreditAmount - total_price);
     if (extraPaidAmount > 0 && cleanCustomerNumber) {
       try {
+        const targetCustomerNumber = await findExistingCustomerNumber(userId, cleanCustomerNumber);
         const loyaltyRes = await pool.query(
           "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-          [userId, cleanCustomerNumber]
+          [userId, targetCustomerNumber]
         );
         if (loyaltyRes.rows.length === 0) {
-          const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, cleanCustomerNumber]);
+          const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetCustomerNumber]);
           const custName = custRes.rows[0]?.name || customer_name || "Customer";
           await pool.query(
             `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
              VALUES ($1, $2, $3, 0, $4, 0.00, NOW())`,
-            [userId, cleanCustomerNumber, custName, extraPaidAmount]
+            [userId, targetCustomerNumber, custName, extraPaidAmount]
           );
         } else {
           await pool.query(
             `UPDATE customer_loyalty 
              SET balance = COALESCE(balance, 0) + $1, last_visit = NOW() 
              WHERE user_id = $2 AND customer_number = $3`,
-            [extraPaidAmount, userId, cleanCustomerNumber]
+            [extraPaidAmount, userId, targetCustomerNumber]
           );
         }
 
         await pool.query(
           `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
            VALUES ($1, $2, 'BILL_PAYMENT', $3, 0, $4, NOW())`,
-          [userId, cleanCustomerNumber, extraPaidAmount, `Overpayment advance/payoff for Order Bill: ${bill_no || orderRef}`]
+          [userId, targetCustomerNumber, extraPaidAmount, `Overpayment advance/payoff for Order Bill: ${bill_no || orderRef}`]
         );
       } catch (balErr) {
         console.error("Failed to add customer balance for overpayment:", balErr);
@@ -588,24 +623,53 @@ router.put("/:id", authMiddleware, async (req, res) => {
 
     const updatedOrder = result.rows[0];
 
-    // Adjust loyalty points if the redeemed points changed during order update
+    // Adjust loyalty points based on order status and redeemed points transition
+    const oldStatus = checkRes.rows[0].status;
+    const newStatus = updatedOrder.status;
     const oldRedeemedPoints = parseInt(checkRes.rows[0].redeemed_points) || 0;
     const newRedeemedPoints = parseInt(points_redeemed) || 0;
-    const pointsDiff = newRedeemedPoints - oldRedeemedPoints;
-    if (pointsDiff !== 0 && cleanCustomerNumber) {
-      try {
-        await pool.query(
-          "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
-          [pointsDiff, userId, cleanCustomerNumber]
-        );
-        await pool.query(
-          `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
-           VALUES ($1, $2, 'POINTS_REDEEMED', 0.00, $3, $4, NOW())`,
-          [userId, cleanCustomerNumber, -pointsDiff, `Adjustment for modified Order Ref: ${updatedOrder.bill_no || updatedOrder.order_reference || id}`]
-        );
-        console.log(`🎁 Adjusted loyalty points by ${-pointsDiff} for ${cleanCustomerNumber} due to Order update`);
-      } catch (adjustErr) {
-        console.error("Failed to adjust customer loyalty points on order update:", adjustErr);
+
+    if (oldStatus !== 'COMPLETED' && newStatus === 'COMPLETED') {
+      // Transition from pending/other to settled: deduct full redeemed points
+      if (newRedeemedPoints > 0 && cleanCustomerNumber) {
+        await deductRedeemedPoints(userId, cleanCustomerNumber, newRedeemedPoints, updatedOrder.bill_no || updatedOrder.order_reference || id);
+      }
+    } else if (oldStatus === 'COMPLETED' && newStatus === 'COMPLETED') {
+      // Adjusted order details while completed: adjust by difference
+      const pointsDiff = newRedeemedPoints - oldRedeemedPoints;
+      if (pointsDiff !== 0 && cleanCustomerNumber) {
+        try {
+          await pool.query(
+            "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
+            [pointsDiff, userId, cleanCustomerNumber]
+          );
+          await pool.query(
+            `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
+             VALUES ($1, $2, 'POINTS_REDEEMED', 0.00, $3, $4, NOW())`,
+            [userId, cleanCustomerNumber, -pointsDiff, `Adjustment for modified Order Ref: ${updatedOrder.bill_no || updatedOrder.order_reference || id}`]
+          );
+          console.log(`🎁 Adjusted loyalty points by ${-pointsDiff} for ${cleanCustomerNumber} due to Order update`);
+        } catch (adjustErr) {
+          console.error("Failed to adjust customer loyalty points on order update:", adjustErr);
+        }
+      }
+    } else if (oldStatus === 'COMPLETED' && newStatus !== 'COMPLETED') {
+      // Transition from completed back to pending or cancelled: refund full old redeemed points
+      if (oldRedeemedPoints > 0 && cleanCustomerNumber) {
+        try {
+          await pool.query(
+            "UPDATE customer_loyalty SET points = COALESCE(points, 0) + $1 WHERE user_id = $2 AND customer_number = $3",
+            [oldRedeemedPoints, userId, cleanCustomerNumber]
+          );
+          await pool.query(
+            `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
+             VALUES ($1, $2, 'POINTS_REFUND', 0.00, $3, $4, NOW())`,
+            [userId, cleanCustomerNumber, oldRedeemedPoints, `Points refund due to Order transition to ${newStatus}: ${updatedOrder.bill_no || updatedOrder.order_reference || id}`]
+          );
+          console.log(`🎁 Refunded ${oldRedeemedPoints} points to ${cleanCustomerNumber} due to status transition to ${newStatus}`);
+        } catch (refundErr) {
+          console.error("Failed to refund loyalty points on status transition:", refundErr);
+        }
       }
     }
 

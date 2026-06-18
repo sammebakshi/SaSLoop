@@ -822,6 +822,21 @@ async function initializeDatabase() {
                 outlet_id INTEGER REFERENCES app_users(id) ON DELETE CASCADE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 UNIQUE(user_id, outlet_id)
+            )`,
+            // 61. Create coupon_codes table
+            `CREATE TABLE IF NOT EXISTS coupon_codes (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+                outlet_id INTEGER REFERENCES app_users(id) ON DELETE SET NULL,
+                coupon_code VARCHAR(100) NOT NULL,
+                order_type VARCHAR(50) DEFAULT 'ALL',
+                amount NUMERIC(10,2) DEFAULT 0,
+                fixed_perct VARCHAR(50) DEFAULT 'Fixed',
+                applicable_order_amt NUMERIC(10,2) DEFAULT 0,
+                customer_type VARCHAR(50) DEFAULT 'ALL',
+                status VARCHAR(50) DEFAULT 'ACTIVE',
+                created_by VARCHAR(100) DEFAULT 'ADMIN',
+                created_at TIMESTAMP DEFAULT NOW()
             )`
         ];
 

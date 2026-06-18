@@ -1005,7 +1005,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const deliveryCharge = delivery.charge;
             const distance = delivery.distance;
 
-            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
             const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
             
             // Calculate bill but DO NOT finalize yet (Wait for confirmation)
@@ -1154,7 +1154,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             session.context.redeemedPoints = pointsToUse;
             await updateSession(userId, cleanNum, 'AWAITING_MODE', session.context);
 
-            const discount = pointsToUse / (biz.points_to_amount_ratio || 10);
+            const discount = pointsToUse * (parseFloat(biz.points_to_amount_ratio) || 0.1);
             await sendOfficialMessage(customerNumber, `✅ *Rewards Applied!* \n\nWe've applied a discount of *${symbol}${discount.toFixed(0)}* using ${pointsToUse} points. 🎊`, userId);
             
             // Show mode selection again
@@ -1167,7 +1167,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (lower === 'mode_pickup') {
-            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
             const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
 
             const initialStatus = 'AWAITING_PAYMENT'; // Assuming online for now or checking payment method if added to AI later
@@ -1255,7 +1255,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const pending = session.context.pendingOrder;
             if (!pending) return;
 
-            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints / (biz.points_to_amount_ratio || 10)) : 0;
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
             
             await pool.query(
                 "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",

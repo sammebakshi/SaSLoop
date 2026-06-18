@@ -3,6 +3,35 @@ const router = express.Router();
 const pool = require("../db");
 const authMiddleware = require("../middleware/authMiddleware");
 
+// Helper function to extract all possible variations of a phone number
+function getPhoneVariations(phone) {
+  if (!phone) return [];
+  const cleanPhone = phone.replace(/\D/g, "");
+  const tenDigits = cleanPhone.slice(-10);
+  return [
+    phone,
+    cleanPhone,
+    `+${cleanPhone}`,
+    tenDigits,
+    `+${tenDigits}`,
+    `+91${tenDigits}`
+  ].filter((v, i, self) => v && self.indexOf(v) === i);
+}
+
+// Helper function to find standard customer_number in database
+async function findExistingCustomerNumber(userId, phone) {
+  if (!phone) return phone;
+  const phones = getPhoneVariations(phone);
+  const res = await pool.query(
+    "SELECT customer_number FROM customer_loyalty WHERE user_id = $1 AND customer_number = ANY($2) LIMIT 1",
+    [userId, phones]
+  );
+  if (res.rows.length > 0) {
+    return res.rows[0].customer_number;
+  }
+  return phone;
+}
+
 // ✅ SEARCH CUSTOMERS LIVE
 router.get("/customers/search", authMiddleware, async (req, res) => {
   try {
@@ -165,15 +194,16 @@ router.delete("/customer/:phone", authMiddleware, async (req, res) => {
   try {
     const { phone } = req.params;
     const userId = parseInt(req.query.target_user_id || req.body?.target_user_id || req.user.bizId);
+    const phones = getPhoneVariations(phone);
     
     // Delete from all tables for a clean wipe
-    await pool.query("DELETE FROM marketing_contacts WHERE user_id = $1 AND phone_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM conversation_sessions WHERE user_id = $1 AND customer_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM customer_transactions WHERE user_id = $1 AND customer_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM customer_feedback WHERE user_id = $1 AND customer_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM chat_messages WHERE user_id = $1 AND customer_number = $2", [userId, phone]);
-    await pool.query("DELETE FROM customers WHERE user_id = $1 AND number = $2", [userId, phone]);
+    await pool.query("DELETE FROM marketing_contacts WHERE user_id = $1 AND phone_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM customer_loyalty WHERE user_id = $1 AND customer_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM conversation_sessions WHERE user_id = $1 AND customer_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM customer_transactions WHERE user_id = $1 AND customer_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM customer_feedback WHERE user_id = $1 AND customer_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM chat_messages WHERE user_id = $1 AND customer_number = ANY($2)", [userId, phones]);
+    await pool.query("DELETE FROM customers WHERE user_id = $1 AND number = ANY($2)", [userId, phones]);
     
     res.json({ success: true });
   } catch (err) {
@@ -256,21 +286,23 @@ router.post("/customers/adjust", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Reason for adjustment is required" });
     }
 
+    const targetPhone = await findExistingCustomerNumber(userId, phone);
+
     // Check if customer_loyalty record exists, create if not
     const loyaltyRes = await pool.query(
       "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-      [userId, phone]
+      [userId, targetPhone]
     );
 
     let loyalty;
     if (loyaltyRes.rows.length === 0) {
-      const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, phone]);
+      const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetPhone]);
       const custName = custRes.rows[0]?.name || "Customer";
       
       const insertLoyalty = await pool.query(
         `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
          VALUES ($1, $2, $3, 0, 0.00, 0.00, NOW()) RETURNING *`,
-        [userId, phone, custName]
+        [userId, targetPhone, custName]
       );
       loyalty = insertLoyalty.rows[0];
     } else {
@@ -301,14 +333,14 @@ router.post("/customers/adjust", authMiddleware, async (req, res) => {
       `UPDATE customer_loyalty 
        SET balance = $1, points = $2, last_visit = NOW() 
        WHERE user_id = $3 AND customer_number = $4 RETURNING *`,
-      [updatedBalance, updatedPoints, userId, phone]
+      [updatedBalance, updatedPoints, userId, targetPhone]
     );
 
     // Insert transaction record
     await pool.query(
       `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
        VALUES ($1, $2, $3, $4, $5, $6, NOW())`,
-      [userId, phone, type, changeAmount, changePoints, reason]
+      [userId, targetPhone, type, changeAmount, changePoints, reason]
     );
 
     res.json({
@@ -334,21 +366,23 @@ router.post("/customers/pay-due", authMiddleware, async (req, res) => {
       return res.status(400).json({ error: "Valid payment amount is required" });
     }
     
+    const targetPhone = await findExistingCustomerNumber(userId, phone);
+
     // Check if customer_loyalty record exists, create if not
     const loyaltyRes = await pool.query(
       "SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2",
-      [userId, phone]
+      [userId, targetPhone]
     );
 
     let loyalty;
     if (loyaltyRes.rows.length === 0) {
-      const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, phone]);
+      const custRes = await pool.query("SELECT name FROM customers WHERE user_id = $1 AND number = $2", [userId, targetPhone]);
       const custName = custRes.rows[0]?.name || "Customer";
       
       const insertLoyalty = await pool.query(
         `INSERT INTO customer_loyalty (user_id, customer_number, name, points, balance, total_spent, last_visit)
          VALUES ($1, $2, $3, 0, 0.00, 0.00, NOW()) RETURNING *`,
-        [userId, phone, custName]
+        [userId, targetPhone, custName]
       );
       loyalty = insertLoyalty.rows[0];
     } else {
@@ -362,7 +396,7 @@ router.post("/customers/pay-due", authMiddleware, async (req, res) => {
       `UPDATE customer_loyalty 
        SET balance = $1, last_visit = NOW() 
        WHERE user_id = $2 AND customer_number = $3 RETURNING *`,
-      [updatedBalance, userId, phone]
+      [updatedBalance, userId, targetPhone]
     );
 
     // Insert transaction record for the payment
@@ -370,7 +404,7 @@ router.post("/customers/pay-due", authMiddleware, async (req, res) => {
     await pool.query(
       `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
        VALUES ($1, $2, 'BILL_PAYMENT', $3, 0, $4, NOW())`,
-      [userId, phone, payAmt, finalReason]
+      [userId, targetPhone, payAmt, finalReason]
     );
 
     res.json({
@@ -387,24 +421,25 @@ router.get("/customers/:phone/history", authMiddleware, async (req, res) => {
   try {
     const userId = parseInt(req.query.target_user_id || req.body?.target_user_id || req.user.bizId);
     const { phone } = req.params;
+    const phones = getPhoneVariations(phone);
     
     // Fetch orders (purchases)
     const ordersRes = await pool.query(
       `SELECT id, bill_no, order_reference, total_price, payment_method, payment_status, status, items, created_at,
               discount_amount, tax_cgst, tax_sgst, tip_amount, delivery_charge, service_charge, paid_amount, credit_amount
        FROM orders 
-       WHERE user_id = $1 AND customer_number = $2 
+       WHERE user_id = $1 AND customer_number = ANY($2) 
        ORDER BY created_at DESC`,
-      [userId, phone]
+      [userId, phones]
     );
 
     // Fetch ledger transactions (adjustments, prepayments, points)
     const transactionsRes = await pool.query(
       `SELECT id, type, amount, points, reason, created_at 
        FROM customer_transactions 
-       WHERE user_id = $1 AND customer_number = $2 
+       WHERE user_id = $1 AND customer_number = ANY($2) 
        ORDER BY created_at DESC`,
-      [userId, phone]
+      [userId, phones]
     );
 
     res.json({
