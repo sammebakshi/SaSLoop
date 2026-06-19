@@ -4092,6 +4092,23 @@ const UniversalPOS = () => {
 
   const handleLogoutFlow = async (clearData) => {
     if (clearData) {
+      // Check for active carts or busy tables first
+      const hasActiveCarts = 
+        (dineInCart && dineInCart.length > 0) ||
+        (pickupCart && pickupCart.length > 0) ||
+        (quickCart && quickCart.length > 0) ||
+        (preOrderCart && preOrderCart.length > 0) ||
+        Object.values(tableCarts || {}).some(c => Array.isArray(c) && c.length > 0);
+
+      const hasBusyTables = Object.values(tableStatuses || {}).some(status => 
+        status === 'SAVED' || status === 'BILL_SAVED' || status === 'PRINTED'
+      );
+
+      if (hasActiveCarts || hasBusyTables) {
+        toast.error("Data can't be cleared: Tables are busy.");
+        return;
+      }
+
       // 1. Sync empty active state to the server database first so the backend drops the active state for this session
       try {
         if (posService && posService.saveActiveState) {
