@@ -6,9 +6,9 @@
 ---
 
 ## Last Updated
-- **Date**: 2026-06-17 22:25 IST
-- **Conversation**: `832fe37e-cc6a-4502-a268-fc8186b73341`
-- **Git Commit**: `83e6cc5` (pushed to GitHub)
+- **Date**: 2026-06-19 20:05 IST
+- **Conversation**: `f6290d96-6827-4397-8034-a378a3d29f80`
+- **Git Commit**: `62b1cdb` (pushed to GitHub)
 
 ## Current State
 - App is **built and deployed** to https://backend.sasloop.in
@@ -17,6 +17,7 @@
 - Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`) to keep the main project history clean.
 
 ## Recently Completed
+- Fixed POS local data clearing on logout (resolved key skipping due to index shifting by gathering all localStorage keys first, and added complete reset of in-memory lists/metadata states to prevent memory leakage between sessions).
 - Designed full pictured slideshow with zoom/crossfade transitions on the login page (using 5 high-fidelity mockups: Billing, KDS, Floor Plans, Receipts, and Reports)
 - Increased login page custom titlebar height to h-11 and made window control buttons span the full height with larger icons
 - Added dashboard support hotline numbers absolutely centered on the login page titlebar
