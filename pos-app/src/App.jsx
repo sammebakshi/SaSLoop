@@ -4090,6 +4090,124 @@ const UniversalPOS = () => {
     localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
   }, [posSettings]);
 
+  const handleLogoutFlow = (clearData) => {
+    if (clearData) {
+      // 1. Collect all keys to remove first to avoid index shifting
+      const keysToRemove = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('pos_')) {
+          if (
+            key === 'pos_device_id' ||
+            key === 'pos_theme' ||
+            key === 'pos_terminal_settings' ||
+            key.includes('_sound') ||
+            key.includes('_sound_name')
+          ) {
+            continue;
+          }
+          keysToRemove.push(key);
+        }
+      }
+      
+      // Also explicitly add all known keys to ensure they are cleared
+      const explicitKeys = [
+        'pos_token',
+        'pos_profile',
+        'pos_current_shift',
+        'pos_expenses',
+        'pos_local_orders',
+        'pos_recent_orders',
+        'pos_customer_db',
+        'pos_dinein_cart',
+        'pos_pickup_cart',
+        'pos_quick_cart',
+        'pos_preorder_cart',
+        'pos_table_carts',
+        'pos_table_statuses',
+        'pos_table_bills',
+        'pos_table_bill_numbers',
+        'pos_table_active_timestamps',
+        'pos_kot_history',
+        'pos_table_waiters',
+        'pos_table_discounts',
+        'pos_table_additional_charges',
+        'pos_table_customers',
+        'pos_catalog_cache',
+        'pos_option_groups',
+        'pos_tables_cache',
+        'pos_taxes',
+        'pos_payment_modes',
+        'pos_discounts',
+        'pos_additional_charges',
+        'pos_waiters',
+        'pos_riders',
+        'pos_item_mgmt_items',
+        'pos_item_mgmt_categories',
+        'pos_item_mgmt_taxes',
+        'pos_item_mgmt_depts',
+        'pos_rejection_reasons',
+        'pos_deleted_items_queue',
+        'pos_unsynced_categories',
+        'pos_tables',
+        'pos_next_bill_no'
+      ];
+      
+      explicitKeys.forEach(k => {
+        if (!keysToRemove.includes(k)) {
+          keysToRemove.push(k);
+        }
+      });
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // 2. Clear all react states in memory thoroughly
+      setRecentOrders([]);
+      setTableBills({});
+      setTableStatuses({});
+      setTableBillNumbers({});
+      setKotHistory({});
+      setCustomerDb({});
+      setDineInCart([]);
+      setPickupCart([]);
+      setQuickCart([]);
+      setPreOrderCart([]);
+      setTableCarts({});
+      setTableCustomers({});
+      setTableDiscounts({});
+      setTableAdditionalCharges({});
+      setTableWaiters({});
+      setTableActiveTimestamps({});
+      setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
+      setExpenses([]);
+      
+      // Also clear other cached lists to avoid state leakage
+      setCatalog([]);
+      setCategories(['All']);
+      setTables([]);
+      setSyncedTax(null);
+      setPaymentModes(['CASH']);
+      setWaitersList([]);
+      setRiders([]);
+      setOptionGroups([]);
+      setAvailableDiscounts([]);
+      setAvailableCharges([]);
+      setBusiness(null);
+
+      toast.info("Local sales and shift data successfully cleared.");
+    }
+
+    // 3. Complete standard logout
+    localStorage.removeItem('pos_token');
+    setIsAuthenticated(false);
+    setUsername('');
+    setPassword('');
+    setActiveTab('home');
+    setLogoutModalStep(null);
+    setClearLocalDataChecked(false);
+    toast.success("Successfully logged out.");
+  };
+
   const selectedTableStatus = selectedTable ? tableStatuses[selectedTable.id] : null;
   const isSettleEnabled = orderType !== 'DINE_IN' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED';
   const isTableSaved = selectedTableStatus && (selectedTableStatus === 'SAVED' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED');
@@ -8640,57 +8758,7 @@ const UniversalPOS = () => {
                      {/* Actions */}
                      <div className="flex gap-3 justify-end pt-2">
                        <button
-                         onClick={() => {
-                           if (clearLocalDataChecked) {
-                             // Purge all keys starting with 'pos_' except device registration, theme, printers, and sounds
-                             for (let i = localStorage.length - 1; i >= 0; i--) {
-                               const key = localStorage.key(i);
-                               if (key && key.startsWith('pos_')) {
-                                 if (
-                                   key === 'pos_device_id' ||
-                                   key === 'pos_theme' ||
-                                   key === 'pos_terminal_settings' ||
-                                   key.includes('_sound') ||
-                                   key.includes('_sound_name')
-                                 ) {
-                                   continue;
-                                 }
-                                 localStorage.removeItem(key);
-                               }
-                             }
-                             
-                             // Clear react states in memory
-                             setRecentOrders([]);
-                             setTableBills({});
-                             setTableStatuses({});
-                             setTableBillNumbers({});
-                             setKotHistory({});
-                             setCustomerDb({});
-                             setDineInCart([]);
-                             setPickupCart([]);
-                             setQuickCart([]);
-                             setPreOrderCart([]);
-                             setTableCarts({});
-                             setTableCustomers({});
-                             setTableDiscounts({});
-                             setTableAdditionalCharges({});
-                             setTableWaiters({});
-                             setTableActiveTimestamps({});
-                             setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
-                             setExpenses([]);
-                             toast.info("Local sales and shift data successfully cleared.");
-                           }
-
-                           // Complete standard logout
-                           localStorage.removeItem('pos_token');
-                           setIsAuthenticated(false);
-                           setUsername('');
-                           setPassword('');
-                           setActiveTab('home');
-                           setLogoutModalStep(null);
-                           setClearLocalDataChecked(false);
-                           toast.success("Successfully logged out.");
-                         }}
+                         onClick={() => handleLogoutFlow(clearLocalDataChecked)}
                          className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                        >
                          Yes, Logout
@@ -21296,57 +21364,7 @@ const UniversalPOS = () => {
                 {/* Actions */}
                 <div className="flex gap-3 justify-end pt-2">
                   <button
-                    onClick={() => {
-                      if (clearLocalDataChecked) {
-                        // Purge all keys starting with 'pos_' except device registration, theme, printers, and sounds
-                        for (let i = localStorage.length - 1; i >= 0; i--) {
-                          const key = localStorage.key(i);
-                          if (key && key.startsWith('pos_')) {
-                            if (
-                              key === 'pos_device_id' ||
-                              key === 'pos_theme' ||
-                              key === 'pos_terminal_settings' ||
-                              key.includes('_sound') ||
-                              key.includes('_sound_name')
-                            ) {
-                              continue;
-                            }
-                            localStorage.removeItem(key);
-                          }
-                        }
-                        
-                        // Clear react states in memory
-                        setRecentOrders([]);
-                        setTableBills({});
-                        setTableStatuses({});
-                        setTableBillNumbers({});
-                        setKotHistory({});
-                        setCustomerDb({});
-                        setDineInCart([]);
-                        setPickupCart([]);
-                        setQuickCart([]);
-                        setPreOrderCart([]);
-                        setTableCarts({});
-                        setTableCustomers({});
-                        setTableDiscounts({});
-                        setTableAdditionalCharges({});
-                        setTableWaiters({});
-                        setTableActiveTimestamps({});
-                        setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
-                        setExpenses([]);
-                        toast.info("Local sales and shift data successfully cleared.");
-                      }
-
-                      // Complete standard logout
-                      localStorage.removeItem('pos_token');
-                      setIsAuthenticated(false);
-                      setUsername('');
-                      setPassword('');
-                      setActiveTab('home');
-                      setLogoutModalStep(null);
-                      setClearLocalDataChecked(false);
-                      toast.success("Successfully logged out.");
-                    }}
+                    onClick={() => handleLogoutFlow(clearLocalDataChecked)}
                     className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
                   >
                     Yes, Logout
