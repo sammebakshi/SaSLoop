@@ -8526,7 +8526,7 @@ const UniversalPOS = () => {
   }
   if (shift.status === 'NOT_STARTED') {
      return (
-        <div className="h-screen flex items-center justify-center bg-[#0f172a] text-white p-8">
+        <div className="h-screen flex items-center justify-center bg-[#0f172a] text-white p-8 relative">
            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md bg-white/5 border border-white/10 p-10 rounded-[3rem] backdrop-blur-2xl text-center space-y-8">
               <div className="w-24 h-24 bg-emerald-500/20 rounded-full flex items-center justify-center mx-auto text-emerald-500"><Calendar size={48}/></div>
               <div className="space-y-2">
@@ -8551,14 +8551,7 @@ const UniversalPOS = () => {
                  </button>
                  <button
                     onClick={() => {
-                      localStorage.removeItem('pos_token');
-                      setIsAuthenticated(false);
-                      setUsername('');
-                      setPassword('');
-                      setActiveTab('home');
-                      setLogoutModalStep(null);
-                      setClearLocalDataChecked(false);
-                      toast.success("Successfully logged out.");
+                      setLogoutModalStep('confirm');
                     }}
                     className="w-full py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-3xl font-black uppercase text-xs tracking-widest transition-all border border-red-500/25 mt-2"
                  >
@@ -8566,6 +8559,157 @@ const UniversalPOS = () => {
                  </button>
               </div>
            </motion.div>
+
+           <AnimatePresence>
+             {logoutModalStep === 'confirm' && (
+               <motion.div
+                 initial={{ opacity: 0 }}
+                 animate={{ opacity: 1 }}
+                 exit={{ opacity: 0 }}
+                 className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm"
+               >
+                 <motion.div
+                   initial={{ scale: 0.95, y: 20 }}
+                   animate={{ scale: 1, y: 0 }}
+                   exit={{ scale: 0.95, y: 20 }}
+                   className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col bg-[#0d1117] border-[#30363d] text-white`}
+                 >
+                   {/* Header */}
+                   <div className="p-5 border-b flex justify-between items-center shrink-0 bg-[#161b22] border-[#30363d]">
+                     <div className="flex items-center gap-2">
+                       <LogOut className="text-red-500" size={20} />
+                       <h3 className="text-sm font-black uppercase italic tracking-tighter">Confirm Logout</h3>
+                     </div>
+                     <button
+                       onClick={() => {
+                         setLogoutModalStep(null);
+                         setClearLocalDataChecked(false);
+                       }}
+                       className="p-1.5 rounded-lg transition-all text-xs hover:bg-white/10 text-gray-400 hover:text-white"
+                     >
+                       ✕
+                     </button>
+                   </div>
+
+                   {/* Body */}
+                   <div className="p-6 space-y-5 bg-[#0d1117]">
+                     <div className="space-y-2 text-center">
+                       <p className="text-xs font-bold leading-relaxed text-gray-300">
+                         Are you sure you want to log out and exit SaSLoop Master POS?
+                       </p>
+                       <p className="text-[10px] text-gray-500">
+                         Active shift operations will remain running on the server.
+                       </p>
+                     </div>
+
+                     {/* Back-office controlled clear data checkbox */}
+                     {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (
+                       <div className="p-4 rounded-xl border bg-[#161b22]/50 border-gray-800 space-y-3">
+                         <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                           <input
+                             type="checkbox"
+                             checked={clearLocalDataChecked}
+                             onChange={(e) => setClearLocalDataChecked(e.target.checked)}
+                             className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
+                           />
+                           <div className="space-y-0.5">
+                             <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
+                               Clear local POS sales data on logout
+                             </span>
+                             <p className="text-[9.5px] leading-relaxed text-gray-500">
+                               Purge local databases (bills, customer lists, local tables, active carts) from this device.
+                             </p>
+                           </div>
+                         </label>
+
+                         {clearLocalDataChecked && (
+                           <motion.div
+                             initial={{ opacity: 0, y: -5 }}
+                             animate={{ opacity: 1, y: 0 }}
+                             className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
+                           >
+                             <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                             <span>
+                               <strong>WARNING:</strong> This action is permanent. All offline history and un-submitted carts on this machine will be lost. Ensure you have synced everything first.
+                             </span>
+                           </motion.div>
+                         )}
+                       </div>
+                     )}
+
+                     {/* Actions */}
+                     <div className="flex gap-3 justify-end pt-2">
+                       <button
+                         onClick={() => {
+                           if (clearLocalDataChecked) {
+                             // Purge all keys starting with 'pos_' except device registration, theme, printers, and sounds
+                             for (let i = localStorage.length - 1; i >= 0; i--) {
+                               const key = localStorage.key(i);
+                               if (key && key.startsWith('pos_')) {
+                                 if (
+                                   key === 'pos_device_id' ||
+                                   key === 'pos_theme' ||
+                                   key === 'pos_terminal_settings' ||
+                                   key.includes('_sound') ||
+                                   key.includes('_sound_name')
+                                 ) {
+                                   continue;
+                                 }
+                                 localStorage.removeItem(key);
+                               }
+                             }
+                             
+                             // Clear react states in memory
+                             setRecentOrders([]);
+                             setTableBills({});
+                             setTableStatuses({});
+                             setTableBillNumbers({});
+                             setKotHistory({});
+                             setCustomerDb({});
+                             setDineInCart([]);
+                             setPickupCart([]);
+                             setQuickCart([]);
+                             setPreOrderCart([]);
+                             setTableCarts({});
+                             setTableCustomers({});
+                             setTableDiscounts({});
+                             setTableAdditionalCharges({});
+                             setTableWaiters({});
+                             setTableActiveTimestamps({});
+                             setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
+                             setExpenses([]);
+                             toast.info("Local sales and shift data successfully cleared.");
+                           }
+
+                           // Complete standard logout
+                           localStorage.removeItem('pos_token');
+                           setIsAuthenticated(false);
+                           setUsername('');
+                           setPassword('');
+                           setActiveTab('home');
+                           setLogoutModalStep(null);
+                           setClearLocalDataChecked(false);
+                           toast.success("Successfully logged out.");
+                         }}
+                         className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                       >
+                         Yes, Logout
+                       </button>
+                       <button
+                         onClick={() => {
+                           setLogoutModalStep(null);
+                           setClearLocalDataChecked(false);
+                         }}
+                         className="px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]"
+                       >
+                         Cancel
+                       </button>
+                     </div>
+                   </div>
+                 </motion.div>
+               </motion.div>
+             )}
+           </AnimatePresence>
         </div>
      );
   }
@@ -21154,25 +21298,22 @@ const UniversalPOS = () => {
                   <button
                     onClick={() => {
                       if (clearLocalDataChecked) {
-                        const salesDataKeys = [
-                          'pos_local_orders',
-                          'pos_table_bills',
-                          'pos_table_statuses',
-                          'pos_table_bill_numbers',
-                          'pos_kot_history',
-                          'pos_customer_db',
-                          'pos_dinein_cart',
-                          'pos_pickup_cart',
-                          'pos_quick_cart',
-                          'pos_preorder_cart',
-                          'pos_table_carts',
-                          'pos_table_customers',
-                          'pos_table_discounts',
-                          'pos_table_additional_charges',
-                          'pos_table_waiters',
-                          'pos_table_active_timestamps'
-                        ];
-                        salesDataKeys.forEach(key => localStorage.removeItem(key));
+                        // Purge all keys starting with 'pos_' except device registration, theme, printers, and sounds
+                        for (let i = localStorage.length - 1; i >= 0; i--) {
+                          const key = localStorage.key(i);
+                          if (key && key.startsWith('pos_')) {
+                            if (
+                              key === 'pos_device_id' ||
+                              key === 'pos_theme' ||
+                              key === 'pos_terminal_settings' ||
+                              key.includes('_sound') ||
+                              key.includes('_sound_name')
+                            ) {
+                              continue;
+                            }
+                            localStorage.removeItem(key);
+                          }
+                        }
                         
                         // Clear react states in memory
                         setRecentOrders([]);
@@ -21191,7 +21332,9 @@ const UniversalPOS = () => {
                         setTableAdditionalCharges({});
                         setTableWaiters({});
                         setTableActiveTimestamps({});
-                        toast.info("Local sales data successfully cleared.");
+                        setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
+                        setExpenses([]);
+                        toast.info("Local sales and shift data successfully cleared.");
                       }
 
                       // Complete standard logout
