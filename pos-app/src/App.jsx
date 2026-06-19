@@ -4090,9 +4090,24 @@ const UniversalPOS = () => {
     localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
   }, [posSettings]);
 
-  const handleLogoutFlow = (clearData) => {
+  const handleLogoutFlow = async (clearData) => {
     if (clearData) {
-      // 1. Collect all keys to remove first to avoid index shifting
+      // 1. Sync empty active state to the server database first so the backend drops the active state for this session
+      try {
+        if (posService && posService.saveActiveState) {
+          await posService.saveActiveState({
+            tableBills: {},
+            tableStatuses: {},
+            tableBillNumbers: {},
+            tableActiveTimestamps: {},
+            tables: []
+          });
+        }
+      } catch (err) {
+        console.error("Failed to clear server active state:", err);
+      }
+
+      // 2. Collect all keys to remove first to avoid index shifting
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
