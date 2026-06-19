@@ -6,9 +6,9 @@
 ---
 
 ## Last Updated
-- **Date**: 2026-06-19 20:25 IST
+- **Date**: 2026-06-19 20:36 IST
 - **Conversation**: `f6290d96-6827-4397-8034-a378a3d29f80`
-- **Git Commit**: `6f5d786` (pushed to GitHub)
+- **Git Commit**: `395206e` (pushed to GitHub)
 
 ## Current State
 - App is **built and deployed** to https://backend.sasloop.in
@@ -17,6 +17,7 @@
 - Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`) to keep the main project history clean.
 
 ## Recently Completed
+- Added active table/cart safety check block (prevents POS data clearing on logout if tables are busy or active carts exist, prompting the user with a notification).
 - Fixed POS data restoring on login after logout (added sync of empty active state to backend server before clearing token, preventing the server from feeding the old session's active bills and tables back to the client upon next login).
 - Fixed POS local data clearing on logout (resolved key skipping due to index shifting by gathering all localStorage keys first, and added complete reset of in-memory lists/metadata states to prevent memory leakage between sessions).
 - Designed full pictured slideshow with zoom/crossfade transitions on the login page (using 5 high-fidelity mockups: Billing, KDS, Floor Plans, Receipts, and Reports)
