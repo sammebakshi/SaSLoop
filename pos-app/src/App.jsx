@@ -1546,6 +1546,9 @@ const UniversalPOS = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isAccessLevelModalOpen, setIsAccessLevelModalOpen] = useState(false);
+  const [logoutModalStep, setLogoutModalStep] = useState(null);
+  const [clearLocalDataChecked, setClearLocalDataChecked] = useState(false);
+  const [isSyncingInProgress, setIsSyncingInProgress] = useState(false);
   const [accessLevels, setAccessLevels] = useState(() => {
     try {
       const saved = localStorage.getItem('pos_access_levels');
@@ -2859,7 +2862,7 @@ const UniversalPOS = () => {
         });
 
         // Merge with unsynced local orders
-        const unsyncedLocal = recentOrders.filter(o => o.synced === false || String(o.id).startsWith('L-'));
+        const unsyncedLocal = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
 
         // Avoid duplicates if order is now synced
         const remoteRefs = new Set();
@@ -2991,7 +2994,7 @@ const UniversalPOS = () => {
   };
 
   const handleSyncBills = async () => {
-    const unsyncedOrders = recentOrders.filter(o => o.synced === false || String(o.id).startsWith('L-'));
+    const unsyncedOrders = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
     if (unsyncedOrders.length === 0) {
       toast.info("All bills are already synced.");
       return;
@@ -3053,7 +3056,7 @@ const UniversalPOS = () => {
   };
 
   const handleReSyncBills = async () => {
-    const unsyncedOrders = recentOrders.filter(o => o.synced === false || String(o.id).startsWith('L-'));
+    const unsyncedOrders = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
     if (unsyncedOrders.length > 0) {
       toast.info(`Syncing ${unsyncedOrders.length} offline bills first...`);
       await handleSyncBills();
@@ -3646,6 +3649,17 @@ const UniversalPOS = () => {
       return saved ? JSON.parse(saved) : null;
     } catch (e) { return null; }
   });
+  const getStaffPermissions = () => {
+    if (!business || !business.staff_permissions) return {};
+    if (typeof business.staff_permissions === 'string') {
+      try {
+        return JSON.parse(business.staff_permissions);
+      } catch (e) {
+        return {};
+      }
+    }
+    return business.staff_permissions;
+  };
   const getLoyaltySetting = (key, defaultValue) => {
     if (!business) return defaultValue;
     if (business.business_details && business.business_details[key] !== undefined) {
@@ -6984,6 +6998,30 @@ const UniversalPOS = () => {
     }
 
     const fullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
+
+    let pointsEarned = 0;
+    if (fullPhone) {
+      if (getLoyaltySetting('loyalty_enabled', true)) {
+        const isDineIn = orderType === 'DINE_IN';
+        const isPickup = orderType === 'PICKUP' && subOrderType !== 'DELIVERY';
+        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
+        
+        let eligible = true;
+        if (isDineIn && getLoyaltySetting('loyalty_points_dinein', true) === false) eligible = false;
+        if (isPickup && getLoyaltySetting('loyalty_points_pickup', true) === false) eligible = false;
+        if (isDelivery && getLoyaltySetting('loyalty_points_delivery', true) === false) eligible = false;
+        
+        if (eligible) {
+          const threshold = parseFloat(getLoyaltySetting('loyalty_bill_amount_threshold', 1000));
+          const pointsAwarded = parseFloat(getLoyaltySetting('loyalty_points_earned', 100));
+          const ratio = pointsAwarded / threshold;
+          pointsEarned = total >= threshold ? Math.floor(total * ratio) : 0;
+        }
+      } else {
+        pointsEarned = 0;
+      }
+    }
+
     const newOrder = {
       id: orderId,
       source: navigator.onLine ? 'POS_WINDOWS' : 'POS_WINDOWS_OFFLINE',
@@ -7016,7 +7054,7 @@ const UniversalPOS = () => {
       reference_no: referenceNo,
       order_reference: orderId,
       tip_amount: isFreeCheckout ? 0 : (parseFloat(tip) || 0),
-      status: type === 'SAVE' ? 'PENDING' : 'COMPLETED',
+      status: type === 'SETTLE' ? 'COMPLETED' : 'PENDING',
       table_id: (orderType === 'DINE_IN' && selectedTable && !selectedTable.is_temporary) ? selectedTable.id : null,
       order_type: (selectedTable && selectedTable.is_temporary)
         ? (selectedTable.original_order_type === 'PICKUP' ? selectedTable.original_sub_order_type : selectedTable.original_order_type)
@@ -7033,7 +7071,7 @@ const UniversalPOS = () => {
       coupon_discount: couponDiscountAmt,
       points_redeemed: redeemedPoints || 0,
       points_discount: (redeemedPoints || 0) * getPointsValueRate(),
-      points_earned: 0,
+      points_earned: pointsEarned,
       rider_id: selectedRiderId || null,
       paid_amount: method === 'SPLIT'
         ? parseFloat(splitPaidAmount) || 0
@@ -7146,34 +7184,12 @@ const UniversalPOS = () => {
         console.error("Failed to sync customer details during checkout:", err);
       }
 
-      let pointsEarned = 0;
-      if (getLoyaltySetting('loyalty_enabled', true)) {
-        const isDineIn = orderType === 'DINE_IN';
-        const isPickup = orderType === 'PICKUP' && subOrderType !== 'DELIVERY';
-        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
-        
-        let eligible = true;
-        if (isDineIn && getLoyaltySetting('loyalty_points_dinein', true) === false) eligible = false;
-        if (isPickup && getLoyaltySetting('loyalty_points_pickup', true) === false) eligible = false;
-        if (isDelivery && getLoyaltySetting('loyalty_points_delivery', true) === false) eligible = false;
-        
-        if (eligible) {
-          const threshold = parseFloat(getLoyaltySetting('loyalty_bill_amount_threshold', 1000));
-          const pointsAwarded = parseFloat(getLoyaltySetting('loyalty_points_earned', 100));
-          const ratio = pointsAwarded / threshold;
-          pointsEarned = total >= threshold ? Math.floor(total * ratio) : 0;
-        }
-      } else {
-        // Loyalty disabled — no points earned
-        pointsEarned = 0;
-      }
-
       setCustomerDb(prev => {
         const existing = prev[fullPhone] || { name: customerName, phone: fullPhone, address: customerAddress || "", points: 0, orders: 0, totalSpent: 0, balance: 0 };
         const balanceChange = ((method || 'CASH').toLowerCase() === 'credit') ? -finalTotalPrice :
                               (((method || 'CASH').toLowerCase() === 'split') ? -(parseFloat(splitCreditAmount) || 0) :
                               (((method || 'CASH').toLowerCase() === 'cash' && saveChangeToBalance) ? ((parseFloat(customerPaidAmount) || 0) - finalTotalPrice) : 0));
-        const updatedCust = {
+        const updatedCust = type === 'SETTLE' ? {
           ...existing,
           name: customerName || existing.name,
           address: customerAddress || existing.address || '',
@@ -7181,6 +7197,10 @@ const UniversalPOS = () => {
           orders: existing.orders + 1,
           totalSpent: existing.totalSpent + total,
           balance: (existing.balance || 0) + balanceChange
+        } : {
+          ...existing,
+          name: customerName || existing.name,
+          address: customerAddress || existing.address || ''
         };
         const nextDb = { ...prev, [fullPhone]: updatedCust };
         localStorage.setItem('pos_customer_db', JSON.stringify(nextDb));
@@ -8529,6 +8549,21 @@ const UniversalPOS = () => {
                  >
                     Start Day Operation
                  </button>
+                 <button
+                    onClick={() => {
+                      localStorage.removeItem('pos_token');
+                      setIsAuthenticated(false);
+                      setUsername('');
+                      setPassword('');
+                      setActiveTab('home');
+                      setLogoutModalStep(null);
+                      setClearLocalDataChecked(false);
+                      toast.success("Successfully logged out.");
+                    }}
+                    className="w-full py-3.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-3xl font-black uppercase text-xs tracking-widest transition-all border border-red-500/25 mt-2"
+                 >
+                    Logout
+                 </button>
               </div>
            </motion.div>
         </div>
@@ -8562,7 +8597,7 @@ const UniversalPOS = () => {
         </div>
         <div className={`mt-auto border-t ${isDark ? 'border-[#30363d]' : 'border-slate-100'} flex flex-col`}>
            <SidebarIcon id="sidebarSettingsIcon" isDark={isDark} icon={<Settings size={18} className="text-current" />} active={isSettingsModalOpen} onClick={() => setIsSettingsModalOpen(true)} label="Settings" />
-           <SidebarIcon isDark={isDark} icon={<LogOut size={18} className="text-current" />} onClick={() => { localStorage.removeItem('pos_token'); setIsAuthenticated(false); setUsername(''); setPassword(''); setActiveTab('home'); }} label="Exit" />
+           <SidebarIcon isDark={isDark} icon={<LogOut size={18} className="text-current" />} onClick={() => setLogoutModalStep('sync')} label="Exit" />
         </div>
       </nav>
 
@@ -8645,32 +8680,38 @@ const UniversalPOS = () => {
 
                   {/* Action Toolbar - shown at TOP only when NOT in table view */}
                   {billingView !== 'tables' && (
-                    <div className={`h-10 border-b flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+                    <div className={`h-11 border-b flex items-center px-3 gap-2 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
                       <button 
                         onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} 
-                        className={`h-7 w-7 rounded flex items-center justify-center transition-colors shrink-0 ${
-                          isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'
+                        className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
+                          isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
                         }`}
                         title="View Table Layout"
                       >
-                        <LayoutGrid size={14}/>
+                        <LayoutGrid size={20}/>
                       </button>
-                      <div className="flex-1 flex justify-center gap-1.5">
+                      <div className="flex-1 flex justify-center gap-2">
                         {[
-                          { label: 'Filter Tables', icon: <Filter size={12}/>, onClick: handleFilterTables, show: orderType === 'DINE_IN' && posSettings.separateView },
-                          { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable, show: orderType === 'DINE_IN' && posSettings.separateView },
-                          { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh, show: true },
-                          { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh, show: true },
-                          { label: 'Add Customer', icon: <UserPlus size={12}/>, onClick: () => setIsAddCustomerModalOpen(true), show: true }
+                          { label: 'Filter tables', onClick: handleFilterTables, show: orderType === 'DINE_IN' && posSettings.separateView },
+                          { label: 'Change Table', onClick: handleChangeTable, show: orderType === 'DINE_IN' && posSettings.separateView },
+                          { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
+                          { label: 'Refresh', onClick: localRefresh, show: true },
+                          { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
                         ].filter(btn => btn.show).map(btn => (
-                          <button key={btn.label} onClick={btn.onClick} className="h-7 px-3 bg-[#1c2833] hover:bg-[#2c3e50] text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition-colors shrink-0">
-                            {btn.icon} {btn.label}
+                          <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
+                            {btn.label}
                           </button>
                         ))}
                       </div>
                       <div className="ml-auto flex items-center gap-2">
-                        <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Bell size={14}/></button>
-                        <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Printer size={14}/></button>
+                        <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
+                        <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
+                        <div className="relative flex items-center justify-center">
+                          <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
+                          <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
+                            LIVE
+                          </span>
+                        </div>
                       </div>
                     </div>
                   )}
@@ -9124,24 +9165,38 @@ const UniversalPOS = () => {
                           </div>
 
                           {/* Bottom Action Bar - four-square icon + buttons */}
-                          <div className={`h-10 border-t flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
-                            <button onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><LayoutGrid size={14}/></button>
-                            <div className="flex-1 flex justify-center gap-1.5">
+                          <div className={`h-11 border-t flex items-center px-3 gap-2 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+                            <button 
+                              onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} 
+                              className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
+                                isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                              }`}
+                              title="View Menu"
+                            >
+                              <LayoutGrid size={20}/>
+                            </button>
+                            <div className="flex-1 flex justify-center gap-2">
                               {[
-                                { label: 'Filter tables', icon: <Filter size={12}/>, onClick: handleFilterTables },
-                                { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable },
-                                { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh },
-                                { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh },
-                                { label: 'Add Customer', icon: <UserPlus size={12}/>, onClick: () => setIsAddCustomerModalOpen(true) }
-                              ].map(btn => (
-                                <button key={btn.label} onClick={btn.onClick} className="h-7 px-3 bg-[#1c2833] hover:bg-[#2c3e50] text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition-colors shrink-0">
-                                  {btn.icon} {btn.label}
+                                { label: 'Filter tables', onClick: handleFilterTables, show: true },
+                                { label: 'Change Table', onClick: handleChangeTable, show: true },
+                                { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
+                                { label: 'Refresh', onClick: localRefresh, show: true },
+                                { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
+                              ].filter(btn => btn.show).map(btn => (
+                                <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
+                                  {btn.label}
                                 </button>
                               ))}
                             </div>
                             <div className="ml-auto flex items-center gap-2">
-                              <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Printer size={14}/></button>
-                              <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Bell size={14}/></button>
+                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
+                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
+                              <div className="relative flex items-center justify-center">
+                                <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
+                                <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
+                                  LIVE
+                                </span>
+                              </div>
                             </div>
                           </div>
                         </>
@@ -15043,25 +15098,28 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isSplitModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-4xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#1e293b] text-white flex justify-between items-center shrink-0">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><ArrowRight className="text-emerald-500"/> Split Bill Settlement</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Divide the check for individual payments</p>
-                       </div>
-                       <div className="flex gap-2">
-                          {['PORTION', 'PERCENT', 'ITEM'].map(mode => (
-                             <button
-                                key={mode}
-                                onClick={() => setSplitMode(mode)}
-                                className={`px-6 py-2.5 rounded-xl text-[9px] font-black uppercase transition-all ${splitMode === mode ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'bg-white/5 text-slate-400 hover:bg-white/10'}`}
-                             >
-                                {mode} Wise
-                             </button>
-                          ))}
-                          <button onClick={() => setIsSplitModalOpen(false)} className="ml-4 p-2.5 hover:bg-white/10 rounded-xl transition-all text-slate-400"><Trash2 size={20}/></button>
-                       </div>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-4xl bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="flex items-center gap-6">
+                           <div>
+                              <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><ArrowRight className="text-emerald-500"/> Split Bill Settlement</h3>
+                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Divide the check for individual payments</p>
+                           </div>
+                           <div className={`flex items-center rounded-xl p-1 ${isDark ? 'bg-[#0d1117] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
+                              {['PORTION', 'PERCENT', 'ITEM'].map(mode => (
+                                 <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => setSplitMode(mode)}
+                                    className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase italic transition-all ${splitMode === mode ? 'bg-[#10ac84] text-white shadow-sm' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
+                                 >
+                                    {mode}
+                                 </button>
+                              ))}
+                           </div>
+                        </div>
+                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     </div>
 
                     <div className="flex-1 overflow-y-auto p-8 bg-slate-50 no-scrollbar">
                        {splitMode === 'PORTION' && (
@@ -15266,14 +15324,14 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isExpenseModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-white rounded-[2.5rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#1e293b] text-white flex justify-between items-center shrink-0">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><TrendingUp className="text-rose-400"/> Daily Expense Ledger</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1">Track and manage your operational outflows</p>
-                       </div>
-                       <button onClick={() => setIsExpenseModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-slate-400"><Trash2 size={20}/></button>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><TrendingUp className="text-rose-400"/> Daily Expense Ledger</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Track and manage your operational outflows</p>
+                        </div>
+                        <button onClick={() => setIsExpenseModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     </div>
 
                     <div className="flex-1 flex overflow-hidden bg-slate-50">
                        {/* LEFT: ADD EXPENSE FORM */}
@@ -15601,23 +15659,23 @@ const UniversalPOS = () => {
                     initial={{ scale: 0.9, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 20 }}
-                    className={`w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border transition-all ${
+                    className={`w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
                        isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
                     }`}
                  >
                     {/* Header */}
-                    <div className={`p-5 flex justify-between items-center border-b ${
-                       isDark ? 'bg-[#0d1117]/50 border-[#30363d]' : 'bg-slate-50 border-slate-100'
+                    <div className={`p-6 flex justify-between items-center border-b ${
+                       isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
                     }`}>
                        <div className="flex items-center gap-2.5">
                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
                              <Calculator size={16} />
                           </div>
                           <div>
-                             <h3 className={`text-sm font-black uppercase italic tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                             <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                 {openPriceItem.product_name}
                              </h3>
-                             <p className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>
+                             <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
                                 Enter Custom Item Price
                              </p>
                           </div>
@@ -15628,8 +15686,8 @@ const UniversalPOS = () => {
                              setOpenPriceItem(null);
                              setOpenPriceValue('');
                           }}
-                          className={`opacity-65 hover:opacity-100 text-lg font-bold transition-all p-1 rounded-full ${
-                             isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'
+                          className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
+                             isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                           }`}
                        >
                           ✕
@@ -15716,31 +15774,31 @@ const UniversalPOS = () => {
                      initial={{ scale: 0.9, y: 20 }}
                      animate={{ scale: 1, y: 0 }}
                      exit={{ scale: 0.9, y: 20 }}
-                     className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border transition-all ${
+                     className={`w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
                         isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
                      }`}
                   >
                      {/* Header */}
-                     <div className={`p-5 flex justify-between items-center border-b ${
-                        isDark ? 'bg-[#0d1117]/50 border-[#30363d]' : 'bg-slate-50 border-slate-100'
+                     <div className={`p-6 flex justify-between items-center border-b ${
+                        isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
                      }`}>
                         <div className="flex items-center gap-2.5">
                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
                               <Tag size={16} />
                            </div>
                            <div>
-                              <h3 className={`text-sm font-black uppercase italic tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                              <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                  Apply Discount
                               </h3>
-                              <p className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>
+                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
                                  Select pre-configured or enter custom discount
                               </p>
                            </div>
                         </div>
                         <button
                            onClick={() => setIsDiscountModalOpen(false)}
-                           className={`opacity-65 hover:opacity-100 text-lg font-bold transition-all p-1 rounded-full ${
-                              isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'
+                           className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
+                              isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                            }`}
                         >
                            ✕
@@ -15955,31 +16013,31 @@ const UniversalPOS = () => {
                      initial={{ scale: 0.9, y: 20 }}
                      animate={{ scale: 1, y: 0 }}
                      exit={{ scale: 0.9, y: 20 }}
-                     className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border transition-all ${
+                     className={`w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
                         isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
                      }`}
                   >
                      {/* Header */}
-                     <div className={`p-5 flex justify-between items-center border-b ${
-                        isDark ? 'bg-[#0d1117]/50 border-[#30363d]' : 'bg-slate-50 border-slate-100'
+                     <div className={`p-6 flex justify-between items-center border-b ${
+                        isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
                      }`}>
                         <div className="flex items-center gap-2.5">
                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
                               <Coins size={16} />
                            </div>
                            <div>
-                              <h3 className={`text-sm font-black uppercase italic tracking-tight leading-tight ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                              <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
                                  Additional Charges
                               </h3>
-                              <p className={`text-[8px] font-black uppercase tracking-widest ${isDark ? 'text-gray-400' : 'text-slate-400'}`}>
+                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
                                  Apply database charges or add custom fees
                               </p>
                            </div>
                         </div>
                         <button
                            onClick={() => setIsChargesModalOpen(false)}
-                           className={`opacity-65 hover:opacity-100 text-lg font-bold transition-all p-1 rounded-full ${
-                              isDark ? 'hover:bg-white/5' : 'hover:bg-slate-100'
+                           className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
+                              isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                            }`}
                         >
                            ✕
@@ -16305,17 +16363,17 @@ const UniversalPOS = () => {
 
             return (
                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-3xl border w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
 
                      {/* Header */}
                      <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
                         <div>
-                           <h3 className="text-lg font-black uppercase italic tracking-tighter flex items-center gap-2">
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                               Choose Payment Mode
                            </h3>
-                           <p className="text-[10px] font-bold text-slate-400 uppercase mt-0.5">Bill No: {billNo}</p>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Bill No: {billNo}</p>
                         </div>
-                        <button onClick={() => setIsPaymentModalOpen(false)} className="text-slate-400 hover:text-slate-200 text-sm">✕</button>
+                        <button onClick={() => setIsPaymentModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                      </div>
 
                      {/* Content */}
@@ -16735,16 +16793,16 @@ const UniversalPOS = () => {
            const outstandingDue = Math.abs(Math.min(0, bal));
            return (
               <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-3xl border w-full max-w-md overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-md overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                     {/* Header */}
-                    <div className={`p-5 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
+                    <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
                        <div>
-                          <h3 className="text-sm font-black uppercase italic tracking-tighter flex items-center gap-2">
+                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                              <Wallet size={18} className="text-emerald-500" /> Pay Previous Balance
                           </h3>
-                          <p className="text-[10px] font-bold text-slate-400 mt-0.5">{trayCustomer?.name || 'Customer'} • {trayFullPhone}</p>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>{trayCustomer?.name || 'Customer'} • {trayFullPhone}</p>
                        </div>
-                       <button onClick={() => setIsPayDueModalOpen(false)} className="text-slate-400 hover:text-slate-200 text-sm">✕</button>
+                       <button onClick={() => setIsPayDueModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                     </div>
 
                     {/* Content */}
@@ -16856,22 +16914,22 @@ const UniversalPOS = () => {
 
         {isOldKOTModalOpen && (
            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#0d1117] border border-[#30363d] rounded-2xl w-full max-w-4xl flex flex-col shadow-2xl">
+              <div className="bg-[#0d1117] border border-[#30363d] rounded-[2rem] w-full max-w-4xl flex flex-col shadow-2xl">
                  {/* Header */}
-                 <div className="p-4 border-b border-[#30363d] flex justify-between items-center bg-[#161b22] rounded-t-2xl">
-                    <h3 className="text-sm font-bold text-[#c9d1d9]">Old KOT</h3>
-                    <button
-                       onClick={() => {
-                          setIsOldKOTModalOpen(false);
-                          setSelectedOldKOTItems({});
-                          setOldKOTItemReasons({});
-                          setSelectAllOldKOT(false);
-                       }}
-                       className="text-[#8b949e] hover:text-[#c9d1d9] text-sm"
-                    >
-                       ✕
-                    </button>
-                 </div>
+                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                     <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Old KOT</h3>
+                     <button
+                        onClick={() => {
+                           setIsOldKOTModalOpen(false);
+                           setSelectedOldKOTItems({});
+                           setOldKOTItemReasons({});
+                           setSelectAllOldKOT(false);
+                        }}
+                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
+                     >
+                        ✕
+                     </button>
+                  </div>
 
                  {/* Toolbar */}
                  <div className="p-3 border-b border-[#30363d] flex items-center gap-4 text-xs text-[#c9d1d9]">
@@ -17055,15 +17113,15 @@ const UniversalPOS = () => {
 
         {isTransferModalOpen && (
            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-              <div className="bg-[#0d1117] border border-[#30363d] rounded-2xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
+              <div className="bg-[#0d1117] border border-[#30363d] rounded-[2rem] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
                  {/* Header */}
-                 <div className="p-4 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
-                    <h3 className="text-sm font-bold text-[#c9d1d9] uppercase tracking-wider flex items-center gap-2">
-                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                       Transfer Items to Table
-                    </h3>
-                    <button onClick={() => setIsTransferModalOpen(false)} className="text-[#8b949e] hover:text-[#c9d1d9] text-sm p-1 hover:bg-[#21262d] rounded-lg transition-colors">✕</button>
-                 </div>
+                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                     <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Transfer Items to Table
+                     </h3>
+                     <button onClick={() => setIsTransferModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                  </div>
                  {/* Body */}
                  <div className="p-5 max-h-[60vh] overflow-y-auto no-scrollbar space-y-4">
                     <p className="text-[11px] font-medium text-[#8b949e] uppercase tracking-widest">Select Target Table:</p>
@@ -17107,24 +17165,24 @@ const UniversalPOS = () => {
          {/* Waiter Selection Modal */}
          {isWaiterModalOpen && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-               <div className={`border rounded-2xl w-full max-w-md flex flex-col shadow-2xl ${
+               <div className={`border rounded-[2rem] w-full max-w-md flex flex-col shadow-2xl ${
                   isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
                }`}>
                   {/* Header */}
-                  <div className={`p-4 border-b flex justify-between items-center rounded-t-2xl ${
+                  <div className={`p-6 border-b flex justify-between items-center ${
                      isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
                   }`}>
                      <div className="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none" className="text-emerald-500">
+                        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.5" fill="none" className="text-emerald-500">
                            <path d="M3 20h18" strokeLinecap="round" />
                            <path d="M19 16a7 7 0 0 0-14 0z" fill="currentColor" />
                            <path d="M12 5v4M10 5h4" strokeLinecap="round" />
                         </svg>
-                        <h3 className="text-sm font-bold uppercase tracking-wider">Select Waiter / Staff</h3>
+                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Waiter / Staff</h3>
                      </div>
                      <button
                         onClick={() => setIsWaiterModalOpen(false)}
-                        className={`hover:opacity-80 text-sm ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}
+                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
                         ✕
                      </button>
@@ -17199,20 +17257,20 @@ const UniversalPOS = () => {
          {/* Rider Selection Modal */}
          {isRiderModalOpen && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-               <div className={`border rounded-2xl w-full max-w-md flex flex-col shadow-2xl ${
+               <div className={`border rounded-[2rem] w-full max-w-md flex flex-col shadow-2xl ${
                   isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
                }`}>
                   {/* Header */}
-                  <div className={`p-4 border-b flex justify-between items-center rounded-t-2xl ${
+                  <div className={`p-6 border-b flex justify-between items-center ${
                      isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
                   }`}>
                      <div className="flex items-center gap-2">
-                        <Bike className="text-emerald-500" size={18} />
-                        <h3 className="text-sm font-bold uppercase tracking-wider">Select Delivery Boy / Rider</h3>
+                        <Bike className="text-emerald-500" size={22} />
+                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Delivery Boy / Rider</h3>
                      </div>
                      <button
                         onClick={() => setIsRiderModalOpen(false)}
-                        className={`hover:opacity-80 text-sm ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}
+                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
                         ✕
                      </button>
@@ -17302,7 +17360,7 @@ const UniversalPOS = () => {
                            <path d="M11.5 14.5 16.5 9.5"/>
                            <circle cx="15.5" cy="13.5" r="1.2" fill="currentColor"/>
                         </svg>
-                        <h3 className="text-sm font-black uppercase italic tracking-tighter">
+                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
                            Apply Coupon Discount
                         </h3>
                      </div>
@@ -17884,13 +17942,13 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isAccessLevelModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-4xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-4xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                        <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><Lock className="text-[#10ac84]"/> Update Desktop Access Level</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Configure visibility for dashboard and reports</p>
+                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Lock className="text-[#10ac84]" size={22}/> Update Desktop Access Level</h3>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure visibility for dashboard and reports</p>
                        </div>
-                       <button onClick={() => setIsAccessLevelModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
+                       <button onClick={() => setIsAccessLevelModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-8 bg-[#0d1117] no-scrollbar space-y-8">
@@ -17940,17 +17998,17 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isTableManagementModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><LayoutGrid className="text-[#10ac84]"/> Table Management</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Manage tables, departments, and QR codes</p>
-                       </div>
-                       <div className="flex items-center gap-3">
-                          <span className="px-3 py-1.5 bg-[#10ac84]/20 text-[#10ac84] rounded-lg text-[10px] font-black uppercase">Call Waiter Functionality</span>
-                          <button onClick={() => setIsTableManagementModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                       </div>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><LayoutGrid className="text-[#10ac84]" size={22}/> Table Management</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage tables, departments, and QR codes</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                           <span className="px-3 py-1.5 bg-[#10ac84]/20 text-[#10ac84] rounded-lg text-[10px] font-black uppercase">Call Waiter Functionality</span>
+                           <button onClick={() => setIsTableManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        </div>
+                     </div>
 
                     <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
                        <div className="flex gap-2">
@@ -18012,14 +18070,14 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isUserManagementModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><Users className="text-[#10ac84]"/> User Management</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Manage staff, roles, and access levels</p>
-                       </div>
-                       <button onClick={() => setIsUserManagementModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Users className="text-[#10ac84]" size={22}/> User Management</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage staff, roles, and access levels</p>
+                        </div>
+                        <button onClick={() => setIsUserManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     </div>
 
                     <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
                        <div className="flex gap-2">
@@ -18086,7 +18144,7 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isCaptainAppModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="relative bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh] w-[400px]">
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="relative bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh] w-[400px]">
                     {/* Phone Notch/Header */}
                     <div className="absolute top-0 left-0 right-0 h-6 bg-black flex justify-between items-center px-6 text-white text-[10px]">
                        <span>12:38</span>
@@ -18096,12 +18154,12 @@ const UniversalPOS = () => {
                        </div>
                     </div>
 
-                    <div className="p-6 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d] mt-6">
-                       <div>
-                          <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2"><Monitor className="text-[#10ac84]"/> Captain App</h3>
-                       </div>
-                       <button onClick={() => setIsCaptainAppModalOpen(false)} className="p-2 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                    </div>
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 mt-6 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Monitor className="text-[#10ac84]" size={22}/> Captain App</h3>
+                        </div>
+                        <button onClick={() => setIsCaptainAppModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-850'}`}>✕</button>
+                     </div>
 
                     <div className="flex-1 overflow-y-auto bg-[#18ba60] flex flex-col items-center justify-center p-6 gap-6">
                        {/* App Logo */}
@@ -18148,14 +18206,14 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isFeedbackModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-2xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><MessageSquare className="text-[#10ac84]"/> Feedback Management</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Customer experience form</p>
-                       </div>
-                       <button onClick={() => setIsFeedbackModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-2xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-905'}`}><MessageSquare className="text-[#10ac84]" size={22}/> Feedback Management</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Customer experience form</p>
+                        </div>
+                        <button onClick={() => setIsFeedbackModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     </div>
 
                     <div className="p-8 bg-[#0d1117] space-y-6">
                         {/* Rated Items Section */}
@@ -18242,19 +18300,19 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isInventoryModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-6xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><Package className="text-[#10ac84]"/> Inventory Management</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Manage stock on hand and purchased items</p>
-                       </div>
-                       <div className="flex items-center gap-3">
-                          <span className="px-3 py-1.5 bg-red-600/20 text-red-500 rounded-lg text-[10px] font-black uppercase">Expired Stock</span>
-                          <span className="px-3 py-1.5 bg-yellow-600/20 text-yellow-500 rounded-lg text-[10px] font-black uppercase">Low Stock</span>
-                          <span className="px-3 py-1.5 bg-purple-600/20 text-purple-500 rounded-lg text-[10px] font-black uppercase">Expire In 3 Days</span>
-                          <button onClick={() => setIsInventoryModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                       </div>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-6xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Package className="text-[#10ac84]" size={22}/> Inventory Management</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage stock on hand and purchased items</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                           <span className="px-3 py-1.5 bg-red-600/20 text-red-500 rounded-lg text-[10px] font-black uppercase">Expired Stock</span>
+                           <span className="px-3 py-1.5 bg-yellow-600/20 text-yellow-500 rounded-lg text-[10px] font-black uppercase">Low Stock</span>
+                           <span className="px-3 py-1.5 bg-purple-600/20 text-purple-500 rounded-lg text-[10px] font-black uppercase">Expire In 3 Days</span>
+                           <button onClick={() => setIsInventoryModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        </div>
+                     </div>
 
                      {/* Tab Headers */}
                      <div className="flex px-8 bg-[#161b22] border-b border-[#30363d] gap-6">
@@ -18452,14 +18510,14 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isReservationModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-6xl bg-[#0d1117] rounded-[2.5rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className="p-8 bg-[#161b22] text-white flex justify-between items-center shrink-0 border-b border-[#30363d]">
-                       <div>
-                          <h3 className="text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3"><Calendar className="text-[#10ac84]"/> Table Reservations</h3>
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1">Manage table bookings and guests</p>
-                       </div>
-                       <button onClick={() => setIsReservationModalOpen(false)} className="p-2.5 hover:bg-white/10 rounded-xl transition-all text-[#8b949e] hover:text-white">✕</button>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-6xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
+                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                        <div>
+                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Calendar className="text-[#10ac84]" size={22}/> Table Reservations</h3>
+                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage table bookings and guests</p>
+                        </div>
+                        <button onClick={() => setIsReservationModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     </div>
 
                     <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
                        <div className="flex gap-2">
@@ -18526,14 +18584,14 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isSettingsModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-[820px] max-w-[95vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-[820px] max-w-[95vw] max-h-[90vh] rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
                     {/* Header */}
-                    <div className={`p-5 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-[#f8f9fa] border-slate-200 text-slate-800'}`}>
+                    <div className={`p-6 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                        <div>
-                          <h3 className={`text-base font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={18}/> Terminal Settings</h3>
-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-0.5 font-bold">Configure terminal preferences and printer layouts</p>
+                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={22}/> Terminal Settings</h3>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure terminal preferences and printer layouts</p>
                        </div>
-                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 rounded-full transition-all ${isDark ? 'hover:bg-white/10 text-[#8b949e] hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}>✕</button>
+                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                     </div>
 
                     {/* Tab Headers */}
@@ -20533,24 +20591,24 @@ const UniversalPOS = () => {
               initial={{ scale: 0.95, y: 20 }}
               animate={{ scale: 1, y: 0 }}
               exit={{ scale: 0.95, y: 20 }}
-              className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col bg-[#0d1117] border-[#30363d]`}
+              className={`w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col bg-[#0d1117] border-[#30363d]`}
             >
-              <div className="p-5 flex justify-between items-center shrink-0 border-b bg-[#161b22] border-[#30363d] text-white">
-                <div>
-                  <h3 className="text-md font-bold uppercase tracking-wider text-red-500 flex items-center gap-2">
-                    {isManagingPresets ? "Manage Rejection Presets" : "Cancel / Reject Order"}
-                  </h3>
-                  <p className="text-[10px] text-[#8b949e] mt-1">
-                    {isManagingPresets ? "Add or remove preset rejection reasons" : "Specify a reason to notify the customer"}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsRejectionModalOpen(false)}
-                  className="p-1.5 rounded hover:bg-white/10 text-[#8b949e] hover:text-white transition-all cursor-pointer text-xs"
-                >
-                  ✕
-                </button>
-              </div>
+              <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                 <div>
+                   <h3 className="text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 text-red-500">
+                     {isManagingPresets ? "Manage Rejection Presets" : "Cancel / Reject Order"}
+                   </h3>
+                   <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
+                     {isManagingPresets ? "Add or remove preset rejection reasons" : "Specify a reason to notify the customer"}
+                   </p>
+                 </div>
+                 <button
+                   onClick={() => setIsRejectionModalOpen(false)}
+                   className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
+                 >
+                   ✕
+                 </button>
+               </div>
 
               {isManagingPresets ? (
                 <div className="p-6 space-y-4 bg-[#0d1117]">
@@ -20727,14 +20785,14 @@ const UniversalPOS = () => {
                   initial={{ scale: 0.95, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 20 }}
-                  className={`w-full max-w-lg rounded-[2.5rem] overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
+                  className={`w-full max-w-lg rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
                >
-                  <div className={`p-8 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-[#f8f9fa] border-slate-200 text-slate-800'}`}>
+                  <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
                      <div>
-                        <h3 className={`text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#18ba60]"/> Adding Customers</h3>
-                        <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
+                        <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#10ac84]" size={22}/> Adding Customers</h3>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
                      </div>
-                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2.5 rounded-xl transition-all ${isDark ? 'hover:bg-white/10 text-[#8b949e] hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}>X</button>
+                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                   </div>
 
                   <div className={`p-8 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
@@ -20745,7 +20803,7 @@ const UniversalPOS = () => {
                            value={newCustomerForm.name}
                            onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
                            placeholder="e.g. John Doe"
-                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
                         />
                      </div>
 
@@ -20755,7 +20813,7 @@ const UniversalPOS = () => {
                            <select
                               value={newCustomerCountryCode}
                               onChange={(e) => setNewCustomerCountryCode(e.target.value)}
-                              className={`px-3 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] max-w-[90px] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                              className={`px-3 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] max-w-[90px] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                            >
                               {COUNTRY_CODES.map(c => (
                                  <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
@@ -20768,7 +20826,7 @@ const UniversalPOS = () => {
                               value={newCustomerForm.phone}
                               onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
                               placeholder="e.g. 9876543210"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
                            />
                         </div>
                      </div>
@@ -20780,7 +20838,7 @@ const UniversalPOS = () => {
                            value={newCustomerForm.address}
                            onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
                            placeholder="e.g. 123 Street Name"
-                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
                         />
                      </div>
 
@@ -20792,7 +20850,7 @@ const UniversalPOS = () => {
                               value={newCustomerForm.balance}
                               onChange={(e) => setNewCustomerForm(prev => ({ ...prev, balance: e.target.value }))}
                               placeholder="0"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
                            />
                         </div>
 
@@ -20803,7 +20861,7 @@ const UniversalPOS = () => {
                               value={newCustomerForm.points}
                               onChange={(e) => setNewCustomerForm(prev => ({ ...prev, points: e.target.value }))}
                               placeholder="0"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
                            />
                         </div>
                      </div>
@@ -20878,6 +20936,294 @@ const UniversalPOS = () => {
                </motion.div>
             </motion.div>
          )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {logoutModalStep === 'sync' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col ${
+                isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-5 border-b flex justify-between items-center shrink-0 ${
+                isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <RefreshCcw className={`text-[#10ac84] ${isSyncingInProgress ? 'animate-spin' : ''}`} size={20} />
+                  <h3 className="text-sm font-black uppercase italic tracking-tighter">Sync Data Before Logout</h3>
+                </div>
+                <button
+                  onClick={() => setLogoutModalStep(null)}
+                  disabled={isSyncingInProgress}
+                  className={`p-1.5 rounded-lg transition-all text-xs ${
+                    isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
+                  } disabled:opacity-50`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className={`p-6 space-y-4 text-center ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                {(() => {
+                  const unsyncedCount = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-')))).length;
+                  
+                  return (
+                    <>
+                      {isSyncingInProgress ? (
+                        <div className="flex flex-col items-center justify-center py-4 space-y-3">
+                          <div className="w-10 h-10 rounded-full border-4 border-emerald-500/20 border-t-emerald-500 animate-spin" />
+                          <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Syncing offline bills with server...</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className={`w-14 h-14 rounded-full flex items-center justify-center mx-auto ${
+                            unsyncedCount > 0 ? 'bg-amber-500/10 text-amber-500' : 'bg-emerald-500/10 text-emerald-500'
+                          }`}>
+                            {unsyncedCount > 0 ? <AlertCircle size={28} /> : <CheckCircle size={28} />}
+                          </div>
+                          <div className="space-y-1">
+                            <h4 className="text-xs font-black uppercase tracking-wider">
+                              {unsyncedCount > 0 ? 'Pending Sales Data Found' : 'All Data Synchronized'}
+                            </h4>
+                            <p className={`text-[11px] leading-relaxed ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
+                              {unsyncedCount > 0 
+                                ? `You have ${unsyncedCount} offline/unsynced transaction(s). Logging out without syncing might lead to data loss or incorrect backend reports.`
+                                : 'All sales transactions are successfully uploaded and synchronized with the backoffice server.'
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Footer Actions */}
+                      <div className="flex gap-3 justify-center pt-2">
+                        {unsyncedCount > 0 ? (
+                          <>
+                            <button
+                              onClick={async () => {
+                                setIsSyncingInProgress(true);
+                                try {
+                                  await handleSyncBills();
+                                } catch (e) {
+                                  toast.error("Failed to complete sync: " + e.message);
+                                } finally {
+                                  setIsSyncingInProgress(false);
+                                }
+                              }}
+                              disabled={isSyncingInProgress}
+                              className="px-5 py-2 bg-[#10ac84] hover:bg-[#0e936f] disabled:bg-[#10ac84]/50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all disabled:cursor-not-allowed"
+                            >
+                              Sync Now
+                            </button>
+                            <button
+                              onClick={() => {
+                                setLogoutModalStep('confirm');
+                              }}
+                              disabled={isSyncingInProgress}
+                              className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all border ${
+                                isDark 
+                                  ? 'bg-[#21262d] border-[#30363d] text-amber-500 hover:bg-amber-500/10' 
+                                  : 'bg-white border-slate-200 text-amber-600 hover:bg-slate-50'
+                              } disabled:opacity-50`}
+                            >
+                              Skip & Proceed
+                            </button>
+                          </>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              setLogoutModalStep('confirm');
+                            }}
+                            className="px-6 py-2 bg-[#10ac84] hover:bg-[#0e936f] text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                          >
+                            Proceed to Logout
+                          </button>
+                        )}
+                        <button
+                          onClick={() => setLogoutModalStep(null)}
+                          disabled={isSyncingInProgress}
+                          className={`px-5 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                            isDark ? 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                          } disabled:opacity-50`}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  );
+                })()}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+
+        {logoutModalStep === 'confirm' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col ${
+                isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'
+              }`}
+            >
+              {/* Header */}
+              <div className={`p-5 border-b flex justify-between items-center shrink-0 ${
+                isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
+              }`}>
+                <div className="flex items-center gap-2">
+                  <LogOut className="text-red-500" size={20} />
+                  <h3 className="text-sm font-black uppercase italic tracking-tighter">Confirm Logout</h3>
+                </div>
+                <button
+                  onClick={() => setLogoutModalStep(null)}
+                  className={`p-1.5 rounded-lg transition-all text-xs ${
+                    isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
+                  }`}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className={`p-6 space-y-5 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                <div className="space-y-2 text-center">
+                  <p className={`text-xs font-bold leading-relaxed ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>
+                    Are you sure you want to log out and exit SaSLoop Master POS?
+                  </p>
+                  <p className={`text-[10px] ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>
+                    Active shift operations will remain running on the server.
+                  </p>
+                </div>
+
+                {/* Back-office controlled clear data checkbox */}
+                {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (
+                  <div className={`p-4 rounded-xl border ${
+                    isDark ? 'bg-[#161b22]/50 border-gray-800' : 'bg-slate-50 border-slate-150'
+                  } space-y-3`}>
+                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={clearLocalDataChecked}
+                        onChange={(e) => setClearLocalDataChecked(e.target.checked)}
+                        className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
+                      />
+                      <div className="space-y-0.5">
+                        <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
+                          Clear local POS sales data on logout
+                        </span>
+                        <p className={`text-[9.5px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>
+                          Purge local databases (bills, customer lists, local tables, active carts) from this device.
+                        </p>
+                      </div>
+                    </label>
+
+                    {clearLocalDataChecked && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -5 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
+                      >
+                        <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                        <span>
+                          <strong>WARNING:</strong> This action is permanent. All offline history and un-submitted carts on this machine will be lost. Ensure you have synced everything first.
+                        </span>
+                      </motion.div>
+                    )}
+                  </div>
+                )}
+
+                {/* Actions */}
+                <div className="flex gap-3 justify-end pt-2">
+                  <button
+                    onClick={() => {
+                      if (clearLocalDataChecked) {
+                        const salesDataKeys = [
+                          'pos_local_orders',
+                          'pos_table_bills',
+                          'pos_table_statuses',
+                          'pos_table_bill_numbers',
+                          'pos_kot_history',
+                          'pos_customer_db',
+                          'pos_dinein_cart',
+                          'pos_pickup_cart',
+                          'pos_quick_cart',
+                          'pos_preorder_cart',
+                          'pos_table_carts',
+                          'pos_table_customers',
+                          'pos_table_discounts',
+                          'pos_table_additional_charges',
+                          'pos_table_waiters',
+                          'pos_table_active_timestamps'
+                        ];
+                        salesDataKeys.forEach(key => localStorage.removeItem(key));
+                        
+                        // Clear react states in memory
+                        setRecentOrders([]);
+                        setTableBills({});
+                        setTableStatuses({});
+                        setTableBillNumbers({});
+                        setKotHistory({});
+                        setCustomerDb({});
+                        setDineInCart([]);
+                        setPickupCart([]);
+                        setQuickCart([]);
+                        setPreOrderCart([]);
+                        setTableCarts({});
+                        setTableCustomers({});
+                        setTableDiscounts({});
+                        setTableAdditionalCharges({});
+                        setTableWaiters({});
+                        setTableActiveTimestamps({});
+                        toast.info("Local sales data successfully cleared.");
+                      }
+
+                      // Complete standard logout
+                      localStorage.removeItem('pos_token');
+                      setIsAuthenticated(false);
+                      setUsername('');
+                      setPassword('');
+                      setActiveTab('home');
+                      setLogoutModalStep(null);
+                      setClearLocalDataChecked(false);
+                      toast.success("Successfully logged out.");
+                    }}
+                    className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
+                  >
+                    Yes, Logout
+                  </button>
+                  <button
+                    onClick={() => {
+                      setLogoutModalStep(null);
+                      setClearLocalDataChecked(false);
+                    }}
+                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                      isDark ? 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <AnimatePresence>

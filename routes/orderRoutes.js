@@ -39,6 +39,15 @@ async function findExistingCustomerNumber(userId, phone) {
 async function deductRedeemedPoints(userId, customerNumber, pointsRedeemed, orderRef) {
   if (!customerNumber || !pointsRedeemed || pointsRedeemed <= 0) return;
   try {
+    const bizRes = await pool.query(
+      "SELECT loyalty_enabled FROM restaurants WHERE user_id = $1",
+      [userId]
+    );
+    const bizData = bizRes.rows[0];
+    if (bizData && bizData.loyalty_enabled === false) {
+      console.log(`🎁 [SKIPPED] Loyalty program is disabled for Biz ${userId}. Points redemption skipped.`);
+      return;
+    }
     const targetPhone = await findExistingCustomerNumber(userId, customerNumber);
     await pool.query(
       "UPDATE customer_loyalty SET points = COALESCE(points, 0) - $1 WHERE user_id = $2 AND customer_number = $3",
@@ -199,7 +208,7 @@ router.post("/", authMiddleware, async (req, res) => {
               total_price = $4, payment_method = $5, status = $6, payment_status = $7,
               discount_amount = $8, tax_cgst = $9, tax_sgst = $10, tip_amount = $11,
               paid_amount = $12, credit_amount = $13, waiter_id = $14, charge_details = $15,
-              source = $16, table_number = $17, order_type = $18, coupon_code = $20, rider_id = $21, created_at = NOW()
+              source = $16, table_number = $17, order_type = $18, coupon_code = $20, rider_id = $21, redeemed_points = $22, created_at = NOW()
              WHERE id = $19 RETURNING *, 
                (SELECT COALESCE(name, username) FROM app_users WHERE id = waiter_id) as waiter_name,
                (SELECT name FROM delivery_partners WHERE id = rider_id) as rider_name,
@@ -214,11 +223,17 @@ router.post("/", authMiddleware, async (req, res) => {
               order_type || address || 'QUICK',
               existingOrder.id,
               coupon_code || null,
-              rider_id || null
+              rider_id || null,
+              parseInt(points_redeemed) || 0
             ]
           );
 
           const updatedOrder = result.rows[0];
+
+          // Deduct redeemed points from loyalty balance ONLY if the order is completed (settled)
+          if (updatedOrder.status === 'COMPLETED' && (parseInt(points_redeemed) || 0) > 0) {
+              await deductRedeemedPoints(userId, cleanCustomerNumber, parseInt(points_redeemed), updatedOrder.bill_no || updatedOrder.order_reference || orderRef);
+          }
 
           // 🏆 AWARD LOYALTY POINTS IF COMPLETED
           if (updatedOrder.status === 'COMPLETED') {

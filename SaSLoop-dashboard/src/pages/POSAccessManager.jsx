@@ -111,7 +111,8 @@ const SETTINGS_DEFAULT = {
   general_passcode: false,
   printers: true,
   profile: true,
-  shortcuts: true
+  shortcuts: true,
+  allow_clear_data_on_logout: false
 };
 
 const RECEIPTS_DEFAULT = {
@@ -1123,6 +1124,7 @@ const POSAccessManager = ({ userId: propUserId, onClose }) => {
                           <SwitchField label="Printers" checked={posAccess.Settings?.printers} onChange={() => handleToggle(['Settings', 'printers'])} />
                           <SwitchField label="Profile" checked={posAccess.Settings?.profile} onChange={() => handleToggle(['Settings', 'profile'])} />
                           <SwitchField label="Shortcuts" checked={posAccess.Settings?.shortcuts} onChange={() => handleToggle(['Settings', 'shortcuts'])} />
+                          <SwitchField label="Allow Clear POS Data on Logout" checked={posAccess.Settings?.allow_clear_data_on_logout} onChange={() => handleToggle(['Settings', 'allow_clear_data_on_logout'])} />
                         </div>
                       </div>
 

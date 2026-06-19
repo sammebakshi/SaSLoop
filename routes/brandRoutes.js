@@ -3769,7 +3769,8 @@ router.get("/users/:id/pos-access", authMiddleware, async (req, res) => {
           general_passcode: false,
           printers: true,
           profile: true,
-          shortcuts: true
+          shortcuts: true,
+          allow_clear_data_on_logout: false
         },
         Receipts: {
           visible: true,
