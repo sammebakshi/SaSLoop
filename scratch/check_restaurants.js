@@ -1,29 +1,21 @@
 const { Pool } = require('pg');
 const pool = new Pool({
-  connectionString: 'postgres://postgres:Admin@123@localhost:5432/sasloop_db'
+  user: 'postgres',
+  host: '127.0.0.1',
+  database: 'sasloop_db',
+  password: 'Admin@123',
+  port: 5432
 });
 
-async function run() {
+async function main() {
   try {
-    const columns = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'restaurants'
-    `);
-    console.log("Restaurants columns:");
-    columns.rows.forEach(c => console.log(`  ${c.column_name}: ${c.data_type}`));
-
-    const res = await pool.query("SELECT id, name, user_id, notification_numbers, settings FROM restaurants");
-    console.log("\nRestaurants Rows:");
-    res.rows.forEach(r => {
-      console.log(`ID: ${r.id}, Name: ${r.name}, User ID: ${r.user_id}`);
-      console.log(`  Notification Numbers: ${JSON.stringify(r.notification_numbers)}`);
-      console.log(`  Settings: ${JSON.stringify(r.settings)}`);
-    });
+    const res = await pool.query("SELECT id, user_id, name, loyalty_enabled, points_per_100, loyalty_bill_amount_threshold, loyalty_points_earned, loyalty_points_dinein, loyalty_points_pickup, loyalty_points_delivery FROM restaurants");
+    console.table(res.rows);
   } catch (err) {
-    console.error(err.message);
+    console.error(err);
   } finally {
     await pool.end();
   }
 }
-run();
+
+main();

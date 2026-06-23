@@ -386,11 +386,19 @@ const INITIAL_DEFAULT_STATE = {
   Delivery: {
     new_order: true,
     select_delivery_boy: true,
+    customer_details_mandatory: false,
     Billing: { ...BILLING_DEFAULT },
     OldKOT: { ...OLD_KOT_DEFAULT },
     SplitBill: { ...SPLIT_BILL_DEFAULT }
   },
   Pickup: {
+    new_order: true,
+    customer_details_mandatory: false,
+    Billing: { ...BILLING_DEFAULT },
+    OldKOT: { ...OLD_KOT_DEFAULT },
+    SplitBill: { ...SPLIT_BILL_DEFAULT }
+  },
+  PreOrder: {
     new_order: true,
     Billing: { ...BILLING_DEFAULT },
     OldKOT: { ...OLD_KOT_DEFAULT },
@@ -1025,6 +1033,7 @@ const POSAccessManager = ({ userId: propUserId, onClose }) => {
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             <SwitchField label="New Order" checked={posAccess.Delivery?.new_order} onChange={() => handleToggle(['Delivery', 'new_order'])} />
                             <SwitchField label="Select Delivery Boy" checked={posAccess.Delivery?.select_delivery_boy} onChange={() => handleToggle(['Delivery', 'select_delivery_boy'])} />
+                            <SwitchField label="Customer Details Mandatory" checked={posAccess.Delivery?.customer_details_mandatory} onChange={() => handleToggle(['Delivery', 'customer_details_mandatory'])} />
                           </div>
                           
                           <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
@@ -1051,6 +1060,7 @@ const POSAccessManager = ({ userId: propUserId, onClose }) => {
                         <div className="p-5 space-y-6">
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             <SwitchField label="New Order" checked={posAccess.Pickup?.new_order} onChange={() => handleToggle(['Pickup', 'new_order'])} />
+                            <SwitchField label="Customer Details Mandatory" checked={posAccess.Pickup?.customer_details_mandatory} onChange={() => handleToggle(['Pickup', 'customer_details_mandatory'])} />
                           </div>
                           
                           <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
@@ -1066,6 +1076,32 @@ const POSAccessManager = ({ userId: propUserId, onClose }) => {
                             <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
                               <SubSectionHeader title="Split Bill" />
                               <SplitBillSectionGrid pathPrefix={['Pickup', 'SplitBill']} data={posAccess.Pickup?.SplitBill} onToggle={handleToggle} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* 13b. Prebooking Section */}
+                      <div className="bg-white dark:bg-[#1e2129] rounded-xl border border-slate-200 dark:border-white/5 shadow-sm overflow-hidden">
+                        <SectionHeader title="Prebooking" />
+                        <div className="p-5 space-y-6">
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <SwitchField label="New Order" checked={posAccess.PreOrder?.new_order} onChange={() => handleToggle(['PreOrder', 'new_order'])} />
+                          </div>
+                          
+                          <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
+                            <SubSectionHeader title="Billing" />
+                            <BillingSectionGrid pathPrefix={['PreOrder', 'Billing']} data={posAccess.PreOrder?.Billing} onToggle={handleToggle} />
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
+                              <SubSectionHeader title="Old KOT" />
+                              <OldKotSectionGrid pathPrefix={['PreOrder', 'OldKOT']} data={posAccess.PreOrder?.OldKOT} onToggle={handleToggle} />
+                            </div>
+                            <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">
+                              <SubSectionHeader title="Split Bill" />
+                              <SplitBillSectionGrid pathPrefix={['PreOrder', 'SplitBill']} data={posAccess.PreOrder?.SplitBill} onToggle={handleToggle} />
                             </div>
                           </div>
                         </div>

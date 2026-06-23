@@ -360,7 +360,26 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
         // Fetch settings to check if we should count advances in today's sales
         const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1", [userId]);
         const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
-        const countAdvanceInSales = !!settings.countAdvanceInSales;
+        
+        const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+        const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+        // Dynamic SQL sum expressions based on recognition mode
+        const salesSumExpr = countAdvanceInSales
+            ? "total_price - COALESCE(pre_order_advance, 0)"
+            : "total_price";
+        const salesSumExprWithAlias = countAdvanceInSales
+            ? "o.total_price - COALESCE(o.pre_order_advance, 0)"
+            : "o.total_price";
+        const creditSumExpr = countAdvanceInSales
+            ? `CASE 
+                 WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN (total_price - COALESCE(pre_order_advance, 0))
+                 ELSE (COALESCE(credit_amount, 0) - CASE WHEN COALESCE(credit_amount, 0) > 0 THEN COALESCE(pre_order_advance, 0) ELSE 0 END)
+               END`
+            : `CASE 
+                 WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN total_price
+                 ELSE COALESCE(credit_amount, 0)
+               END`;
 
         // Build date filter for orders table
         let dateFilter = "";
@@ -424,27 +443,27 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
         ] = await Promise.all([
             // a. Today's sales
             pool.query(
-                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
+                `SELECT COALESCE(SUM(${salesSumExpr}), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
                 [userId, todayStart]
             ),
             // b. Total sales (filtered by date)
             pool.query(
-                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                `SELECT COALESCE(SUM(${salesSumExprWithAlias}), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
                 dateParams
             ),
             // c. This month's sales
             pool.query(
-                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
+                `SELECT COALESCE(SUM(${salesSumExpr}), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= $2 AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias}`,
                 [userId, monthStart]
             ),
             // d. Order type breakdown
             pool.query(
-                `SELECT COALESCE(order_type, source, address, 'QUICK') as order_type, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(order_type, source, address, 'QUICK')`,
+                `SELECT COALESCE(order_type, source, address, 'QUICK') as order_type, COALESCE(SUM(${salesSumExprWithAlias}), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(order_type, source, address, 'QUICK')`,
                 dateParams
             ),
             // e. Payment method breakdown
             pool.query(
-                `SELECT COALESCE(payment_method, 'CASH') as method, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(payment_method, 'CASH')`,
+                `SELECT COALESCE(payment_method, 'CASH') as method, COALESCE(SUM(${salesSumExprWithAlias}), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} GROUP BY COALESCE(payment_method, 'CASH')`,
                 dateParams
             ),
             // f. Tax totals
@@ -464,7 +483,7 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
             ),
             // i. Due payments
             pool.query(
-                `SELECT COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.payment_status = 'PENDING' AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
+                `SELECT COALESCE(SUM(${salesSumExprWithAlias}), 0) as total, COUNT(*) as count FROM orders o WHERE o.user_id = $1 AND o.payment_status = 'PENDING' AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias}`,
                 dateParams
             ),
             // j. Expenses
@@ -476,7 +495,7 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
             ),
             // k. Daily sales for chart
             pool.query(
-                `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date`,
+                `SELECT TO_CHAR(created_at, 'YYYY-MM-DD') as date, COALESCE(SUM(${salesSumExpr}), 0) as total, COUNT(*) as count FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '30 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY TO_CHAR(created_at, 'YYYY-MM-DD') ORDER BY date`,
                 [userId]
             ),
             // l. Top items for pie chart
@@ -486,32 +505,22 @@ router.get("/dashboard-stats", authMiddleware, async (req, res) => {
             ),
             // m. Weekly heatmap (last 4 weeks)
             pool.query(
-                `SELECT EXTRACT(DOW FROM created_at) as dow, EXTRACT(WEEK FROM created_at) as week, COALESCE(SUM(total_price), 0) as total FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '28 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY dow, week ORDER BY week, dow`,
+                `SELECT EXTRACT(DOW FROM created_at) as dow, EXTRACT(WEEK FROM created_at) as week, COALESCE(SUM(${salesSumExpr}), 0) as total FROM orders WHERE user_id = $1 AND created_at >= NOW() - INTERVAL '28 days' AND status != 'CANCELLED'${terminalFilterNoAlias}${devFilterNoAlias} GROUP BY dow, week ORDER BY week, dow`,
                 [userId]
             ),
             // n. Today's Credit Sales
             pool.query(
-                `SELECT COALESCE(SUM(
-                  CASE 
-                    WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN total_price
-                    ELSE COALESCE(credit_amount, 0)
-                  END
-                ), 0) as total FROM orders WHERE user_id = $1 AND created_at >= $2 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
+                `SELECT COALESCE(SUM(${creditSumExpr}), 0) as total FROM orders WHERE user_id = $1 AND created_at >= $2 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
                 [userId, todayStart]
             ),
             // o. Total Credit Sales
             pool.query(
-                `SELECT COALESCE(SUM(
-                  CASE 
-                    WHEN UPPER(payment_method) IN ('CREDIT', 'DUE') THEN total_price
-                    ELSE COALESCE(credit_amount, 0)
-                  END
-                ), 0) as total FROM orders WHERE user_id = $1 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
+                `SELECT COALESCE(SUM(${creditSumExpr}), 0) as total FROM orders WHERE user_id = $1 AND status NOT IN ('CANCELLED', 'DELETED')${terminalFilterNoAlias}${devFilterNoAlias}`,
                 [userId]
             ),
             // p. Sales by Source breakdown
             pool.query(
-                `SELECT COALESCE(source, 'UNKNOWN') as source, COALESCE(SUM(total_price), 0) as total, COUNT(*) as count 
+                `SELECT COALESCE(source, 'UNKNOWN') as source, COALESCE(SUM(${salesSumExprWithAlias}), 0) as total, COUNT(*) as count 
                  FROM orders o 
                  WHERE o.user_id = $1 AND o.status != 'CANCELLED' ${dateFilter}${terminalFilterWithAlias}${devFilterWithAlias} 
                  GROUP BY COALESCE(source, 'UNKNOWN')`,

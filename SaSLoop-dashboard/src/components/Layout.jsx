@@ -101,6 +101,7 @@ const Layout = () => {
             { name: "Outlet User", icon: UserCircle, path: "/staff" },
             { name: "Outlet Payment Mode", icon: CreditCard, path: "/outlet-payments" },
             { name: "Order Type Mapping", icon: Shuffle, path: "/order-types" },
+            { name: "Pre-Order Settings", icon: Calendar, path: "/pre-order-settings" },
           ]},
           { name: "Master Configuration", icon: Box, isHeader: true, subItems: [
             { name: "Tax Product Group", icon: Layers, path: "/tax-product-group" },

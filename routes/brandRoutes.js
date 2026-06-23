@@ -2211,10 +2211,20 @@ router.get("/analytics/z-report", authMiddleware, async (req, res) => {
   const { outlet_id, from_date, to_date } = req.query;
 
   try {
+    const settingsRes = await pool.query("SELECT settings, user_id FROM restaurants WHERE id = $1", [outlet_id]);
+    const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+    
+    const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+    const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+    const salesSumExpr = countAdvanceInSales
+      ? "total_price - COALESCE(pre_order_advance, 0)"
+      : "total_price";
+
     const summaryQuery = `
       SELECT 
         COALESCE(COUNT(*), 0) as total_orders,
-        COALESCE(SUM(total_price), 0) as total_sales,
+        COALESCE(SUM(${salesSumExpr}), 0) as total_sales,
         COALESCE(SUM(COALESCE(tax_cgst, 0) + COALESCE(tax_sgst, 0)), 0) as total_tax,
         COALESCE(SUM(CASE WHEN status = 'CANCELLED' THEN 1 ELSE 0 END), 0) as cancelled_orders,
         COALESCE(SUM(CASE WHEN status = 'PENDING' THEN 1 ELSE 0 END), 0) as pending_orders,
@@ -2226,7 +2236,25 @@ router.get("/analytics/z-report", authMiddleware, async (req, res) => {
     `;
     
     const result = await pool.query(summaryQuery, [outlet_id, from_date, to_date]);
-    res.json(result.rows[0]);
+    
+    let totalAdvances = 0;
+    if (countAdvanceInSales) {
+      const ownerUserId = settingsRes.rows[0]?.user_id;
+      if (ownerUserId) {
+        const advRes = await pool.query(
+          "SELECT COALESCE(SUM(advance_paid), 0) as total FROM pre_orders WHERE user_id = $1 AND created_at >= $2 AND created_at <= $3 AND status != 'CANCELLED'",
+          [ownerUserId, from_date, to_date]
+        );
+        totalAdvances = parseFloat(advRes.rows[0].total) || 0;
+      }
+    }
+
+    const finalSales = parseFloat(result.rows[0].total_sales) + totalAdvances;
+
+    res.json({
+      ...result.rows[0],
+      total_sales: finalSales
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -2283,6 +2311,15 @@ router.get("/analytics/item-report", authMiddleware, async (req, res) => {
 router.get("/analytics/meal-time-sales", authMiddleware, async (req, res) => {
   const { outlet_id, from_date, to_date } = req.query;
   try {
+    const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE id = $1", [outlet_id]);
+    const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+    const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+    const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+    const salesSumExpr = countAdvanceInSales
+      ? "total_price - COALESCE(pre_order_advance, 0)"
+      : "total_price";
+
     const query = `
       SELECT 
         CASE 
@@ -2293,8 +2330,8 @@ router.get("/analytics/meal-time-sales", authMiddleware, async (req, res) => {
           ELSE 'Late Night'
         END as meal_slot_name,
         COUNT(*) as total_orders,
-        SUM(total_price) as total_revenue,
-        AVG(total_price) as avg_order_value
+        SUM(${salesSumExpr}) as total_revenue,
+        AVG(${salesSumExpr}) as avg_order_value
       FROM orders
       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
       GROUP BY meal_slot_name
@@ -2307,11 +2344,20 @@ router.get("/analytics/meal-time-sales", authMiddleware, async (req, res) => {
 router.get("/analytics/hourly-report", authMiddleware, async (req, res) => {
   const { outlet_id, from_date, to_date } = req.query;
   try {
+    const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE id = $1", [outlet_id]);
+    const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+    const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+    const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+    const salesSumExpr = countAdvanceInSales
+      ? "total_price - COALESCE(pre_order_advance, 0)"
+      : "total_price";
+
     const query = `
       SELECT 
         EXTRACT(HOUR FROM created_at) as hour,
         COUNT(*) as total_orders,
-        SUM(total_price) as total_revenue
+        SUM(${salesSumExpr}) as total_revenue
       FROM orders
       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
       GROUP BY hour ORDER BY hour ASC
@@ -2352,10 +2398,19 @@ router.get("/analytics/waiter-incentive", authMiddleware, async (req, res) => {
 router.get("/analytics/payment-report", authMiddleware, async (req, res) => {
   const { outlet_id, from_date, to_date } = req.query;
   try {
+    const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE id = $1", [outlet_id]);
+    const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+    const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+    const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+    const salesSumExpr = countAdvanceInSales
+      ? "total_price - COALESCE(pre_order_advance, 0)"
+      : "total_price";
+
     const query = `
       SELECT 
         payment_mode,
-        SUM(total_price) as total_collection,
+        SUM(${salesSumExpr}) as total_collection,
         COUNT(*) as total_orders
       FROM orders
       WHERE restaurant_id = $1 AND created_at >= $2 AND created_at <= $3
@@ -2388,10 +2443,19 @@ router.get("/analytics/expense-report", authMiddleware, async (req, res) => {
 router.get("/analytics/order-type-report", authMiddleware, async (req, res) => {
   const { outlet_id, from_date, to_date } = req.query;
   try {
+    const settingsRes = await pool.query("SELECT settings FROM restaurants WHERE id = $1", [outlet_id]);
+    const settings = settingsRes.rows[0]?.settings ? (typeof settingsRes.rows[0].settings === 'string' ? JSON.parse(settingsRes.rows[0].settings) : settingsRes.rows[0].settings) : {};
+    const preOrderRevenueMode = settings.preOrderRevenueMode || (settings.countAdvanceInSales ? 'BOOKING_DAY' : 'FULFILLMENT_DAY');
+    const countAdvanceInSales = preOrderRevenueMode === 'BOOKING_DAY';
+
+    const salesSumExpr = countAdvanceInSales
+      ? "total_price - COALESCE(pre_order_advance, 0)"
+      : "total_price";
+
     const query = `
       SELECT 
         order_type as order_from,
-        SUM(total_price) as amount,
+        SUM(${salesSumExpr}) as amount,
         COUNT(*) as count,
         'COMPLETED' as status
       FROM orders
@@ -3725,6 +3789,58 @@ router.get("/users/:id/pos-access", authMiddleware, async (req, res) => {
             portion_wise: true
           }
         },
+        PreOrder: {
+          new_order: true,
+          customer_details_mandatory: false,
+          Billing: {
+            visible: true,
+            visible_passcode: false,
+            add_charges: true,
+            add_charges_passcode: false,
+            add_coupon: true,
+            add_coupon_passcode: false,
+            add_discount: true,
+            add_discount_passcode: false,
+            add_payment: true,
+            allow_draft_bill_printing: true,
+            allow_draft_bill_printing_passcode: false,
+            modify_bill_status: true,
+            modify_bill_status_passcode: false,
+            settle_bill: true,
+            preview: true,
+            preview_passcode: false,
+            save_print_bill: true,
+            save_bill: true,
+            send_bill: true,
+            allowed_due_payment: true,
+            allowed_due_payment_passcode: false,
+            restrict_reprint_bill: true,
+            restrict_reprint_bill_passcode: false,
+            order_note: true
+          },
+          OldKOT: {
+            visible: true,
+            visible_passcode: false,
+            cancel_kot: true,
+            cancel_kot_passcode: false,
+            delete_kot: true,
+            delete_kot_passcode: false,
+            print_cancel_kot: true,
+            print_kot: true,
+            transfer_item: true,
+            transfer_item_passcode: false,
+            item_as_complementary: true,
+            item_as_complementary_passcode: false,
+            check_kot_print: true
+          },
+          SplitBill: {
+            visible: true,
+            visible_passcode: false,
+            item_wise: true,
+            percentage_wise: true,
+            portion_wise: true
+          }
+        },
         QuickBill: {
           visible: true,
           visible_passcode: false,
@@ -4057,6 +4173,41 @@ router.post("/users/:id/mpos-access", authMiddleware, async (req, res) => {
     res.json({ success: true, message: "MPOS Access Level saved successfully." });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// Mail Report Endpoint utilizing SMTP
+const nodemailer = require("nodemailer");
+router.post("/reports/email", authMiddleware, async (req, res) => {
+  const { to, subject, html } = req.body;
+  if (!to || !subject || !html) {
+    return res.status(400).json({ error: "Missing required fields: to, subject, html" });
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: parseInt(process.env.SMTP_PORT || "587"),
+      secure: process.env.SMTP_SECURE === "true", 
+      auth: {
+        user: process.env.SMTP_USER || "test@gmail.com",
+        pass: process.env.SMTP_PASS || "testpass",
+      },
+    });
+
+    const mailOptions = {
+      from: process.env.SMTP_FROM || `"SaSLoop Reports" <${process.env.SMTP_USER || "test@gmail.com"}>`,
+      to,
+      subject,
+      html,
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent: %s", info.messageId);
+    res.json({ success: true, messageId: info.messageId });
+  } catch (err) {
+    console.error("Failed to send email report:", err);
+    res.status(500).json({ error: "Failed to send email report: " + err.message });
   }
 });
 

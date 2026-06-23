@@ -1,30 +1,21 @@
-const pool = require("../db");
+const { Pool } = require('pg');
+const pool = new Pool({
+  user: 'postgres',
+  host: '127.0.0.1',
+  database: 'sasloop_db',
+  password: 'Admin@123',
+  port: 5432
+});
 
-async function checkOrderCharges() {
+async function main() {
   try {
-    const res = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'orders' 
-        AND column_name LIKE '%charge%'
-      ORDER BY ordinal_position;
-    `);
-    console.log("Orders charge columns:", res.rows);
-    
-    // Also check if there's a charge_details column
-    const res2 = await pool.query(`
-      SELECT column_name, data_type 
-      FROM information_schema.columns 
-      WHERE table_name = 'orders'
-      ORDER BY ordinal_position;
-    `);
-    console.log("\nAll orders columns:");
-    res2.rows.forEach(r => console.log(`  ${r.column_name} (${r.data_type})`));
+    const res = await pool.query("SELECT * FROM orders WHERE customer_name = 'Sajad' OR customer_number LIKE '%7006089744%' ORDER BY created_at DESC LIMIT 5");
+    console.log(res.rows);
   } catch (err) {
-    console.error("Error:", err.message);
+    console.error(err);
   } finally {
-    pool.end();
+    await pool.end();
   }
 }
 
-checkOrderCharges();
+main();

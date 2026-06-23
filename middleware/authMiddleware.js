@@ -33,6 +33,32 @@ const authMiddleware = async (req, res, next) => {
       return res.status(403).json({ error: "Your account has been deactivated. Please contact your administrator." });
     }
 
+    // Support switched outlet context safely
+    let bizId = user.parent_user_id || user.id;
+    const targetHeader = req.headers["x-target-user-id"];
+    if (targetHeader && targetHeader !== "null" && targetHeader !== "undefined") {
+      const targetUserId = parseInt(targetHeader);
+      if (user.role === 'master_admin') {
+        bizId = targetUserId;
+      } else if (user.role === 'brand_owner') {
+        const validateRes = await pool.query(
+          "SELECT id FROM app_users WHERE id = $1 AND (parent_user_id = $2 OR owner_id = $2 OR id = $2)",
+          [targetUserId, user.id]
+        );
+        if (validateRes.rows.length > 0) {
+          bizId = targetUserId;
+        }
+      } else if (user.role && user.role.startsWith('admin')) {
+        const validateRes = await pool.query(
+          "SELECT id FROM app_users WHERE id = $1 AND (parent_user_id = $2 OR created_by = $2 OR id = $2)",
+          [targetUserId, user.id]
+        );
+        if (validateRes.rows.length > 0) {
+          bizId = targetUserId;
+        }
+      }
+    }
+
     req.user = {
       id: user.id,
       email: user.email,
@@ -41,7 +67,7 @@ const authMiddleware = async (req, res, next) => {
       created_by: user.created_by,
       assigned_admin_id: user.assigned_admin_id,
       parent_user_id: user.parent_user_id,
-      bizId: user.parent_user_id || user.id // Unified business ID
+      bizId: bizId
     };
 
     next();

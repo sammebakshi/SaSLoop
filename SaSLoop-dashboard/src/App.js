@@ -79,6 +79,7 @@ import NutritionManager from "./pages/NutritionManager";
 import MultiplePricing from "./pages/MultiplePricing";
 import OnlineOrderHub from "./pages/OnlineOrderHub";
 import DigitalOrderSettings from "./pages/DigitalOrderSettings";
+import PreOrderSettings from "./pages/PreOrderSettings";
 import DeliveryPlatformManager from "./pages/DeliveryPlatformManager";
 import SalesReport from "./pages/SalesReport";
 import DSRReport from "./pages/DSRReport";
@@ -331,6 +332,7 @@ function App() {
             <Route path="/online-orders" element={<OnlineOrderHub />} />
             <Route path="/delivery-platforms" element={<DeliveryPlatformManager />} />
             <Route path="/digital-order-settings" element={<DigitalOrderSettings />} />
+            <Route path="/pre-order-settings" element={<PreOrderSettings />} />
             <Route path="/centralized-hub" element={<CentralizedOrderingHub />} />
             <Route path="/whatsapp-connect" element={<WhatsAppConnect />} />
             <Route path="/bot-config" element={<BotConfig />} />

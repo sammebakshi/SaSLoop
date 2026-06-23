@@ -1,0 +1,9 @@
+◇ injected env (16) from .env // tip: ⌘ override existing { override: true }
+◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+🔍 [ENV DIAGNOSTIC] {
+  DB_NAME: 'sasloop_db',
+  DB_USER: 'postgres',
+  DB_HOST: 'localhost',
+  HAS_DOTENV: true
+}
+🔌 [DB CONFIG] Host: localhost, Database: sasloop_db

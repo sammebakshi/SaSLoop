@@ -1,0 +1,350 @@
+                        {settingsActiveTab === 'printer' && (
+                           <div className="space-y-4">
+                              {/* Printer Connection Type */}
+                              <div className="flex flex-col gap-2">
+                                 <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">Receipt Printer Connection</label>
+                                 <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
+                                    {['USB', 'WiFi', 'Bluetooth'].map(type => (
+                                       <button
+                                          key={type}
+                                          type="button"
+                                          onClick={() => setPosSettings(prev => ({ ...prev, printerConnection: type }))}
+                                          className={`flex-1 py-2 text-[9px] font-black uppercase rounded transition-all ${
+                                             posSettings.printerConnection === type
+                                                ? 'bg-[#10ac84] text-white shadow-sm border border-[#10ac84]'
+                                                : (isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-500 hover:text-slate-900')
+                                          }`}
+                                       >
+                                          {type} Connection
+                                       </button>
+                                    ))}
+                                 </div>
+                              </div>
+
+                              {/* Connection Details Field */}
+                              <div className="grid grid-cols-2 gap-4">
+                                 {posSettings.printerConnection === 'WiFi' ? (
+                                    <div className="flex flex-col gap-1.5 col-span-2">
+                                       <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">WiFi Printer IP Address</label>
+                                       <input
+                                          type="text"
+                                          placeholder="e.g. 192.168.1.200"
+                                          value={posSettings.printerIp || ''}
+                                          onChange={e => setPosSettings(prev => ({ ...prev, printerIp: e.target.value }))}
+                                          className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                       />
+                                    </div>
+                                 ) : (
+                                    <div className="flex flex-col gap-1.5 col-span-2">
+                                       <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">
+                                          {posSettings.printerConnection === 'USB' ? 'System Printer Name' : 'Bluetooth Device ID'}
+                                       </label>
+                                       {availablePrinters && availablePrinters.length > 0 ? (
+                                          <select
+                                             value={posSettings.printerName || ''}
+                                             onChange={e => setPosSettings(prev => ({ ...prev, printerName: e.target.value }))}
+                                             className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                          >
+                                             {availablePrinters.map(p => (
+                                                <option key={p.id} value={p.name}>{p.name}</option>
+                                             ))}
+                                          </select>
+                                       ) : (
+                                          <input
+                                             type="text"
+                                             placeholder="Type system printer name..."
+                                             value={posSettings.printerName || ''}
+                                             onChange={e => setPosSettings(prev => ({ ...prev, printerName: e.target.value }))}
+                                             className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                          />
+                                       )}
+                                    </div>
+                                 )}
+                              </div>
+
+                              {/* Paper Width & Auto Cut */}
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className={`flex flex-col gap-2 p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Paper Width</span>
+                                    <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
+                                       <button
+                                          type="button"
+                                          onClick={() => setPosSettings(prev => ({ ...prev, printerType: 'THERMAL_80MM' }))}
+                                          className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded transition-all ${posSettings.printerType === 'THERMAL_80MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                       >
+                                          80mm (Standard)
+                                       </button>
+                                       <button
+                                          type="button"
+                                          onClick={() => setPosSettings(prev => ({ ...prev, printerType: 'THERMAL_58MM' }))}
+                                          className={`flex-1 py-1.5 text-[9px] font-black uppercase rounded transition-all ${posSettings.printerType === 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                       >
+                                          58mm (Compact)
+                                       </button>
+                                    </div>
+                                 </div>
+
+                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <div className="flex flex-col gap-0.5">
+                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Auto-Cut Paper</span>
+                                       <span className="text-[8px] font-bold text-[#8b949e]">Send paper cut command after printing</span>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => setPosSettings(prev => ({ ...prev, autoCut: prev.autoCut === undefined ? true : !prev.autoCut }))}
+                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.autoCut !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                    >
+                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.autoCut !== false ? 'right-0.5' : 'left-0.5'}`} />
+                                    </button>
+                                 </div>
+                              </div>
+
+                              {/* Auto Print KOT & Receipt Logo */}
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <div className="flex flex-col gap-0.5">
+                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Auto-Print KOT</span>
+                                       <span className="text-[8px] font-bold text-[#8b949e]">Print KOT slip instantly when sent to kitchen</span>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => setPosSettings(prev => ({ ...prev, autoPrintKOT: !prev.autoPrintKOT }))}
+                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.autoPrintKOT ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                    >
+                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.autoPrintKOT ? 'right-0.5' : 'left-0.5'}`} />
+                                    </button>
+                                 </div>
+
+                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <div className="flex flex-col gap-0.5">
+                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Print Logo on Receipt</span>
+                                       <span className="text-[8px] font-bold text-[#8b949e]">Include brand logo on thermal receipts</span>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => setPosSettings(prev => ({ ...prev, showLogoOnReceipt: !prev.showLogoOnReceipt }))}
+                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.showLogoOnReceipt ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                    >
+                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.showLogoOnReceipt ? 'right-0.5' : 'left-0.5'}`} />
+                                    </button>
+                                 </div>
+                              </div>
+
+                              {/* Prebooking Order Copies */}
+                              <div className="grid grid-cols-2 gap-4">
+                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <div className="flex flex-col gap-0.5">
+                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Print Customer Copy (Pre-Order)</span>
+                                       <span className="text-[8px] font-bold text-[#8b949e]">Print customer copy for prebooking order</span>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => setPosSettings(prev => ({ ...prev, printCustomerCopyPreorder: prev.printCustomerCopyPreorder === undefined ? true : !prev.printCustomerCopyPreorder }))}
+                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.printCustomerCopyPreorder !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                    >
+                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.printCustomerCopyPreorder !== false ? 'right-0.5' : 'left-0.5'}`} />
+                                    </button>
+                                 </div>
+
+                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
+                                    <div className="flex flex-col gap-0.5">
+                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Print Restaurant Copy (Pre-Order)</span>
+                                       <span className="text-[8px] font-bold text-[#8b949e]">Print restaurant copy for prebooking order</span>
+                                    </div>
+                                    <button
+                                       type="button"
+                                       onClick={() => setPosSettings(prev => ({ ...prev, printRestaurantCopyPreorder: prev.printRestaurantCopyPreorder === undefined ? true : !prev.printRestaurantCopyPreorder }))}
+                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.printRestaurantCopyPreorder !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                    >
+                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.printRestaurantCopyPreorder !== false ? 'right-0.5' : 'left-0.5'}`} />
+                                    </button>
+                                 </div>
+                              </div>
+
+                              {/* Separate Printers configuration UI */}
+                              <div className="border-t pt-4 dark:border-gray-800 space-y-4">
+                                 <div>
+                                    <h4 className={`text-[11px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Order Type Specific Printers</h4>
+                                    <p className={`text-[8.5px] font-bold ${isDark ? 'text-[#8b949e]' : 'text-slate-500'} mt-0.5`}>Configure separate KOT and Bill printers, toggles, and paper sizes for each order type.</p>
+                                 </div>
+                                 <div className="space-y-4">
+                                    {[
+                                       { key: 'DINE_IN', label: 'Dine-In' },
+                                       { key: 'PICKUP', label: 'Takeaway (Pickup)' },
+                                       { key: 'DELIVERY', label: 'Delivery' },
+                                       { key: 'QUICK', label: 'Quick Bill' },
+                                       { key: 'PRE_ORDER', label: 'Pre-Order' }
+                                    ].map(type => {
+                                       const printers = posSettings.orderPrinters || {};
+                                       const configGroup = printers[type.key] || {
+                                          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
+                                          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
+                                       };
+                                       const kotConfig = configGroup.kot || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
+                                       const billConfig = configGroup.bill || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
+
+                                       return (
+                                          <div key={type.key} className={`p-4 rounded-xl border transition-all ${isDark ? 'bg-[#161b22]/40 border-[#30363d] hover:border-gray-700' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300'} space-y-3`}>
+                                             <div className="flex items-center justify-between border-b pb-2 dark:border-gray-800/80">
+                                                <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-[#10ac84]'}`}>{type.label} settings</span>
+                                             </div>
+                                             
+                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                {/* KOT Printer Configuration */}
+                                                <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white border-slate-200/80'} space-y-3`}>
+                                                   <div className="flex items-center justify-between">
+                                                      <span className={`text-[9.5px] font-black uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>KOT Printer</span>
+                                                      <button
+                                                         type="button"
+                                                         onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'enabled', kotConfig.enabled === undefined ? false : !kotConfig.enabled)}
+                                                         className={`w-8 h-4.5 rounded-full transition-all relative shrink-0 ${kotConfig.enabled !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                                      >
+                                                         <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${kotConfig.enabled !== false ? 'right-0.5' : 'left-0.5'}`} />
+                                                      </button>
+                                                   </div>
+                                                   
+                                                   <div className="flex flex-col gap-1">
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase">Target Printer</label>
+                                                      {availablePrinters && availablePrinters.length > 0 ? (
+                                                         <select
+                                                            value={kotConfig.name || ''}
+                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
+                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                                         >
+                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
+                                                            {availablePrinters.map(p => (
+                                                               <option key={p.id} value={p.name}>{p.name}</option>
+                                                            ))}
+                                                         </select>
+                                                      ) : (
+                                                         <input
+                                                            type="text"
+                                                            placeholder="Type system printer name..."
+                                                            value={kotConfig.name || ''}
+                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
+                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                                         />
+                                                      )}
+                                                   </div>
+
+                                                   <div className="flex flex-col gap-1">
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Paper Size</label>
+                                                      <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
+                                                         <button
+                                                            type="button"
+                                                            onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'paperSize', 'THERMAL_80MM')}
+                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${kotConfig.paperSize !== 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                                         >
+                                                            80mm
+                                                         </button>
+                                                         <button
+                                                            type="button"
+                                                            onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'paperSize', 'THERMAL_58MM')}
+                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${kotConfig.paperSize === 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                                         >
+                                                            58mm
+                                                         </button>
+                                                      </div>
+                                                   </div>
+                                                </div>
+
+                                                {/* Bill Printer Configuration */}
+                                                <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white border-slate-200/80'} space-y-3`}>
+                                                   <div className="flex items-center justify-between">
+                                                      <span className={`text-[9.5px] font-black uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>Bill Printer</span>
+                                                      <button
+                                                         type="button"
+                                                         onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'enabled', billConfig.enabled === undefined ? false : !billConfig.enabled)}
+                                                         className={`w-8 h-4.5 rounded-full transition-all relative shrink-0 ${billConfig.enabled !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
+                                                      >
+                                                         <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${billConfig.enabled !== false ? 'right-0.5' : 'left-0.5'}`} />
+                                                      </button>
+                                                   </div>
+                                                   
+                                                   <div className="flex flex-col gap-1">
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Target Printer</label>
+                                                      {availablePrinters && availablePrinters.length > 0 ? (
+                                                         <select
+                                                            value={billConfig.name || ''}
+                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
+                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                                         >
+                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
+                                                            {availablePrinters.map(p => (
+                                                               <option key={p.id} value={p.name}>{p.name}</option>
+                                                            ))}
+                                                         </select>
+                                                      ) : (
+                                                         <input
+                                                            type="text"
+                                                            placeholder="Type system printer name..."
+                                                            value={billConfig.name || ''}
+                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
+                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
+                                                         />
+                                                      )}
+                                                   </div>
+
+                                                   <div className="flex flex-col gap-1">
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Paper Size</label>
+                                                      <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
+                                                         <button
+                                                            type="button"
+                                                            onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'paperSize', 'THERMAL_80MM')}
+                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${billConfig.paperSize !== 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                                         >
+                                                            80mm
+                                                         </button>
+                                                         <button
+                                                            type="button"
+                                                            onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'paperSize', 'THERMAL_58MM')}
+                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${billConfig.paperSize === 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
+                                                         >
+                                                            58mm
+                                                         </button>
+                                                      </div>
+                                                   </div>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       );
+                                    })}
+                                 </div>
+                              </div>
+                           </div>
+                        )}
+
+                        {settingsActiveTab === 'shortcuts' && (
+                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-4`}>
+                              <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Keyboard Shortcuts</span>
+                              <div className="divide-y divide-slate-200 dark:divide-gray-800 text-xs">
+                                 {[
+                                    { key: 'F1', desc: 'Load active menu items' },
+                                    { key: 'F2', desc: 'Print & Save order' },
+                                    { key: 'F3', desc: 'Settle current bill' },
+                                    { key: 'F4', desc: 'Save active cart order' },
+                                    { key: 'F5', desc: 'Add new customer details' },
+                                    { key: 'ESC', desc: 'Close active popup/clear searches' }
+                                 ].map((item) => (
+                                    <div key={item.key} className="flex items-center justify-between py-2.5">
+                                       <span className={`font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>{item.desc}</span>
+                                       <kbd className="px-2 py-1 rounded bg-[#10ac84] text-white font-black text-[9px] shadow-sm uppercase">{item.key}</kbd>
+                                    </div>
+                                 ))}
+                              </div>
+                           </div>
+                        )}
+
+                        {settingsActiveTab === 'profile' && (
+                           <div className={`p-6 rounded-2xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-6`}>
+                              <div>
+                                 <h4 className={`text-[12px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Outlet Profile (Back Office)</h4>
+                                 <p className={`text-[10px] ${isDark ? 'text-[#8b949e]' : 'text-slate-500'} mt-0.5`}>Real-time synchronized data of your business outlet</p>
+                              </div>
+
+                              <div className="grid grid-cols-2 gap-5 text-xs font-bold">
+                                 <div className="flex flex-col gap-1">
+                                    <span className="text-[9px] font-black text-[#8b949e] uppercase">Outlet Name</span>
+                                    <span className={isDark ? 'text-white' : 'text-slate-800'}>
+                                       {business?.business_name || business?.business_details?.name || 'Universal Outlet'}
+                                    </span>

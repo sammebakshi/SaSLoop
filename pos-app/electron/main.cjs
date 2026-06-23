@@ -67,13 +67,46 @@ ipcMain.on('window-close', (event) => {
   if (win) win.close();
 });
 
+let mainWindow = null;
+let splashWindow = null;
+
 function createWindow() {
+  // Create Splash Screen Window (Fullscreen, Frameless, Transparent for cinematic animation)
+  splashWindow = new BrowserWindow({
+    fullscreen: true,
+    frame: false,
+    transparent: true,
+    alwaysOnTop: true,
+    resizable: false,
+    show: false,
+    skipTaskbar: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    }
+  });
+
+  if (isDev) {
+    splashWindow.loadURL('http://127.0.0.1:5173/splash.html');
+  } else {
+    splashWindow.loadFile(path.join(__dirname, '../dist/splash.html'));
+  }
+
+  splashWindow.once('ready-to-show', () => {
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.show();
+    }
+  });
+
+  // Create Main Window (keep hidden initially)
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
     title: "SaSLoop Master POS",
     icon: path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png'),
     frame: false, // Frameless window to allow custom HTML top bar titlebar
+    show: false, // Keep hidden until React app sends 'app-ready'
+    backgroundColor: '#0d1117',
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -81,6 +114,8 @@ function createWindow() {
     },
     autoHideMenuBar: true, // Professional look
   });
+
+  mainWindow = win;
 
   if (isDev) {
     win.loadURL('http://127.0.0.1:5173');
@@ -96,7 +131,39 @@ function createWindow() {
     win.webContents.send('window-state-changed', { isMaximized: false });
   });
 
-  win.maximize();
+  // Coordination helper to transition from splash to main window
+  let isAppReady = false;
+  const showMainApp = () => {
+    if (isAppReady) return;
+    isAppReady = true;
+
+    // Clear safeguard timer
+    if (safeguardTimeout) clearTimeout(safeguardTimeout);
+
+    // Close splash window
+    if (splashWindow && !splashWindow.isDestroyed()) {
+      splashWindow.close();
+      splashWindow = null;
+    }
+
+    // Show main window
+    if (win && !win.isDestroyed()) {
+      win.show();
+      win.maximize();
+    }
+  };
+
+  // Safe timeout to force show app if IPC fails
+  const safeguardTimeout = setTimeout(() => {
+    console.log('[Electron] Safeguard timeout triggered: forcing app ready state.');
+    showMainApp();
+  }, 8500);
+
+  // Listen for the app-ready event from the React renderer
+  ipcMain.once('app-ready', () => {
+    console.log('[Electron] Received app-ready signal from React.');
+    showMainApp();
+  });
 }
 
 app.whenReady().then(createWindow);

@@ -770,5 +770,83 @@ router.delete("/qrs/:id", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ SAVE POS SETTINGS
+router.post("/settings", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.bizId || req.user.id;
+        const { settings } = req.body;
+
+        if (!settings) {
+            return res.status(400).json({ error: "Settings are required" });
+        }
+
+        // Fetch current settings to merge
+        const selectRes = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1", [userId]);
+        const currentSettings = selectRes.rows[0]?.settings ? (typeof selectRes.rows[0].settings === 'string' ? JSON.parse(selectRes.rows[0].settings) : selectRes.rows[0].settings) : {};
+
+        const mergedSettings = { ...currentSettings, ...settings };
+
+        await pool.query(
+            "UPDATE restaurants SET settings = $1 WHERE user_id = $2",
+            [JSON.stringify(mergedSettings), userId]
+        );
+
+        res.json({ success: true, settings: mergedSettings });
+    } catch (err) {
+        console.error("Failed to save POS settings:", err);
+        res.status(500).json({ error: "Failed to save POS settings" });
+    }
+});
+
+// ✅ CLEAR ALL POS SALES DATA FOR THE LOGGED-IN BUSINESS (CLEAN WIPE)
+router.post("/clear-sales-data", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.bizId || req.user.id;
+        
+        // Safety-net: only allow if user is authorized to clear data (or if they are running in development mode)
+        const userRes = await pool.query("SELECT staff_permissions FROM app_users WHERE id = $1", [req.user.id]);
+        const permissions = userRes.rows[0]?.staff_permissions || {};
+        const allowClear = permissions.pos_access?.Settings?.allow_clear_data_on_logout === true || req.user.role === 'master_admin';
+
+        if (!allowClear && process.env.NODE_ENV !== 'development') {
+            return res.status(403).json({ error: "Unauthorized to clear sales data" });
+        }
+
+        console.log(`[CLEAR-SALES-DATA] Wiping sales data from database for business ID: ${userId}`);
+
+        // Delete sales data related to this business user ID
+        await pool.query("DELETE FROM customer_transactions WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM customer_loyalty WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM customer_feedback WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM conversation_sessions WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM chat_messages WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM customers WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM kots WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM marketing_contacts WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM orders WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM business_expenses WHERE user_id = $1", [userId]);
+        await pool.query("DELETE FROM inventory_logs WHERE biz_id = $1", [userId]);
+
+        // Reset the active state on the server
+        const restRes = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1", [userId]);
+        if (restRes.rows.length > 0) {
+            const settings = restRes.rows[0].settings || {};
+            const cleanSettings = { ...settings };
+            Object.keys(cleanSettings).forEach(k => {
+                if (k.startsWith("active_pos_state")) {
+                    delete cleanSettings[k];
+                }
+            });
+            await pool.query("UPDATE restaurants SET settings = $1 WHERE user_id = $2", [JSON.stringify(cleanSettings), userId]);
+        }
+
+        res.json({ success: true, message: "All POS sales and customer data successfully cleared from database." });
+    } catch (err) {
+        console.error("Failed to clear POS sales data from database:", err);
+        res.status(500).json({ error: "Failed to clear sales data from database", details: err.message });
+    }
+});
+
 module.exports = router;
+
 

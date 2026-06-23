@@ -115,6 +115,8 @@ const DEFAULT_SETTINGS = {
   preOrderEndTime: "",
   preOrderTimeSlots: [],
   preOrderStartFrom: "Same Day",
+  preOrderDetailsMandatory: false,
+  preOrderRevenueMode: "FULFILLMENT_DAY",
 
   // Digital Order Promo Code Settings
   promoEnableDineIn: false,
@@ -1933,16 +1935,6 @@ const DigitalOrderSettings = () => {
                                             onChange={(val) => setSettingsForm({ ...settingsForm, custCustomersCanReject: val })} 
                                         />
                                     </div>
-
-                                    <div className="flex items-center justify-between bg-slate-50 p-3 rounded-lg border border-slate-200/50">
-                                        <div>
-                                            <p className="text-[11px] font-bold text-slate-700 uppercase">Enable Pre Order On Digital Platform</p>
-                                        </div>
-                                        <Toggle 
-                                            checked={settingsForm.custEnablePreOrder} 
-                                            onChange={(val) => setSettingsForm({ ...settingsForm, custEnablePreOrder: val })} 
-                                        />
-                                    </div>
                                 </div>
 
                                 <div className="border-t border-slate-100 pt-4 space-y-3">
@@ -2026,121 +2018,6 @@ const DigitalOrderSettings = () => {
                                     />
                                 </div>
                             </div>
-
-                            {/* Card 7: Pre Order Settings */}
-                            {settingsForm.custEnablePreOrder && (
-                                <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-4 animate-in slide-in-from-top-2 duration-200">
-                                    <h4 className="text-[12px] font-bold text-slate-700 uppercase tracking-wide border-b border-slate-100 pb-2">Pre Order Settings</h4>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pre Order Days Limit</label>
-                                            <input 
-                                                type="number" 
-                                                value={settingsForm.preOrderDaysLimit} 
-                                                onChange={(e) => setSettingsForm({ ...settingsForm, preOrderDaysLimit: parseInt(e.target.value) || 0 })}
-                                                className="w-full mt-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-emerald-500 transition-all"
-                                                placeholder="1"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pre Order Start Time</label>
-                                            <input 
-                                                type="text" 
-                                                value={settingsForm.preOrderStartTime || ""} 
-                                                onChange={(e) => setSettingsForm({ ...settingsForm, preOrderStartTime: e.target.value })}
-                                                className="w-full mt-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-emerald-500 transition-all"
-                                                placeholder="Select Time"
-                                            />
-                                        </div>
-                                        <div>
-                                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Pre Order End Time</label>
-                                            <input 
-                                                type="text" 
-                                                value={settingsForm.preOrderEndTime || ""} 
-                                                onChange={(e) => setSettingsForm({ ...settingsForm, preOrderEndTime: e.target.value })}
-                                                className="w-full mt-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-emerald-500 transition-all"
-                                                placeholder="Select Time"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    {/* Custom Pre-Order Time Slots List */}
-                                    <div className="border border-slate-100 rounded-lg p-4 bg-slate-50/50 space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-[11px] font-bold text-slate-700 uppercase">Time Slot List</span>
-                                            <button 
-                                                type="button"
-                                                onClick={handleAddPreOrderTimeSlot}
-                                                className="px-3.5 py-1.5 bg-[#233831] hover:bg-[#1a2b25] text-white text-[9px] font-bold uppercase tracking-wider rounded transition-colors flex items-center gap-1"
-                                            >
-                                                <Plus className="w-3.5 h-3.5" /> Add Time Slot
-                                            </button>
-                                        </div>
-
-                                        {(!settingsForm.preOrderTimeSlots || settingsForm.preOrderTimeSlots.length === 0) ? (
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase py-2">No Time Slot Created</p>
-                                        ) : (
-                                            <div className="border border-slate-200 rounded-lg overflow-hidden bg-white">
-                                                <table className="w-full text-left border-collapse">
-                                                    <thead>
-                                                        <tr className="bg-slate-50 border-b border-slate-200">
-                                                            <th className="px-4 py-2.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider">Time Slot</th>
-                                                            <th className="px-4 py-2.5 text-[9px] font-bold text-slate-500 uppercase tracking-wider text-right">Action</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-slate-100">
-                                                        {settingsForm.preOrderTimeSlots.map((slot, index) => (
-                                                            <tr key={index} className="hover:bg-slate-50/50">
-                                                                <td className="px-4 py-2">
-                                                                    <div className="flex items-center gap-2 max-w-md">
-                                                                        <input 
-                                                                            type="text" 
-                                                                            value={slot.start || ""} 
-                                                                            onChange={(e) => handlePreOrderTimeSlotChange(index, "start", e.target.value)}
-                                                                            className="px-2 py-1 bg-white border border-slate-200 rounded text-[11px] font-bold outline-none focus:border-emerald-500 w-24"
-                                                                            placeholder="10:00 AM"
-                                                                        />
-                                                                        <span className="text-[10px] text-slate-400 font-bold">TO</span>
-                                                                        <input 
-                                                                            type="text" 
-                                                                            value={slot.end || ""} 
-                                                                            onChange={(e) => handlePreOrderTimeSlotChange(index, "end", e.target.value)}
-                                                                            className="px-2 py-1 bg-white border border-slate-200 rounded text-[11px] font-bold outline-none focus:border-emerald-500 w-24"
-                                                                            placeholder="10:00 PM"
-                                                                        />
-                                                                    </div>
-                                                                </td>
-                                                                <td className="px-4 py-2 text-right">
-                                                                    <button 
-                                                                        type="button"
-                                                                        onClick={() => handleRemovePreOrderTimeSlot(index)}
-                                                                        className="p-1 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                                                                    >
-                                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                                    </button>
-                                                                </td>
-                                                            </tr>
-                                                        ))}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    <div>
-                                        <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Pre-Order Start From</label>
-                                        <select 
-                                            value={settingsForm.preOrderStartFrom} 
-                                            onChange={(e) => setSettingsForm({ ...settingsForm, preOrderStartFrom: e.target.value })}
-                                            className="w-full mt-1.5 px-3 py-2 bg-white border border-slate-200 rounded-lg text-[11px] font-bold outline-none focus:border-emerald-500 transition-all cursor-pointer"
-                                        >
-                                            <option value="Same Day">Same Day</option>
-                                            <option value="Next Day">Next Day</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            )}
 
                             {/* Card 8: Digital Order Promo Code Settings */}
                             <div className="bg-white rounded-xl border border-slate-200/80 p-5 shadow-sm space-y-4">

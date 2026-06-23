@@ -1,27 +1,14 @@
 const fs = require('fs');
 const path = require('path');
+const file = path.join(__dirname, '../pos-app/src/App.jsx');
+const lines = fs.readFileSync(file, 'utf8').split('\n');
 
-const filePath = path.join(__dirname, '../pos-app/src/App.jsx');
-console.log('Reading file:', filePath);
-
-try {
-  const content = fs.readFileSync(filePath, 'utf8');
-  const lines = content.split('\n');
-  let insideCheckout = false;
-  let linesToPrint = 0;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].includes('const handleCheckout =') || lines[i].includes('async function handleCheckout')) {
-      insideCheckout = true;
-      linesToPrint = 150;
+for (let i = 0; i < lines.length; i++) {
+  if (lines[i].includes('const calculateTotals')) {
+    console.log(`Line ${i + 1}: ${lines[i].trim()}`);
+    for (let j = i; j < i + 30; j++) {
+      console.log(`  ${j+1}: ${lines[j]}`);
     }
-    if (insideCheckout && linesToPrint > 0) {
-      console.log(`Line ${i + 1}: ${lines[i]}`);
-      linesToPrint--;
-      if (linesToPrint === 0) {
-        insideCheckout = false;
-      }
-    }
+    break;
   }
-} catch (err) {
-  console.error('Error:', err);
 }

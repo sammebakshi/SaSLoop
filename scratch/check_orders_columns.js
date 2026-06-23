@@ -1,13 +1,24 @@
-const pool = require("../db");
-pool.query("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'orders'")
-  .then(res => {
-    console.log("Columns in 'orders' table:");
-    res.rows.forEach(row => {
-      console.log(`- ${row.column_name}: ${row.data_type}`);
-    });
-    process.exit(0);
-  })
-  .catch(err => {
+const { Pool } = require('pg');
+require('dotenv').config({ path: 'c:/Users/Sajad/Desktop/SaSLoop/.env' });
+
+const pool = new Pool({
+  user: process.env.DB_USER,
+  host: process.env.DB_HOST,
+  database: process.env.DB_NAME,
+  password: process.env.DB_PASSWORD,
+  port: process.env.DB_PORT,
+});
+
+async function run() {
+  try {
+    const res = await pool.query(
+      `SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'orders'`
+    );
+    console.log(res.rows.map(r => `${r.column_name} (${r.data_type})`));
+  } catch (err) {
     console.error(err);
-    process.exit(1);
-  });
+  } finally {
+    await pool.end();
+  }
+}
+run();
