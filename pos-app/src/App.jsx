@@ -268,156 +268,60 @@ const InitialSplashScreen = () => {
 };
 
 const TransitionSplashScreen = ({ username }) => {
-  const [phase, setPhase] = useState(0); // 0=spinning, 1=unlocked
   const [loadingProgress, setLoadingProgress] = useState(0);
 
   useEffect(() => {
-    // Progress bar fills over ~1.8s
     const progressInterval = setInterval(() => {
       setLoadingProgress(prev => {
         if (prev >= 100) { clearInterval(progressInterval); return 100; }
         return prev + 2;
       });
     }, 35);
-    // Phase 1 (unlocked) at 1.4s
-    const unlockTimer = setTimeout(() => setPhase(1), 1400);
-    return () => { clearInterval(progressInterval); clearTimeout(unlockTimer); };
+    return () => clearInterval(progressInterval);
   }, []);
 
-  // Dial config
-  const cx = 120, cy = 120, outerR = 95, innerR = 72;
-  const tickCount = 60;
-  const numberCount = 12;
-  const progressCircumference = 2 * Math.PI * (outerR + 8);
-
-  const ticks = Array.from({ length: tickCount }, (_, i) => {
-    const angle = (i / tickCount) * 360;
-    const rad = (angle - 90) * (Math.PI / 180);
-    const isMajor = i % 5 === 0;
-    const r1 = outerR - (isMajor ? 12 : 6);
-    const r2 = outerR - 2;
-    return {
-      x1: cx + r1 * Math.cos(rad), y1: cy + r1 * Math.sin(rad),
-      x2: cx + r2 * Math.cos(rad), y2: cy + r2 * Math.sin(rad),
-      isMajor
-    };
-  });
-
-  const numbers = Array.from({ length: numberCount }, (_, i) => {
-    const angle = (i / numberCount) * 360;
-    const rad = (angle - 90) * (Math.PI / 180);
-    const r = outerR - 22;
-    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad), label: i === 0 ? '0' : String(i * 5) };
-  });
-
   return (
-    <div className="text-white text-center relative select-none mx-4">
-      <div className="flex flex-col items-center">
-        {/* Locker Dial SVG */}
-        <div className="relative w-[240px] h-[240px] mb-5">
-          <svg viewBox="0 0 240 240" className="w-full h-full">
-            {/* Outer green progress ring */}
-            <circle
-              cx={cx} cy={cy} r={outerR + 8}
-              fill="none" stroke="#18ba60" strokeWidth="3"
-              strokeDasharray={progressCircumference}
-              strokeDashoffset={progressCircumference * (1 - loadingProgress / 100)}
-              strokeLinecap="round"
-              opacity="0.6"
-              style={{ transition: 'stroke-dashoffset 0.3s ease', transform: 'rotate(-90deg)', transformOrigin: 'center' }}
-            />
+    <div className="relative z-20 text-white text-center select-none flex flex-col items-center">
+      {/* Shield icon */}
+      <motion.div 
+        initial={{ scale: 0.5, rotate: -45, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 100, damping: 12 }}
+        className="w-16 h-16 rounded-full bg-[#18ba60]/10 border border-[#18ba60]/20 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(24,186,96,0.15)] backdrop-blur-sm"
+      >
+        <Shield className="w-8 h-8 text-[#18ba60] animate-pulse" />
+      </motion.div>
 
-            {/* Dial plate background */}
-            <circle cx={cx} cy={cy} r={outerR} fill="#0f1419" stroke="#2a3441" strokeWidth="2.5" />
-            <circle cx={cx} cy={cy} r={innerR} fill="#161b22" stroke="#2a3441" strokeWidth="1" />
-          </svg>
+      {/* Welcome Text */}
+      <motion.h2
+        initial={{ y: 15, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+        className="text-xl font-black tracking-tight mb-2 drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
+      >
+        Access Granted
+      </motion.h2>
 
-          {/* Spinning dial group */}
-          <motion.div
-            className="absolute inset-0"
-            animate={{
-              rotate: phase === 0
-                ? [0, 240, 240, 120, 120, 200]
-                : [200, 200]
-            }}
-            transition={{
-              duration: phase === 0 ? 1.4 : 0.01,
-              ease: "easeInOut",
-              times: phase === 0 ? [0, 0.35, 0.38, 0.65, 0.68, 1] : [0, 1]
-            }}
-          >
-            <svg viewBox="0 0 240 240" className="w-full h-full">
-              {/* Tick marks */}
-              {ticks.map((t, i) => (
-                <line key={i} x1={t.x1} y1={t.y1} x2={t.x2} y2={t.y2}
-                  stroke={t.isMajor ? '#94a3b8' : '#475569'} strokeWidth={t.isMajor ? 2 : 1} strokeLinecap="round" />
-              ))}
-              {/* Numbers */}
-              {numbers.map((n, i) => (
-                <text key={i} x={n.x} y={n.y} textAnchor="middle" dominantBaseline="central"
-                  fill="#94a3b8" fontSize="10" fontWeight="700" fontFamily="'Segoe UI', system-ui, sans-serif">
-                  {n.label}
-                </text>
-              ))}
-              {/* Center knob */}
-              <circle cx={cx} cy={cy} r="20" fill="#1e2530" stroke="#374151" strokeWidth="2" />
-              {/* Knob grip lines */}
-              <line x1={cx - 6} y1={cy} x2={cx + 6} y2={cy} stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
-              <line x1={cx} y1={cy - 6} x2={cx} y2={cy + 6} stroke="#475569" strokeWidth="1.5" strokeLinecap="round" />
-              {/* Indicator triangle at top */}
-              <polygon points={`${cx},${cy - outerR + 3} ${cx - 5},${cy - outerR + 13} ${cx + 5},${cy - outerR + 13}`} fill="#18ba60" />
-            </svg>
-          </motion.div>
+      <motion.p
+        initial={{ y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.2, duration: 0.5 }}
+        className="text-xs text-slate-400 font-semibold mb-6 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]"
+      >
+        Welcome back, <span className="text-[#18ba60] font-black">{username || 'User'}</span>!
+      </motion.p>
 
-          {/* Fixed marker notch at top (outside dial) */}
-          <svg viewBox="0 0 240 240" className="absolute inset-0 w-full h-full pointer-events-none">
-            <polygon points={`${cx},${cy - outerR - 12} ${cx - 6},${cy - outerR - 2} ${cx + 6},${cy - outerR - 2}`} fill="#18ba60" opacity="0.9" />
-          </svg>
+      {/* Progress Bar */}
+      <div className="w-64 h-1.5 bg-white/5 rounded-full overflow-hidden mb-3 backdrop-blur-sm">
+        <div
+          className="h-full bg-gradient-to-r from-[#18ba60] to-[#2ecc71] transition-all duration-700 ease-out rounded-full shadow-[0_0_8px_rgba(24,186,96,0.4)]"
+          style={{ width: `${loadingProgress}%` }}
+        />
+      </div>
 
-          {/* Lock icon in center */}
-          <motion.div
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={phase === 1 ? { scale: 1, opacity: 1 } : { scale: 0, opacity: 0 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-          >
-            <div className="w-10 h-10 rounded-full bg-[#18ba60]/15 border border-[#18ba60]/30 flex items-center justify-center shadow-[0_0_20px_rgba(24,186,96,0.2)]">
-              <Shield className="w-5 h-5 text-[#18ba60]" />
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Welcome Text */}
-        <motion.h2
-          initial={{ y: 15, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.1, duration: 0.5 }}
-          className="text-xl font-black tracking-tight mb-2"
-        >
-          {phase === 0 ? 'Unlocking Vault...' : 'Access Granted'}
-        </motion.h2>
-
-        <motion.p
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-xs text-slate-400 font-semibold mb-6"
-        >
-          Welcome back, <span className="text-[#18ba60] font-black">{username || 'User'}</span>!
-        </motion.p>
-
-        {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
-          <div
-            className="h-full bg-gradient-to-r from-[#18ba60] to-[#2ecc71] transition-all duration-700 ease-out rounded-full shadow-[0_0_8px_rgba(24,186,96,0.4)]"
-            style={{ width: `${loadingProgress}%` }}
-          />
-        </div>
-
-        <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black flex items-center gap-2">
-          <span className="w-2 h-2 bg-[#18ba60] rounded-full animate-ping"></span>
-          {phase === 0 ? 'Authenticating credentials...' : 'Preparing POS environment...'}
-        </div>
+      <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black flex items-center gap-2 drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]">
+        <span className="w-2 h-2 bg-[#18ba60] rounded-full animate-ping"></span>
+        Preparing POS environment...
       </div>
     </div>
   );
@@ -8915,7 +8819,8 @@ const UniversalPOS = () => {
 
   if (isTransitioningToDashboard) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none">
+      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden">
+        <ChatAnimationBackground />
         <TransitionSplashScreen username={username} />
       </div>
     );
