@@ -311,9 +311,9 @@ const TransitionSplashScreen = ({ username }) => {
   });
 
   return (
-    <div className="w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden select-none mx-4">
-      {/* Subtle radial glow */}
-      <div className="absolute w-[350px] h-[350px] rounded-full bg-[#18ba60]/5 blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0" />
+    <div className="text-white text-center select-none mx-4">
+      {/* Subtle radial glow behind dial */}
+      <div className="fixed w-[400px] h-[400px] rounded-full bg-[#18ba60]/5 blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0" />
 
       <div className="relative z-10 flex flex-col items-center">
         {/* Locker Dial SVG */}
@@ -410,7 +410,7 @@ const TransitionSplashScreen = ({ username }) => {
         </motion.p>
 
         {/* Progress Bar */}
-        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
+        <div className="w-[280px] h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
           <div
             className="h-full bg-gradient-to-r from-[#18ba60] to-[#2ecc71] transition-all duration-700 ease-out rounded-full shadow-[0_0_8px_rgba(24,186,96,0.4)]"
             style={{ width: `${loadingProgress}%` }}
