@@ -8894,13 +8894,7 @@ const UniversalPOS = () => {
     );
   }
 
-  if (isTransitioningToDashboard) {
-    return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden">
-        <TransitionSplashScreen username={username} />
-      </div>
-    );
-  }
+
 
   if (!isAuthenticated) {
     return (
@@ -9096,6 +9090,12 @@ const UniversalPOS = () => {
           </div>
         </div>
       </div>
+      {/* Transparent Locker Dial Overlay */}
+      {isTransitioningToDashboard && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 backdrop-blur-md animate-fade-in">
+          <TransitionSplashScreen username={username} />
+        </div>
+      )}
     </div>
     );
   }
