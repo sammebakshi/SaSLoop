@@ -835,7 +835,7 @@ const ChatAnimationBackground = () => {
   const cx = 300, cy = 300, radius = 210, nodeSize = 52;
 
   return (
-    <div className="absolute inset-0 z-0 overflow-hidden bg-slate-50 pointer-events-none">
+    <div className="absolute inset-0 z-0 overflow-hidden bg-[#0d1117] pointer-events-none">
       <style>{`
         @keyframes hubPulse {
           0%, 100% { transform: scale(1); }
@@ -903,10 +903,10 @@ const ChatAnimationBackground = () => {
         .float-img-6 { animation: floatImg6 7s ease-in-out infinite; }
       `}</style>
 
-      {/* Background gradients */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-white via-slate-50 to-slate-200 opacity-90"></div>
-      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#18ba60]/10 blur-[120px]" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/10 blur-[120px]" />
+      {/* Dark theme background gradients */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#161b22] via-[#0d1117] to-black opacity-90"></div>
+      <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#18ba60]/8 blur-[120px]" />
+      <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/8 blur-[120px]" />
 
       {/* Hub diagram container */}
       <div className="absolute inset-0 flex items-center justify-center">
@@ -916,29 +916,29 @@ const ChatAnimationBackground = () => {
 
           {/* 1. Thermal Printer & Billing (Top Left) */}
           <div className="absolute z-20 float-img-1" style={{ left: -180, top: -10, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-center">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
+              <div className="bg-[#0d1117] rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
                   <path d="M25 35 H75 V15 H25 Z" fill="#475569" />
                   <rect x="15" y="30" width="70" height="35" rx="6" fill="#1e293b" />
                   <rect x="23" y="40" width="12" height="12" rx="2" fill="#18ba60" />
                   <circle cx="70" cy="48" r="4" fill="#3b82f6" />
                   <circle cx="58" cy="48" r="4" fill="#e2e8f0" />
-                  <path d="M30 65 L30 85 L70 85 L70 65" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="2" />
+                  <path d="M30 65 L30 85 L70 85 L70 65" fill="#0d1117" stroke="#30363d" strokeWidth="2" />
                   <line x1="36" y1="72" x2="64" y2="72" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="36" y1="78" x2="55" y2="78" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="36" y1="78" x2="55" y2="78" stroke="#30363d" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Billing Printer</span>
-                <p className="text-[8px] text-slate-500 font-bold">Direct Thermal Receipt</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">Billing Printer</span>
+                <p className="text-[8px] text-slate-400 font-bold">Direct Thermal Receipt</p>
               </div>
             </div>
           </div>
 
           {/* 2. Kitchen Order Display (Top Right) */}
           <div className="absolute z-20 float-img-2" style={{ right: -180, top: -10, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
               <div className="bg-slate-900 rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
                   <rect x="10" y="15" width="80" height="50" rx="5" fill="#1e293b" />
@@ -954,16 +954,16 @@ const ChatAnimationBackground = () => {
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">KDS Monitor</span>
-                <p className="text-[8px] text-slate-500 font-bold">Kitchen Order Display</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">KDS Monitor</span>
+                <p className="text-[8px] text-slate-400 font-bold">Kitchen Order Display</p>
               </div>
             </div>
           </div>
 
           {/* 3. WhatsApp Integration (Bottom Left) */}
           <div className="absolute z-20 float-img-3" style={{ left: -180, bottom: 10, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-center">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
+              <div className="bg-[#0d1117] rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
                   <rect x="35" y="5" width="30" height="65" rx="6" fill="#1e293b" />
                   <rect x="38" y="9" width="24" height="57" rx="3" fill="#0f172a" />
@@ -978,18 +978,18 @@ const ChatAnimationBackground = () => {
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">WhatsApp CRM</span>
-                <p className="text-[8px] text-slate-500 font-bold">Auto-Send PDF Bills</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">WhatsApp CRM</span>
+                <p className="text-[8px] text-slate-400 font-bold">Auto-Send PDF Bills</p>
               </div>
             </div>
           </div>
 
           {/* 4. Analytics & Sales Graphs (Bottom Right) */}
           <div className="absolute z-20 float-img-4" style={{ right: -180, bottom: 10, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-center">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
+              <div className="bg-[#0d1117] rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
-                  <rect x="10" y="10" width="80" height="60" rx="4" fill="white" stroke="#cbd5e1" strokeWidth="2" />
+                  <rect x="10" y="10" width="80" height="60" rx="4" fill="#1e293b" stroke="#30363d" strokeWidth="2" />
                   <path d="M18 55 L35 35 L55 45 L82 20" stroke="#18ba60" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   <circle cx="82" cy="20" r="3" fill="#18ba60" />
                   <rect x="20" y="48" width="6" height="7" rx="1" fill="#3b82f6" opacity="0.5" />
@@ -1000,16 +1000,16 @@ const ChatAnimationBackground = () => {
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Reports Console</span>
-                <p className="text-[8px] text-slate-500 font-bold">Revenue & Analytics</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">Reports Console</span>
+                <p className="text-[8px] text-slate-400 font-bold">Revenue & Analytics</p>
               </div>
             </div>
           </div>
 
           {/* 5. Inventory & Warehouse Stock (Far Left) */}
           <div className="absolute z-20 float-img-5" style={{ left: -260, top: 200, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-center">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
+              <div className="bg-[#0d1117] rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
                   <path d="M30 20 L50 10 L70 20 L70 50 L50 60 L30 50 Z" fill="#f59e0b" opacity="0.7" />
                   <path d="M30 20 L50 30 L70 20" fill="none" stroke="#d97706" strokeWidth="2" />
@@ -1020,16 +1020,16 @@ const ChatAnimationBackground = () => {
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Inventory Hub</span>
-                <p className="text-[8px] text-slate-500 font-bold">Low Stock Alerts</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">Inventory Hub</span>
+                <p className="text-[8px] text-slate-400 font-bold">Low Stock Alerts</p>
               </div>
             </div>
           </div>
 
           {/* 6. Customer Ledger & Credit (Far Right) */}
           <div className="absolute z-20 float-img-6" style={{ right: -260, top: 200, width: 160 }}>
-            <div className="bg-white/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.08)] border border-slate-100 backdrop-blur-md">
-              <div className="bg-slate-50 rounded-xl p-3 flex items-center justify-center">
+            <div className="bg-[#161b22]/90 p-3 rounded-2xl shadow-[0_15px_40px_rgba(0,0,0,0.3)] border border-[#30363d] backdrop-blur-md">
+              <div className="bg-[#0d1117] rounded-xl p-3 flex items-center justify-center">
                 <svg width="80" height="70" viewBox="0 0 100 80" fill="none">
                   <rect x="20" y="15" width="60" height="40" rx="6" fill="#8b5cf6" />
                   <rect x="25" y="20" width="12" height="10" rx="1.5" fill="#fcd34d" />
@@ -1042,8 +1042,8 @@ const ChatAnimationBackground = () => {
                 </svg>
               </div>
               <div className="mt-2 text-left">
-                <span className="text-[10px] font-black uppercase text-slate-800 tracking-wider">Credit Ledger</span>
-                <p className="text-[8px] text-slate-500 font-bold">Customer Khata Ledger</p>
+                <span className="text-[10px] font-black uppercase text-slate-200 tracking-wider">Credit Ledger</span>
+                <p className="text-[8px] text-slate-400 font-bold">Customer Khata Ledger</p>
               </div>
             </div>
           </div>
@@ -1053,15 +1053,15 @@ const ChatAnimationBackground = () => {
             {/* Concentric square orbits */}
             <rect
               x={cx - 190} y={cy - 190} width={380} height={380}
-              fill="none" stroke="#e2e8f0" strokeWidth="1.2"
+              fill="none" stroke="#30363d" strokeWidth="1.2"
               strokeDasharray="4 8" className="ring-rotate"
-              opacity="0.4"
+              opacity="0.5"
             />
             <rect
               x={cx - 225} y={cy - 225} width={450} height={450}
-              fill="none" stroke="#e2e8f0" strokeWidth="1.2"
+              fill="none" stroke="#30363d" strokeWidth="1.2"
               strokeDasharray="6 12" className="ring-rotate-rev"
-              opacity="0.25"
+              opacity="0.35"
             />
 
             {/* Connecting lines from center to each node */}
@@ -1100,7 +1100,7 @@ const ChatAnimationBackground = () => {
                   <path
                     d={pathD}
                     fill="none"
-                    stroke={isActive ? '#18ba60' : '#cbd5e1'}
+                    stroke={isActive ? '#18ba60' : '#21262d'}
                     strokeWidth={isActive ? 2.5 : 1.5}
                     strokeDasharray={isActive ? '6 4' : '4 6'}
                     strokeLinecap="round"
@@ -1164,7 +1164,7 @@ const ChatAnimationBackground = () => {
                     className={`rounded-2xl flex items-center justify-center shadow-lg border-2 transition-all duration-500 ${
                       isActive
                         ? `bg-gradient-to-br ${feature.gradient} border-white/50 text-white`
-                        : `${feature.bg} border-slate-200/80 ${feature.text}`
+                        : `bg-[#161b22] border-[#30363d] ${feature.text}`
                     }`}
                     style={{
                       width: nodeSize,
@@ -1179,7 +1179,7 @@ const ChatAnimationBackground = () => {
                   {/* Label */}
                   <span
                     className={`mt-2 text-[9px] font-black uppercase tracking-widest whitespace-nowrap transition-all duration-500 ${
-                      isActive ? 'text-slate-800' : 'text-slate-400'
+                      isActive ? 'text-white' : 'text-slate-500'
                     }`}
                   >
                     {feature.name}
@@ -8828,7 +8828,8 @@ const UniversalPOS = () => {
 
   if (showInitialSplash) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none">
+      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden">
+        <ChatAnimationBackground />
         <InitialSplashScreen />
       </div>
     );
@@ -8902,7 +8903,6 @@ const UniversalPOS = () => {
 
         {/* Split Screen Login Page */}
         <div className="flex-1 flex flex-row relative overflow-hidden bg-slate-50">
-          <ChatAnimationBackground />
           {/* Seamless Honeycomb Pattern Overlay covering the full screen */}
           <div 
             className="absolute inset-0 opacity-[0.32] pointer-events-none z-0" 
