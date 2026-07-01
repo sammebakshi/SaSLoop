@@ -265,63 +265,65 @@
       filter: drop-shadow(0 0 8px var(--glow-color, currentColor));
     }
     
+
+
     /* Wires animations */
     .conn-line-kds {
-      stroke-dasharray: 320;
-      stroke-dashoffset: 320;
+      stroke-dasharray: 360;
+      stroke-dashoffset: 360;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 2.0s forwards;
     }
     .conn-line-kds-core {
-      stroke-dasharray: 320;
-      stroke-dashoffset: 320;
+      stroke-dasharray: 360;
+      stroke-dashoffset: 360;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 2.0s forwards;
     }
     .pulse-kds {
       color: #38bdf8;
       --glow-color: #38bdf8;
-      animation: pulse-run 1.5s linear infinite 2.4s;
+      animation: pulse-run-kds 1.5s linear infinite 2.4s;
     }
 
     .conn-line-printer {
-      stroke-dasharray: 210;
-      stroke-dashoffset: 210;
+      stroke-dasharray: 260;
+      stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 3.3s forwards;
     }
     .conn-line-printer-core {
-      stroke-dasharray: 210;
-      stroke-dashoffset: 210;
+      stroke-dasharray: 260;
+      stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 3.3s forwards;
     }
     .pulse-printer {
       color: #f59e0b;
       --glow-color: #f59e0b;
-      animation: pulse-run-short 1.2s linear infinite 3.7s;
+      animation: pulse-run-printer 1.2s linear infinite 3.7s;
     }
 
     .conn-line-web {
-      stroke-dasharray: 210;
-      stroke-dashoffset: 210;
+      stroke-dasharray: 260;
+      stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 4.6s forwards;
     }
     .conn-line-web-core {
-      stroke-dasharray: 210;
-      stroke-dashoffset: 210;
+      stroke-dasharray: 260;
+      stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 4.6s forwards;
     }
     .pulse-web {
       color: #10b981;
       --glow-color: #10b981;
-      animation: pulse-run-short 1.2s linear infinite 5.0s;
+      animation: pulse-run-web 1.2s linear infinite 5.0s;
     }
     
     @keyframes draw-line {
       to { stroke-dashoffset: 0; }
     }
     
-    @keyframes pulse-run {
+    @keyframes pulse-run-kds {
       0% {
         opacity: 1;
-        stroke-dashoffset: 320;
+        stroke-dashoffset: 360;
       }
       100% {
         opacity: 1;
@@ -329,10 +331,21 @@
       }
     }
 
-    @keyframes pulse-run-short {
+    @keyframes pulse-run-printer {
       0% {
         opacity: 1;
-        stroke-dashoffset: 210;
+        stroke-dashoffset: 260;
+      }
+      100% {
+        opacity: 1;
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes pulse-run-web {
+      0% {
+        opacity: 1;
+        stroke-dashoffset: 260;
       }
       100% {
         opacity: 1;
@@ -371,22 +384,21 @@
   <div class="animation-container">
     <!-- Devices and lines in their own layer to support blurring at the end -->
     <div class="devices-layer">
-      <!-- Wires & Cables SVG -->
       <svg class="connection-svg" viewBox="0 0 600 600">
-        <!-- 1. KDS Cable (Curved Q-Bezier from POS (160, 300) to KDS (440, 300)) -->
-        <path class="cable-bg conn-line-kds" d="M 160 300 Q 300 350 440 300" stroke="#1e293b" stroke-width="6" />
-        <path class="cable-core conn-line-kds-core" d="M 160 300 Q 300 350 440 300" stroke="#475569" stroke-width="3" />
-        <path class="cable-pulse pulse-kds" d="M 160 300 Q 300 350 440 300" stroke-width="2" />
+        <!-- 1. KDS Cable (Orthogonal path from POS (160, 300) to KDS (440, 300)) -->
+        <path class="cable-bg conn-line-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
+        <path class="cable-core conn-line-kds-core" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
+        <path class="cable-pulse pulse-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="2" stroke-linejoin="round" />
         
-        <!-- 2. Printer Cable (Curved Q-Bezier from POS (160, 300) to Printer (300, 420)) -->
-        <path class="cable-bg conn-line-printer" d="M 160 300 Q 200 410 300 420" stroke="#1e293b" stroke-width="6" />
-        <path class="cable-core conn-line-printer-core" d="M 160 300 Q 200 410 300 420" stroke="#475569" stroke-width="3" />
-        <path class="cable-pulse pulse-printer" d="M 160 300 Q 200 410 300 420" stroke-width="2" />
+        <!-- 2. Printer Cable (Orthogonal path from POS (160, 300) to Printer (300, 420)) -->
+        <path class="cable-bg conn-line-printer" d="M 160 300 H 210 V 420 H 300" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
+        <path class="cable-core conn-line-printer-core" d="M 160 300 H 210 V 420 H 300" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
+        <path class="cable-pulse pulse-printer" d="M 160 300 H 210 V 420 H 300" stroke-width="2" stroke-linejoin="round" />
         
-        <!-- 3. Web Cable (Curved Q-Bezier from POS (160, 300) to Web (300, 180)) -->
-        <path class="cable-bg conn-line-web" d="M 160 300 Q 200 190 300 180" stroke="#1e293b" stroke-width="6" />
-        <path class="cable-core conn-line-web-core" d="M 160 300 Q 200 190 300 180" stroke="#475569" stroke-width="3" />
-        <path class="cable-pulse pulse-web" d="M 160 300 Q 200 190 300 180" stroke-width="2" />
+        <!-- 3. Web Cable (Orthogonal path from POS (160, 300) to Web (300, 180)) -->
+        <path class="cable-bg conn-line-web" d="M 160 300 H 210 V 180 H 300" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
+        <path class="cable-core conn-line-web-core" d="M 160 300 H 210 V 180 H 300" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
+        <path class="cable-pulse pulse-web" d="M 160 300 H 210 V 180 H 300" stroke-width="2" stroke-linejoin="round" />
       </svg>
 
       <!-- 1. POS Terminal -->
