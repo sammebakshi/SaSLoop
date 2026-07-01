@@ -893,8 +893,8 @@ const ChatAnimationBackground = () => {
         .hub-glow { animation: hubGlow 3s ease-in-out infinite; }
         .node-float { animation: nodeFloat 3s ease-in-out infinite; }
         .dash-flow { animation: dashFlow 1s linear infinite; }
-        .ring-rotate { animation: ringRotate 30s linear infinite; }
-        .ring-rotate-rev { animation: ringRotate 45s linear infinite reverse; }
+        .ring-rotate { animation: ringRotate 30s linear infinite; transform-origin: 300px 300px; }
+        .ring-rotate-rev { animation: ringRotate 45s linear infinite reverse; transform-origin: 300px 300px; }
         .float-img-1 { animation: floatImg1 6s ease-in-out infinite; }
         .float-img-2 { animation: floatImg2 7.5s ease-in-out infinite; }
         .float-img-3 { animation: floatImg3 5.5s ease-in-out infinite; }
@@ -1050,9 +1050,19 @@ const ChatAnimationBackground = () => {
 
           {/* SVG for connecting lines and decorative rings */}
           <svg width="600" height="600" className="absolute inset-0" style={{ overflow: 'visible' }}>
-            {/* Decorative orbit rings */}
-            <circle cx={cx} cy={cy} r={radius - 20} fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="4 8" className="ring-rotate" opacity="0.5" />
-            <circle cx={cx} cy={cy} r={radius + 15} fill="none" stroke="#e2e8f0" strokeWidth="1" strokeDasharray="6 12" className="ring-rotate-rev" opacity="0.3" />
+            {/* Concentric square orbits */}
+            <rect
+              x={cx - 190} y={cy - 190} width={380} height={380}
+              fill="none" stroke="#e2e8f0" strokeWidth="1.2"
+              strokeDasharray="4 8" className="ring-rotate"
+              opacity="0.4"
+            />
+            <rect
+              x={cx - 225} y={cy - 225} width={450} height={450}
+              fill="none" stroke="#e2e8f0" strokeWidth="1.2"
+              strokeDasharray="6 12" className="ring-rotate-rev"
+              opacity="0.25"
+            />
 
             {/* Connecting lines from center to each node */}
             {POS_HUB_FEATURES.map((feature, i) => {
@@ -1060,34 +1070,54 @@ const ChatAnimationBackground = () => {
               const nx = cx + radius * Math.cos(angle);
               const ny = cy + radius * Math.sin(angle);
               const isActive = i === activeNode;
+              
+              const midX = cx + (nx - cx) * 0.45;
+              const pathD = `M ${cx} ${cy} H ${midX} V ${ny} H ${nx}`;
+              
+              const duration = isActive ? "1.5s" : "4s";
+              const opacity = isActive ? 0.85 : 0.3;
+              const glowColor = isActive ? "#18ba60" : "#94a3b8";
+              const coreColor = isActive ? "#ffffff" : "#cbd5e1";
+              const radiusGlow = isActive ? 5.5 : 3.5;
+              const radiusCore = isActive ? 2.5 : 1.5;
+              
               return (
                 <g key={`line-${i}`}>
-                  {/* Glow line (active) */}
+                  {/* Glowing background path track for active line */}
                   {isActive && (
-                    <line x1={cx} y1={cy} x2={nx} y2={ny}
-                      stroke={feature.glow} strokeWidth="6" strokeLinecap="round" opacity="0.5"
+                    <path
+                      d={pathD}
+                      fill="none"
+                      stroke={feature.glow}
+                      strokeWidth="6"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      opacity="0.65"
                       style={{ filter: 'blur(3px)' }}
                     />
                   )}
-                  {/* Main dashed line */}
-                  <line x1={cx} y1={cy} x2={nx} y2={ny}
+                  {/* Main background wire path track */}
+                  <path
+                    d={pathD}
+                    fill="none"
                     stroke={isActive ? '#18ba60' : '#cbd5e1'}
                     strokeWidth={isActive ? 2.5 : 1.5}
                     strokeDasharray={isActive ? '6 4' : '4 6'}
                     strokeLinecap="round"
+                    strokeLinejoin="round"
                     className={isActive ? 'dash-flow' : ''}
                     style={{
                       transition: 'stroke 0.5s ease, stroke-width 0.5s ease',
-                      opacity: isActive ? 1 : 0.5
+                      opacity: isActive ? 1 : 0.4
                     }}
                   />
-                  {/* Small dot at midpoint */}
-                  <circle
-                    cx={(cx + nx) / 2} cy={(cy + ny) / 2} r={isActive ? 4 : 2.5}
-                    fill={isActive ? '#18ba60' : '#94a3b8'}
-                    style={{ transition: 'all 0.5s ease' }}
-                    opacity={isActive ? 1 : 0.4}
-                  />
+                  {/* Animated data packet traveling along the path */}
+                  <circle r={radiusGlow} fill={glowColor} opacity={opacity} style={{ filter: 'blur(1.5px)' }}>
+                    <animateMotion dur={duration} repeatCount="indefinite" path={pathD} />
+                  </circle>
+                  <circle r={radiusCore} fill={coreColor} opacity={isActive ? 1 : 0.65}>
+                    <animateMotion dur={duration} repeatCount="indefinite" path={pathD} />
+                  </circle>
                 </g>
               );
             })}
@@ -8872,6 +8902,7 @@ const UniversalPOS = () => {
 
         {/* Split Screen Login Page */}
         <div className="flex-1 flex flex-row relative overflow-hidden bg-slate-50">
+          <ChatAnimationBackground />
           {/* Seamless Honeycomb Pattern Overlay covering the full screen */}
           <div 
             className="absolute inset-0 opacity-[0.32] pointer-events-none z-0" 
