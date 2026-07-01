@@ -256,17 +256,6 @@
       stroke-linecap: round;
     }
 
-    .cable-pulse {
-      fill: none;
-      stroke-linecap: round;
-      stroke-dasharray: 15 150;
-      stroke-dashoffset: 0;
-      opacity: 0;
-      filter: drop-shadow(0 0 8px var(--glow-color, currentColor));
-    }
-    
-
-
     /* Wires animations */
     .conn-line-kds {
       stroke-dasharray: 360;
@@ -277,11 +266,6 @@
       stroke-dasharray: 360;
       stroke-dashoffset: 360;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 2.0s forwards;
-    }
-    .pulse-kds {
-      color: #38bdf8;
-      --glow-color: #38bdf8;
-      animation: pulse-run-kds 1.5s linear infinite 2.4s;
     }
 
     .conn-line-printer {
@@ -294,11 +278,6 @@
       stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 3.3s forwards;
     }
-    .pulse-printer {
-      color: #f59e0b;
-      --glow-color: #f59e0b;
-      animation: pulse-run-printer 1.2s linear infinite 3.7s;
-    }
 
     .conn-line-web {
       stroke-dasharray: 260;
@@ -310,47 +289,9 @@
       stroke-dashoffset: 260;
       animation: draw-line 0.4s cubic-bezier(0.4, 0, 0.2, 1) 4.6s forwards;
     }
-    .pulse-web {
-      color: #10b981;
-      --glow-color: #10b981;
-      animation: pulse-run-web 1.2s linear infinite 5.0s;
-    }
     
     @keyframes draw-line {
       to { stroke-dashoffset: 0; }
-    }
-    
-    @keyframes pulse-run-kds {
-      0% {
-        opacity: 1;
-        stroke-dashoffset: 360;
-      }
-      100% {
-        opacity: 1;
-        stroke-dashoffset: 0;
-      }
-    }
-
-    @keyframes pulse-run-printer {
-      0% {
-        opacity: 1;
-        stroke-dashoffset: 260;
-      }
-      100% {
-        opacity: 1;
-        stroke-dashoffset: 0;
-      }
-    }
-
-    @keyframes pulse-run-web {
-      0% {
-        opacity: 1;
-        stroke-dashoffset: 260;
-      }
-      100% {
-        opacity: 1;
-        stroke-dashoffset: 0;
-      }
     }
 
     /* ====== Status Text at the bottom center ====== */
@@ -388,17 +329,47 @@
         <!-- 1. KDS Cable (Orthogonal path from POS (160, 300) to KDS (440, 300)) -->
         <path class="cable-bg conn-line-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
         <path class="cable-core conn-line-kds-core" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
-        <path class="cable-pulse pulse-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="2" stroke-linejoin="round" />
+        
+        <!-- KDS Neon Dot Animation -->
+        <g opacity="0">
+          <circle r="6" fill="#38bdf8" opacity="0.8" style="filter: blur(2px);">
+            <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
+          </circle>
+          <circle r="3" fill="#ffffff" opacity="1">
+            <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
+          </circle>
+          <animate attributeName="opacity" from="0" to="1" begin="2.4s" dur="0.1s" fill="freeze" />
+        </g>
         
         <!-- 2. Printer Cable (Orthogonal path from POS (160, 300) to Printer (300, 420)) -->
         <path class="cable-bg conn-line-printer" d="M 160 300 H 210 V 420 H 300" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
         <path class="cable-core conn-line-printer-core" d="M 160 300 H 210 V 420 H 300" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
-        <path class="cable-pulse pulse-printer" d="M 160 300 H 210 V 420 H 300" stroke-width="2" stroke-linejoin="round" />
+        
+        <!-- Printer Neon Dot Animation -->
+        <g opacity="0">
+          <circle r="6" fill="#f59e0b" opacity="0.8" style="filter: blur(2px);">
+            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
+          </circle>
+          <circle r="3" fill="#ffffff" opacity="1">
+            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
+          </circle>
+          <animate attributeName="opacity" from="0" to="1" begin="3.7s" dur="0.1s" fill="freeze" />
+        </g>
         
         <!-- 3. Web Cable (Orthogonal path from POS (160, 300) to Web (300, 180)) -->
         <path class="cable-bg conn-line-web" d="M 160 300 H 210 V 180 H 300" stroke="#1e293b" stroke-width="6" stroke-linejoin="round" />
         <path class="cable-core conn-line-web-core" d="M 160 300 H 210 V 180 H 300" stroke="#475569" stroke-width="3" stroke-linejoin="round" />
-        <path class="cable-pulse pulse-web" d="M 160 300 H 210 V 180 H 300" stroke-width="2" stroke-linejoin="round" />
+        
+        <!-- Web Neon Dot Animation -->
+        <g opacity="0">
+          <circle r="6" fill="#10b981" opacity="0.8" style="filter: blur(2px);">
+            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
+          </circle>
+          <circle r="3" fill="#ffffff" opacity="1">
+            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
+          </circle>
+          <animate attributeName="opacity" from="0" to="1" begin="5.0s" dur="0.1s" fill="freeze" />
+        </g>
       </svg>
 
       <!-- 1. POS Terminal -->
