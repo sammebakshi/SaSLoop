@@ -908,9 +908,8 @@ const ChatAnimationBackground = () => {
       <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-[#18ba60]/8 blur-[120px]" />
       <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-blue-500/8 blur-[120px]" />
 
-      {/* Hub diagram container */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="relative hidden lg:block" style={{ width: 600, height: 600 }}>
+        <div className="relative origin-center scale-[0.6] sm:scale-[0.75] md:scale-[0.88] lg:scale-100 block" style={{ width: 600, height: 600 }}>
 
           {/* FLOATING VECTOR ILLUSTRATION CARDS */}
 
