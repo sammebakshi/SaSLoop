@@ -1,32 +1,43 @@
 const fs = require('fs');
-const readline = require('readline');
-const path = require('path');
+const diff = fs.readFileSync('scratch/pos_app_diff_utf8.diff', 'utf8');
 
-const logsDir = 'C:/Users/Sajad/.gemini/antigravity-ide/brain/f6290d96-6827-4397-8034-a378a3d29f80/.system_generated/logs';
-const transcriptPath = path.join(logsDir, 'transcript.jsonl');
+const lines = diff.split('\n');
+const matchingChunks = [];
+let currentChunk = null;
 
-if (!fs.existsSync(transcriptPath)) {
-  console.log(`Transcript not found at ${transcriptPath}`);
-  process.exit(1);
-}
-
-const rl = readline.createInterface({
-  input: fs.createReadStream(transcriptPath),
-  crlfDelay: Infinity
-});
-
-let lineCount = 0;
-rl.on('line', (line) => {
-  lineCount++;
-  if (line.includes('printer') || line.includes('printers') || line.includes('Printer')) {
-    if (line.includes('dine_in') || line.includes('pickup') || line.includes('delivery') || line.includes('dinein') || line.includes('different') || line.includes('seperate') || line.includes('separate')) {
-      console.log(`Line ${lineCount} contains printer query matches`);
-      // Save matching lines to review
-      fs.writeFileSync(`c:/Users/Sajad/Desktop/SaSLoop/scratch/transcript_printer_line_${lineCount}.json`, line, 'utf8');
+lines.forEach(line => {
+  if (line.startsWith('@@')) {
+    if (currentChunk) {
+      const text = currentChunk.lines.join('\n').toLowerCase();
+      if (text.includes('printer') && (text.includes('dine') || text.includes('delivery') || text.includes('pickup') || text.includes('kot'))) {
+        matchingChunks.push(currentChunk);
+      }
     }
+    currentChunk = {
+      header: line,
+      lines: []
+    };
+  } else if (currentChunk) {
+    currentChunk.lines.push(line);
   }
 });
+if (currentChunk) {
+  const text = currentChunk.lines.join('\n').toLowerCase();
+  if (text.includes('printer') && (text.includes('dine') || text.includes('delivery') || text.includes('pickup') || text.includes('kot'))) {
+    matchingChunks.push(currentChunk);
+  }
+}
 
-rl.on('close', () => {
-  console.log(`Finished scanning ${lineCount} lines.`);
+console.log(`Found ${matchingChunks.length} chunks related to printers and order types.`);
+
+matchingChunks.forEach((c, idx) => {
+  console.log(`\n===================================`);
+  console.log(`CHUNK ${idx}: ${c.header}`);
+  console.log(`===================================`);
+  // Print lines that start with + or -
+  c.lines.forEach(l => {
+    if (l.startsWith('+') || l.startsWith('-')) {
+      console.log(l);
+    }
+  });
 });

@@ -1,39 +1,47 @@
 const fs = require('fs');
-const path = require('path');
 
-const filePath = path.join(__dirname, '../pos-app/src/App.jsx');
-let content = '';
+const diffContent = fs.readFileSync('scratch/pos_app_diff_utf8.diff', 'utf8');
+const lines = diffContent.split('\n');
 
-try {
-  // Try reading as UTF-8
-  content = fs.readFileSync(filePath, 'utf8');
-} catch (err) {
-  console.error('Error reading file:', err);
-  process.exit(1);
-}
+const chunks = [];
+let currentChunk = null;
 
-// If it starts with BOM for UTF-16LE or contains null bytes, try decoding as UTF-16LE
-if (content.includes('\u0000')) {
-  console.log('Detected null bytes, re-reading as UTF-16LE...');
-  content = fs.readFileSync(filePath, 'utf16le');
-}
-
-const lines = content.split(/\r?\n/);
-console.log(`Loaded ${lines.length} lines.`);
-
-const keywords = ['coupon', 'loyalty', 'points', 'redeem', 'discount', 'handlePrint', 'outletId'];
-keywords.forEach(keyword => {
-  console.log(`\n=== Matches for "${keyword}" ===`);
-  let matchCount = 0;
-  lines.forEach((line, index) => {
-    if (line.toLowerCase().includes(keyword.toLowerCase())) {
-      matchCount++;
-      if (matchCount <= 40) {
-        console.log(`${index + 1}: ${line.trim().substring(0, 120)}`);
-      }
+lines.forEach(line => {
+  if (line.startsWith('@@')) {
+    if (currentChunk) {
+      chunks.push(currentChunk);
     }
-  });
-  if (matchCount > 40) {
-    console.log(`... and ${matchCount - 40} more matches`);
+    currentChunk = {
+      header: line,
+      lines: []
+    };
+  } else if (currentChunk) {
+    currentChunk.lines.push(line);
   }
 });
+if (currentChunk) {
+  chunks.push(currentChunk);
+}
+
+const targetKeywords = ['printer', 'temp', 'splash', 'dial', 'pickup', 'delivery', 'locker'];
+const filteredChunks = chunks.filter(c => {
+  const content = c.lines.join('\n').toLowerCase();
+  return targetKeywords.some(kw => content.includes(kw));
+});
+
+let out = `Found ${filteredChunks.length} chunks related to user custom features:\n\n`;
+filteredChunks.forEach((c, idx) => {
+  out += `=========================================\n`;
+  out += `CHUNNK ${idx}: ${c.header}\n`;
+  out += `=========================================\n`;
+  // Only print added lines (+) or lines with target keywords
+  c.lines.forEach(l => {
+    if (l.startsWith('+') || l.startsWith('-') || targetKeywords.some(kw => l.toLowerCase().includes(kw))) {
+      out += l + '\n';
+    }
+  });
+  out += '\n';
+});
+
+fs.writeFileSync('scratch/user_changes.diff', out, 'utf8');
+console.log("Saved matching chunks to scratch/user_changes.diff");

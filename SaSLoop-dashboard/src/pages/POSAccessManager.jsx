@@ -400,6 +400,7 @@ const INITIAL_DEFAULT_STATE = {
   },
   PreOrder: {
     new_order: true,
+    customer_details_mandatory: false,
     Billing: { ...BILLING_DEFAULT },
     OldKOT: { ...OLD_KOT_DEFAULT },
     SplitBill: { ...SPLIT_BILL_DEFAULT }
@@ -1087,6 +1088,7 @@ const POSAccessManager = ({ userId: propUserId, onClose }) => {
                         <div className="p-5 space-y-6">
                           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                             <SwitchField label="New Order" checked={posAccess.PreOrder?.new_order} onChange={() => handleToggle(['PreOrder', 'new_order'])} />
+                            <SwitchField label="Customer Details Mandatory" checked={posAccess.PreOrder?.customer_details_mandatory} onChange={() => handleToggle(['PreOrder', 'customer_details_mandatory'])} />
                           </div>
                           
                           <div className="p-4 rounded-xl border border-slate-100 dark:border-white/5 bg-slate-50/50 dark:bg-black/10">

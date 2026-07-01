@@ -1,0 +1,2667 @@
+Found 37 chunks related to user custom features:
+
+=========================================
+CHUNNK 0: @@ -158,6 +158,192 @@ const TABLE_STATUS_COLORS = {
+=========================================
++// --- SPLASH SCREEN COMPONENTS ---
++const InitialSplashScreen = () => {
++  const [loadingProgress, setLoadingProgress] = useState(0);
++  const [statusText, setStatusText] = useState('Initializing POS System...');
++
++  useEffect(() => {
++    const progressInterval = setInterval(() => {
++      setLoadingProgress(prev => {
++        if (prev >= 100) {
++          clearInterval(progressInterval);
++          return 100;
++        }
++        return prev + 1;
++      });
++    }, 18);
++
++    const texts = [
++      { time: 0, text: 'Initializing system modules...' },
++      { time: 500, text: 'Connecting to local database...' },
++      { time: 1000, text: 'Syncing Master settings...' },
++      { time: 1500, text: 'Loading UI components...' },
++      { time: 1900, text: 'System ready.' }
++    ];
++
++    const timeouts = texts.map(item => 
++      setTimeout(() => setStatusText(item.text), item.time)
++    );
++
++    return () => {
++      clearInterval(progressInterval);
++      timeouts.forEach(t => clearTimeout(t));
++    };
++  }, []);
++
++  return (
++    <div className="w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden select-none mx-4">
++      {/* Honeycomb Pattern Background inside card */}
++      <div 
++        className="absolute inset-0 opacity-[0.05] pointer-events-none z-0" 
++        style={{ 
++          backgroundImage: `url("data:image/svg+xml,%3Csvg width='56' height='96' viewBox='0 0 56 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 0 L0 16 L0 48 L28 64 M28 64 L28 96' fill='none' stroke='%2318ba60' stroke-width='1.2'/%3E%3C/svg%3E")`,
++          backgroundSize: '56px 96px'
++        }} 
++      />
++      
++      {/* Glow effect */}
++      <div className="absolute w-[300px] h-[300px] rounded-full bg-[#18ba60]/5 blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 animate-pulse" />
++
++      <div className="relative z-10 flex flex-col items-center">
++        {/* Pulsing Logo Container */}
++        <motion.div 
++          initial={{ scale: 0.8, opacity: 0 }}
++          animate={{ scale: 1, opacity: 1 }}
++          transition={{ duration: 0.6, ease: "easeOut" }}
++          className="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center p-3 mb-5 shadow-[0_0_30px_rgba(24,186,96,0.15)]"
++        >
++          <img src="logo.png" alt="SaSLoop Logo" className="w-14 h-14 object-contain bg-white rounded-xl p-0.5" />
++        </motion.div>
++
++        {/* Title */}
++        <motion.h1 
++          initial={{ y: 15, opacity: 0 }}
++          animate={{ y: 0, opacity: 1 }}
++          transition={{ delay: 0.1, duration: 0.5 }}
++          className="text-2xl font-black tracking-tight mb-1 flex items-center gap-1.5 justify-center"
++        >
++          <span>SaSLoop</span>
++          <span className="text-[#18ba60]">Master POS</span>
++        </motion.h1>
++
++        <motion.p 
++          initial={{ y: 10, opacity: 0 }}
++          animate={{ y: 0, opacity: 1 }}
++          transition={{ delay: 0.2, duration: 0.5 }}
++          className="text-[9px] uppercase tracking-[0.25em] text-slate-400 font-bold mb-6"
++        >
++          Enterprise Master POS
++        </motion.p>
++
++        {/* Progress Bar */}
++        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-4 relative">
++          <div 
++            className="h-full bg-gradient-to-r from-[#18ba60] to-[#2ecc71] transition-all duration-100 ease-out rounded-full shadow-[0_0_8px_rgba(24,186,96,0.4)]"
++            style={{ width: `${loadingProgress}%` }}
++          />
++        </div>
++
++        {/* Status Text & Percentage */}
++        <div className="flex items-center justify-between w-full text-[10.5px] font-semibold text-slate-400">
++          <motion.span 
++            key={statusText}
++            initial={{ opacity: 0, y: 5 }}
++            animate={{ opacity: 0.7, y: 0 }}
++            className="truncate max-w-[280px]"
++          >
++            {statusText}
++          </motion.span>
++          <span className="text-emerald-400 font-mono">{loadingProgress}%</span>
++        </div>
++      </div>
++      
++      {/* Small footer inside the card */}
++      <div className="mt-8 text-[8.5px] text-slate-500 font-bold uppercase tracking-wider relative z-10">
++        SaSLoop Master POS v1.0.1 ΓÇó Secure Offline Mode
++      </div>
++    </div>
++  );
++};
++
++const TransitionSplashScreen = ({ username }) => {
++  const [loadingProgress, setLoadingProgress] = useState(0);
++
++  useEffect(() => {
++    const progressInterval = setInterval(() => {
++      setLoadingProgress(prev => {
++        if (prev >= 100) {
++          clearInterval(progressInterval);
++          return 100;
++        }
++        return prev + 2;
++      });
++    }, 35);
++    return () => clearInterval(progressInterval);
++  }, []);
++
++  return (
++    <div className="w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden select-none mx-4">
++      {/* Honeycomb Pattern Background inside card */}
++      <div 
++        className="absolute inset-0 opacity-[0.05] pointer-events-none z-0" 
++        style={{ 
++          backgroundImage: `url("data:image/svg+xml,%3Csvg width='56' height='96' viewBox='0 0 56 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 0 L0 16 L0 48 L28 64 M28 64 L28 96' fill='none' stroke='%2318ba60' stroke-width='1.2'/%3E%3C/svg%3E")`,
++          backgroundSize: '56px 96px'
++        }} 
++      />
++      
++      {/* Glow effect */}
++      <div className="absolute w-[300px] h-[300px] rounded-full bg-[#18ba60]/5 blur-[80px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 animate-pulse" />
++
++      <div className="relative z-10 flex flex-col items-center">
++        {/* Animated Check/Success or Logo */}
++        <motion.div 
++          initial={{ scale: 0.5, rotate: -45, opacity: 0 }}
++          animate={{ scale: 1, rotate: 0, opacity: 1 }}
++          transition={{ type: "spring", stiffness: 100, damping: 12 }}
++          className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-5 shadow-[0_0_30px_rgba(16,185,129,0.15)]"
++        >
++          <Shield className="w-8 h-8 text-[#18ba60] animate-pulse" />
++        </motion.div>
++
++        {/* Welcome Text */}
++        <motion.h2 
++          initial={{ y: 15, opacity: 0 }}
++          animate={{ y: 0, opacity: 1 }}
++          transition={{ delay: 0.1, duration: 0.5 }}
++          className="text-xl font-black tracking-tight mb-2"
++        >
++          Access Granted
++        </motion.h2>
++
++        <motion.p 
++          initial={{ y: 10, opacity: 0 }}
++          animate={{ y: 0, opacity: 1 }}
++          transition={{ delay: 0.2, duration: 0.5 }}
++          className="text-xs text-slate-400 font-semibold mb-6"
++        >
++          Welcome back, <span className="text-[#18ba60] font-black">{username || 'User'}</span>!
++        </motion.p>
++
++        {/* Progress Bar */}
++        <div className="w-full h-1.5 bg-white/5 rounded-full overflow-hidden mb-3">
++          <div 
++            className="h-full bg-gradient-to-r from-[#18ba60] to-[#2ecc71] transition-all duration-700 ease-out rounded-full shadow-[0_0_8px_rgba(24,186,96,0.4)]"
++            style={{ width: `${loadingProgress}%` }}
++          />
++        </div>
++
++        <div className="text-[10px] text-slate-400 uppercase tracking-widest font-black flex items-center gap-2">
++          <span className="w-2 h-2 bg-[#18ba60] rounded-full animate-ping"></span>
++          Preparing POS environment...
++        </div>
++      </div>
++    </div>
++  );
++};
++
+
+=========================================
+CHUNNK 1: @@ -330,112 +516,296 @@ const TypewriterText = () => {
+=========================================
+-const featuresList = [
++const loginSlides = [
+-    title: "Kitchen Order Tickets (KOT)",
+-    desc: "Instantly route order items to kitchen departments, configure multi-printer layouts, and optimize chef workflows with real-time preparation tracking.",
+-    icon: Utensils,
+-    color: "from-emerald-500 to-teal-600",
+-    badge: "KDS & KOT Engine"
++    vectorKey: "billing",
++    title: "Vibrant & Blazing Fast POS",
++    badge: "Billing Terminal",
++    desc: "Speed up checkout with search-as-you-type, automated discounts, multi-payment options, barcode scanning, and instant KOT prints."
+-    title: "Receipts & Billing",
+-    desc: "Generate professional thermal invoices, process cash/UPI/card settlements, track outstanding customer dues, and print custom layouts.",
+-    icon: Receipt,
+-    color: "from-blue-500 to-indigo-600",
+-    badge: "Finance & POS"
++    vectorKey: "kds",
++    title: "Kitchen Order Display System",
++    badge: "KOT Routing",
++    desc: "Automatically route and group orders directly to specific kitchen stations. Reduce cooking times with live timers and status updates."
+-    title: "WhatsApp Orders",
+-    desc: "Direct customer booking via WhatsApp channels, automated receipt broadcasting, and CRM marketing engines.",
+-    icon: MessageSquare,
+-    color: "from-green-500 to-emerald-600",
+-    badge: "Marketing & CRM"
++    vectorKey: "tables",
++    title: "Interactive Floor Plans",
++    badge: "Table Management",
++    desc: "Track table occupancy, seating durations, and waiter mappings at a glance with a visual, color-coded seating floor plan."
+-    title: "Online Orders",
+-    desc: "Accept incoming digital channel sales, coordinate delivery driver assignments, track delivery ETAs, and auto-sync online platforms.",
+-    icon: ShoppingCart,
+-    color: "from-orange-500 to-rose-600",
+-    badge: "Digital Channels"
++    vectorKey: "whatsapp",
++    title: "Smart Digital Receipts & WhatsApp",
++    badge: "Customer Engagement",
++    desc: "Send automated invoices, PDF receipts, and loyalty point statements directly to customer phones via WhatsApp integration."
+-    title: "Table Orders",
+-    desc: "Orchestrate dine-in table layouts, manage reservations, visual table status colors, and coordinate waiter table order mappings.",
+-    icon: Layers,
+-    color: "from-purple-500 to-violet-600",
+-    badge: "Floor Plan Seating"
++    vectorKey: "analytics",
++    title: "Deep Business Insights",
++    badge: "Reports & Expenses",
++    desc: "Monitor live sales, item performance, expenses, and shift logs. Make data-driven decisions with rich visual graphs and exports."
+-const FeatureShowcase = () => {
+-  const [index, setIndex] = useState(0);
+-  const [progress, setProgress] = useState(0);
+-
+-  useEffect(() => {
+-    setProgress(0);
+-    const progressInterval = setInterval(() => {
+-      setProgress(prev => {
+-        if (prev >= 100) {
+-          setIndex(idx => (idx + 1) % featuresList.length);
+-          return 0;
+-        }
+-        return prev + 2;
+-      });
+-    }, 80);
++const renderSlideVector = (key) => {
++  switch (key) {
++    case 'billing':
++      return (
++        <svg width="240" height="180" viewBox="0 0 240 180" fill="none" className="w-full h-full max-h-[200px]">
++          <ellipse cx="120" cy="165" rx="70" ry="10" fill="rgba(0,0,0,0.06)" />
++          <rect x="55" y="30" width="130" height="90" rx="8" fill="#1e293b" stroke="#334155" strokeWidth="3" />
++          <rect x="62" y="37" width="116" height="76" rx="4" fill="#0f172a" />
++          <rect x="68" y="44" width="60" height="8" rx="2" fill="#18ba60" />
++          <rect x="68" y="56" width="30" height="4" rx="1" fill="#475569" />
++          <rect x="68" y="64" width="45" height="4" rx="1" fill="#475569" />
++          <rect x="68" y="76" width="104" height="24" rx="3" fill="#1e293b" />
++          <rect x="74" y="81" width="40" height="4" rx="1" fill="#94a3b8" />
++          <rect x="74" y="89" width="30" height="4" rx="1" fill="#94a3b8" />
++          <rect x="145" y="85" width="20" height="6" rx="2" fill="#18ba60" />
++          <path d="M110 120 L130 120 L135 150 L105 150 Z" fill="#475569" />
++          <rect x="90" y="150" width="60" height="6" rx="3" fill="#334155" />
++          <g transform="translate(160, 100)">
++            <rect x="0" y="10" width="45" height="35" rx="4" fill="#334155" />
++            <rect x="5" y="16" width="35" height="4" rx="1" fill="#1e293b" />
++            <path d="M8 20 H37 V50 L32 46 L27 50 L22 46 L17 50 L12 46 L8 50 Z" fill="#f8fafc" stroke="#cbd5e1" strokeWidth="1" className="animate-pulse" />
++            <line x1="12" y1="26" x2="33" y2="26" stroke="#94a3b8" strokeWidth="1.5" />
++            <line x1="12" y1="32" x2="28" y2="32" stroke="#94a3b8" strokeWidth="1.5" />
++            <line x1="12" y1="38" x2="30" y2="38" stroke="#18ba60" strokeWidth="1.5" />
++          </g>
++          <g className="animate-bounce" style={{ animationDuration: '3s' }}>
++            <rect x="180" y="20" width="40" height="18" rx="9" fill="#10b981" />
++            <text x="200" y="32" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">PAID</text>
++          </g>
++        </svg>
++      );
++    case 'kds':
++      return (
++        <svg width="240" height="180" viewBox="0 0 240 180" fill="none" className="w-full h-full max-h-[200px]">
++          <ellipse cx="120" cy="165" rx="80" ry="10" fill="rgba(0,0,0,0.06)" />
++          <rect x="30" y="25" width="180" height="120" rx="10" fill="#1e293b" stroke="#475569" strokeWidth="4" />
++          <rect x="38" y="33" width="164" height="104" rx="6" fill="#0f172a" />
++          <rect x="44" y="39" width="152" height="14" rx="3" fill="#1e293b" />
++          <rect x="50" y="44" width="40" height="4" rx="2" fill="#94a3b8" />
++          <circle cx="186" cy="46" r="3" fill="#ef4444" />
++          <circle cx="176" cy="46" r="3" fill="#f59e0b" />
++          <g transform="translate(46, 58)">
++            <rect x="0" y="0" width="44" height="72" rx="4" fill="#1e293b" stroke="#ef4444" strokeWidth="1" />
++            <rect x="4" y="4" width="36" height="8" rx="2" fill="#ef4444" opacity="0.2" />
++            <rect x="8" y="6" width="20" height="4" rx="1" fill="#ef4444" />
++            <rect x="4" y="16" width="36" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="24" width="28" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="32" width="32" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="54" width="36" height="12" rx="3" fill="#ef4444" />
++            <text x="22" y="63" fill="white" fontSize="7" fontWeight="bold" textAnchor="middle">05:40 Min</text>
++          </g>
++          <g transform="translate(98, 58)">
++            <rect x="0" y="0" width="44" height="72" rx="4" fill="#1e293b" stroke="#10b981" strokeWidth="1" />
++            <rect x="4" y="4" width="36" height="8" rx="2" fill="#10b981" opacity="0.2" />
++            <rect x="8" y="6" width="20" height="4" rx="1" fill="#10b981" />
++            <rect x="4" y="16" width="36" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="24" width="32" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="32" width="20" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="54" width="36" height="12" rx="3" fill="#10b981" />
++            <text x="22" y="63" fill="white" fontSize="7" fontWeight="bold" textAnchor="middle">READY</text>
++          </g>
++          <g transform="translate(150, 58)">
++            <rect x="0" y="0" width="44" height="72" rx="4" fill="#1e293b" stroke="#3b82f6" strokeWidth="1" />
++            <rect x="4" y="4" width="36" height="8" rx="2" fill="#3b82f6" opacity="0.2" />
++            <rect x="8" y="6" width="20" height="4" rx="1" fill="#3b82f6" />
++            <rect x="4" y="16" width="30" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="24" width="36" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="32" width="25" height="4" rx="1.5" fill="#e2e8f0" />
++            <rect x="4" y="54" width="36" height="12" rx="3" fill="#3b82f6" />
++            <text x="22" y="63" fill="white" fontSize="7" fontWeight="bold" textAnchor="middle">01:15 Min</text>
++          </g>
++          <g className="animate-bounce" style={{ animationDuration: '4s' }} transform="translate(20, 15)">
++            <path d="M12 4 C8 4 6 7 7 10 C5 11 5 14 8 15 L8 18 H16 L16 15 C19 14 19 11 17 10 C18 7 16 4 12 4 Z" fill="#cbd5e1" stroke="#475569" strokeWidth="1.5" />
++            <rect x="9" y="16" width="6" height="2" fill="#475569" />
++          </g>
++        </svg>
++      );
++    case 'tables':
++      return (
++        <svg width="240" height="180" viewBox="0 0 240 180" fill="none" className="w-full h-full max-h-[200px]">
++          <ellipse cx="120" cy="165" rx="80" ry="10" fill="rgba(0,0,0,0.06)" />
++          <rect x="30" y="20" width="180" height="130" rx="12" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="2" />
++          <line x1="90" y1="20" x2="90" y2="150" stroke="#f1f5f9" strokeWidth="1" />
++          <line x1="150" y1="20" x2="150" y2="150" stroke="#f1f5f9" strokeWidth="1" strokeDasharray="2 4" />
++          <line x1="30" y1="85" x2="210" y2="85" stroke="#f1f5f9" strokeWidth="1" />
++          <g transform="translate(45, 30)">
++            <circle cx="10" cy="20" r="6" fill="#cbd5e1" />
++            <circle cx="42" cy="20" r="6" fill="#cbd5e1" />
++            <rect x="14" y="5" width="24" height="30" rx="6" fill="#3b82f6" stroke="#2563eb" strokeWidth="1.5" />
++            <text x="26" y="23" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">T1</text>
++            <circle cx="34" cy="10" r="3" fill="#ef4444" />
++          </g>
++          <g transform="translate(145, 30)">
++            <circle cx="20" cy="10" r="6" fill="#cbd5e1" />
++            <circle cx="20" cy="42" r="6" fill="#cbd5e1" />
++            <circle cx="20" cy="26" r="14" fill="#10b981" stroke="#059669" strokeWidth="1.5" />
++            <text x="20" y="29" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">T2</text>
++          </g>
++          <g transform="translate(45, 95)">
++            <circle cx="10" cy="20" r="6" fill="#cbd5e1" />
++            <circle cx="42" cy="20" r="6" fill="#cbd5e1" />
++            <rect x="14" y="5" width="24" height="30" rx="6" fill="#f59e0b" stroke="#d97706" strokeWidth="1.5" />
++            <text x="26" y="23" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">T3</text>
++            <rect x="22" y="10" width="8" height="4" fill="#e11d48" rx="1" />
++          </g>
++          <g transform="translate(125, 95)">
++            <circle cx="20" cy="5" r="5" fill="#cbd5e1" />
++            <circle cx="45" cy="20" r="5" fill="#cbd5e1" />
++            <circle cx="20" cy="35" r="5" fill="#cbd5e1" />
++            <circle cx="-5" cy="20" r="5" fill="#cbd5e1" />
++            <circle cx="20" cy="20" r="16" fill="#3b82f6" stroke="#2563eb" strokeWidth="1.5" />
++            <text x="20" y="23" fill="white" fontSize="9" fontWeight="bold" textAnchor="middle">T4</text>
++          </g>
++        </svg>
++      );
++    case 'whatsapp':
++      return (
++        <svg width="240" height="180" viewBox="0 0 240 180" fill="none" className="w-full h-full max-h-[200px]">
++          <ellipse cx="120" cy="165" rx="60" ry="10" fill="rgba(0,0,0,0.06)" />
++          <rect x="75" y="15" width="90" height="145" rx="14" fill="#1e293b" stroke="#334155" strokeWidth="3.5" />
++          <rect x="80" y="22" width="80" height="131" rx="8" fill="#e5ddd5" />
++          <rect x="110" y="19" width="20" height="2.5" rx="1.25" fill="#475569" />
++          <rect x="80" y="22" width="80" height="16" fill="#075e54" />
++          <circle cx="90" cy="30" r="4" fill="#f8fafc" />
++          <rect x="98" y="27" width="35" height="3.5" rx="1" fill="#f8fafc" />
++          <circle cx="150" cy="30" r="1" fill="white" />
++          <circle cx="153" cy="30" r="1" fill="white" />
++          <circle cx="156" cy="30" r="1" fill="white" />
++          <path d="M84 45 H125 A 4 4 0 0 1 129 49 V57 A 4 4 0 0 1 125 61 H88 L84 65 Z" fill="white" />
++          <rect x="88" y="49" width="32" height="3" rx="1" fill="#94a3b8" />
++          <rect x="88" y="55" width="24" height="2.5" rx="1" fill="#cbd5e1" />
++          <path d="M156 70 H105 A 4 4 0 0 0 101 74 V122 A 4 4 0 0 0 105 126 H152 L156 130 Z" fill="#dcf8c6" />
++          <rect x="107" y="76" width="42" height="32" rx="3" fill="white" stroke="#e2e8f0" />
++          <rect x="111" y="80" width="34" height="5" rx="1" fill="#eafaf1" />
++          <text x="128" y="84" fill="#18ba60" fontSize="4.5" fontWeight="black" textAnchor="middle">SaSLoop RECEIPT</text>
++          <line x1="112" y1="90" x2="142" y2="90" stroke="#e2e8f0" strokeWidth="1" />
++          <line x1="112" y1="95" x2="135" y2="95" stroke="#e2e8f0" strokeWidth="1" />
++          <line x1="112" y1="100" x2="140" y2="100" stroke="#18ba60" strokeWidth="1" />
++          <rect x="107" y="112" width="30" height="3" rx="1" fill="#075e54" opacity="0.6" />
++          <rect x="107" y="118" width="20" height="2" rx="0.5" fill="#94a3b8" />
++          <path d="M148 120 L150 122 L154 118" stroke="#34b7f1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
++          <path d="M151 120 L153 122 L157 118" stroke="#34b7f1" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
++          <g className="animate-bounce" style={{ animationDuration: '3.5s' }} transform="translate(145, 12)">
++            <circle cx="15" cy="15" r="14" fill="#25d366" stroke="white" strokeWidth="2.5" />
++            <path d="M10 18 L11.5 15.5 C10.8 14.5 10.5 13.2 10.5 12 C10.5 8.5 13.5 5.5 17 5.5 C20.5 5.5 23.5 8.5 23.5 12 C23.5 15.5 20.5 18.5 17 18.5 C15.8 18.5 14.5 18.2 13.5 17.5 Z" fill="none" stroke="white" strokeWidth="1.5" />
++            <path d="M14 10 Q16 9 17 11 T19 12 Q20 14 18 15 T15 14 Z" fill="white" />
++          </g>
++        </svg>
++      );
++    case 'analytics':
++      return (
++        <svg width="240" height="180" viewBox="0 0 240 180" fill="none" className="w-full h-full max-h-[200px]">
++          <ellipse cx="120" cy="165" rx="80" ry="10" fill="rgba(0,0,0,0.06)" />
++          <rect x="30" y="20" width="180" height="130" rx="10" fill="white" stroke="#cbd5e1" strokeWidth="2.5" />
++          <rect x="30" y="20" width="180" height="20" rx="10" fill="#1e293b" />
++          <rect x="30" y="30" width="180" height="10" fill="#1e293b" />
++          <circle cx="45" cy="30" r="3" fill="#ef4444" />
++          <circle cx="55" cy="30" r="3" fill="#f59e0b" />
++          <circle cx="65" cy="30" r="3" fill="#10b981" />
++          <rect x="135" y="26" width="65" height="8" rx="3" fill="#334155" />
++          <g transform="translate(40, 48)">
++            <rect x="0" y="0" width="75" height="34" rx="5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
++            <rect x="6" y="6" width="45" height="4" rx="1.5" fill="#94a3b8" />
++            <text x="6" y="25" fill="#1e293b" fontSize="11" fontWeight="extrabold">Rs 45,820</text>
++            <rect x="54" y="6" width="15" height="15" rx="3" fill="#eafaf1" />
++            <path d="M58 16 L61 11 L65 15" stroke="#10b981" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
++          </g>
++          <g transform="translate(125, 48)">
++            <rect x="0" y="0" width="75" height="34" rx="5" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
++            <rect x="6" y="6" width="45" height="4" rx="1.5" fill="#94a3b8" />
++            <text x="6" y="25" fill="#1e293b" fontSize="11" fontWeight="extrabold">184 Orders</text>
++            <rect x="54" y="6" width="15" height="15" rx="3" fill="#eff6ff" />
++            <circle cx="61" cy="13" r="3.5" stroke="#3b82f6" strokeWidth="1.5" />
++          </g>
++          <g transform="translate(40, 92)">
++            <rect x="0" y="0" width="160" height="48" rx="4" fill="#f8fafc" stroke="#e2e8f0" strokeWidth="1" />
++            <line x1="0" y1="12" x2="160" y2="12" stroke="#f1f5f9" strokeWidth="0.8" />
++            <line x1="0" y1="24" x2="160" y2="24" stroke="#f1f5f9" strokeWidth="0.8" />
++            <line x1="0" y1="36" x2="160" y2="36" stroke="#f1f5f9" strokeWidth="0.8" />
++            <path d="M 0 42 L 20 28 L 40 32 L 60 18 L 80 22 L 100 10 L 120 18 L 140 6 L 160 12 L 160 48 L 0 48 Z" fill="#18ba60" opacity="0.1" />
++            <path d="M 0 42 L 20 28 L 40 32 L 60 18 L 80 22 L 100 10 L 120 18 L 140 6 L 160 12" fill="none" stroke="#18ba60" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
++            <circle cx="140" cy="6" r="4" fill="#18ba60" stroke="white" strokeWidth="1.5" />
++          </g>
++        </svg>
++      );
++    default:
++      return null;
++  }
++};
+-    return () => clearInterval(progressInterval);
+-  }, [index]);
++const LoginSlideshow = () => {
++  const [currentIndex, setCurrentIndex] = useState(0);
+-  const activeFeature = featuresList[index];
+-  const IconComponent = activeFeature.icon;
++  useEffect(() => {
++    const timer = setInterval(() => {
++      setCurrentIndex((prevIndex) => (prevIndex + 1) % loginSlides.length);
++    }, 5000);
++    return () => clearInterval(timer);
++  }, []);
+-    <div className="absolute bottom-6 left-6 hidden lg:flex flex-col max-w-[440px] text-slate-800 z-10 space-y-4 select-none text-left">
+-      <div className="flex items-center gap-2">
+-        <span className="px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-[#18ba60]/10 text-[#18ba60] border border-[#18ba60]/20 rounded-full">
+-          Core Features
+-        </span>
+-        <span className="w-1.5 h-1.5 rounded-full bg-[#18ba60] animate-pulse"></span>
+-      </div>
+-
+-      <div className="bg-white/70 backdrop-blur-xl border border-white/80 rounded-[2rem] p-8 shadow-2xl shadow-slate-200/50 flex flex-col relative overflow-hidden transition-all duration-500 hover:shadow-[0_20px_60px_rgba(24,186,96,0.05)]">
+-        <div className={`absolute top-0 right-0 w-32 h-32 rounded-full bg-gradient-to-br ${activeFeature.color} opacity-5 blur-[40px] transition-all duration-500`} />
+-
+-        <div className="flex items-start gap-5">
+-          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${activeFeature.color} flex items-center justify-center text-white shadow-lg shrink-0 transition-all duration-500 transform hover:scale-105`}>
+-            <IconComponent size={24} strokeWidth={2.5} />
+-          </div>
++    <div className="w-full flex-1 flex flex-col items-center justify-center relative min-h-[460px] max-w-[600px] mx-auto select-none">
++      {/* Slides Container */}
++      <div className="w-full h-[400px] relative overflow-hidden flex items-center justify-center">
++        {loginSlides.map((slide, index) => {
++          const isActive = index === currentIndex;
++          return (
++            <div
++              key={index}
++              className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-700 ease-in-out ${
++                isActive ? "opacity-100 scale-100 pointer-events-auto" : "opacity-0 scale-95 pointer-events-none"
++              }`}
++            >
++              {/* Scaled-up SVG Vector illustration */}
++              <div className="w-full h-[220px] flex items-center justify-center mb-6">
++                {renderSlideVector(slide.vectorKey)}
++              </div>
+-          <div className="flex flex-col min-w-0">
+-            <span className="text-[9px] font-black uppercase tracking-widest text-[#18ba60]">{activeFeature.badge}</span>
+-            <h3 className="text-xl font-extrabold text-slate-900 mt-1 uppercase tracking-tight leading-tight transition-all duration-500">
+-              {activeFeature.title}
+-            </h3>
+-          </div>
+-        </div>
++              {/* Slide Text Content */}
++              <div className="text-center px-6 space-y-3 shrink-0">
++                {/* Animated Badge */}
++                <div className="inline-flex items-center gap-1.5 px-3 py-1 text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-full">
++                  <span className="w-1.5 h-1.5 rounded-full bg-[#18ba60] animate-pulse"></span>
++                  {slide.badge}
++                </div>
+-        <p className="text-slate-600 text-[12px] font-semibold leading-relaxed mt-5 min-h-[56px] transition-all duration-500">
+-          {activeFeature.desc}
+-        </p>
++                {/* Slide Title */}
++                <h2 
++                  className="text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-slate-800 leading-tight text-outline-white"
++                >
++                  {slide.title}
++                </h2>
+-        <div className="flex items-center gap-2.5 mt-8">
+-          {featuresList.map((f, i) => (
+-            <button
+-              key={f.title}
+-              onClick={() => { setIndex(i); setProgress(0); }}
+-              className={`h-2.5 rounded-full transition-all duration-300 ${i === index ? `w-8 bg-gradient-to-r ${f.color}` : 'w-2.5 bg-slate-300 hover:bg-slate-400'}`}
+-              title={f.title}
+-            />
+-          ))}
+-        </div>
++                {/* Slide Description */}
++                <p 
++                  className="text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed max-w-[460px] mx-auto text-outline-white-sm"
++                >
++                  {slide.desc}
++                </p>
++              </div>
++            </div>
++          );
++        })}
++      </div>
+-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-slate-100">
+-          <div
+-            className={`h-full bg-gradient-to-r ${activeFeature.color} transition-all duration-75`}
+-            style={{ width: `${progress}%` }}
++      {/* Slide Indicators at the bottom */}
++      <div className="flex items-center gap-2.5 mt-6 shrink-0">
++        {loginSlides.map((_, index) => (
++          <button
++            key={index}
++            onClick={() => setCurrentIndex(index)}
++            className={`h-2 rounded-full transition-all duration-300 ${
++              index === currentIndex ? "w-8 bg-[#18ba60]" : "w-2 bg-slate-300 hover:bg-slate-400"
++            }`}
++            type="button"
+-        </div>
++        ))}
+
+=========================================
+CHUNNK 2: @@ -904,14 +1274,22 @@ const getReceiptGrandTotal = (receipt, isTaxInclusive = false) => {
+=========================================
++  const ptsRedeemed = receipt.points_redeemed !== undefined 
++    ? parseInt(receipt.points_redeemed) 
++    : (receipt.redeemed_points !== undefined ? parseInt(receipt.redeemed_points) : 0);
++  const pointsDisc = receipt.points_discount !== undefined 
++    ? parseFloat(receipt.points_discount) 
++    : (ptsRedeemed * 0.1);
++  const couponDisc = parseFloat(receipt.coupon_discount || 0);
++  const totalDisc = disc + pointsDisc + couponDisc;
+   const dc = parseFloat(receipt.delivery_charge || receipt.delivery_charges || 0);
+-  const exclusiveTotal = sub - disc + taxC + taxS + sc + dc + tip;
+-  const inclusiveTotal = sub - disc + sc + dc + tip;
++  const exclusiveTotal = sub - totalDisc + taxC + taxS + sc + dc + tip;
++  const inclusiveTotal = sub - totalDisc + sc + dc + tip;
+
+=========================================
+CHUNNK 3: @@ -1150,6 +1530,8 @@ const UniversalPOS = () => {
+=========================================
++  const [showInitialSplash, setShowInitialSplash] = useState(true);
++  const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);
+
+=========================================
+CHUNNK 4: @@ -3244,6 +3597,159 @@ const UniversalPOS = () => {
+=========================================
++  const getStaffPermissions = () => {
++    if (!business || !business.staff_permissions) return {};
++    if (typeof business.staff_permissions === 'string') {
++      try {
++        return JSON.parse(business.staff_permissions);
++      } catch (e) {
++        return {};
++      }
++    }
++    return business.staff_permissions;
++  };
++
++  const checkBillingPermission = (perm) => {
++    const access = getStaffPermissions()?.pos_access;
++    if (!access) return true;
++    if (orderType === 'QUICK') {
++      const qk = perm === 'add_charges' ? 'add_charge' : perm;
++      return access.QuickBill?.[qk] !== false;
++    }
++    let billingAccess = access.Billing;
++    if (orderType === 'DELIVERY') {
++      billingAccess = access.Delivery?.Billing;
++    } else if (orderType === 'PICKUP') {
++      billingAccess = access.Pickup?.Billing;
++    } else if (orderType === 'PRE_ORDER') {
++      billingAccess = access.PreOrder?.Billing;
++    }
++    return billingAccess?.[perm] !== false;
++  };
++
++  const checkOldKOTPermission = (perm) => {
++    const access = getStaffPermissions()?.pos_access;
++    if (!access) return true;
++    let oldKotAccess = access.OldKOT;
++    if (orderType === 'DELIVERY') {
++      oldKotAccess = access.Delivery?.OldKOT;
++    } else if (orderType === 'PICKUP') {
++      oldKotAccess = access.Pickup?.OldKOT;
++    } else if (orderType === 'PRE_ORDER') {
++      oldKotAccess = access.PreOrder?.OldKOT;
++    }
++    return oldKotAccess?.[perm] !== false;
++  };
++
++    const checkKOTPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access;
++      if (!access) return true;
++      return access.KOT?.[perm] !== false;
++    };
++
++    const checkDashboardPermission = (card) => {
++      const access = getStaffPermissions()?.pos_access?.Dashboard;
++      if (!access) return true;
++      const mapping = {
++        todaysSale: 'todays_sale',
++        totalSale: 'total_sale',
++        thisMonthSale: 'this_month_sale',
++        itemPieChart: 'item_pie_chart',
++        barSalesChart: 'bar_sales_chart',
++        lineSalesChart: 'line_sales_chart',
++        paymentModesChart: 'payment_modes_chart',
++        salesAnalysisByDays: 'sales_analysis_by_days',
++        allSalesAnalysis: 'all_sales_analysis',
++        ipAddress: 'ip_address'
++      };
++      const key = mapping[card] || card;
++      return access[key] !== false;
++    };
++
++    const checkSplitBillPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access;
++      if (!access) return true;
++      let splitAccess = access.SplitBill;
++      if (orderType === 'DELIVERY') {
++        splitAccess = access.Delivery?.SplitBill;
++      } else if (orderType === 'PICKUP') {
++        splitAccess = access.Pickup?.SplitBill;
++      } else if (orderType === 'PRE_ORDER') {
++        splitAccess = access.PreOrder?.SplitBill;
++      }
++      return splitAccess?.[perm] !== false;
++    };
++
++    const checkCustomerPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access?.CustomerManagement;
++      if (!access) return true;
++      return access[perm] !== false;
++    };
++
++    const checkAccountPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access?.Account;
++      if (!access) return true;
++      return access[perm] !== false;
++    };
++
++    const checkOnlineOrderPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access?.OnlineOrder;
++      if (!access) return true;
++      return access[perm] !== false;
++    };
++
++    const checkReceiptsPermission = (perm) => {
++      const access = getStaffPermissions()?.pos_access?.Receipts;
++      if (!access) return true;
++      return access[perm] !== false;
++    };
++
++  const getFilteredReportsList = () => {
++    const access = getStaffPermissions()?.pos_access?.Reports;
++    if (!access) return REPORTS_LIST;
++    const mapping = {
++      'Sales Report': access.sales_report,
++      'DSR Report': access.sales_report,
++      'Todays Report': access.todays_report,
++      'Item Report': access.ItemReport?.visible,
++      'Meal Time-Based Sales Report': access.misc_report,
++      'Hourly Report': access.misc_report,
++      'Waiter Incentive Report': access.user_report,
++      'Payment Report': access.payment_report,
++      'Expense Tracking Report': access.misc_report,
++      'Order Type Report': access.order_type_report,
++      'Category Report': access.category_wise_report,
++      'Kitchen Department Report': access.kitchen_dept_wise_report,
++      'Coupon History Report': access.coupon_history,
++      'Due Payment Report': access.DuePaymentReport?.visible,
++      'Start Close Day Report': access.start_close_day_report,
++      'Shift Wise Report': access.user_shift_report,
++      'Discount Report': access.misc_report,
++      'Biller Wise Summary': access.user_report,
++      'Delivery Report': access.delivery_boy_report,
++      'Day Wise Summary Report': access.sales_report,
++      'Bill Print Report': access.misc_report,
++      'Applied Charges Report': access.misc_report,
++      'Passcode User Report': access.user_report,
++      'ZATCA Report': access.tax_report,
++      'Logistic Report': access.delivery_boy_report,
++      'Order Transition Report': access.misc_report,
++    };
++    return REPORTS_LIST.filter(item => mapping[item.name] !== false);
++  };
++
++  const getFilteredSettingsTabs = () => {
++    const access = getStaffPermissions()?.pos_access?.Settings;
++    const tabs = [
++      { id: 'general', label: 'General', icon: <Settings size={12} />, show: access?.general !== false },
++      { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} />, show: access?.profile !== false },
++      { id: 'printer', label: 'Printers', icon: <Printer size={12} />, show: access?.printers !== false },
++      { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} />, show: access?.shortcuts !== false },
++      { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} />, show: access?.formatting !== false },
++      { id: 'profile', label: 'Profile', icon: <User size={12} />, show: access?.profile !== false }
++    ];
++    return tabs.filter(t => t.show);
++  };
+
+=========================================
+CHUNNK 5: @@ -3581,69 +4180,350 @@ const UniversalPOS = () => {
+=========================================
+-  useEffect(() => {
+-    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
+-  }, [posSettings]);
+-
+-  const selectedTableStatus = selectedTable ? tableStatuses[selectedTable.id] : null;
+-  const isSettleEnabled = orderType !== 'DINE_IN' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED';
++    useEffect(() => {
++      localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
++    }, [posSettings]);
+-  const getSortedCatalog = () => {
+-    const salesQty = {};
+-    const salesAmt = {};
+-    if (posSettings?.sortItemsBy === 'top_sold_qty' || posSettings?.sortItemsBy === 'top_sold_amt') {
+-      recentOrders.forEach(o => {
+-        (o.items || []).forEach(it => {
+-          const itemId = it.id;
+-          const qty = parseFloat(it.qty || it.quantity || 0);
+-          const price = parseFloat(it.price || 0);
+-          salesQty[itemId] = (salesQty[itemId] || 0) + qty;
+-          salesAmt[itemId] = (salesAmt[itemId] || 0) + (qty * price);
++    useEffect(() => {
++      if (isSplitModalOpen) {
++        const allowed = ['PORTION', 'PERCENT', 'ITEM'].filter(mode => {
++          if (mode === 'PORTION') return checkSplitBillPermission('portion_wise');
++          if (mode === 'PERCENT') return checkSplitBillPermission('percentage_wise');
++          if (mode === 'ITEM') return checkSplitBillPermission('item_wise');
++          return true;
+-      });
+-    }
+-    return [...catalog].sort((a, b) => {
+-      if (posSettings?.sortItemsBy === 'alphabetical') return a.product_name.localeCompare(b.product_name);
+-      if (posSettings?.sortItemsBy === 'short_code') return (a.code || '').localeCompare(b.code || '');
+-      if (posSettings?.sortItemsBy === 'top_sold_qty') return (salesQty[b.id] || 0) - (salesQty[a.id] || 0);
+-      if (posSettings?.sortItemsBy === 'top_sold_amt') return (salesAmt[b.id] || 0) - (salesAmt[a.id] || 0);
+-      return 0;
+-    });
+-  };
++        if (allowed.length > 0 && !allowed.includes(splitMode)) {
++          setSplitMode(allowed[0]);
++        }
++      }
++    }, [isSplitModalOpen, splitMode]);
+-    if (!posSettings?.defaultTab) return;
+-    if (posSettings.defaultTab === 'Dine In' && !posSettings.disableTabs?.dinein) {
+-      setOrderType('DINE_IN');
+-    } else if (posSettings.defaultTab === 'PickUp' && !posSettings.disableTabs?.pickup) {
+-      setOrderType('PICKUP'); setSubOrderType('PICKUP'); setBillingView('menu');
+-    } else if (posSettings.defaultTab === 'Delivery' && !posSettings.disableTabs?.pickup) {
+-      setOrderType('PICKUP'); setSubOrderType('DELIVERY'); setBillingView('menu');
+-    } else if (posSettings.defaultTab === 'Quick Bill' && !posSettings.disableTabs?.quickbill) {
+-      setOrderType('QUICK'); setBillingView('menu');
+-    } else if (posSettings.defaultTab === 'Pre Order' && !posSettings.disableTabs?.preorder) {
+-      setActiveTrayTab('PreOrder');
+-      setBillingView('menu');
++    if (isAuthenticated && business) {
++      const access = getStaffPermissions()?.pos_access;
++      if (access) {
++        const tabCheck = {
++          home: access.Dashboard?.visible !== false,
++          billing: access.Billing?.visible !== false,
++          live: access.OrderWindow?.live_order_tracking !== false,
++          digital: access.OnlineOrder?.visible !== false,
++          receipts: access.Receipts?.visible !== false,
++          expenses: access.ExpenseManagement?.visible !== false,
++          analytics: access.Reports?.visible !== false,
++          config: access.OperationManagement?.visible !== false,
++          settings: access.Settings?.visible !== false,
++        };
++        if (!tabCheck[activeTab]) {
++          const firstAllowedTab = Object.keys(tabCheck).find(tab => tabCheck[tab]);
++          if (firstAllowedTab) {
++            setActiveTab(firstAllowedTab);
++          }
++        }
++      }
+-  }, [posSettings?.defaultTab, posSettings?.disableTabs]);
++  }, [business, isAuthenticated, activeTab]);
++
++  const handleLogoutFlow = async (clearData, force = false) => {
++    if (clearData) {
++      // Check for active carts or busy tables first
++      const hasActiveCarts = 
++        (dineInCart && dineInCart.length > 0) ||
++        (pickupCart && pickupCart.length > 0) ||
++        (quickCart && quickCart.length > 0) ||
++        (preOrderCart && preOrderCart.length > 0) ||
++        Object.values(tableCarts || {}).some(c => Array.isArray(c) && c.length > 0);
++
++      const hasBusyTables = Object.values(tableBills || {}).some(bill => {
++        if (!Array.isArray(bill)) return false;
++        return bill.some(item => !item.isCancelled);
++      });
+-  useEffect(() => {
+-    if (posSettings?.tableNameAsCustomerName && selectedTable && selectedTable.is_temporary) {
+-      // Only set table name as customer name if no custom customer is currently loaded/active.
+-      // A customer is considered active if customerPhone is not empty OR customerName has a value that is NOT empty/POS Guest and NOT the table name itself.
+-      const hasActiveCustomer = customerPhone || (customerName && customerName !== 'POS Guest' && customerName !== selectedTable.table_name);
+-      if (!hasActiveCustomer) {
+-        setCustomerName(selectedTable.table_name);
++      if ((hasActiveCarts || hasBusyTables) && !force) {
++        setLogoutModalStep('confirm_force_logout');
++        return;
+-    }
+-  }, [selectedTable, posSettings?.tableNameAsCustomerName, customerPhone, customerName]);
+-  // --- KEYBOARD SHORTCUTS (TMBill Parity) ---
+-  useEffect(() => {
+-    const handleKeyDown = (e) => {
+-      if (e.key === 'F1') { e.preventDefault(); handleKOT(); }
+-      if (e.key === 'F2') { e.preventDefault(); handleCheckout('PRINT'); }
+-      if (e.key === 'F3') { e.preventDefault(); handleCheckout('SETTLE'); }
++      // 1. Sync empty active state to the server database first so the backend drops the active state for this session
++      try {
++        if (posService && posService.saveActiveState) {
++          await posService.saveActiveState({
++            tableBills: {},
++            tableStatuses: {},
++            tableBillNumbers: {},
++            tableActiveTimestamps: {},
++            tables: []
++          });
++        }
++      } catch (err) {
++        console.error("Failed to clear server active state:", err);
++      }
++
++      // 2. Collect all keys to remove first to avoid index shifting
++      const keysToRemove = [];
++      for (let i = 0; i < localStorage.length; i++) {
++        const key = localStorage.key(i);
++        if (key) {
++          if (
++            key === 'pos_device_id' ||
++            key === 'pos_theme' ||
++            key === 'pos_terminal_settings' ||
++            key === 'pos_business' ||
++            key === 'pos_brand_color' ||
++            key === 'pos_active_state' ||
++            key === 'pos_available_printers'
++          ) {
++            continue;
++          }
++          keysToRemove.push(key);
++        }
++      }
++      keysToRemove.forEach(k => localStorage.removeItem(k));
++      
++      // Additional UI, statistics, dashboard and session states
++      setStats({ totalSales: 0, totalOrders: 0, averageOrderValue: 0, totalTax: 0 });
++      setTopItems([]);
++      setPieItems([]);
++      setLineData([]);
++      setBarData([]);
++      setPieStartDate('');
++      setPieEndDate('');
++      setPieLimit(5);
++      setLineStartDate('');
++      setLineEndDate('');
++      setBarStartDate('');
++      setBarEndDate('');
++      setLineTimeframe('daily');
++      setBarTimeframe('daily');
++      setSearchQuery('');
++      setSelectedTable(null);
++      setSelectedLiveOrderId(null);
++      setActiveDepartment('All');
++      setIsCustomerHistoryModalOpen(false);
++      setCustomerHistoryActiveTab('orders');
++      setShowCustomerPopup(false);
++      setShowWaiterPopup(false);
++      setSelectedHistoryOrder(null);
++      setIsWaiterModalOpen(false);
++      setSelectedWaiter(null);
++      setIsRiderModalOpen(false);
++      setSelectedRiderId('');
++      setRedeemedPoints(0);
++      setIsAiAnalyzing(false);
++      setAiAdvice(null);
++      setPreviewQrUrl(null);
++      setPreviewQrMeta(null);
++      setBackendQrs([]);
++      setIsExpenseModalOpen(false);
++      setSelectedItemForModifiers(null);
++      setTempKitchenNote('');
++      setSelectedItemForDiscount(null);
++      setIsOpenPriceModalOpen(false);
++      setOpenPriceItem(null);
++      setOpenPriceValue('');
++      setExtraCharges({ packing: 0, delivery: 0, service: 0 });
++      setIsDiscountModalOpen(false);
++      setIsChargesModalOpen(false);
++      setAppliedAdditionalCharges([]);
++      setCustomDiscountType('percent');
++      setCustomDiscountValue('');
++      setSaveDiscountToBackOffice(false);
++      setCustomDiscountName('');
++      setSaveChargeToBackOffice(false);
++      setSelectedDiscountId(null);
++      setCustomChargeName('');
++      setCustomChargeType('fixed');
++      setCustomChargeValue('');
++      setIsCouponModalOpen(false);
++      setAvailableCoupons([]);
++      setCouponCode('');
++      setAppliedCoupon(null);
++      setShowLoyaltyPopup(false);
++      setIsSplitModalOpen(false);
++      setSplitMode('PORTION');
++      setSplitPortions(2);
++      setSplitPercentages([50, 50]);
++      setSplitParts([]);
++      setCustomerName('');
++      setCustomerPhone('');
++      setCustomerAddress('');
++      setSelectedCustomer(null);
++      setKOTNote('');
++      setCoversCount('');
++      setEbillEnabled(false);
++      setSearchResults([]);
++      setShowSearchResults(false);
++      setActiveSearchResultIndex(-1);
++      setCustomerPaymentMethod('CASH');
++      setDiscount({ type: 'NONE', value: 0 });
++      setIsKOTPending(false);
++      setLastKOTId(null);
++      setSelectedCategory('All');
++      setSelectedPriceTier(1);
++      setCart([]);
++      setActiveTrayTab('KOT');
++      setIsSettingsModalOpen(false);
++      setSettingsActiveTab('general');
++      setItemMgmtSearch('');
++      setItemMgmtCodeSearch('');
++      setItemMgmtSelectedCategory('All');
++      setItemMgmtEditItem(null);
++      setItemMgmtLoading(false);
++      setConfigSubView('main');
++      setItemMgmtTypeFilter('0');
++      setIsItemFormOpen(false);
++      setItemMgmtTaxGroups([]);
++      setItemMgmtKitchenDepts([]);
++      setIsPaymentModalOpen(false);
++      setSelectedPaymentMode('Cash');
++      setIsSplitPayment(false);
++      setIsDuePayment(false);
++      setPaymentReferenceNo('');
++      setTipAmount('');
++      setCustomerPaidAmount('');
++      setSplitPaidAmount('');
++      setSplitCreditAmount('');
++      setSaveChangeToBalance(false);
++      setExpandedOrderId(null);
++      setIsPayDueModalOpen(false);
++      setPayDueAmount('');
++      setPayDueMethod('Cash');
++      setPayDueNotes('');
++      setCreditSearchQuery('');
++      setCreditSearchResults([]);
++      setQrModalTable(null);
++      setTableContextMenu(null);
++      setFeedbackRating({ item1: 5, item2: 5 });
++      setInventoryActiveTab('list');
++      setIsTableManagementModalOpen(false);
++      setIsUserManagementModalOpen(false);
++      setIsCaptainAppModalOpen(false);
++      setIsFeedbackModalOpen(false);
++      setIsInventoryModalOpen(false);
++      setInventoryItems([]);
++      setIsReservationModalOpen(false);
++      setReservations([]);
++      setIsOldKOTModalOpen(false);
++      setPrintKOT(true);
++      setPrintCancelledKOT(true);
++      setPrintTransferredKOT(true);
++      setSelectAllOldKOT(false);
++      setSelectedOldKOTItems({});
++      setOldKOTItemReasons({});
++      setIsTransferModalOpen(false);
++      setSelectedReport('Sales Report');
++      setIsAddCustomerModalOpen(false);
++      setIsManageCustomersModalOpen(false);
++      setIsManageBalancesModalOpen(false);
++      setIsManagePointsModalOpen(false);
++      setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });
++      setCustomerSearchQuery('');
++      setEditingCustomerPhone(null);
++      setEditingCustomerFields({ name: '', phone: '', address: '' });
++      setAdjustmentAmount('');
++      setAdjustmentType('ADD');
++      setCustomerCountryCode('+91');
++      setNewCustomerCountryCode('+91');
++      setAdjustmentReason('');
++      setHistoryCustomerPhone(null);
++      setCustomerHistoryData({ orders: [], transactions: [] });
++      setIsHistoryLoading(false);
++      setIncludeItemized(false);
++      setIsCheckingOut(false);
++      setPreOrders([]);
++      setPreOrderAdvanceAmount('');
++      setPreOrderOrderType('PICKUP');
++      setPreOrderNotes('');
++      setShowPreOrderList(false);
++      setEditingPreOrder(null);
++      setPreOrderSubTab('KOT');
++      setPreOrderTableNumber('');
++      setSelectedReceipt(null);
++      setPreviewReceipt(null);
++      setEditingOrder(null);
++      setTicker(0);
++      setIsRejectionModalOpen(false);
++      setRejectionOrderId(null);
++      setSelectedRejectionReason("");
++      setCustomRejectionReason("");
++      setIsManagingPresets(false);
++      setNewPresetInput("");
++      setSaveToPresets(false);
++      setNextBillNo(1);
++
++      toast.info("Local sales and shift data successfully cleared.");
++    }
++
++    // 3. Complete standard logout
++    localStorage.removeItem('pos_token');
++    setIsAuthenticated(false);
++    setUsername('');
++    setPassword('');
++    setActiveTab('home');
++    setLogoutModalStep(null);
++    setClearLocalDataChecked(false);
++    toast.success("Successfully logged out.");
++  };
++
++  const selectedTableStatus = selectedTable ? tableStatuses[selectedTable.id] : null;
++  const isSettleEnabled = orderType !== 'DINE_IN' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED';
++  const isTableSaved = selectedTableStatus && (selectedTableStatus === 'SAVED' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED');
++
++  const getSortedCatalog = () => {
++    const salesQty = {};
++    const salesAmt = {};
++    if (posSettings?.sortItemsBy === 'top_sold_qty' || posSettings?.sortItemsBy === 'top_sold_amt') {
++      recentOrders.forEach(o => {
++        (o.items || []).forEach(it => {
++          const itemId = it.id;
++          const qty = parseFloat(it.qty || it.quantity || 0);
++          const price = parseFloat(it.price || 0);
++          salesQty[itemId] = (salesQty[itemId] || 0) + qty;
++          salesAmt[itemId] = (salesAmt[itemId] || 0) + (qty * price);
++        });
++      });
++    }
++    return [...catalog].sort((a, b) => {
++      if (posSettings?.sortItemsBy === 'alphabetical') return a.product_name.localeCompare(b.product_name);
++      if (posSettings?.sortItemsBy === 'short_code') return (a.code || '').localeCompare(b.code || '');
++      if (posSettings?.sortItemsBy === 'top_sold_qty') return (salesQty[b.id] || 0) - (salesQty[a.id] || 0);
++      if (posSettings?.sortItemsBy === 'top_sold_amt') return (salesAmt[b.id] || 0) - (salesAmt[a.id] || 0);
++      return 0;
++    });
++  };
++
++  useEffect(() => {
++    if (!posSettings?.defaultTab) return;
++    if (posSettings.defaultTab === 'Dine In' && !posSettings.disableTabs?.dinein) {
++      setOrderType('DINE_IN');
++    } else if (posSettings.defaultTab === 'PickUp' && !posSettings.disableTabs?.pickup) {
++      setOrderType('PICKUP'); setSubOrderType('PICKUP'); setBillingView('menu');
++    } else if (posSettings.defaultTab === 'Delivery' && !posSettings.disableTabs?.pickup) {
++      setOrderType('PICKUP'); setSubOrderType('DELIVERY'); setBillingView('menu');
++    } else if (posSettings.defaultTab === 'Quick Bill' && !posSettings.disableTabs?.quickbill) {
++      setOrderType('QUICK'); setBillingView('menu');
++    } else if (posSettings.defaultTab === 'Pre Order' && !posSettings.disableTabs?.preorder) {
++      setActiveTrayTab('PreOrder');
++      setBillingView('menu');
++    }
++  }, [posSettings?.defaultTab, posSettings?.disableTabs]);
++
++  useEffect(() => {
++    if (posSettings?.tableNameAsCustomerName && selectedTable && selectedTable.is_temporary) {
++      // Only set table name as customer name if no custom customer is currently loaded/active.
++      // A customer is considered active if customerPhone is not empty OR customerName has a value that is NOT empty/POS Guest and NOT the table name itself.
++      const hasActiveCustomer = customerPhone || (customerName && customerName !== 'POS Guest' && customerName !== selectedTable.table_name);
++      if (!hasActiveCustomer) {
++        setCustomerName(selectedTable.table_name);
++      }
++    }
++  }, [selectedTable, posSettings?.tableNameAsCustomerName, customerPhone, customerName]);
++
++  // --- KEYBOARD SHORTCUTS (TMBill Parity) ---
++  useEffect(() => {
++    const handleKeyDown = (e) => {
++      if (e.key === 'F1') { e.preventDefault(); handleKOT(); }
++      if (e.key === 'F2') { e.preventDefault(); handleCheckout('PRINT'); }
++      if (e.key === 'F3') { e.preventDefault(); handleCheckout('SETTLE'); }
+
+=========================================
+CHUNNK 6: @@ -3976,12 +4860,39 @@ const UniversalPOS = () => {
+=========================================
+   const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {
+-    if (cart.length === 0) {
+-      toast.error("KOT is empty!");
+-      return;
++    if (isPrint) {
++      if (!checkKOTPermission('save_and_print')) {
++        toast.error("You do not have permission to Save and Print KOT.");
++        return;
++      }
++    } else {
++      if (!checkKOTPermission('save')) {
++        toast.error("You do not have permission to Save KOT.");
++        return;
++      }
++        if (cart.length === 0) {
++          toast.error("KOT is empty!");
++          return;
++        }
+-    const isExistingTemp = selectedTable && selectedTable.is_temporary;
++        const isDeliveryKOT = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
++        const isPickupKOT = orderType === 'PICKUP' && subOrderType === 'PICKUP';
++
++        if (isDeliveryKOT && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) {
++          if (!customerName || !customerPhone) {
++            toast.error("Customer name and phone number are mandatory for delivery orders!");
++            return;
++          }
++        }
++        if (isPickupKOT && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true) {
++          if (!customerName || !customerPhone) {
++            toast.error("Customer name and phone number are mandatory for pickup orders!");
++            return;
++          }
++        }
++
++        const isExistingTemp = selectedTable && selectedTable.is_temporary;
+     const tempId = isExistingTemp ? selectedTable.id : `temp-${Date.now()}`;
+     let typeLabel = 'Pickup';
+
+=========================================
+CHUNNK 7: @@ -4036,6 +4947,20 @@ const UniversalPOS = () => {
+=========================================
+     setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));
+     setTableStatuses(prev => ({ ...prev, [tempId]: isPrint ? 'PRINTED' : 'SAVED' }));
++    setTableCustomers(prev => ({
++      ...prev,
++      [tempId]: {
++        customerCountryCode,
++        customerPhone,
++        customerName,
++        customerAddress,
++        selectedCustomer,
++        redeemedPoints,
++        appliedCoupon,
++        couponCode
++      }
++    }));
++
+
+=========================================
+CHUNNK 8: @@ -4531,6 +5500,12 @@ const UniversalPOS = () => {
+=========================================
++
++    // Timer for initial loading splash screen
++    const timer = setTimeout(() => {
++      setShowInitialSplash(false);
++    }, 2200);
++    return () => clearTimeout(timer);
+
+=========================================
+CHUNNK 9: @@ -4956,15 +5946,25 @@ const UniversalPOS = () => {
+=========================================
+-        return des.includes('waiter') || des.includes('captain') || des.includes('server') || des.includes('staff') || role.includes('staff') || role.includes('waiter');
++        return role === 'waiter' || des.includes('waiter') || role.includes('waiter') || des.includes('captain') || role.includes('captain');
+-      const finalWaiters = waitersOnly.length > 0 ? waitersOnly : staffList;
++      const finalWaiters = waitersOnly;
++    // 8c. Fetch Riders / Delivery boys
++    try {
++      const ridersRes = await posService.getRiders();
++      const ridersList = ridersRes.data || [];
++      setRiders(ridersList);
++      localStorage.setItem('pos_riders', JSON.stringify(ridersList));
++    } catch (e) {
++      console.warn("initApp - Failed to fetch riders:", e);
++    }
++
+
+=========================================
+CHUNNK 10: @@ -5870,107 +6895,22 @@ const UniversalPOS = () => {
+=========================================
+-    if (navigator.onLine && stats.totalSales > 0) {
+-      setStats(prev => ({
+-        ...calculated,
+-        todaySales: prev.todaySales,
+-        todayCount: prev.todayCount,
+-        totalSales: prev.totalSales,
+-        totalCount: prev.totalCount,
+-        monthSales: prev.monthSales,
+-        monthCount: prev.monthCount,
+-        offlineSales: prev.offlineSales,
+-        offlineCount: prev.offlineCount,
+-        onlineSales: prev.onlineSales,
+-        onlineCount: prev.onlineCount,
+-        dineInSales: prev.dineInSales,
+-        dineInCount: prev.dineInCount,
+-        quickSales: prev.quickSales,
+-        quickCount: prev.quickCount,
+-        takeawaySales: prev.takeawaySales,
+-        takeawayCount: prev.takeawayCount,
+-        deliverySales: prev.deliverySales,
+-        deliveryCount: prev.deliveryCount,
+-        totalTax: prev.totalTax,
+-        totalDiscount: prev.totalDiscount,
+-        todayCreditSales: prev.todayCreditSales,
+-        totalCreditSales: prev.totalCreditSales,
+-        avgSalePerPerson: prev.avgSalePerPerson,
+-        serverIp: prev.serverIp,
+-        weeklyHeatmap: prev.weeklyHeatmap,
+-        paymentBreakdown: prev.paymentBreakdown
+-      }));
+-    } else {
+-      setStats(prev => ({
+-        ...calculated,
+-        serverIp: prev.serverIp,
+-        weeklyHeatmap: prev.weeklyHeatmap
+-      }));
+-    }
++    setStats(prev => ({
++      ...calculated,
++      serverIp: prev.serverIp,
++      weeklyHeatmap: prev.weeklyHeatmap
++    }));
+-    if (!isAuthenticated || !navigator.onLine) return;
+-    try {
+-      const res = await posService.getDashboardStats();
+-      if (res.data) {
+-        setStats(prev => ({
+-          ...prev,
+-          todaySales: parseFloat(res.data.todaySales?.total || 0),
+-          todayCount: parseInt(res.data.todaySales?.count || 0),
+-          totalSales: parseFloat(res.data.totalSales?.total || 0),
+-          totalCount: parseInt(res.data.totalSales?.count || 0),
+-          monthSales: parseFloat(res.data.thisMonth?.total || 0),
+-          monthCount: parseInt(res.data.thisMonth?.count || 0),
+-          offlineSales: parseFloat(res.data.offlineSales?.total || 0),
+-          offlineCount: parseInt(res.data.offlineSales?.count || 0),
+-          onlineSales: parseFloat(res.data.onlineSales?.total || 0),
+-          onlineCount: parseInt(res.data.onlineSales?.count || 0),
+-          dineInSales: parseFloat(res.data.dineIn?.total || 0),
+-          dineInCount: parseInt(res.data.dineIn?.count || 0),
+-          quickSales: parseFloat(res.data.quickBill?.total || 0),
+-          quickCount: parseInt(res.data.quickBill?.count || 0),
+-          takeawaySales: parseFloat(res.data.pickup?.total || 0),
+-          takeawayCount: parseInt(res.data.pickup?.count || 0),
+-          deliverySales: parseFloat(res.data.onlineSales?.total || 0),
+-          deliveryCount: parseInt(res.data.onlineSales?.count || 0),
+-          totalTax: parseFloat(res.data.totalTax || 0),
+-          totalDiscount: parseFloat(res.data.totalDiscount || 0),
+-          todayCreditSales: parseFloat(res.data.todayCreditSales || 0),
+-          totalCreditSales: parseFloat(res.data.totalCreditSales || 0),
+-          avgSalePerPerson: res.data.avgSalePerPerson || '0.00',
+-          serverIp: res.data.serverIp || prev.serverIp || '127.0.0.1',
+-          weeklyHeatmap: Array.isArray(res.data.weeklyHeatmap) ? res.data.weeklyHeatmap : [],
+-          paymentBreakdown: Array.isArray(res.data.paymentBreakdown) ? res.data.paymentBreakdown : []
+-        }));
+-
+-        if (Array.isArray(res.data.dailySales)) {
+-          const chartPoints = res.data.dailySales.map(d => ({
+-            day: d.date ? d.date.split('T')[0] : '',
+-            total: parseFloat(d.total || 0)
+-          }));
+-          setLineData(chartPoints);
+-          setBarData(chartPoints);
+-        }
+-
+-        if (Array.isArray(res.data.topItems)) {
+-          const piePoints = res.data.topItems.map(i => ({
+-            name: i.name,
+-            qty: parseInt(i.count || 0)
+-          }));
+-          setPieItems(piePoints);
+-        }
+-      }
+-    } catch (e) {
+-      console.warn("Failed to fetch dashboard stats from server:", e);
+-    }
++    // No-op: skip loading server stats to keep POS data purely local
++    if (!isAuthenticated) return;
+-    // ≡ƒöÉ Internet is REQUIRED for login ΓÇö per system policy
+-    if (!navigator.onLine) {
+-      toast.error("ΓÜá∩╕Å No Internet Connection. Internet is required to login. Please connect and try again.");
++    if (!username || !password) {
++      toast.error("Please fill all fields");
+
+=========================================
+CHUNNK 11: @@ -6347,15 +7289,44 @@ const UniversalPOS = () => {
+=========================================
++    if (type === 'PRINT' && !checkBillingPermission('allow_draft_bill_printing')) {
++      return toast.error("You do not have permission to print a draft bill.");
++    }
++    if (type === 'SETTLE' && !checkBillingPermission('settle_bill')) {
++      return toast.error("You do not have permission to settle the bill.");
++    }
++    if (type === 'SAVE' && !checkBillingPermission('save_bill')) {
++      return toast.error("You do not have permission to save the bill.");
++    }
++    if (type === 'SAVE_PRINT' && !checkBillingPermission('save_print_bill')) {
++      return toast.error("You do not have permission to save and print the bill.");
++    }
+-    const activeCart = getActiveCart();
+-    if (activeCart.length === 0) return toast.warning("Cart is empty!");
++        const activeCart = getActiveCart();
++        if (activeCart.length === 0) return toast.warning("Cart is empty!");
++
++        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
++        const isPickup = orderType === 'PICKUP' && subOrderType === 'PICKUP';
++
++        if (isDelivery && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) {
++          if (!customerName || !customerPhone) {
++            return toast.error("Customer name and phone number are mandatory for delivery orders!");
++          }
++        }
++        if (isPickup && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true) {
++          if (!customerName || !customerPhone) {
++            return toast.error("Customer name and phone number are mandatory for pickup orders!");
++          }
++        }
+-    // Block credit checkout if no customer is selected
++        // Block credit checkout if no customer is selected
++    if (isCreditCheckout && !checkBillingPermission('allowed_due_payment')) {
++      return toast.error("You do not have permission for Credit payment!");
++    }
+     const tempFullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
+     if (isCreditCheckout && !tempFullPhone) {
+
+=========================================
+CHUNNK 12: @@ -6397,6 +7369,30 @@ const UniversalPOS = () => {
+=========================================
++
++    let pointsEarned = 0;
++    if (fullPhone) {
++      if (getLoyaltySetting('loyalty_enabled', true)) {
++        const isDineIn = orderType === 'DINE_IN';
++        const isPickup = orderType === 'PICKUP' && subOrderType !== 'DELIVERY';
++        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
++        
++        let eligible = true;
++        if (isDineIn && getLoyaltySetting('loyalty_points_dinein', true) === false) eligible = false;
++        if (isPickup && getLoyaltySetting('loyalty_points_pickup', true) === false) eligible = false;
++        if (isDelivery && getLoyaltySetting('loyalty_points_delivery', true) === false) eligible = false;
++        
++        if (eligible) {
++          const threshold = parseFloat(getLoyaltySetting('loyalty_bill_amount_threshold', 1000));
++          const pointsAwarded = parseFloat(getLoyaltySetting('loyalty_points_earned', 100));
++          const ratio = pointsAwarded / threshold;
++          pointsEarned = total >= threshold ? Math.floor(total * ratio) : 0;
++        }
++      } else {
++        pointsEarned = 0;
++      }
++    }
++
+
+=========================================
+CHUNNK 13: @@ -6429,7 +7425,7 @@ const UniversalPOS = () => {
+=========================================
+-      status: type === 'SAVE' ? 'PENDING' : 'COMPLETED',
++      status: type === 'SETTLE' ? 'COMPLETED' : 'PENDING',
+       table_id: (orderType === 'DINE_IN' && selectedTable && !selectedTable.is_temporary) ? selectedTable.id : null,
+       order_type: (selectedTable && selectedTable.is_temporary)
+         ? (selectedTable.original_order_type === 'PICKUP' ? selectedTable.original_sub_order_type : selectedTable.original_order_type)
+
+=========================================
+CHUNNK 14: @@ -6558,33 +7555,12 @@ const UniversalPOS = () => {
+=========================================
+-      let pointsEarned = 0;
+-      if (getLoyaltySetting('loyalty_enabled', true)) {
+-        const isDineIn = orderType === 'DINE_IN';
+-        const isPickup = orderType === 'PICKUP' && subOrderType !== 'DELIVERY';
+-        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
+-        
+-        let eligible = true;
+-        if (isDineIn && getLoyaltySetting('loyalty_points_dinein', true) === false) eligible = false;
+-        if (isPickup && getLoyaltySetting('loyalty_points_pickup', true) === false) eligible = false;
+-        if (isDelivery && getLoyaltySetting('loyalty_points_delivery', true) === false) eligible = false;
+-        
+-        if (eligible) {
+-          const threshold = parseFloat(getLoyaltySetting('loyalty_bill_amount_threshold', 1000));
+-          const pointsAwarded = parseFloat(getLoyaltySetting('loyalty_points_earned', 100));
+-          const ratio = pointsAwarded / threshold;
+-          pointsEarned = total >= threshold ? Math.floor(total * ratio) : 0;
+-        }
+-      } else {
+-        pointsEarned = Math.floor(total / 100);
+-      }
+-
+-        const updatedCust = {
++        const updatedCust = type === 'SETTLE' ? {
+
+=========================================
+CHUNNK 15: @@ -6659,8 +7639,12 @@ const UniversalPOS = () => {
+=========================================
+-      setKOTNote('');
+-      setCoversCount('');
++      setRedeemedPoints(0);
++      setAppliedCoupon(null);
++      setCouponCode('');
++      setSelectedCustomer(null);
++      setKOTNote('');
++      setCoversCount('');
+       setExtraCharges({ packing: 0, delivery: 0, service: 0 });
+
+=========================================
+CHUNNK 16: @@ -7236,9 +8249,15 @@ const UniversalPOS = () => {
+=========================================
+-              <div>Table: ${tableName}</div>
+-              <div>Order: ${order.order_type || 'Offline'}</div>
+-              <div>Waiter: ${order.waiter_name || 'Default'}</div>
++              ${(order.order_type === 'Delivery') ? `
++                <div>Order: DELIVERY</div>
++                <div>Rider: ${riderName || 'None'}</div>
++              ` : (order.order_type === 'Pickup') ? `
++                <div>Order: PICKUP</div>
++              ` : `
++                <div>Table: ${tableName}</div>
++                <div>Waiter: ${order.waiter_name || 'Default'}</div>
++              `}
+
+=========================================
+CHUNNK 17: @@ -7577,12 +8615,33 @@ const UniversalPOS = () => {
+=========================================
++    const restoredCustomer = tableCustomers[table.id] || {
++      customerCountryCode: '+91',
++      customerPhone: '',
++      customerName: '',
++      customerAddress: '',
++      selectedCustomer: null,
++      redeemedPoints: 0,
++      appliedCoupon: null,
++      couponCode: ''
++    };
++    isRestoringCustomerRef.current = true;
++    setCustomerCountryCode(restoredCustomer.customerCountryCode || '+91');
++    setCustomerPhone(restoredCustomer.customerPhone || '');
++    setCustomerName(restoredCustomer.customerName || '');
++    setCustomerAddress(restoredCustomer.customerAddress || '');
++    setSelectedCustomer(restoredCustomer.selectedCustomer || null);
++    setRedeemedPoints(restoredCustomer.redeemedPoints || 0);
++    setAppliedCoupon(restoredCustomer.appliedCoupon || null);
++    setCouponCode(restoredCustomer.couponCode || '');
++    // isRestoringCustomerRef.current is cleared automatically by the commit-phase useEffect
++
+     if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {
+
+=========================================
+CHUNNK 18: @@ -7639,71 +8698,120 @@ const UniversalPOS = () => {
+=========================================
++  if (showInitialSplash) {
++    return (
++      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none">
++        <InitialSplashScreen />
++      </div>
++    );
++  }
++
++  if (isTransitioningToDashboard) {
++    return (
++      <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none">
++        <TransitionSplashScreen username={username} />
++      </div>
++    );
++  }
++
+-      <div className="min-h-screen flex flex-col font-sans bg-slate-50 relative select-none">
++      <div className="h-screen flex flex-col font-sans bg-slate-50 relative select-none">
+-          className="h-7 border-b flex items-center justify-between px-4 shrink-0 text-[10px] font-semibold bg-[#0d1117] border-slate-800 text-slate-400 relative select-none w-full"
++          className="h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 bg-[#0d1117] border-slate-800 relative select-none w-full"
+-          <div className="text-[9px] uppercase tracking-wider opacity-70" style={{ WebkitAppRegion: 'no-drag' }}>
+-            SaSLoop POS Terminal
++          <div className="text-[13px] font-bold tracking-wide flex items-center gap-1 select-none" style={{ WebkitAppRegion: 'no-drag' }}>
++            <span className="text-white">SaSLoop</span>
++            <span className="text-[#18ba60]">Master POS</span>
+-          <div className="flex items-center gap-3" style={{ WebkitAppRegion: 'no-drag' }}>
+-            <div className="flex items-center gap-0.5 ml-2">
+-              <button
+-                type="button"
+-                onClick={() => {
+-                  try {
+-                    const { ipcRenderer } = window.require('electron');
+-                    ipcRenderer.send('window-minimize');
+-                  } catch (e) { console.warn("Window control only available in desktop app"); }
+-                }}
+-                className="w-5 h-5 flex items-center justify-center rounded transition-colors hover:bg-slate-800 text-slate-400 hover:text-white"
+-                title="Minimize"
+-              >
+-                <Minus size={10} strokeWidth={3} />
+-              </button>
+-              <button
+-                type="button"
+-                onClick={() => {
+-                  try {
+-                    const { ipcRenderer } = window.require('electron');
+-                    ipcRenderer.send('window-maximize');
+-                  } catch (e) { console.warn("Window control only available in desktop app"); }
+-                }}
+-                className="w-5 h-5 flex items-center justify-center rounded transition-colors hover:bg-slate-800 text-slate-400 hover:text-white"
+-                title="Maximize / Restore"
++          <div className="absolute left-1/2 -translate-x-1/2 text-[10.5px] text-slate-400 font-semibold tracking-wide hidden md:block" style={{ WebkitAppRegion: 'no-drag' }}>
++            Need support? Call now: <span className="text-[#18ba60] font-bold">+919469697216</span>, <span className="text-[#18ba60] font-bold">+918494089744</span>
++          </div>
++          <div className="flex items-center h-full" style={{ WebkitAppRegion: 'no-drag' }}>
++            <button
++              type="button"
++              onClick={() => {
++                try {
++                  const { ipcRenderer } = window.require('electron');
++                  ipcRenderer.send('window-minimize');
++                } catch (e) { console.warn("Window control only available in desktop app"); }
++              }}
++              className="w-12 h-full flex items-center justify-center transition-colors hover:bg-slate-800 text-slate-400 hover:text-white"
++              title="Minimize"
++            >
++              <Minus size={14} strokeWidth={2.5} />
++            </button>
++            <button
++              type="button"
++              onClick={() => {
++                try {
++                  const { ipcRenderer } = window.require('electron');
++                  ipcRenderer.send('window-maximize');
++                } catch (e) { console.warn("Window control only available in desktop app"); }
++              }}
++              className="w-12 h-full flex items-center justify-center transition-colors hover:bg-slate-800 text-slate-400 hover:text-white"
++              title="Maximize / Restore"
++            >
++              <Square size={12} strokeWidth={2.5} />
++            </button>
++            <button
++              type="button"
++              onClick={() => {
++                try {
++                  const { ipcRenderer } = window.require('electron');
++                  ipcRenderer.send('window-close');
++                } catch (e) { console.warn("Window control only available in desktop app"); }
++              }}
++              className="w-12 h-full flex items-center justify-center transition-colors hover:bg-rose-600 text-slate-400 hover:text-white"
++              title="Close"
++            >
++              <X size={14} strokeWidth={2.5} />
++            </button>
++          </div>
++        </div>
++
++        {/* Split Screen Login Page */}
++        <div className="flex-1 flex flex-row relative overflow-hidden bg-slate-50">
++          {/* Seamless Honeycomb Pattern Overlay covering the full screen */}
++          <div 
++            className="absolute inset-0 opacity-[0.32] pointer-events-none z-0" 
++            style={{ 
++              backgroundImage: `url("data:image/svg+xml,%3Csvg width='56' height='96' viewBox='0 0 56 96' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 0 L0 16 L0 48 L28 64 M28 64 L28 96 M28 0 L56 16 M56 48 L28 64' fill='none' stroke='%2318ba60' stroke-width='1.2'/%3E%3C/svg%3E")`,
++              backgroundSize: '56px 96px'
++            }} 
++          />
++          
++          {/* Left panel: Large Vector Slideshow & Company Intro */}
++          <div className="hidden lg:flex lg:w-1/2 h-full flex-col items-center justify-between p-10 bg-transparent relative overflow-y-auto border-r border-slate-100 select-none z-10">
++            <div className="flex-1 w-full flex items-center justify-center relative">
++              <LoginSlideshow />
++            </div>
++            
++            {/* Company Introduction Section */}
++            <div className="w-full max-w-[560px] border-t border-slate-200/80 pt-6 mt-6 text-center mx-auto relative">
++              <h3 
++                className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5 text-outline-white"
+-                <Square size={8} strokeWidth={3} />
+-              </button>
+-              <button
+-                type="button"
+-                onClick={() => {
+-                  try {
+-                    const { ipcRenderer } = window.require('electron');
+-                    ipcRenderer.send('window-close');
+-                  } catch (e) { console.warn("Window control only available in desktop app"); }
+-                }}
+-                className="w-5 h-5 flex items-center justify-center rounded transition-colors hover:bg-rose-600 text-rose-500 hover:text-white"
+-                title="Close"
++                <span className="w-1.5 h-1.5 bg-[#18ba60] rounded-full"></span>
++                SaSLoop Technologies
++                <span className="w-1.5 h-1.5 bg-[#18ba60] rounded-full"></span>
++              </h3>
++              <p 
++                className="text-[11.5px] text-slate-600 font-semibold leading-relaxed text-outline-white-sm"
+-                <X size={10} strokeWidth={3} />
+-              </button>
++                SaSLoop is a state-of-the-art enterprise solution designed for the modern hospitality and retail sectors. We combine high-speed billing, smart KOT routing, automatic WhatsApp notifications, live analytics, and real-time inventory management into a single, unified, offline-first ecosystem.
++              </p>
+-        </div>
+-
+-        <div className="flex-1 flex items-center justify-center lg:justify-end p-4 lg:pr-28 relative overflow-hidden">
+-        <ToastContainer theme="light" position="bottom-left" />
+-        <ChatAnimationBackground />
+-        {/* Bottom Left: Animated Features Showcase */}
+-        <FeatureShowcase />
++          {/* Right panel: Login Card Container */}
++          <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 bg-transparent relative overflow-y-auto z-10">
++            <ToastContainer theme="light" position="bottom-left" />
+-        <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] shadow-2xl shadow-slate-200/50 border border-slate-200 relative z-10 overflow-hidden transform transition-all duration-300 hover:shadow-[0_20px_60px_rgba(24,186,96,0.1)] mx-2">
++        <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] login-card-shadow border border-slate-200/80 relative z-10 overflow-hidden mx-2">
+
+=========================================
+CHUNNK 19: @@ -7932,33 +9185,45 @@ const UniversalPOS = () => {
+=========================================
+-                  {/* Action Toolbar - shown at TOP only when NOT in table view or when separate view is disabled */}
+-                  {posSettings.separateView && billingView !== 'tables' && (
+-                    <div className={`h-10 border-b flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+-                      {orderType === 'DINE_IN' && posSettings.separateView && (
+-                        <button onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><LayoutGrid size={14}/></button>
+-                      )}
+-                      <div className="flex-1 flex justify-center gap-1.5">
++                  {/* Action Toolbar - shown at TOP only when NOT in table view */}
++                  {billingView !== 'tables' && (
++                    <div className={`h-11 border-b flex items-center px-3 gap-2 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
++                      <button 
++                        onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} 
++                        className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
++                          isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
++                        }`}
++                        title="View Table Layout"
++                      >
++                        <LayoutGrid size={20}/>
++                      </button>
++                      <div className="flex-1 flex justify-center gap-2">
+-                          { label: 'Filter Tables', icon: <Filter size={12}/>, onClick: handleFilterTables, show: orderType === 'DINE_IN' },
+-                          { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable, show: orderType === 'DINE_IN' },
+-                          { label: 'Add Customer', icon: <Users size={12}/>, onClick: handleSaveCustomer, show: true },
+-                          { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh, show: true },
+-                          { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh, show: posSettings.separateView }
++                          { label: 'Filter tables', onClick: handleFilterTables, show: orderType === 'DINE_IN' && posSettings.separateView },
++                          { label: 'Change Table', onClick: handleChangeTable, show: orderType === 'DINE_IN' && posSettings.separateView },
++                          { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
++                          { label: 'Refresh', onClick: localRefresh, show: true },
++                          { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
+-                          <button key={btn.label} onClick={btn.onClick} className="h-7 px-3 bg-[#1c2833] hover:bg-[#2c3e50] text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition-colors shrink-0">
+-                            {btn.icon} {btn.label}
++                          <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
++                            {btn.label}
+-                        <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Bell size={14}/></button>
+-                        <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Printer size={14}/></button>
++                        <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
++                        <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
++                        <div className="relative flex items-center justify-center">
++                          <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
++                          <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
++                            LIVE
++                          </span>
++                        </div>
+-                  {!posSettings.separateView ? (
++                  {!posSettings.separateView && billingView !== 'tables' ? (
+
+=========================================
+CHUNNK 20: @@ -8407,24 +9672,38 @@ const UniversalPOS = () => {
+=========================================
+-                          <div className={`h-10 border-t flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+-                            <button onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><LayoutGrid size={14}/></button>
+-                            <div className="flex-1 flex justify-center gap-1.5">
++                          <div className={`h-11 border-t flex items-center px-3 gap-2 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
++                            <button 
++                              onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} 
++                              className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
++                                isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
++                              }`}
++                              title="View Menu"
++                            >
++                              <LayoutGrid size={20}/>
++                            </button>
++                            <div className="flex-1 flex justify-center gap-2">
+-                                { label: 'Filter tables', icon: <Filter size={12}/>, onClick: handleFilterTables },
+-                                { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable },
+-                                { label: 'Add Customer', icon: <Users size={12}/>, onClick: handleSaveCustomer },
+-                                { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh },
+-                                { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh }
+-                              ].map(btn => (
+-                                <button key={btn.label} onClick={btn.onClick} className="h-7 px-3 bg-[#1c2833] hover:bg-[#2c3e50] text-white rounded text-[10px] font-bold flex items-center gap-1.5 transition-colors shrink-0">
+-                                  {btn.icon} {btn.label}
++                                { label: 'Filter tables', onClick: handleFilterTables, show: true },
++                                { label: 'Change Table', onClick: handleChangeTable, show: true },
++                                { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
++                                { label: 'Refresh', onClick: localRefresh, show: true },
++                                { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
++                              ].filter(btn => btn.show).map(btn => (
++                                <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
++                                  {btn.label}
+-                              <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Printer size={14}/></button>
+-                              <button className={`h-7 w-7 rounded flex items-center justify-center transition-colors ${isDark ? 'bg-[#21262d] border border-[#30363d] text-[#8b949e] hover:text-white' : 'bg-slate-50 border border-slate-200 text-slate-600 hover:text-slate-900'}`}><Bell size={14}/></button>
++                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
++                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
++                              <div className="relative flex items-center justify-center">
++                                <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
++                                <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
++                                  LIVE
++                                </span>
++                              </div>
+
+=========================================
+CHUNNK 21: @@ -8673,14 +9952,14 @@ const UniversalPOS = () => {
+=========================================
+-                  {/* Mode Tabs: Dine In | PickUp/Delivery | Quick Bill | Preorder */}
+-                  <div className={`flex shrink-0 border-b p-1 gap-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+-                    {[
+-                      { key: 'DINE_IN', label: 'Dine In', disabled: !!posSettings.disableTabs?.dinein },
+-                      { key: 'PICKUP', label: 'PickUp/Delivery', disabled: !!posSettings.disableTabs?.pickup },
+-                      { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill },
+-                      { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder }
+-                    ].filter(tab => !tab.disabled).map(tab => {
++                                    {/* Mode Tabs: Dine In | PickUp/Delivery | Quick Bill | Preorder */}
++                                    <div className={`flex shrink-0 border-b p-1 gap-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
++                                      {[
++                                        { key: 'DINE_IN', label: 'Dine In', disabled: !!posSettings.disableTabs?.dinein || getStaffPermissions()?.pos_access?.Billing?.visible === false },
++                                        { key: 'PICKUP', label: 'PickUp/Delivery', disabled: !!posSettings.disableTabs?.pickup || (getStaffPermissions()?.pos_access?.Delivery?.new_order === false && getStaffPermissions()?.pos_access?.Pickup?.new_order === false) },
++                                        { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill || getStaffPermissions()?.pos_access?.QuickBill?.visible === false },
++                                        { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder || getStaffPermissions()?.pos_access?.PreOrder?.new_order === false }
++                                      ].filter(tab => !tab.disabled).map(tab => {
+
+=========================================
+CHUNNK 22: @@ -8796,41 +10078,50 @@ const UniversalPOS = () => {
+=========================================
+                             <span className={`ml-1 text-[10px] font-semibold ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>PickUp</span>
+-                          {/* New Order Button */}
+-                          <button
+-                            onClick={handleNewOrder}
+-                            className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+-                          >
+-                            New Order
+-                          </button>
+-                        </div>
+-                      )}
++                                                    {/* New Order Button */}
++                                                    {((subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.new_order !== false) ||
++                                                      (subOrderType === 'PICKUP' && getStaffPermissions()?.pos_access?.Pickup?.new_order !== false)) && (
++                                                      <button
++                                                        onClick={handleNewOrder}
++                                                        className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
++                                                      >
++                                                        New Order
++                                                      </button>
++                                                    )}
++                                                  </div>
++                                                )}
+-                  {/* Quick Bill Row Checkboxes */}
+-                  {orderType === 'QUICK' && (
+-                    <div className={`flex shrink-0 items-center gap-3 border-b px-3 py-2 text-[11px] font-bold transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117] text-gray-300' : 'border-slate-200 bg-white text-slate-700'}`}>
+-                      <label className="flex items-center gap-1 cursor-pointer">
+-                        <input type="checkbox" className="accent-[#388e67]" />
+-                        <span>KOT</span>
+-                      </label>
+-                      <label className="flex items-center gap-1 cursor-pointer">
+-                        <input type="checkbox" className="accent-[#388e67]" />
+-                        <span>Bill No</span>
+-                      </label>
+-                      <label className="flex items-center gap-1 cursor-pointer">
+-                        <input
+-                          type="checkbox"
+-                          checked={ebillEnabled}
+-                          onChange={e => setEbillEnabled(e.target.checked)}
+-                          className="accent-[#388e67]"
+-                        />
+-                        <span>eBill</span>
+-                      </label>
+-                      <span className="ml-auto text-[12px] font-extrabold text-slate-800 dark:text-gray-100">No:{nextBillNo}</span>
+-                    </div>
+-                  )}
++                                    {/* Quick Bill Row Checkboxes */}
++                                    {orderType === 'QUICK' && (
++                                      <div className={`flex shrink-0 items-center gap-3 border-b px-3 py-2 text-[11px] font-bold transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117] text-gray-300' : 'border-slate-200 bg-white text-slate-700'}`}>
++                                        {getStaffPermissions()?.pos_access?.QuickBill?.kot !== false && (
++                                          <label className="flex items-center gap-1 cursor-pointer">
++                                            <input type="checkbox" className="accent-[#388e67]" />
++                                            <span>KOT</span>
++                                          </label>
++                                        )}
++                                        {getStaffPermissions()?.pos_access?.QuickBill?.bill_no !== false && (
++                                          <label className="flex items-center gap-1 cursor-pointer">
++                                            <input type="checkbox" className="accent-[#388e67]" />
++                                            <span>Bill No</span>
++                                          </label>
++                                        )}
++                                        <label className="flex items-center gap-1 cursor-pointer">
++                                          <input
++                                            type="checkbox"
++                                            checked={ebillEnabled}
++                                            onChange={e => setEbillEnabled(e.target.checked)}
++                                            className="accent-[#388e67]"
++                                          />
++                                          <span>eBill</span>
++                                        </label>
++                                        {getStaffPermissions()?.pos_access?.QuickBill?.bill_no !== false && (
++                                          <span className="ml-auto text-[12px] font-extrabold text-slate-800 dark:text-gray-100">No:{nextBillNo}</span>
++                                        )}
++                                      </div>
++                                    )}
+
+=========================================
+CHUNNK 23: @@ -9436,40 +10844,53 @@ const UniversalPOS = () => {
+=========================================
+-                                if (showSearchResults && searchResults.length > 0) {
+-                                  if (e.key === 'ArrowDown') {
+-                                    e.preventDefault();
+-                                    setActiveSearchResultIndex(prev =>
+-                                      prev < searchResults.length - 1 ? prev + 1 : prev
+-                                    );
+-                                  } else if (e.key === 'ArrowUp') {
++                                if (isTableSaved) return;
++                                if (e.key === 'ArrowDown' && showSearchResults && searchResults.length > 0) {
++                                  e.preventDefault();
++                                  setActiveSearchResultIndex(prev =>
++                                    prev < searchResults.length - 1 ? prev + 1 : prev
++                                  );
++                                } else if (e.key === 'ArrowUp' && showSearchResults && searchResults.length > 0) {
++                                  e.preventDefault();
++                                  setActiveSearchResultIndex(prev =>
++                                    prev > 0 ? prev - 1 : -1
++                                  );
++                                } else if (e.key === 'Enter') {
++                                  let res = null;
++                                  if (showSearchResults && activeSearchResultIndex >= 0 && activeSearchResultIndex < searchResults.length) {
++                                    res = searchResults[activeSearchResultIndex];
++                                  } else if (showSearchResults && searchResults.length > 0) {
++                                    res = searchResults[0];
++                                  } else {
++                                    const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;
++                                    res = customerDb[fullPhone];
++                                  }
++                                  if (res) {
+-                                    setActiveSearchResultIndex(prev =>
+-                                      prev > 0 ? prev - 1 : -1
+-                                    );
+-                                  } else if (e.key === 'Enter') {
+-                                    if (activeSearchResultIndex >= 0 && activeSearchResultIndex < searchResults.length) {
+-                                      e.preventDefault();
+-                                      const res = searchResults[activeSearchResultIndex];
+-                                      const parsed = parsePhoneNumber(res.number || '');
+-                                      setCustomerCountryCode(parsed.dialCode);
+-                                      setCustomerPhone(parsed.localNumber);
+-                                      setCustomerName(res.name || '');
+-                                      setCustomerAddress(res.address || '');
+-                                      setShowSearchResults(false);
+-                                      setActiveSearchResultIndex(-1);
++                                    const parsed = parsePhoneNumber(res.number || '');
++                                    if (parsed.localNumber !== customerPhone) {
++                                      justSelectedCustomerRef.current = true;
++                                    setCustomerCountryCode(parsed.dialCode);
++                                    setCustomerPhone(parsed.localNumber);
++                                    setCustomerName(res.name || '');
++                                    setCustomerAddress(res.address || '');
++                                    setSelectedCustomer(res);
++                                    setShowSearchResults(false);
++                                    setActiveSearchResultIndex(-1);
+-                                isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'
++                                isTableSaved
++                                  ? 'cursor-not-allowed text-gray-500'
++                                  : (isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400')
+-                          {showSearchResults && searchResults.length > 0 && (
++                          {showSearchResults && searchResults.length > 0 && !isTableSaved && (
+
+=========================================
+CHUNNK 24: @@ -9481,10 +10902,14 @@ const UniversalPOS = () => {
+=========================================
++                                      if (parsed.localNumber !== customerPhone) {
++                                        justSelectedCustomerRef.current = true;
++                                      }
+                                       setCustomerCountryCode(parsed.dialCode);
++                                      setSelectedCustomer(res);
+
+=========================================
+CHUNNK 25: @@ -9539,22 +10971,37 @@ const UniversalPOS = () => {
+=========================================
+-                        <button
+-                          onClick={() => {
+-                            setIsWaiterModalOpen(true);
+-                          }}
+-                          className={`shrink-0 transition-colors relative ${selectedWaiter ? 'text-emerald-500 hover:text-emerald-400' : (isDark ? 'text-gray-300 hover:text-white' : 'text-slate-800 hover:text-black')}`}
+-                          title={selectedWaiter ? `Waiter: ${selectedWaiter.name}` : "Select Waiter"}
+-                        >
+-                          <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none">
+-                            <path d="M3 20h18" strokeLinecap="round" />
+-                            <path d="M19 16a7 7 0 0 0-14 0z" fill={selectedWaiter ? 'currentColor' : 'none'} />
+-                            <path d="M12 5v4M10 5h4" strokeLinecap="round" />
+-                          </svg>
+-                          {selectedWaiter && (
+-                            <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+-                          )}
+-                        </button>
++                        {orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY') ? (
++                          <button
++                            onClick={() => {
++                              setIsRiderModalOpen(true);
++                            }}
++                            className={`shrink-0 transition-colors relative ${selectedRiderId ? 'text-emerald-500 hover:text-emerald-400' : (isDark ? 'text-gray-300 hover:text-white' : 'text-slate-800 hover:text-black')}`}
++                            title={selectedRiderId ? `Rider: ${riders.find(r => String(r.id) === String(selectedRiderId))?.name || 'Rider'}` : "Select Delivery Boy"}
++                          >
++                            <Bike size={18} strokeWidth={2.5} />
++                            {selectedRiderId && (
++                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
++                            )}
++                          </button>
++                        ) : (
++                          <button
++                            onClick={() => {
++                              setIsWaiterModalOpen(true);
++                            }}
++                            className={`shrink-0 transition-colors relative ${selectedWaiter ? 'text-emerald-500 hover:text-emerald-400' : (isDark ? 'text-gray-300 hover:text-white' : 'text-slate-800 hover:text-black')}`}
++                            title={selectedWaiter ? `Waiter: ${selectedWaiter.name}` : "Select Waiter"}
++                          >
++                            <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" strokeWidth="2.5" fill="none">
++                              <path d="M3 20h18" strokeLinecap="round" />
++                              <path d="M19 16a7 7 0 0 0-14 0z" fill={selectedWaiter ? 'currentColor' : 'none'} />
++                              <path d="M12 5v4M10 5h4" strokeLinecap="round" />
++                            </svg>
++                            {selectedWaiter && (
++                              <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
++                            )}
++                          </button>
++                        )}
+
+=========================================
+CHUNNK 26: @@ -9779,18 +11324,22 @@ const UniversalPOS = () => {
+=========================================
+                           <Printer size={20} strokeWidth={2.5} />
+-                        <button
+-                          onClick={() => setIsDiscountModalOpen(true)}
+-                          className="hover:text-slate-100 transition-colors"
+-                        >
+-                          <Tag size={20} strokeWidth={2.5} />
+-                        </button>
+-                        <button
+-                          onClick={() => setIsChargesModalOpen(true)}
+-                          className="hover:text-slate-100 transition-colors"
+-                        >
+-                          <Coins size={20} strokeWidth={2.5} />
+-                        </button>
++                        {checkBillingPermission('add_discount') && (
++                          <button
++                            onClick={handleOpenDiscountModal}
++                            className="hover:text-slate-100 transition-colors"
++                          >
++                            <Tag size={20} strokeWidth={2.5} />
++                          </button>
++                        )}
++                        {checkBillingPermission('add_charges') && (
++                          <button
++                            onClick={handleOpenChargesModal}
++                            className="hover:text-slate-100 transition-colors"
++                          >
++                            <Coins size={20} strokeWidth={2.5} />
++                          </button>
++                        )}
+
+=========================================
+CHUNNK 27: @@ -9961,9 +11518,13 @@ const UniversalPOS = () => {
+=========================================
+-                      {!posSettings.disableSaveKOT && (
++                      {!posSettings.disableSaveKOT && checkKOTPermission('save') && (
++                            if (!checkKOTPermission('save')) {
++                              toast.error("You do not have permission to Save KOT.");
++                              return;
++                            }
+                             if (orderType === 'PICKUP') {
+                               handleSaveTemporaryKOT(false);
+
+=========================================
+CHUNNK 28: @@ -9990,47 +11552,53 @@ const UniversalPOS = () => {
+=========================================
+-                      <button
+-                        onClick={() => {
+-                          if (orderType === 'PICKUP') {
+-                            handleSaveTemporaryKOT(true);
+-                            return;
+-                          }
+-                          if (!selectedTable) { toast.error("Select a table!"); return; }
+-                          if (cart.length === 0) { toast.error("KOT is empty!"); return; }
+-
+-                          let bNo = tableBillNumbers[selectedTable.id];
+-                          if (!bNo) {
+-                            bNo = nextBillNo;
+-                            setTableBillNumbers(prev => ({...prev, [selectedTable.id]: bNo}));
+-                            setNextBillNo(prev => prev + 1);
+-                          }
++                      {checkKOTPermission('save_and_print') && (
++                        <button
++                          onClick={() => {
++                            if (!checkKOTPermission('save_and_print')) {
++                              toast.error("You do not have permission to Save and Print KOT.");
++                              return;
++                            }
++                            if (orderType === 'PICKUP') {
++                              handleSaveTemporaryKOT(true);
++                              return;
++                            }
++                            if (!selectedTable) { toast.error("Select a table!"); return; }
++                            if (cart.length === 0) { toast.error("KOT is empty!"); return; }
+-                          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));
+-                          const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';
+-                          setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));
+-                          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));
++                            let bNo = tableBillNumbers[selectedTable.id];
++                            if (!bNo) {
++                              bNo = nextBillNo;
++                              setTableBillNumbers(prev => ({...prev, [selectedTable.id]: bNo}));
++                              setNextBillNo(prev => prev + 1);
++                            }
++
++                            const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));
++                            const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';
++                            setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));
++                            setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));
+-                          // Print KOT
+-                          handlePrintKOT(cart, selectedTable.table_name, bNo);
+-                          // Set status to SAVED (Red)
+-                          setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));
++                            // Print KOT
++                            handlePrintKOT(cart, selectedTable.table_name, bNo);
++                            // Set status to SAVED (Red)
++                            setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));
+-                          setCart([]);
+-                          setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));
+-                          toast.success("KOT Printed & Saved!");
+-                          setActiveTrayTab('Billing');
+-                        }}
+-                        className={`flex-1 py-2.5 rounded text-[11px] font-bold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
+-                      >
+-                        Print & Save
+-                      </button>
++                            setCart([]);
++                            setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));
++                            toast.success("KOT Printed & Saved!");
++                            setActiveTrayTab('Billing');
++                          }}
++                          className={`flex-1 py-2.5 rounded text-[11px] font-bold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
++                        >
++                          Print & Save
++                        </button>
++                      )}
+-                        {!posSettings.disableSaveBill && (
++                        {!posSettings.disableSaveBill && checkBillingPermission('save_bill') && (
+
+=========================================
+CHUNNK 29: @@ -10161,66 +11735,68 @@ const UniversalPOS = () => {
+=========================================
+-                          {/* Row 1 (Fixed): Centered, no icons */}
+-                          <div className="grid grid-cols-4 gap-2.5 shrink-0">
+-                            {accessLevels.todaysSale && (
+-                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Today's Sales</div>
+-                                <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.todaySales.toFixed(2)}</div>
+-                              </div>
+-                            )}
+-                            {accessLevels.totalSale && (
+-                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Total Sales</div>
+-                                <div className="text-base font-bold text-[#18ba60]">{stats.totalSales > 0 ? `${config.currency} ${stats.totalSales.toFixed(2)}` : ""}</div>
+-                              </div>
+-                            )}
+-                            {accessLevels.thisMonthSale && (
+-                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>This Month</div>
+-                                <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.monthSales.toFixed(2)}</div>
+-                              </div>
+-                            )}
+-                            {accessLevels.ipAddress && (
+-                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>IP Address</div>
+-                                <div className="text-base font-bold text-[#18ba60]">{stats.serverIp || '127.0.0.1'}</div>
+-                              </div>
+-                            )}
+-                          </div>
+-
+-                          {/* All Card Sets - Scrollable Grid with Green Scrollbar */}
+-                          <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                            <div className="grid grid-cols-4 gap-2.5">
+-                              {/* Set 1: Prime Sales Channels & Performance */}
+-                              <DashboardCard title="Offline Sales" val={`${config.currency} ${stats.offlineSales.toFixed(2)}`} icon={<Monitor size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Online Sales" val={`${config.currency} ${stats.onlineSales.toFixed(2)}`} icon={<Globe size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Dine In" val={`${config.currency} ${stats.dineInSales.toFixed(2)}`} icon={<Coffee size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Quick Bill" val={`${config.currency} ${stats.quickSales.toFixed(2)}`} icon={<Zap size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Takeaway" val={`${config.currency} ${stats.takeawaySales.toFixed(2)}`} icon={<ShoppingBag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Delivery" val={`${config.currency} ${stats.deliverySales.toFixed(2)}`} icon={<Bike size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-
+-                              {/* Set 2: Core Business Metrics */}
+-                              <DashboardCard title="Customers" val={`${Object.keys(customerDb || {}).length}`} icon={<Users size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Outstanding Dues" val={`${config.currency} ${outstandingDues.toFixed(2)}`} icon={<Clock size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Today's Credit Sales" val={`${config.currency} ${stats.todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Total Credit Sales" val={`${config.currency} ${stats.totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Total Expenses" val={`${config.currency} ${(stats.totalExpenses || 0).toFixed(2)}`} icon={<CreditCard size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Closing Balance" val={`${config.currency} ${stats.totalSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Total Discount" val={`${config.currency} ${stats.totalDiscount.toFixed(2)}`} icon={<Tag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Total Tax" val={`${config.currency} ${stats.totalTax.toFixed(2)}`} icon={<Percent size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Average Sale / Person" val={`${config.currency} ${parseFloat(stats.avgSalePerPerson || 0).toFixed(2)}`} icon={<Activity size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-
+-                              {/* Set 3: Integrations & Complementary */}
+-                              <DashboardCard title="Free Bill" val={`${config.currency} ${stats.freeSales.toFixed(2)}`} icon={<FileCheck size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-
+-                              {/* Set 4: Cancellations & Audits */}
+-                              <DashboardCard title="Cancelled Bill" val={`${config.currency} ${stats.cancelledSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Deleted Bill" val={`${config.currency} ${stats.deletedSales.toFixed(2)}`} icon={<Trash2 size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Cancelled (Online)" val={`${config.currency} ${stats.cancelledOnlineSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                              <DashboardCard title="Cancelled (Digital)" val={`${config.currency} ${stats.cancelledDigitalSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+-                            </div>
+-                          </div>
++                                                    {/* Row 1 (Fixed): Centered, no icons */}
++                                                    <div className="grid grid-cols-4 gap-2.5 shrink-0">
++                                                      {accessLevels.todaysSale && checkDashboardPermission('todaysSale') && (
++                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Today's Sales</div>
++                                                          <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.todaySales.toFixed(2)}</div>
++                                                        </div>
++                                                      )}
++                                                      {accessLevels.totalSale && checkDashboardPermission('totalSale') && (
++                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Total Sales</div>
++                                                          <div className="text-base font-bold text-[#18ba60]">{stats.totalSales > 0 ? `${config.currency} ${stats.totalSales.toFixed(2)}` : ""}</div>
++                                                        </div>
++                                                      )}
++                                                      {accessLevels.thisMonthSale && checkDashboardPermission('thisMonthSale') && (
++                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>This Month</div>
++                                                          <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.monthSales.toFixed(2)}</div>
++                                                        </div>
++                                                      )}
++                                                      {accessLevels.ipAddress && checkDashboardPermission('ipAddress') && (
++                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>IP Address</div>
++                                                          <div className="text-base font-bold text-[#18ba60]">{stats.serverIp || '127.0.0.1'}</div>
++                                                        </div>
++                                                      )}
++                                                    </div>
++
++                                                    {/* All Card Sets - Scrollable Grid with Green Scrollbar */}
++                                                    {accessLevels.allSalesAnalysis && checkDashboardPermission('allSalesAnalysis') && (
++                                                      <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                                                        <div className="grid grid-cols-4 gap-2.5">
++                                                          {/* Set 1: Prime Sales Channels & Performance */}
++                                                          <DashboardCard title="Offline Sales" val={`${config.currency} ${stats.offlineSales.toFixed(2)}`} icon={<Monitor size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Online Sales" val={`${config.currency} ${stats.onlineSales.toFixed(2)}`} icon={<Globe size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Dine In" val={`${config.currency} ${stats.dineInSales.toFixed(2)}`} icon={<Coffee size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Quick Bill" val={`${config.currency} ${stats.quickSales.toFixed(2)}`} icon={<Zap size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Takeaway" val={`${config.currency} ${stats.takeawaySales.toFixed(2)}`} icon={<ShoppingBag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Delivery" val={`${config.currency} ${stats.deliverySales.toFixed(2)}`} icon={<Bike size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++
++                                                          {/* Set 2: Core Business Metrics */}
++                                                          <DashboardCard title="Customers" val={`${Object.keys(customerDb || {}).length}`} icon={<Users size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Outstanding Dues" val={`${config.currency} ${outstandingDues.toFixed(2)}`} icon={<Clock size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Today's Credit Sales" val={`${config.currency} ${stats.todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Total Credit Sales" val={`${config.currency} ${stats.totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Total Expenses" val={`${config.currency} ${(stats.totalExpenses || 0).toFixed(2)}`} icon={<CreditCard size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Closing Balance" val={`${config.currency} ${stats.totalSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Total Discount" val={`${config.currency} ${stats.totalDiscount.toFixed(2)}`} icon={<Tag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Total Tax" val={`${config.currency} ${stats.totalTax.toFixed(2)}`} icon={<Percent size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Average Sale / Person" val={`${config.currency} ${parseFloat(stats.avgSalePerPerson || 0).toFixed(2)}`} icon={<Activity size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++
++                                                          {/* Set 3: Integrations & Complementary */}
++                                                          <DashboardCard title="Free Bill" val={`${config.currency} ${stats.freeSales.toFixed(2)}`} icon={<FileCheck size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++
++                                                          {/* Set 4: Cancellations & Audits */}
++                                                          <DashboardCard title="Cancelled Bill" val={`${config.currency} ${stats.cancelledSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Deleted Bill" val={`${config.currency} ${stats.deletedSales.toFixed(2)}`} icon={<Trash2 size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Cancelled (Online)" val={`${config.currency} ${stats.cancelledOnlineSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                          <DashboardCard title="Cancelled (Digital)" val={`${config.currency} ${stats.cancelledDigitalSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
++                                                        </div>
++                                                      </div>
++                                                    )}
+
+=========================================
+CHUNNK 30: @@ -10296,8 +11872,8 @@ const UniversalPOS = () => {
+=========================================
+-                        {/* Donut Chart (Col 3) */}
+-                        {accessLevels.itemPieChart && (
++                                                {/* Donut Chart (Col 3) */}
++                                                {accessLevels.itemPieChart && checkDashboardPermission('itemPieChart') && (
+
+=========================================
+CHUNNK 31: @@ -11274,26 +12856,32 @@ const UniversalPOS = () => {
+=========================================
+-                        <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Waiter</th>
+-                        <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Cashier</th>
+-                        <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Subtotal</th>
+-                        <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Discount</th>
+-                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">CGST</th>
+-                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">SGST</th>
+-                        <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Service Chg</th>
+-                        <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Delivery Chg</th>
+-                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">Tips</th>
+-                        <th
+-                          onClick={() => handleSort('value')}
+-                          className="px-6 py-3.5 w-28 min-w-[110px] cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-[#21262d] transition-colors text-right"
+-                        >
+-                          <div className="flex items-center justify-end gap-1">
+-                            <span>Net Amount</span>
+-                            {receiptsSortField === 'value' && (
+-                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
+-                            )}
+-                          </div>
+-                        </th>
++                                                <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Waiter</th>
++                                                <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Cashier</th>
++                                                {checkReceiptsPermission('show_bill_amount') !== false && (
++                                                  <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Subtotal</th>
++                                                )}
++                                                <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Discount</th>
++                                                <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">CGST</th>
++                                                <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">SGST</th>
++                                                <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Service Chg</th>
++                                                <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Delivery Chg</th>
++                                                {checkReceiptsPermission('tip_amount') !== false && (
++                                                  <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">Tips</th>
++                                                )}
++                                                {checkReceiptsPermission('net_sale_amount') !== false && (
++                                                  <th
++                                                    onClick={() => handleSort('value')}
++                                                    className="px-6 py-3.5 w-28 min-w-[110px] cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-[#21262d] transition-colors text-right"
++                                                  >
++                                                    <div className="flex items-center justify-end gap-1">
++                                                      <span>Net Amount</span>
++                                                      {receiptsSortField === 'value' && (
++                                                        <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
++                                                      )}
++                                                    </div>
++                                                  </th>
++                                                )}
+
+=========================================
+CHUNNK 32: @@ -11367,30 +12955,36 @@ const UniversalPOS = () => {
+=========================================
+-                            <td className="px-6 py-3.5 text-right">
+-                              {(() => {
+-                                const sub = parseFloat(o.subtotal || 0) > 0
+-                                  ? parseFloat(o.subtotal)
+-                                  : (Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items || '[]') : [])).reduce((sum, item) =>
+-                                      sum + (parseFloat(item.price || 0) + (item.modifiers || []).reduce((ma, m) => ma + parseFloat(m.price || 0), 0)) * parseFloat(item.qty || item.quantity || 1), 0);
+-                                return sub.toFixed(2);
+-                              })()}
+-                            </td>
+-                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-amber-300' : 'text-amber-500'}`}>
+-                              {parseFloat(o.discountAmt || 0).toFixed(2)}
+-                            </td>
+-                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
+-                              {parseFloat(o.tax_cgst || 0).toFixed(2)}
+-                            </td>
+-                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
+-                              {parseFloat(o.tax_sgst || 0).toFixed(2)}
+-                            </td>
+-                            <td className="px-6 py-3.5 text-right">{parseFloat(o.service_charge || 0).toFixed(2)}</td>
+-                            <td className="px-6 py-3.5 text-right">{parseFloat(o.delivery_charge || o.delivery_charges || 0).toFixed(2)}</td>
+-                            <td className="px-6 py-3.5 text-right">{parseFloat(o.tips || 0).toFixed(2)}</td>
+-                            <td className={`px-6 py-3.5 text-right font-bold ${isSelected ? 'text-white' : (isDark ? 'text-white' : 'text-slate-900')}`}>
+-                              {parseFloat(o.total_price || 0).toFixed(2)}
+-                            </td>
++                                                        {checkReceiptsPermission('show_bill_amount') !== false && (
++                                                          <td className="px-6 py-3.5 text-right">
++                                                            {(() => {
++                                                              const sub = parseFloat(o.subtotal || 0) > 0
++                                                                ? parseFloat(o.subtotal)
++                                                                : (Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items || '[]') : [])).reduce((sum, item) =>
++                                                                    sum + (parseFloat(item.price || 0) + (item.modifiers || []).reduce((ma, m) => ma + parseFloat(m.price || 0), 0)) * parseFloat(item.qty || item.quantity || 1), 0);
++                                                              return sub.toFixed(2);
++                                                            })()}
++                                                          </td>
++                                                        )}
++                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-amber-300' : 'text-amber-500'}`}>
++                                                          {parseFloat(o.discountAmt || 0).toFixed(2)}
++                                                        </td>
++                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
++                                                          {parseFloat(o.tax_cgst || 0).toFixed(2)}
++                                                        </td>
++                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
++                                                          {parseFloat(o.tax_sgst || 0).toFixed(2)}
++                                                        </td>
++                                                        <td className="px-6 py-3.5 text-right">{parseFloat(o.service_charge || 0).toFixed(2)}</td>
++                                                        <td className="px-6 py-3.5 text-right">{parseFloat(o.delivery_charge || o.delivery_charges || 0).toFixed(2)}</td>
++                                                        {checkReceiptsPermission('tip_amount') !== false && (
++                                                          <td className="px-6 py-3.5 text-right">{parseFloat(o.tips || 0).toFixed(2)}</td>
++                                                        )}
++                                                        {checkReceiptsPermission('net_sale_amount') !== false && (
++                                                          <td className={`px-6 py-3.5 text-right font-bold ${isSelected ? 'text-white' : (isDark ? 'text-white' : 'text-slate-900')}`}>
++                                                            {parseFloat(o.total_price || 0).toFixed(2)}
++                                                          </td>
++                                                        )}
+
+=========================================
+CHUNNK 33: @@ -15468,10 +17104,14 @@ const UniversalPOS = () => {
+=========================================
++                                                         if (parsed.localNumber !== customerPhone) {
++                                                            justSelectedCustomerRef.current = true;
++                                                         }
+                                                          setCustomerCountryCode(parsed.dialCode);
++                                                         setSelectedCustomer(res);
+
+=========================================
+CHUNNK 34: @@ -16121,6 +17857,244 @@ const UniversalPOS = () => {
+=========================================
++         {/* Rider Selection Modal */}
++         {isRiderModalOpen && (
++            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
++               <div className={`border rounded-[2rem] w-full max-w-md flex flex-col shadow-2xl ${
++                  isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
++               }`}>
++                  {/* Header */}
++                  <div className={`p-6 border-b flex justify-between items-center ${
++                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
++                  }`}>
++                     <div className="flex items-center gap-2">
++                        <Bike className="text-emerald-500" size={22} />
++                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Delivery Boy / Rider</h3>
++                     </div>
++                     <button
++                        onClick={() => setIsRiderModalOpen(false)}
++                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
++                     >
++                        Γ£ò
++                     </button>
++                  </div>
++
++                  {/* Content */}
++                  <div className="p-4 max-h-[300px] overflow-y-auto flex flex-col gap-2">
++                     {riders.length === 0 ? (
++                        <div className="text-center py-8 text-xs opacity-60">No delivery riders found. Add riders in Back Office first.</div>
++                     ) : (
++                        riders.map(rider => {
++                           const isSelected = String(selectedRiderId) === String(rider.id);
++                           return (
++                              <button
++                                 key={rider.id}
++                                 onClick={() => {
++                                    setSelectedRiderId(rider.id);
++                                    setIsRiderModalOpen(false);
++                                 }}
++                                 className={`w-full flex items-center justify-between p-3 rounded-xl border text-xs font-bold transition-all ${
++                                    isSelected
++                                       ? 'bg-emerald-500/10 border-emerald-500 text-emerald-500 shadow-md'
++                                       : (isDark ? 'bg-[#161b22] border-[#30363d] hover:bg-gray-800' : 'bg-slate-50 border-slate-200 hover:bg-slate-100')
++                                 }`}
++                              >
++                                 <div className="flex items-center gap-2.5">
++                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${
++                                       isSelected ? 'bg-emerald-500 text-white' : (isDark ? 'bg-gray-800 text-gray-400' : 'bg-slate-200 text-slate-600')
++                                    }`}>
++                                       {rider.name ? rider.name.substring(0, 2) : 'R'}
++                                    </div>
++                                    <div className="text-left">
++                                       <div>{rider.name}</div>
++                                       <div className="text-[9px] opacity-60 uppercase font-mono">{rider.phone || 'No Phone'}</div>
++                                    </div>
++                                 </div>
++                                 {isSelected && (
++                                    <span className="text-[10px] bg-emerald-500 text-white px-2 py-0.5 rounded-full font-black uppercase">Selected</span>
++                                 )}
++                              </button>
++                           );
++                        })
++                      )}
++                  </div>
++
++                  {/* Footer */}
++                  <div className={`p-4 border-t flex gap-2 ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}>
++                     {selectedRiderId && (
++                        <button
++                           onClick={() => {
++                              setSelectedRiderId('');
++                              setIsRiderModalOpen(false);
++                           }}
++                           className="flex-1 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
++                        >
++                           Clear Selection
++                        </button>
++                     )}
++                     <button
++                        onClick={() => setIsRiderModalOpen(false)}
++                        className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
++                           isDark ? 'bg-gray-800 hover:bg-gray-700 text-[#c9d1d9]' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
++                        }`}
++                     >
++                        Close
++                     </button>
++                  </div>
++               </div>
++            </div>
++          )}
++
++          {/* Coupon Modal */}
++         {isCouponModalOpen && (
++            <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
++               <div className={`border rounded-[2rem] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden transition-all ${
++                  isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
++               }`}>
++                  {/* Header */}
++                  <div className={`p-5 border-b flex justify-between items-center ${
++                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
++                  }`}>
++                     <div className="flex items-center gap-2">
++                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
++                           <path d="M21 5H3a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-3a2 2 0 0 1 0-4V7a2 2 0 0 0-2-2Z"/>
++                           <path d="M8 6v12" strokeDasharray="2 2"/>
++                           <circle cx="12.5" cy="10.5" r="1.2" fill="currentColor"/>
++                           <path d="M11.5 14.5 16.5 9.5"/>
++                           <circle cx="15.5" cy="13.5" r="1.2" fill="currentColor"/>
++                        </svg>
++                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
++                           Apply Coupon Discount
++                        </h3>
++                     </div>
++                     <button
++                        onClick={() => setIsCouponModalOpen(false)}
++                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
++                     >
++                        Γ£ò
++                     </button>
++                  </div>
++
++                  {/* Body */}
++                  <div className="p-5 space-y-4 max-h-[60vh] overflow-y-auto">
++                     {/* Applied Coupon Info */}
++                     {appliedCoupon && (
++                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex justify-between items-center">
++                           <div>
++                              <div className="text-[10px] font-black text-emerald-500 uppercase tracking-wider">Active Coupon</div>
++                              <div className="text-sm font-black text-emerald-400 mt-0.5">{appliedCoupon.coupon_code || appliedCoupon.code}</div>
++                              <div className="text-[9px] font-bold text-slate-400 mt-0.5">
++                                 Discount: {appliedCoupon.discount_value || appliedCoupon.amount || appliedCoupon.value} {(appliedCoupon.discount_type || appliedCoupon.fixed_perct || '').toUpperCase() === 'PERCENT' ? '%' : config.currency} OFF
++                              </div>
++                           </div>
++                           <button
++                              onClick={handleRemoveCoupon}
++                              className="px-3 py-1.5 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-colors"
++                           >
++                              Remove
++                           </button>
++                        </div>
++                     )}
++
++                     {/* Manual Coupon Input Form */}
++                     <div className="space-y-2">
++                        <label className="text-[9px] font-black uppercase tracking-wider text-slate-400">Enter Coupon Code</label>
++                        <div className="flex gap-2">
++                           <input
++                              type="text"
++                              value={couponCode}
++                              onChange={e => setCouponCode(e.target.value.toUpperCase())}
++                              placeholder="e.g. GET50, WELCOME"
++                              className={`flex-1 p-3 rounded-xl border outline-none text-[11px] font-bold ${
++                                 isDark ? 'bg-black/30 border-white/10 text-white placeholder-gray-600' : 'bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400'
++                              }`}
++                           />
++                           <button
++                              onClick={() => {
++                                 if (!couponCode.trim()) {
++                                    toast.error("Please enter a coupon code.");
++                                    return;
++                                 }
++                                 // Look up manual coupon from availableCoupons
++                                 const matched = availableCoupons.find(c => (c.coupon_code || c.code || '').toUpperCase() === couponCode.trim().toUpperCase());
++                                 if (matched) {
++                                    handleApplyCoupon(matched);
++                                 } else {
++                                    toast.error(`Coupon "${couponCode}" is invalid or expired.`);
++                                 }
++                              }}
++                              className="px-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-colors"
++                           >
++                              Apply
++                           </button>
++                        </div>
++                     </div>
++
++                     {/* Available Coupons list */}
++                     <div className="space-y-2.5 pt-2">
++                        <h4 className="text-[9px] font-black uppercase tracking-wider text-slate-400">Available Promotions</h4>
++                        {availableCoupons.length === 0 ? (
++                           <div className="text-center py-6 text-[10px] font-bold text-slate-500">
++                              No active coupon promotions found in back office.
++                           </div>
++                        ) : (
++                           <div className="grid gap-2">
++                              {availableCoupons.map((coupon, idx) => {
++                                 const code = coupon.coupon_code || coupon.code;
++                                 const discountType = coupon.discount_type || coupon.fixed_perct || 'Fixed';
++                                 const val = coupon.discount_value || coupon.amount || coupon.value || 0;
++                                 const minSpend = parseFloat(coupon.applicable_order_amt || coupon.min_order_amount || 0);
++                                 const isApplied = appliedCoupon && (appliedCoupon.coupon_code || appliedCoupon.code) === code;
++
++                                 return (
++                                    <div
++                                       key={idx}
++                                       className={`p-3.5 rounded-2xl border transition-all flex items-center justify-between ${
++                                          isApplied
++                                             ? 'border-emerald-500 bg-emerald-500/5'
++                                             : isDark
++                                             ? 'border-gray-800 hover:border-gray-700 bg-black/20'
++                                             : 'border-slate-100 hover:border-slate-200 bg-slate-50/50'
++                                       }`}
++                                    >
++                                       <div className="space-y-1">
++                                          <div className="flex items-center gap-2">
++                                             <span className={`text-[10px] font-black tracking-wider uppercase px-2 py-0.5 rounded-md ${
++                                                isDark ? 'bg-emerald-500/10 text-emerald-400' : 'bg-emerald-500/15 text-emerald-600'
++                                             }`}>
++                                                {code}
++                                             </span>
++                                             <span className="text-[10px] font-black text-slate-400">
++                                                {val} {(discountType || '').toUpperCase() === 'PERCENT' ? '%' : config.currency} OFF
++                                             </span>
++                                          </div>
++                                          <div className="text-[9px] font-bold text-slate-500">
++                                             Min spend: {config.currency} {minSpend.toFixed(2)}
++                                          </div>
++                                       </div>
++                                       {!isApplied ? (
++                                          <button
++                                             onClick={() => handleApplyCoupon(coupon)}
++                                             className="px-3.5 py-1.5 bg-emerald-500/10 hover:bg-emerald-500 text-emerald-500 hover:text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
++                                          >
++                                             Redeem
++                                          </button>
++                                       ) : (
++                                          <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider flex items-center gap-1">
++                                             Γ£ô Applied
++                                          </span>
++                                       )}
++                                    </div>
++                                 );
++                              })}
++                           </div>
++                        )}
++                     </div>
++                  </div>
++               </div>
++            </div>
++         )}
++
+
+=========================================
+CHUNNK 35: @@ -17036,28 +19185,92 @@ const UniversalPOS = () => {
+=========================================
++
++        {logoutModalStep === 'confirm_force_logout' && (
++          <motion.div
++            initial={{ opacity: 0 }}
++            animate={{ opacity: 1 }}
++            exit={{ opacity: 0 }}
++            className="fixed inset-0 z-[130] flex items-center justify-center p-4 bg-[#0f172a]/95 backdrop-blur-md"
++          >
++            <motion.div
++              initial={{ scale: 0.95, y: 20 }}
++              animate={{ scale: 1, y: 0 }}
++              exit={{ scale: 0.95, y: 20 }}
++              className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col ${
++                isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'
++              }`}
++            >
++              {/* Header */}
++              <div className="p-5 border-b border-red-500/20 bg-red-500/5 flex justify-between items-center shrink-0">
++                <div className="flex items-center gap-2">
++                  <AlertCircle className="text-red-500" size={20} />
++                  <h3 className="text-sm font-black uppercase italic tracking-tighter text-red-500">Force Logout Warning</h3>
++                </div>
++                <button
++                  onClick={() => setLogoutModalStep(null)}
++                  className={`p-1.5 rounded-lg transition-all text-xs ${
++                    isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
++                  }`}
++                >
++                  Γ£ò
++                </button>
++              </div>
++
++              {/* Body */}
++              <div className={`p-6 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
++                <div className="space-y-3">
++                  <p className={`text-xs font-bold leading-relaxed ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>
++                    Active carts or busy tables were detected.
++                  </p>
++                  <p className={`text-xs ${isDark ? 'text-gray-400' : 'text-slate-600'}`}>
++                    Purging local database sales data will clear all local tables, customer databases, active carts, and pending transactions on this device.
++                  </p>
++                  <p className="text-xs font-black text-red-500 uppercase tracking-wider bg-red-500/10 p-3 rounded-lg border border-red-500/20">
++                    Warning: This action cannot be undone. Ensure you have synced all local shifts to the server!
++                  </p>
++                </div>
++
++                {/* Actions */}
++                <div className="flex gap-3 justify-end pt-2">
++                  <button
++                    onClick={() => handleLogoutFlow(true, true)}
++                    className="px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all"
++                  >
++                    Yes, Force Purge & Logout
++                  </button>
++                  <button
++                    onClick={() => {
++                      setLogoutModalStep(null);
++                      setClearLocalDataChecked(false);
++                    }}
++                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
++                      isDark ? 'bg-[#21262d] text-[#c9d1d9] hover:bg-[#30363d]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'
++                    }`}
++                  >
++                    Cancel
++                  </button>
++                </div>
++              </div>
++            </motion.div>
++          </motion.div>
++        )}
++
+-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-[820px] max-w-[95vw] max-h-[90vh] rounded-2xl overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
++                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-[820px] max-w-[95vw] max-h-[90vh] rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+-                    <div className={`p-5 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-[#f8f9fa] border-slate-200 text-slate-800'}`}>
++                    <div className={`p-6 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+-                          <h3 className={`text-base font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={18}/> Terminal Settings</h3>
+-                          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-0.5 font-bold">Configure terminal preferences and printer layouts</p>
++                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={22}/> Terminal Settings</h3>
++                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure terminal preferences and printer layouts</p>
+-                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 rounded-full transition-all ${isDark ? 'hover:bg-white/10 text-[#8b949e] hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}>Γ£ò</button>
++                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
+-                       {[
+-                          { id: 'general', label: 'General', icon: <Settings size={12} /> },
+-                          { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} /> },
+-                          { id: 'printer', label: 'Printers', icon: <Printer size={12} /> },
+-                          { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} /> },
+-                          { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} /> },
+-                          { id: 'profile', label: 'Profile', icon: <User size={12} /> }
+-                       ].map((tab) => (
++                       {getFilteredSettingsTabs().map((tab) => (
+
+=========================================
+CHUNNK 36: @@ -19173,7 +21480,7 @@ const UniversalPOS = () => {
+=========================================
+-                              className={`px-3 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] max-w-[90px] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
++                              className={`px-3 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] max-w-[90px] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                  <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
+

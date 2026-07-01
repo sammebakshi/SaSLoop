@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+﻿import React, { useState, useEffect, useRef } from 'react';
 import {
   Shield, ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Pencil, Upload, MessageSquare,
   LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar,
@@ -20,73 +20,73 @@ import * as XLSX from 'xlsx';
 
 // --- THEME CONSTANTS (SaSTech POS) ---
 const COUNTRY_CODES = [
-  { code: 'IN', dialCode: '+91', name: 'India', flag: '🇮🇳' },
-  { code: 'US', dialCode: '+1', name: 'United States', flag: '🇺🇸' },
-  { code: 'GB', dialCode: '+44', name: 'United Kingdom', flag: '🇬🇧' },
-  { code: 'AE', dialCode: '+971', name: 'United Arab Emirates', flag: '🇦🇪' },
-  { code: 'SA', dialCode: '+966', name: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: 'QA', dialCode: '+974', name: 'Qatar', flag: '🇶🇦' },
-  { code: 'OM', dialCode: '+968', name: 'Oman', flag: '🇴🇲' },
-  { code: 'BH', dialCode: '+973', name: 'Bahrain', flag: '🇧🇭' },
-  { code: 'KW', dialCode: '+965', name: 'Kuwait', flag: '🇰🇼' },
-  { code: 'CA', dialCode: '+1', name: 'Canada', flag: '🇨🇦' },
-  { code: 'AU', dialCode: '+61', name: 'Australia', flag: '🇦🇺' },
-  { code: 'SG', dialCode: '+65', name: 'Singapore', flag: '🇸🇬' },
-  { code: 'MY', dialCode: '+60', name: 'Malaysia', flag: '🇲🇾' },
-  { code: 'PK', dialCode: '+92', name: 'Pakistan', flag: '🇵🇰' },
-  { code: 'BD', dialCode: '+880', name: 'Bangladesh', flag: '🇧🇩' },
-  { code: 'LK', dialCode: '+94', name: 'Sri Lanka', flag: '🇱🇰' },
-  { code: 'NP', dialCode: '+977', name: 'Nepal', flag: '🇳🇵' },
-  { code: 'DE', dialCode: '+49', name: 'Germany', flag: '🇩🇪' },
-  { code: 'FR', dialCode: '+33', name: 'France', flag: '🇫🇷' },
-  { code: 'IT', dialCode: '+39', name: 'Italy', flag: '🇮🇹' },
-  { code: 'ES', dialCode: '+34', name: 'Spain', flag: '🇪🇸' },
-  { code: 'NL', dialCode: '+31', name: 'Netherlands', flag: '🇳🇱' },
-  { code: 'CH', dialCode: '+41', name: 'Switzerland', flag: '🇨🇭' },
-  { code: 'SE', dialCode: '+46', name: 'Sweden', flag: '🇸🇪' },
-  { code: 'NO', dialCode: '+47', name: 'Norway', flag: '🇳🇴' },
-  { code: 'NZ', dialCode: '+64', name: 'New Zealand', flag: '🇳🇿' },
-  { code: 'ZA', dialCode: '+27', name: 'South Africa', flag: '🇿🇦' },
-  { code: 'JP', dialCode: '+81', name: 'Japan', flag: '🇯🇵' },
-  { code: 'CN', dialCode: '+86', name: 'China', flag: '🇨🇳' },
-  { code: 'HK', dialCode: '+852', name: 'Hong Kong', flag: '🇭🇰' },
-  { code: 'TH', dialCode: '+66', name: 'Thailand', flag: '🇹🇭' },
-  { code: 'PH', dialCode: '+63', name: 'Philippines', flag: '🇵🇭' },
-  { code: 'ID', dialCode: '+62', name: 'Indonesia', flag: '🇮🇩' },
-  { code: 'VN', dialCode: '+84', name: 'Vietnam', flag: '🇻🇳' },
-  { code: 'TR', dialCode: '+90', name: 'Turkey', flag: '🇹🇷' },
-  { code: 'RU', dialCode: '+7', name: 'Russia', flag: '🇷🇺' },
-  { code: 'BR', dialCode: '+55', name: 'Brazil', flag: '🇧🇷' },
-  { code: 'MX', dialCode: '+52', name: 'Mexico', flag: '🇲🇽' },
-  { code: 'AR', dialCode: '+54', name: 'Argentina', flag: '🇦🇷' },
-  { code: 'CO', dialCode: '+57', name: 'Colombia', flag: '🇨🇴' },
-  { code: 'CL', dialCode: '+56', name: 'Chile', flag: '🇨🇱' },
-  { code: 'PE', dialCode: '+51', name: 'Peru', flag: '🇵🇪' },
-  { code: 'EG', dialCode: '+20', name: 'Egypt', flag: '🇪🇬' },
-  { code: 'NG', dialCode: '+234', name: 'Nigeria', flag: '🇳🇬' },
-  { code: 'KE', dialCode: '+254', name: 'Kenya', flag: '🇰🇪' },
-  { code: 'IE', dialCode: '+353', name: 'Ireland', flag: '🇮🇪' },
-  { code: 'BE', dialCode: '+32', name: 'Belgium', flag: '🇧🇪' },
-  { code: 'AT', dialCode: '+43', name: 'Austria', flag: '🇦🇹' },
-  { code: 'DK', dialCode: '+45', name: 'Denmark', flag: '🇩🇰' },
-  { code: 'FI', dialCode: '+358', name: 'Finland', flag: '🇫🇮' },
-  { code: 'GR', dialCode: '+30', name: 'Greece', flag: '🇬🇷' },
-  { code: 'PL', dialCode: '+48', name: 'Poland', flag: '🇵🇱' },
-  { code: 'PT', dialCode: '+351', name: 'Portugal', flag: '🇵🇹' },
-  { code: 'UA', dialCode: '+380', name: 'Ukraine', flag: '🇺🇦' },
-  { code: 'RO', dialCode: '+40', name: 'Romania', flag: '🇷🇴' },
-  { code: 'CZ', dialCode: '+420', name: 'Czech Republic', flag: '🇨🇿' },
-  { code: 'HU', dialCode: '+36', name: 'Hungary', flag: '🇭🇺' },
-  { code: 'IL', dialCode: '+972', name: 'Israel', flag: '🇮🇱' },
-  { code: 'JO', dialCode: '+962', name: 'Jordan', flag: '🇯🇴' },
-  { code: 'LB', dialCode: '+961', name: 'Lebanon', flag: '🇱🇧' },
-  { code: 'MA', dialCode: '+212', name: 'Morocco', flag: '🇲🇦' },
-  { code: 'DZ', dialCode: '+213', name: 'Algeria', flag: '🇩🇿' },
-  { code: 'TN', dialCode: '+216', name: 'Tunisia', flag: '🇹🇳' },
-  { code: 'GH', dialCode: '+233', name: 'Ghana', flag: '🇬🇭' },
-  { code: 'UG', dialCode: '+256', name: 'Uganda', flag: '🇺🇬' },
-  { code: 'TZ', dialCode: '+255', name: 'Tanzania', flag: '🇹🇿' },
-  { code: 'MU', dialCode: '+230', name: 'Mauritius', flag: '🇲🇺' }
+  { code: 'IN', dialCode: '+91', name: 'India', flag: '≡ƒç«≡ƒç│' },
+  { code: 'US', dialCode: '+1', name: 'United States', flag: '≡ƒç║≡ƒç╕' },
+  { code: 'GB', dialCode: '+44', name: 'United Kingdom', flag: '≡ƒç¼≡ƒçº' },
+  { code: 'AE', dialCode: '+971', name: 'United Arab Emirates', flag: '≡ƒçª≡ƒç¬' },
+  { code: 'SA', dialCode: '+966', name: 'Saudi Arabia', flag: '≡ƒç╕≡ƒçª' },
+  { code: 'QA', dialCode: '+974', name: 'Qatar', flag: '≡ƒç╢≡ƒçª' },
+  { code: 'OM', dialCode: '+968', name: 'Oman', flag: '≡ƒç┤≡ƒç▓' },
+  { code: 'BH', dialCode: '+973', name: 'Bahrain', flag: '≡ƒçº≡ƒç¡' },
+  { code: 'KW', dialCode: '+965', name: 'Kuwait', flag: '≡ƒç░≡ƒç╝' },
+  { code: 'CA', dialCode: '+1', name: 'Canada', flag: '≡ƒç¿≡ƒçª' },
+  { code: 'AU', dialCode: '+61', name: 'Australia', flag: '≡ƒçª≡ƒç║' },
+  { code: 'SG', dialCode: '+65', name: 'Singapore', flag: '≡ƒç╕≡ƒç¼' },
+  { code: 'MY', dialCode: '+60', name: 'Malaysia', flag: '≡ƒç▓≡ƒç╛' },
+  { code: 'PK', dialCode: '+92', name: 'Pakistan', flag: '≡ƒç╡≡ƒç░' },
+  { code: 'BD', dialCode: '+880', name: 'Bangladesh', flag: '≡ƒçº≡ƒç⌐' },
+  { code: 'LK', dialCode: '+94', name: 'Sri Lanka', flag: '≡ƒç▒≡ƒç░' },
+  { code: 'NP', dialCode: '+977', name: 'Nepal', flag: '≡ƒç│≡ƒç╡' },
+  { code: 'DE', dialCode: '+49', name: 'Germany', flag: '≡ƒç⌐≡ƒç¬' },
+  { code: 'FR', dialCode: '+33', name: 'France', flag: '≡ƒç½≡ƒç╖' },
+  { code: 'IT', dialCode: '+39', name: 'Italy', flag: '≡ƒç«≡ƒç╣' },
+  { code: 'ES', dialCode: '+34', name: 'Spain', flag: '≡ƒç¬≡ƒç╕' },
+  { code: 'NL', dialCode: '+31', name: 'Netherlands', flag: '≡ƒç│≡ƒç▒' },
+  { code: 'CH', dialCode: '+41', name: 'Switzerland', flag: '≡ƒç¿≡ƒç¡' },
+  { code: 'SE', dialCode: '+46', name: 'Sweden', flag: '≡ƒç╕≡ƒç¬' },
+  { code: 'NO', dialCode: '+47', name: 'Norway', flag: '≡ƒç│≡ƒç┤' },
+  { code: 'NZ', dialCode: '+64', name: 'New Zealand', flag: '≡ƒç│≡ƒç┐' },
+  { code: 'ZA', dialCode: '+27', name: 'South Africa', flag: '≡ƒç┐≡ƒçª' },
+  { code: 'JP', dialCode: '+81', name: 'Japan', flag: '≡ƒç»≡ƒç╡' },
+  { code: 'CN', dialCode: '+86', name: 'China', flag: '≡ƒç¿≡ƒç│' },
+  { code: 'HK', dialCode: '+852', name: 'Hong Kong', flag: '≡ƒç¡≡ƒç░' },
+  { code: 'TH', dialCode: '+66', name: 'Thailand', flag: '≡ƒç╣≡ƒç¡' },
+  { code: 'PH', dialCode: '+63', name: 'Philippines', flag: '≡ƒç╡≡ƒç¡' },
+  { code: 'ID', dialCode: '+62', name: 'Indonesia', flag: '≡ƒç«≡ƒç⌐' },
+  { code: 'VN', dialCode: '+84', name: 'Vietnam', flag: '≡ƒç╗≡ƒç│' },
+  { code: 'TR', dialCode: '+90', name: 'Turkey', flag: '≡ƒç╣≡ƒç╖' },
+  { code: 'RU', dialCode: '+7', name: 'Russia', flag: '≡ƒç╖≡ƒç║' },
+  { code: 'BR', dialCode: '+55', name: 'Brazil', flag: '≡ƒçº≡ƒç╖' },
+  { code: 'MX', dialCode: '+52', name: 'Mexico', flag: '≡ƒç▓≡ƒç╜' },
+  { code: 'AR', dialCode: '+54', name: 'Argentina', flag: '≡ƒçª≡ƒç╖' },
+  { code: 'CO', dialCode: '+57', name: 'Colombia', flag: '≡ƒç¿≡ƒç┤' },
+  { code: 'CL', dialCode: '+56', name: 'Chile', flag: '≡ƒç¿≡ƒç▒' },
+  { code: 'PE', dialCode: '+51', name: 'Peru', flag: '≡ƒç╡≡ƒç¬' },
+  { code: 'EG', dialCode: '+20', name: 'Egypt', flag: '≡ƒç¬≡ƒç¼' },
+  { code: 'NG', dialCode: '+234', name: 'Nigeria', flag: '≡ƒç│≡ƒç¼' },
+  { code: 'KE', dialCode: '+254', name: 'Kenya', flag: '≡ƒç░≡ƒç¬' },
+  { code: 'IE', dialCode: '+353', name: 'Ireland', flag: '≡ƒç«≡ƒç¬' },
+  { code: 'BE', dialCode: '+32', name: 'Belgium', flag: '≡ƒçº≡ƒç¬' },
+  { code: 'AT', dialCode: '+43', name: 'Austria', flag: '≡ƒçª≡ƒç╣' },
+  { code: 'DK', dialCode: '+45', name: 'Denmark', flag: '≡ƒç⌐≡ƒç░' },
+  { code: 'FI', dialCode: '+358', name: 'Finland', flag: '≡ƒç½≡ƒç«' },
+  { code: 'GR', dialCode: '+30', name: 'Greece', flag: '≡ƒç¼≡ƒç╖' },
+  { code: 'PL', dialCode: '+48', name: 'Poland', flag: '≡ƒç╡≡ƒç▒' },
+  { code: 'PT', dialCode: '+351', name: 'Portugal', flag: '≡ƒç╡≡ƒç╣' },
+  { code: 'UA', dialCode: '+380', name: 'Ukraine', flag: '≡ƒç║≡ƒçª' },
+  { code: 'RO', dialCode: '+40', name: 'Romania', flag: '≡ƒç╖≡ƒç┤' },
+  { code: 'CZ', dialCode: '+420', name: 'Czech Republic', flag: '≡ƒç¿≡ƒç┐' },
+  { code: 'HU', dialCode: '+36', name: 'Hungary', flag: '≡ƒç¡≡ƒç║' },
+  { code: 'IL', dialCode: '+972', name: 'Israel', flag: '≡ƒç«≡ƒç▒' },
+  { code: 'JO', dialCode: '+962', name: 'Jordan', flag: '≡ƒç»≡ƒç┤' },
+  { code: 'LB', dialCode: '+961', name: 'Lebanon', flag: '≡ƒç▒≡ƒçº' },
+  { code: 'MA', dialCode: '+212', name: 'Morocco', flag: '≡ƒç▓≡ƒçª' },
+  { code: 'DZ', dialCode: '+213', name: 'Algeria', flag: '≡ƒç⌐≡ƒç┐' },
+  { code: 'TN', dialCode: '+216', name: 'Tunisia', flag: '≡ƒç╣≡ƒç│' },
+  { code: 'GH', dialCode: '+233', name: 'Ghana', flag: '≡ƒç¼≡ƒç¡' },
+  { code: 'UG', dialCode: '+256', name: 'Uganda', flag: '≡ƒç║≡ƒç¼' },
+  { code: 'TZ', dialCode: '+255', name: 'Tanzania', flag: '≡ƒç╣≡ƒç┐' },
+  { code: 'MU', dialCode: '+230', name: 'Mauritius', flag: '≡ƒç▓≡ƒç║' }
 ];
 
 const getCurrentDateString = () => {
@@ -261,7 +261,7 @@ const InitialSplashScreen = () => {
       
       {/* Small footer inside the card */}
       <div className="mt-8 text-[8.5px] text-slate-500 font-bold uppercase tracking-wider relative z-10">
-        SaSLoop Master POS v1.0.1 • Secure Offline Mode
+        SaSLoop Master POS v1.0.1 ΓÇó Secure Offline Mode
       </div>
     </div>
   );
@@ -1361,7 +1361,7 @@ const VirtualKeyboard = ({ target, onClose }) => {
                   }}
                   className={btnClass}
                 >
-                  {key === 'BACKSPACE' ? '⌫' : key}
+                  {key === 'BACKSPACE' ? 'Γî½' : key}
                 </button>
               );
             })}
@@ -1721,7 +1721,7 @@ const UniversalPOS = () => {
     }
   };
 
-  // NOTE: Cart auto-sync useEffect removed — items keep their resolved price from when they were added
+  // NOTE: Cart auto-sync useEffect removed ΓÇö items keep their resolved price from when they were added
 
   const [tables, setTables] = useState(() => {
     try {
@@ -1980,29 +1980,6 @@ const UniversalPOS = () => {
     }
   };
 
-  const updateOrderPrinterSetting = (orderTypeKey, jobType, field, value) => {
-    setPosSettings(prev => {
-      const printers = { ...(prev.orderPrinters || {}) };
-      if (!printers[orderTypeKey]) {
-        printers[orderTypeKey] = {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        };
-      }
-      printers[orderTypeKey] = {
-        ...printers[orderTypeKey],
-        [jobType]: {
-          ...(printers[orderTypeKey][jobType] || {}),
-          [field]: value
-        }
-      };
-      return {
-        ...prev,
-        orderPrinters: printers
-      };
-    });
-  };
-
   const compileLedgerData = () => {
     const ledger = [];
     if (Array.isArray(customerHistoryData.orders)) {
@@ -2123,7 +2100,7 @@ const UniversalPOS = () => {
 
           rows.push([
             '',
-            `   • ${itemName} x${itemQty} @ ${config.currency}${itemRate.toFixed(2)}`,
+            `   ΓÇó ${itemName} x${itemQty} @ ${config.currency}${itemRate.toFixed(2)}`,
             '',
             '',
             ''
@@ -3153,7 +3130,7 @@ const UniversalPOS = () => {
       if (valA > valB) return receiptsSortDirection === 'asc' ? 1 : -1;
       return 0;
     });
-  }, [recentOrders, receiptSearchQuery, receiptsSortField, receiptsSortDirection, receiptsDateMode, receiptsStartDate, receiptsEndDate]);
+  }, [recentOrders, receiptSearchQuery, receiptsSortField, receiptsSortDirection]);
 
   const receiptsPageSize = 30;
   const totalPages = Math.ceil(filteredOrders.length / receiptsPageSize) || 1;
@@ -3631,148 +3608,6 @@ const UniversalPOS = () => {
     }
     return business.staff_permissions;
   };
-
-  const checkBillingPermission = (perm) => {
-    const access = getStaffPermissions()?.pos_access;
-    if (!access) return true;
-    if (orderType === 'QUICK') {
-      const qk = perm === 'add_charges' ? 'add_charge' : perm;
-      return access.QuickBill?.[qk] !== false;
-    }
-    let billingAccess = access.Billing;
-    if (orderType === 'DELIVERY') {
-      billingAccess = access.Delivery?.Billing;
-    } else if (orderType === 'PICKUP') {
-      billingAccess = access.Pickup?.Billing;
-    } else if (orderType === 'PRE_ORDER') {
-      billingAccess = access.PreOrder?.Billing;
-    }
-    return billingAccess?.[perm] !== false;
-  };
-
-  const checkOldKOTPermission = (perm) => {
-    const access = getStaffPermissions()?.pos_access;
-    if (!access) return true;
-    let oldKotAccess = access.OldKOT;
-    if (orderType === 'DELIVERY') {
-      oldKotAccess = access.Delivery?.OldKOT;
-    } else if (orderType === 'PICKUP') {
-      oldKotAccess = access.Pickup?.OldKOT;
-    } else if (orderType === 'PRE_ORDER') {
-      oldKotAccess = access.PreOrder?.OldKOT;
-    }
-    return oldKotAccess?.[perm] !== false;
-  };
-
-    const checkKOTPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access;
-      if (!access) return true;
-      return access.KOT?.[perm] !== false;
-    };
-
-    const checkDashboardPermission = (card) => {
-      const access = getStaffPermissions()?.pos_access?.Dashboard;
-      if (!access) return true;
-      const mapping = {
-        todaysSale: 'todays_sale',
-        totalSale: 'total_sale',
-        thisMonthSale: 'this_month_sale',
-        itemPieChart: 'item_pie_chart',
-        barSalesChart: 'bar_sales_chart',
-        lineSalesChart: 'line_sales_chart',
-        paymentModesChart: 'payment_modes_chart',
-        salesAnalysisByDays: 'sales_analysis_by_days',
-        allSalesAnalysis: 'all_sales_analysis',
-        ipAddress: 'ip_address'
-      };
-      const key = mapping[card] || card;
-      return access[key] !== false;
-    };
-
-    const checkSplitBillPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access;
-      if (!access) return true;
-      let splitAccess = access.SplitBill;
-      if (orderType === 'DELIVERY') {
-        splitAccess = access.Delivery?.SplitBill;
-      } else if (orderType === 'PICKUP') {
-        splitAccess = access.Pickup?.SplitBill;
-      } else if (orderType === 'PRE_ORDER') {
-        splitAccess = access.PreOrder?.SplitBill;
-      }
-      return splitAccess?.[perm] !== false;
-    };
-
-    const checkCustomerPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access?.CustomerManagement;
-      if (!access) return true;
-      return access[perm] !== false;
-    };
-
-    const checkAccountPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access?.Account;
-      if (!access) return true;
-      return access[perm] !== false;
-    };
-
-    const checkOnlineOrderPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access?.OnlineOrder;
-      if (!access) return true;
-      return access[perm] !== false;
-    };
-
-    const checkReceiptsPermission = (perm) => {
-      const access = getStaffPermissions()?.pos_access?.Receipts;
-      if (!access) return true;
-      return access[perm] !== false;
-    };
-
-  const getFilteredReportsList = () => {
-    const access = getStaffPermissions()?.pos_access?.Reports;
-    if (!access) return REPORTS_LIST;
-    const mapping = {
-      'Sales Report': access.sales_report,
-      'DSR Report': access.sales_report,
-      'Todays Report': access.todays_report,
-      'Item Report': access.ItemReport?.visible,
-      'Meal Time-Based Sales Report': access.misc_report,
-      'Hourly Report': access.misc_report,
-      'Waiter Incentive Report': access.user_report,
-      'Payment Report': access.payment_report,
-      'Expense Tracking Report': access.misc_report,
-      'Order Type Report': access.order_type_report,
-      'Category Report': access.category_wise_report,
-      'Kitchen Department Report': access.kitchen_dept_wise_report,
-      'Coupon History Report': access.coupon_history,
-      'Due Payment Report': access.DuePaymentReport?.visible,
-      'Start Close Day Report': access.start_close_day_report,
-      'Shift Wise Report': access.user_shift_report,
-      'Discount Report': access.misc_report,
-      'Biller Wise Summary': access.user_report,
-      'Delivery Report': access.delivery_boy_report,
-      'Day Wise Summary Report': access.sales_report,
-      'Bill Print Report': access.misc_report,
-      'Applied Charges Report': access.misc_report,
-      'Passcode User Report': access.user_report,
-      'ZATCA Report': access.tax_report,
-      'Logistic Report': access.delivery_boy_report,
-      'Order Transition Report': access.misc_report,
-    };
-    return REPORTS_LIST.filter(item => mapping[item.name] !== false);
-  };
-
-  const getFilteredSettingsTabs = () => {
-    const access = getStaffPermissions()?.pos_access?.Settings;
-    const tabs = [
-      { id: 'general', label: 'General', icon: <Settings size={12} />, show: access?.general !== false },
-      { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} />, show: access?.profile !== false },
-      { id: 'printer', label: 'Printers', icon: <Printer size={12} />, show: access?.printers !== false },
-      { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} />, show: access?.shortcuts !== false },
-      { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} />, show: access?.formatting !== false },
-      { id: 'profile', label: 'Profile', icon: <User size={12} />, show: access?.profile !== false }
-    ];
-    return tabs.filter(t => t.show);
-  };
   const getLoyaltySetting = (key, defaultValue) => {
     if (!business) return defaultValue;
     if (business.business_details && business.business_details[key] !== undefined) {
@@ -3984,29 +3819,7 @@ const UniversalPOS = () => {
       printRestaurantCopy: true,
       askPasswordForTableDelete: true,
       printLoyaltyPoints: true,
-      loyaltyPrintOption: 'all',
-      orderPrinters: {
-        DINE_IN: {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        },
-        PICKUP: {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        },
-        DELIVERY: {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        },
-        QUICK: {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        },
-        PRE_ORDER: {
-          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-        }
-      }
+      loyaltyPrintOption: 'all'
     };
 
     try {
@@ -4193,10 +4006,6 @@ const UniversalPOS = () => {
   };
 
   const handleOpenCouponModal = async () => {
-    if (!checkBillingPermission('add_coupon')) {
-      toast.error("You do not have permission to add a coupon.");
-      return;
-    }
     setIsCouponModalOpen(true);
     try {
       const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');
@@ -4225,48 +4034,9 @@ const UniversalPOS = () => {
     localStorage.setItem('pos_current_shift', JSON.stringify(shift));
   }, [shift]);
 
-    useEffect(() => {
-      localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
-    }, [posSettings]);
-
-    useEffect(() => {
-      if (isSplitModalOpen) {
-        const allowed = ['PORTION', 'PERCENT', 'ITEM'].filter(mode => {
-          if (mode === 'PORTION') return checkSplitBillPermission('portion_wise');
-          if (mode === 'PERCENT') return checkSplitBillPermission('percentage_wise');
-          if (mode === 'ITEM') return checkSplitBillPermission('item_wise');
-          return true;
-        });
-        if (allowed.length > 0 && !allowed.includes(splitMode)) {
-          setSplitMode(allowed[0]);
-        }
-      }
-    }, [isSplitModalOpen, splitMode]);
-
   useEffect(() => {
-    if (isAuthenticated && business) {
-      const access = getStaffPermissions()?.pos_access;
-      if (access) {
-        const tabCheck = {
-          home: access.Dashboard?.visible !== false,
-          billing: access.Billing?.visible !== false,
-          live: access.OrderWindow?.live_order_tracking !== false,
-          digital: access.OnlineOrder?.visible !== false,
-          receipts: access.Receipts?.visible !== false,
-          expenses: access.ExpenseManagement?.visible !== false,
-          analytics: access.Reports?.visible !== false,
-          config: access.OperationManagement?.visible !== false,
-          settings: access.Settings?.visible !== false,
-        };
-        if (!tabCheck[activeTab]) {
-          const firstAllowedTab = Object.keys(tabCheck).find(tab => tabCheck[tab]);
-          if (firstAllowedTab) {
-            setActiveTab(firstAllowedTab);
-          }
-        }
-      }
-    }
-  }, [business, isAuthenticated, activeTab]);
+    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
+  }, [posSettings]);
 
   const handleLogoutFlow = async (clearData, force = false) => {
     if (clearData) {
@@ -4312,18 +4082,99 @@ const UniversalPOS = () => {
             key === 'pos_device_id' ||
             key === 'pos_theme' ||
             key === 'pos_terminal_settings' ||
-            key === 'pos_business' ||
-            key === 'pos_brand_color' ||
-            key === 'pos_active_state' ||
-            key === 'pos_available_printers'
+            key.includes('_sound') ||
+            key.includes('_sound_name')
           ) {
             continue;
           }
           keysToRemove.push(key);
         }
       }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
       
+      // Also explicitly add all known keys to ensure they are cleared
+      const explicitKeys = [
+        'pos_token',
+        'pos_profile',
+        'pos_current_shift',
+        'pos_expenses',
+        'pos_local_orders',
+        'pos_recent_orders',
+        'pos_customer_db',
+        'pos_dinein_cart',
+        'pos_pickup_cart',
+        'pos_quick_cart',
+        'pos_preorder_cart',
+        'pos_table_carts',
+        'pos_table_statuses',
+        'pos_table_bills',
+        'pos_table_bill_numbers',
+        'pos_table_active_timestamps',
+        'pos_kot_history',
+        'pos_table_waiters',
+        'pos_table_discounts',
+        'pos_table_additional_charges',
+        'pos_table_customers',
+        'pos_catalog_cache',
+        'pos_option_groups',
+        'pos_tables_cache',
+        'pos_taxes',
+        'pos_payment_modes',
+        'pos_discounts',
+        'pos_additional_charges',
+        'pos_waiters',
+        'pos_riders',
+        'pos_item_mgmt_items',
+        'pos_item_mgmt_categories',
+        'pos_item_mgmt_taxes',
+        'pos_item_mgmt_depts',
+        'pos_rejection_reasons',
+        'pos_deleted_items_queue',
+        'pos_unsynced_categories',
+        'pos_tables',
+        'pos_next_bill_no'
+      ];
+      
+      explicitKeys.forEach(k => {
+        if (!keysToRemove.includes(k)) {
+          keysToRemove.push(k);
+        }
+      });
+
+      keysToRemove.forEach(key => localStorage.removeItem(key));
+
+      // 2. Clear all react states in memory thoroughly
+      setRecentOrders([]);
+      setTableBills({});
+      setTableStatuses({});
+      setTableBillNumbers({});
+      setKotHistory({});
+      setCustomerDb({});
+      setDineInCart([]);
+      setPickupCart([]);
+      setQuickCart([]);
+      setPreOrderCart([]);
+      setTableCarts({});
+      setTableCustomers({});
+      setTableDiscounts({});
+      setTableAdditionalCharges({});
+      setTableWaiters({});
+      setTableActiveTimestamps({});
+      setShift({ status: 'NOT_STARTED', startTime: null, openingBalance: 0, sales: 0, expenses: 0 });
+      setExpenses([]);
+      
+      // Also clear other cached lists to avoid state leakage
+      setCatalog([]);
+      setCategories(['All']);
+      setTables([]);
+      setSyncedTax(null);
+      setPaymentModes(['CASH']);
+      setWaitersList([]);
+      setRiders([]);
+      setOptionGroups([]);
+      setAvailableDiscounts([]);
+      setAvailableCharges([]);
+      setBusiness(null);
+
       // Additional UI, statistics, dashboard and session states
       setStats({ totalSales: 0, totalOrders: 0, averageOrderValue: 0, totalTax: 0 });
       setTopItems([]);
@@ -4536,25 +4387,6 @@ const UniversalPOS = () => {
     });
   };
 
-  const getFilteredTablesForCurrentView = () => {
-    return tables.filter(t => {
-      if (orderType === 'DINE_IN') {
-        if (t.is_temporary && t.original_order_type !== 'DINE_IN') return false;
-      } else if (orderType === 'PICKUP') {
-        if (!t.is_temporary || t.original_order_type !== 'PICKUP') return false;
-      } else {
-        if (t.is_temporary && t.original_order_type === 'PRE_ORDER') return false;
-      }
-      if (orderType === 'DINE_IN' && activeDepartment !== 'All') {
-        if (t.department_name !== activeDepartment) return false;
-      }
-      if (tableSearchQuery) {
-        if (!t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase())) return false;
-      }
-      return true;
-    });
-  };
-
   useEffect(() => {
     if (!posSettings?.defaultTab) return;
     if (posSettings.defaultTab === 'Dine In' && !posSettings.disableTabs?.dinein) {
@@ -4626,7 +4458,7 @@ const UniversalPOS = () => {
     return (
       <div className={`shrink-0 border-t ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
         <div className={`flex items-center justify-between px-3 py-1.5 ${isDark ? 'bg-[#161b22]' : 'bg-[#f0fdf4]'}`}>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>📦 Pre-Order Temporary Tables ({preOrderTempTables.length})</span>
+          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-amber-400' : 'text-amber-700'}`}>≡ƒôª Pre-Order Temporary Tables ({preOrderTempTables.length})</span>
         </div>
         <div className="flex gap-2 px-3 py-2 overflow-x-auto no-scrollbar">
           {preOrderTempTables.map(table => {
@@ -4689,7 +4521,7 @@ const UniversalPOS = () => {
                     }}
                     className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all shrink-0 ${isDark ? 'bg-red-500/20 text-red-400 hover:bg-red-500/40' : 'bg-red-50 text-red-500 hover:bg-red-100'}`}
                   >
-                    ✕
+                    Γ£ò
                   </button>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -4719,7 +4551,7 @@ const UniversalPOS = () => {
   const handleKeypadPress = (val) => {
     if (val === 'C') {
       setOpenPriceValue('');
-    } else if (val === '⌫' || val === 'Backspace') {
+    } else if (val === 'Γî½' || val === 'Backspace') {
       setOpenPriceValue(prev => prev.slice(0, -1));
     } else if (val === '.') {
       if (!openPriceValue.includes('.')) {
@@ -4765,7 +4597,7 @@ const UniversalPOS = () => {
       } else if (e.key === '.') {
         handleKeypadPress('.');
       } else if (e.key === 'Backspace') {
-        handleKeypadPress('⌫');
+        handleKeypadPress('Γî½');
       } else if (e.key === 'Escape') {
         setIsOpenPriceModalOpen(false);
         setOpenPriceItem(null);
@@ -4813,10 +4645,6 @@ const UniversalPOS = () => {
       const isOpenPrice = item.is_open_price === true;
 
       if (isZeroPrice || isOpenPrice) {
-        if (getStaffPermissions()?.pos_access?.OrderWindow?.change_item_price === false) {
-          toast.error("You do not have permission to change item price.");
-          return;
-        }
         setOpenPriceItem(item);
         setOpenPriceValue('');
         setIsOpenPriceModalOpen(true);
@@ -4850,7 +4678,7 @@ const UniversalPOS = () => {
         });
       }
     } catch (err) {
-      console.error("❌ Item click error:", err);
+      console.error("Γ¥î Item click error:", err);
       toast.error(`Item click failed: ${err.message}`);
       fetch(`${API_BASE}/api/pos/log-error`, {
         method: 'POST',
@@ -4924,39 +4752,12 @@ const UniversalPOS = () => {
   };
 
   const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {
-    if (isPrint) {
-      if (!checkKOTPermission('save_and_print')) {
-        toast.error("You do not have permission to Save and Print KOT.");
-        return;
-      }
-    } else {
-      if (!checkKOTPermission('save')) {
-        toast.error("You do not have permission to Save KOT.");
-        return;
-      }
+    if (cart.length === 0) {
+      toast.error("KOT is empty!");
+      return;
     }
-        if (cart.length === 0) {
-          toast.error("KOT is empty!");
-          return;
-        }
 
-        const isDeliveryKOT = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
-        const isPickupKOT = orderType === 'PICKUP' && subOrderType === 'PICKUP';
-
-        if (isDeliveryKOT && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) {
-          if (!customerName || !customerPhone) {
-            toast.error("Customer name and phone number are mandatory for delivery orders!");
-            return;
-          }
-        }
-        if (isPickupKOT && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true) {
-          if (!customerName || !customerPhone) {
-            toast.error("Customer name and phone number are mandatory for pickup orders!");
-            return;
-          }
-        }
-
-        const isExistingTemp = selectedTable && selectedTable.is_temporary;
+    const isExistingTemp = selectedTable && selectedTable.is_temporary;
     const tempId = isExistingTemp ? selectedTable.id : `temp-${Date.now()}`;
 
     let typeLabel = 'Pickup';
@@ -5515,7 +5316,7 @@ const UniversalPOS = () => {
                 <div className="flex flex-col gap-1 text-[11px] leading-snug">
                   <span className="font-bold text-[#10ac84] uppercase tracking-wider text-[10px]">New Order Received!</span>
                   <span>Source: <strong>{sourceLabel}</strong></span>
-                  <span>Bill No: #{o.bill_no || o.id} | Total: ₹{o.total_price}</span>
+                  <span>Bill No: #{o.bill_no || o.id} | Total: Γé╣{o.total_price}</span>
                 </div>,
                 {
                   position: "bottom-left",
@@ -5576,7 +5377,7 @@ const UniversalPOS = () => {
     if (isAuthenticated) initApp();
   }, [isAuthenticated]);
 
-  // 🔄 Auto-sync offline orders when internet comes back
+  // ≡ƒöä Auto-sync offline orders when internet comes back
   useEffect(() => {
     if (!isAuthenticated) return;
     const handleOnline = async () => {
@@ -5584,7 +5385,7 @@ const UniversalPOS = () => {
       try {
         const unsyncedOrders = recentOrders.filter(o => o.synced === false || String(o.id).startsWith('L-'));
         if (unsyncedOrders.length > 0) {
-          toast.info(`🔄 Back online! Syncing ${unsyncedOrders.length} offline order(s)...`, { autoClose: 3000 });
+          toast.info(`≡ƒöä Back online! Syncing ${unsyncedOrders.length} offline order(s)...`, { autoClose: 3000 });
           await handleSyncBills();
         }
       } catch (err) {
@@ -5725,7 +5526,7 @@ const UniversalPOS = () => {
         const fetchedTaxRate = parseFloat(cachedBiz.tax_percent || (parseFloat(cachedBiz.cgst_percent || 0) + parseFloat(cachedBiz.sgst_percent || 0))) || 0;
         setConfig(prev => ({
           ...prev,
-          currency: cachedBiz.currency_symbol || cachedBiz.currency_code || '₹',
+          currency: cachedBiz.currency_symbol || cachedBiz.currency_code || 'Γé╣',
           tax_rate: fetchedTaxRate,
           business_type: String(cachedBiz.business_category || cachedBiz.business_type || '').toUpperCase().includes('RETAIL') ? 'RETAIL' : 'RESTAURANT'
         }));
@@ -5845,7 +5646,7 @@ const UniversalPOS = () => {
     const fetchedTaxRate = parseFloat(biz.tax_percent || (parseFloat(biz.cgst_percent || 0) + parseFloat(biz.sgst_percent || 0))) || 0;
     setConfig(prev => ({
       ...prev,
-      currency: biz.currency_symbol || biz.currency_code || '₹',
+      currency: biz.currency_symbol || biz.currency_code || 'Γé╣',
       tax_rate: fetchedTaxRate,
       business_type: String(biz.business_category || biz.business_type || '').toUpperCase().includes('RETAIL') ? 'RETAIL' : 'RESTAURANT'
     }));
@@ -6111,7 +5912,7 @@ const UniversalPOS = () => {
         const fetchedTaxRate = parseFloat(cachedBiz.tax_percent || (parseFloat(cachedBiz.cgst_percent || 0) + parseFloat(cachedBiz.sgst_percent || 0))) || 0;
         setConfig(prev => ({
           ...prev,
-          currency: cachedBiz.currency_symbol || cachedBiz.currency_code || '₹',
+          currency: cachedBiz.currency_symbol || cachedBiz.currency_code || 'Γé╣',
           tax_rate: fetchedTaxRate,
           business_type: String(cachedBiz.business_category || cachedBiz.business_type || '').toUpperCase().includes('RETAIL') ? 'RETAIL' : 'RESTAURANT'
         }));
@@ -6433,10 +6234,6 @@ const UniversalPOS = () => {
   };
 
   const handleToggleItemMgmtAvailability = async (item) => {
-    if (getStaffPermissions()?.pos_access?.OperationManagement?.ItemsManagement?.item_enabled_disabled === false) {
-      toast.error("You do not have permission to enable/disable items.");
-      return;
-    }
     const nextAvailability = !item.availability;
     try {
       if (navigator.onLine && !String(item.id).startsWith('L-')) {
@@ -6483,10 +6280,6 @@ const UniversalPOS = () => {
   };
 
   const handleToggleCategoryActive = async (category) => {
-    if (getStaffPermissions()?.pos_access?.OperationManagement?.ItemsManagement?.category_enabled_disabled === false) {
-      toast.error("You do not have permission to enable/disable categories.");
-      return;
-    }
     const nextActive = !category.is_active;
     try {
       if (navigator.onLine) {
@@ -6522,10 +6315,6 @@ const UniversalPOS = () => {
   };
 
   const handleDeleteItemMgmt = async (itemId, itemType, itemName) => {
-    if (getStaffPermissions()?.pos_access?.OperationManagement?.ItemsManagement?.edit_item === false) {
-      toast.error("You do not have permission to delete items.");
-      return;
-    }
     if (!window.confirm(`Are you sure you want to delete "${itemName}"?`)) return;
     try {
       if (navigator.onLine && !String(itemId).startsWith('L-')) {
@@ -6566,19 +6355,6 @@ const UniversalPOS = () => {
   };
 
   const handleSaveItemMgmt = async (e) => {
-    if (itemMgmtForm.id === null) {
-      if (getStaffPermissions()?.pos_access?.OperationManagement?.ItemsManagement?.add_item === false) {
-        toast.error("You do not have permission to add an item.");
-        e.preventDefault();
-        return;
-      }
-    } else {
-      if (getStaffPermissions()?.pos_access?.OperationManagement?.ItemsManagement?.edit_item === false) {
-        toast.error("You do not have permission to edit an item.");
-        e.preventDefault();
-        return;
-      }
-    }
     e.preventDefault();
     if (!itemMgmtForm.product_name.trim()) {
       toast.error("Item Name is required");
@@ -6973,24 +6749,25 @@ const UniversalPOS = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
-    if (!username || !password) {
-      toast.error("Please fill all fields");
+    // ≡ƒöÉ Internet is REQUIRED for login ΓÇö per system policy
+    if (!navigator.onLine) {
+      toast.error("ΓÜá∩╕Å No Internet Connection. Internet is required to login. Please connect and try again.");
       return;
     }
     setIsLoggingIn(true);
     try {
       const res = await authService.posLogin(username, password);
-      setIsTransitioningToDashboard(true);
-      await new Promise(resolve => setTimeout(resolve, 2000));
       localStorage.setItem('pos_token', res.data.token);
-      setIsAuthenticated(true);
-      setIsTransitioningToDashboard(false);
+      setIsTransitioningToDashboard(true);
+      setTimeout(() => {
+        setIsAuthenticated(true);
+        setIsTransitioningToDashboard(false);
+      }, 2200);
     } catch (err) {
       const errMsg = err.response?.data?.error || "Invalid Credentials";
       toast.error(errMsg);
-    } finally {
-      setIsLoggingIn(false);
     }
+    finally { setIsLoggingIn(false); }
   };
 
   const handleShowBillPreview = () => {
@@ -7325,7 +7102,7 @@ const UniversalPOS = () => {
     setBillingView('menu');
     setActiveTrayTab('Billing');
 
-    toast.info(`Editing Bill #${receipt.bill_no || receipt.id} — modify items and settle again.`);
+    toast.info(`Editing Bill #${receipt.bill_no || receipt.id} ΓÇö modify items and settle again.`);
   };
 
   useEffect(() => {
@@ -7356,44 +7133,15 @@ const UniversalPOS = () => {
   }, [isPaymentModalOpen]);
 
   const handleCheckout = async (type = 'SETTLE', method = 'CASH', referenceNo = '', tip = 0, isDue = false) => {
-    if (type === 'PRINT' && !checkBillingPermission('allow_draft_bill_printing')) {
-      return toast.error("You do not have permission to print a draft bill.");
-    }
-    if (type === 'SETTLE' && !checkBillingPermission('settle_bill')) {
-      return toast.error("You do not have permission to settle the bill.");
-    }
-    if (type === 'SAVE' && !checkBillingPermission('save_bill')) {
-      return toast.error("You do not have permission to save the bill.");
-    }
-    if (type === 'SAVE_PRINT' && !checkBillingPermission('save_print_bill')) {
-      return toast.error("You do not have permission to save and print the bill.");
-    }
     if (isCheckingOut) {
       console.warn("Checkout already in progress, ignoring double click.");
       return;
     }
-        const activeCart = getActiveCart();
-        if (activeCart.length === 0) return toast.warning("Cart is empty!");
+    const activeCart = getActiveCart();
+    if (activeCart.length === 0) return toast.warning("Cart is empty!");
 
-        const isDelivery = orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY');
-        const isPickup = orderType === 'PICKUP' && subOrderType === 'PICKUP';
-
-        if (isDelivery && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) {
-          if (!customerName || !customerPhone) {
-            return toast.error("Customer name and phone number are mandatory for delivery orders!");
-          }
-        }
-        if (isPickup && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true) {
-          if (!customerName || !customerPhone) {
-            return toast.error("Customer name and phone number are mandatory for pickup orders!");
-          }
-        }
-
-        // Block credit checkout if no customer is selected
+    // Block credit checkout if no customer is selected
     const isCreditCheckout = method.toLowerCase() === 'credit' || (method.toLowerCase() === 'split' && parseFloat(splitCreditAmount) > 0);
-    if (isCreditCheckout && !checkBillingPermission('allowed_due_payment')) {
-      return toast.error("You do not have permission for Credit payment!");
-    }
     const tempFullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
     if (isCreditCheckout && !tempFullPhone) {
       return toast.error("Customer must be selected for Credit payment!");
@@ -7534,7 +7282,7 @@ const UniversalPOS = () => {
 
     try {
       if (editingOrder && typeof editingOrder.id === 'number') {
-        // Server-synced order — call update endpoint
+        // Server-synced order ΓÇö call update endpoint
         const res = await posService.updateOrder(editingOrder.id, newOrder);
         if (res.data) {
           const serverOrder = {
@@ -7565,7 +7313,7 @@ const UniversalPOS = () => {
           toast.success(`Invoice Updated & Synced!`);
         }
       } else {
-        // New order or local-only edit — call create endpoint
+        // New order or local-only edit ΓÇö call create endpoint
         const res = await posService.createOrder(newOrder);
         if (res.data) {
           const serverOrder = {
@@ -7761,10 +7509,6 @@ const UniversalPOS = () => {
   };
 
   const handleOldKOTComplementary = () => {
-    if (!checkOldKOTPermission('item_as_complementary')) {
-      toast.error("You do not have permission for complementary items.");
-      return;
-    }
     const selectedIndices = Object.keys(selectedOldKOTItems).filter(idx => selectedOldKOTItems[idx]);
     if (selectedIndices.length === 0) return toast.warning("No items selected!");
 
@@ -7801,10 +7545,6 @@ const UniversalPOS = () => {
   };
 
   const handleOldKOTDelete = () => {
-    if (!checkOldKOTPermission('delete_kot')) {
-      toast.error("You do not have permission to delete KOT items.");
-      return;
-    }
     const selectedIndices = Object.keys(selectedOldKOTItems).filter(idx => selectedOldKOTItems[idx]);
     if (selectedIndices.length === 0) return toast.warning("No items selected!");
 
@@ -7829,10 +7569,6 @@ const UniversalPOS = () => {
   };
 
   const handleOldKOTCancel = () => {
-    if (!checkOldKOTPermission('cancel_kot')) {
-      toast.error("You do not have permission to cancel KOT items.");
-      return;
-    }
     const selectedIndices = Object.keys(selectedOldKOTItems).filter(idx => selectedOldKOTItems[idx]);
     if (selectedIndices.length === 0) return toast.warning("No items selected!");
 
@@ -7873,10 +7609,6 @@ const UniversalPOS = () => {
   };
 
   const handleOpenTransferModal = () => {
-    if (!checkOldKOTPermission('transfer_item')) {
-      toast.error("You do not have permission to transfer items.");
-      return;
-    }
     const selectedIndices = Object.keys(selectedOldKOTItems).filter(idx => selectedOldKOTItems[idx]);
     if (selectedIndices.length === 0) return toast.warning("No items selected to transfer!");
     setIsTransferModalOpen(true);
@@ -8036,37 +7768,6 @@ const UniversalPOS = () => {
     // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid and status != 'COMPLETED')
     const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));
 
-    // Resolve order type key
-    let configKey = 'QUICK';
-    if (isPreOrder) {
-      configKey = 'PRE_ORDER';
-    } else {
-      const typeLower = String(order.order_type || '').toLowerCase();
-      if (typeLower.includes('dine')) {
-        configKey = 'DINE_IN';
-      } else if (typeLower.includes('delivery')) {
-        configKey = 'DELIVERY';
-      } else if (typeLower.includes('pickup') || typeLower.includes('takeaway')) {
-        configKey = 'PICKUP';
-      } else if (typeLower.includes('quick')) {
-        configKey = 'QUICK';
-      }
-    }
-
-    const configGroup = (posSettings.orderPrinters && posSettings.orderPrinters[configKey]) || {
-      bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-    };
-    const billConfig = configGroup.bill || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
-
-    if (billConfig.enabled === false) {
-      toast.info(`Bill printing is disabled for ${configKey === 'PRE_ORDER' ? 'Pre-Order' : configKey} order type.`);
-      return;
-    }
-
-    const targetPrinter = billConfig.name || posSettings.printerName || '';
-    const paperSize = billConfig.paperSize || posSettings.printerType || 'THERMAL_80MM';
-    const finalPrintWidth = paperSize === 'THERMAL_58MM' ? 48 : (posSettings.printWidth || 72);
-
     // Normalize customer details
     const customerName = order.customer_name || 'POS Guest';
     const customerPhone = order.customer_phone || order.customer_number || '';
@@ -8118,7 +7819,7 @@ const UniversalPOS = () => {
           const ratio = pointsAwarded / threshold;
           pointsEarnedOnBill = Math.floor(subtotal * ratio);
         } else {
-          // Loyalty disabled — no points earned
+          // Loyalty disabled ΓÇö no points earned
           pointsEarnedOnBill = 0;
         }
       }
@@ -8213,7 +7914,7 @@ const UniversalPOS = () => {
             * { box-sizing: border-box; }
             body {
               font-family: Arial, Helvetica, sans-serif;
-              width: ${finalPrintWidth}mm;
+              width: ${posSettings.printWidth || 72}mm;
               padding-top: 3mm;
               padding-bottom: 3mm;
               padding-left: ${2 + (posSettings.printMarginLeft || 0)}mm;
@@ -8541,7 +8242,7 @@ const UniversalPOS = () => {
           ${(posSettings.printLoyaltyPoints && customerPhone && (pointsRedeemed > 0 || (pointsEarnedOnBill > 0 && (posSettings.loyaltyPrintOption !== 'saved' || isSavedCustomer)))) ? `
           <div class="dashed-line"></div>
           <div class="center" style="font-size: 10px; margin: 1mm 0;">
-            <div style="font-weight: bold;">★ LOYALTY POINTS ★</div>
+            <div style="font-weight: bold;">Γÿà LOYALTY POINTS Γÿà</div>
             ${(pointsEarnedOnBill > 0 && (posSettings.loyaltyPrintOption !== 'saved' || isSavedCustomer)) ? `<div>Points Earned on this Bill: <strong>${pointsEarnedOnBill}</strong></div>` : ''}
             ${pointsRedeemed > 0 ? `<div>Points Redeemed: <strong>${pointsRedeemed}</strong></div>` : ''}
           </div>
@@ -9072,7 +8773,7 @@ const UniversalPOS = () => {
                        }}
                        className="p-1.5 rounded-lg transition-all text-xs hover:bg-white/10 text-gray-400 hover:text-white"
                      >
-                       ✕
+                       Γ£ò
                      </button>
                    </div>
 
@@ -9157,51 +8858,25 @@ const UniversalPOS = () => {
            <img src="logo.png" className="w-[38px] h-[38px] object-contain rounded-xl bg-white p-0.5 shadow-sm border border-slate-100 dark:border-white/5" alt="Logo" />
         </div>
         <div className="flex flex-col flex-1">
-          {getStaffPermissions()?.pos_access?.Dashboard?.visible !== false && (
-            <SidebarIcon id="dashboardIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>} active={activeTab === 'home'} onClick={() => setActiveTab('home')} label="Dash" />
-          )}
-          {getStaffPermissions()?.pos_access?.Billing?.visible !== false && (
-            <SidebarIcon id="orderIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11 9H9V2H7V9H5V2H3V9c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4V2h-2v7zM21 2h-2c-1.1 0-2 .9-2 2v9h2v9h2V2z"/></svg>} active={activeTab === 'billing'} onClick={() => { setActiveTab('billing'); setBillingView('tables'); }} label="Order" />
-          )}
-          {getStaffPermissions()?.pos_access?.OrderWindow?.live_order_tracking !== false && (
-            <SidebarIcon id="liveTrackingIcon" isDark={isDark} icon={<Activity size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'live'} onClick={() => setActiveTab('live')} label="Live" />
-          )}
-          {getStaffPermissions()?.pos_access?.OnlineOrder?.visible !== false && (
-            <SidebarIcon id="digitalOrdersIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => setActiveTab('digital')} label="Digital" />
-          )}
-          {getStaffPermissions()?.pos_access?.Receipts?.visible !== false && (
-            <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => setActiveTab('receipts')} label="Receipt" />
-          )}
+          <SidebarIcon id="dashboardIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>} active={activeTab === 'home'} onClick={() => setActiveTab('home')} label="Dash" />
+          <SidebarIcon id="orderIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11 9H9V2H7V9H5V2H3V9c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4V2h-2v7zM21 2h-2c-1.1 0-2 .9-2 2v9h2v9h2V2z"/></svg>} active={activeTab === 'billing'} onClick={() => { setActiveTab('billing'); setBillingView('tables'); }} label="Order" />
+          <SidebarIcon id="liveTrackingIcon" isDark={isDark} icon={<Activity size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'live'} onClick={() => setActiveTab('live')} label="Live" />
+          <SidebarIcon id="digitalOrdersIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => setActiveTab('digital')} label="Digital" />
+          <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => setActiveTab('receipts')} label="Receipt" />
           <SidebarIcon id="whatsappIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => setActiveTab('whatsapp')} label="WhatsApp" />
-          {getStaffPermissions()?.pos_access?.ExpenseManagement?.visible !== false && (
-            <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => { setActiveTab('expenses'); setIsExpenseModalOpen(true); }} label="Expense" />
-          )}
-          {getStaffPermissions()?.pos_access?.Reports?.visible !== false && (
-            <SidebarIcon id="allreportsIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M4 6h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8z"/></svg>} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} label="Reports" />
-          )}
-          {getStaffPermissions()?.pos_access?.OperationManagement?.visible !== false && (
-            <SidebarIcon id="newConfigButton" isDark={isDark} icon={
-              <div className="relative w-7 h-7 text-current">
-                <Settings size={18} className="absolute top-0 left-0" fill="none" stroke="currentColor" strokeWidth={3}/>
-                <Settings size={14} className="absolute bottom-0 right-0" fill="none" stroke="currentColor" strokeWidth={3}/>
-              </div>
-            } active={activeTab === 'config'} onClick={() => setActiveTab('config')} label="Config" />
-          )}
-          {getStaffPermissions()?.pos_access?.Settings?.visible !== false && (
-            <SidebarIcon id="settingsButton" isDark={isDark} icon={<Sliders size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Old Config" />
-          )}
+          <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => { setActiveTab('expenses'); setIsExpenseModalOpen(true); }} label="Expense" />
+          <SidebarIcon id="allreportsIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M4 6h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8z"/></svg>} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} label="Reports" />
+          <SidebarIcon id="newConfigButton" isDark={isDark} icon={
+            <div className="relative w-7 h-7 text-current">
+              <Settings size={18} className="absolute top-0 left-0" fill="none" stroke="currentColor" strokeWidth={3}/>
+              <Settings size={14} className="absolute bottom-0 right-0" fill="none" stroke="currentColor" strokeWidth={3}/>
+            </div>
+          } active={activeTab === 'config'} onClick={() => setActiveTab('config')} label="Config" />
+          <SidebarIcon id="settingsButton" isDark={isDark} icon={<Sliders size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Old Config" />
           <SidebarIcon id="notificationIcon" isDark={isDark} icon={<Bell size={18} fill="none" stroke="currentColor" strokeWidth={2} />} active={false} onClick={() => {}} label="Alerts" />
         </div>
         <div className={`mt-auto border-t ${isDark ? 'border-[#30363d]' : 'border-slate-100'} flex flex-col`}>
-           {getStaffPermissions()?.pos_access?.Settings?.visible !== false && (
-             <SidebarIcon id="sidebarSettingsIcon" isDark={isDark} icon={<Settings size={18} className="text-current" />} active={isSettingsModalOpen} onClick={() => {
-                setIsSettingsModalOpen(true);
-                const allowedTabs = getFilteredSettingsTabs();
-                if (allowedTabs.length > 0) {
-                   setSettingsActiveTab(allowedTabs[0].id);
-                }
-             }} label="Settings" />
-           )}
+           <SidebarIcon id="sidebarSettingsIcon" isDark={isDark} icon={<Settings size={18} className="text-current" />} active={isSettingsModalOpen} onClick={() => setIsSettingsModalOpen(true)} label="Settings" />
            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className="text-current" />} onClick={() => setLogoutModalStep('sync')} label="Exit" />
         </div>
       </nav>
@@ -9326,7 +9001,7 @@ const UniversalPOS = () => {
                     <div className="flex-1 flex flex-col overflow-hidden">
                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}
                        {orderType === 'DINE_IN' && (
-<div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
+                          <div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
                              {/* Department tabs */}
                              {posSettings.showTableDepartments && (
                                 <div className={`h-8 border-b flex items-center gap-2 px-3 shrink-0 overflow-x-auto no-scrollbar ${isDark ? 'border-[#30363d]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
@@ -9338,7 +9013,7 @@ const UniversalPOS = () => {
                              {/* Tables Grid */}
                              <div className="flex-1 overflow-y-auto p-1 no-scrollbar">
                                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1">
-                                 {getFilteredTablesForCurrentView().map(table => {
+                                 {tables.filter(t => !(t.is_temporary && t.original_order_type === 'PRE_ORDER') && (activeDepartment === 'All' || t.department_name === activeDepartment) && (tableSearchQuery ? t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase()) : true)).map(table => {
                                     let status = tableStatuses[table.id] || 'AVAILABLE';
                                     const activeBillCount = (tableBills[table.id] || []).filter(item => !item.isCancelled).length;
                                     const hasCartItems = tableCarts[table.id]?.length > 0;
@@ -9548,7 +9223,7 @@ const UniversalPOS = () => {
                              </div>
                              {categories.filter(c => c !== 'All').map(cat => (
                                <div key={cat} onClick={() => setSelectedCategory(cat)} className={`category-item px-5 py-2 text-[11px] font-semibold cursor-pointer transition-all ${selectedCategory === cat ? (isDark ? 'text-[#238636] bg-[#238636]/10 border-r-2 border-[#238636]' : 'text-[#1b5e20] bg-[#e8f5e9] border-r-2 border-[#2e7d32] font-bold') : (isDark ? 'text-[#c9d1d9] hover:bg-[#21262d] hover:text-white' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900')}`}>
-                                 {cat === selectedCategory ? '▼ ' : '▶ '}{cat === 'Uncategorized' ? 'All items' : cat}
+                                 {cat === selectedCategory ? 'Γû╝ ' : 'Γû╢ '}{cat === 'Uncategorized' ? 'All items' : cat}
                                </div>
                              ))}
                            </div>
@@ -9652,7 +9327,7 @@ const UniversalPOS = () => {
                                             <span className={`text-[9px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                               {posSettings.showItemsPrepTime && (
                                                 <span className="flex items-center gap-0.5">
-                                                  🕒 {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
+                                                  ≡ƒòÆ {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
                                                 </span>
                                               )}
                                             </span>
@@ -9666,7 +9341,7 @@ const UniversalPOS = () => {
                                       {/* Prep Time Indicator on Image view */}
                                       {!isCompact && showImg && posSettings.showItemsPrepTime && (
                                         <div className="absolute top-2 left-2 z-20 text-[7px] font-bold bg-black/70 text-white px-1 py-0.5 rounded flex items-center gap-0.5">
-                                          <span>🕒</span> {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
+                                          <span>≡ƒòÆ</span> {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
                                         </div>
                                       )}
                                     </button>
@@ -9694,7 +9369,7 @@ const UniversalPOS = () => {
                           {/* TABLE GRID - green buttons matching TMBill */}
                           <div className="flex-1 overflow-y-auto p-1 no-scrollbar">
                             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-                              {getFilteredTablesForCurrentView().map(table => {
+                              {tables.filter(t => !(t.is_temporary && t.original_order_type === 'PRE_ORDER') && (activeDepartment === 'All' || t.department_name === activeDepartment) && (tableSearchQuery ? t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase()) : true)).map(table => {
                                  let status = tableStatuses[table.id] || 'AVAILABLE';
                                  const activeBillCount = (tableBills[table.id] || []).filter(item => !item.isCancelled).length;
                                  const hasCartItems = tableCarts[table.id]?.length > 0;
@@ -9913,7 +9588,7 @@ const UniversalPOS = () => {
                                 </div>
                                 {categories.filter(c => c !== 'All').map(cat => (
                                   <div key={cat} onClick={() => setSelectedCategory(cat)} className={`category-item px-5 py-2 text-[11px] font-semibold cursor-pointer transition-all ${selectedCategory === cat ? (isDark ? 'text-[#238636] bg-[#238636]/10 border-r-2 border-[#238636]' : 'text-[#1b5e20] bg-[#e8f5e9] border-r-2 border-[#2e7d32] font-bold') : (isDark ? 'text-[#c9d1d9] hover:bg-[#21262d] hover:text-white' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900')}`}>
-                                    {cat === selectedCategory ? '▼ ' : '▶ '}{cat === 'Uncategorized' ? 'All items' : cat}
+                                    {cat === selectedCategory ? 'Γû╝ ' : 'Γû╢ '}{cat === 'Uncategorized' ? 'All items' : cat}
                                   </div>
                                 ))}
                               </div>
@@ -10016,7 +9691,7 @@ const UniversalPOS = () => {
                                             <span className={`text-[9px] font-semibold ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
                                               {posSettings.showItemsPrepTime && (
                                                 <span className="flex items-center gap-0.5">
-                                                  🕒 {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
+                                                  ≡ƒòÆ {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
                                                 </span>
                                               )}
                                             </span>
@@ -10030,7 +9705,7 @@ const UniversalPOS = () => {
                                       {/* Prep Time Indicator on Image view */}
                                       {!isCompact && showImg && posSettings.showItemsPrepTime && (
                                         <div className="absolute top-2 left-2 z-20 text-[7px] font-bold bg-black/70 text-white px-1 py-0.5 rounded flex items-center gap-0.5">
-                                          <span>🕒</span> {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
+                                          <span>≡ƒòÆ</span> {item.prep_time || item.preparation_time || (((item.id || 0) % 3) * 5 + 10)}m
                                         </div>
                                       )}
                                     </button>
@@ -10050,14 +9725,14 @@ const UniversalPOS = () => {
                 {/* RIGHT BILLING PANEL - always visible, fixed width */}
                   <div className={`w-[360px] h-full overflow-hidden flex flex-col border-l transition-colors ${isDark ? 'border-gray-700 bg-[#161b22]' : 'border-slate-200 bg-white'}`}>
 
-                                    {/* Mode Tabs: Dine In | PickUp/Delivery | Quick Bill | Preorder */}
-                                    <div className={`flex shrink-0 border-b p-1 gap-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
-                                      {[
-                                        { key: 'DINE_IN', label: 'Dine In', disabled: !!posSettings.disableTabs?.dinein || getStaffPermissions()?.pos_access?.Billing?.visible === false },
-                                        { key: 'PICKUP', label: 'PickUp/Delivery', disabled: !!posSettings.disableTabs?.pickup || (getStaffPermissions()?.pos_access?.Delivery?.new_order === false && getStaffPermissions()?.pos_access?.Pickup?.new_order === false) },
-                                        { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill || getStaffPermissions()?.pos_access?.QuickBill?.visible === false },
-                                        { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder || getStaffPermissions()?.pos_access?.PreOrder?.new_order === false }
-                                      ].filter(tab => !tab.disabled).map(tab => {
+                  {/* Mode Tabs: Dine In | PickUp/Delivery | Quick Bill | Preorder */}
+                  <div className={`flex shrink-0 border-b p-1 gap-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
+                    {[
+                      { key: 'DINE_IN', label: 'Dine In', disabled: !!posSettings.disableTabs?.dinein },
+                      { key: 'PICKUP', label: 'PickUp/Delivery', disabled: !!posSettings.disableTabs?.pickup },
+                      { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill },
+                      { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder }
+                    ].filter(tab => !tab.disabled).map(tab => {
                       const isActive = tab.key === 'PRE_ORDER'
                         ? activeTrayTab === 'PreOrder'
                         : (activeTrayTab !== 'PreOrder' && orderType === tab.key);
@@ -10122,17 +9797,15 @@ const UniversalPOS = () => {
                         })}
                       </div>
 
-                                            <div className="flex items-center pr-1">
-                                              {/* New Order Button */}
-                                              {getStaffPermissions()?.pos_access?.PreOrder?.new_order !== false && (
-                                                <button
-                                                  onClick={handleNewOrder}
-                                                  className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
-                                                >
-                                                  New Order
-                                                </button>
-                                              )}
-                                            </div>
+                      <div className="flex items-center pr-1">
+                        {/* New Order Button */}
+                        <button
+                          onClick={handleNewOrder}
+                          className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+                        >
+                          New Order
+                        </button>
+                      </div>
                     </div>
                   )}
 
@@ -10173,59 +9846,50 @@ const UniversalPOS = () => {
                               className="sr-only peer"
                             />
                             <div className="w-9 h-5 bg-[#388e67]/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#388e67]"></div>
-                            <span className={`ml-1 text-[10px] font-semibold ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>{subOrderType === 'DELIVERY' ? 'Delivery' : 'PickUp'}</span>
+                            <span className={`ml-1 text-[10px] font-semibold ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>PickUp</span>
                           </label>
 
-                                                    {/* New Order Button */}
-                                                    {((subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.new_order !== false) ||
-                                                      (subOrderType === 'PICKUP' && getStaffPermissions()?.pos_access?.Pickup?.new_order !== false)) && (
-                                                      <button
-                                                        onClick={handleNewOrder}
-                                                        className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
-                                                      >
-                                                        New Order
-                                                      </button>
-                                                    )}
-                                                  </div>
-                                                )}
+                          {/* New Order Button */}
+                          <button
+                            onClick={handleNewOrder}
+                            className="bg-[#1a2530] hover:bg-[#2c3e50] text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+                          >
+                            New Order
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                                    {/* Quick Bill Row Checkboxes */}
-                                    {orderType === 'QUICK' && (
-                                      <div className={`flex shrink-0 items-center gap-3 border-b px-3 py-2 text-[11px] font-bold transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117] text-gray-300' : 'border-slate-200 bg-white text-slate-700'}`}>
-                                        {getStaffPermissions()?.pos_access?.QuickBill?.kot !== false && (
-                                          <label className="flex items-center gap-1 cursor-pointer">
-                                            <input type="checkbox" className="accent-[#388e67]" />
-                                            <span>KOT</span>
-                                          </label>
-                                        )}
-                                        {getStaffPermissions()?.pos_access?.QuickBill?.bill_no !== false && (
-                                          <label className="flex items-center gap-1 cursor-pointer">
-                                            <input type="checkbox" className="accent-[#388e67]" />
-                                            <span>Bill No</span>
-                                          </label>
-                                        )}
-                                        <label className="flex items-center gap-1 cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={ebillEnabled}
-                                            onChange={e => setEbillEnabled(e.target.checked)}
-                                            className="accent-[#388e67]"
-                                          />
-                                          <span>eBill</span>
-                                        </label>
-                                        {getStaffPermissions()?.pos_access?.QuickBill?.bill_no !== false && (
-                                          <span className="ml-auto text-[12px] font-extrabold text-slate-800 dark:text-gray-100">No:{nextBillNo}</span>
-                                        )}
-                                      </div>
-                                    )}
+                  {/* Quick Bill Row Checkboxes */}
+                  {orderType === 'QUICK' && (
+                    <div className={`flex shrink-0 items-center gap-3 border-b px-3 py-2 text-[11px] font-bold transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117] text-gray-300' : 'border-slate-200 bg-white text-slate-700'}`}>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" className="accent-[#388e67]" />
+                        <span>KOT</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input type="checkbox" className="accent-[#388e67]" />
+                        <span>Bill No</span>
+                      </label>
+                      <label className="flex items-center gap-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={ebillEnabled}
+                          onChange={e => setEbillEnabled(e.target.checked)}
+                          className="accent-[#388e67]"
+                        />
+                        <span>eBill</span>
+                      </label>
+                      <span className="ml-auto text-[12px] font-extrabold text-slate-800 dark:text-gray-100">No:{nextBillNo}</span>
+                    </div>
+                  )}
 
                   {/* Header Bar - green, matching TMBill */}
                   <div className="h-10 bg-[#388e67] flex items-center justify-between px-3 text-white shrink-0 font-bold">
                     {editingPreOrder ? (
                       <>
-                        <span className="text-[12px] flex items-center gap-1">⏰ PRE-ORDER ACTIVE</span>
+                        <span className="text-[12px] flex items-center gap-1">ΓÅ░ PRE-ORDER ACTIVE</span>
                         <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-wider">
                           Adv Paid: {config.currency}{parseFloat(editingPreOrder.advance_paid || 0).toFixed(0)} | Bal: {config.currency}{parseFloat(editingPreOrder.balance_due || 0).toFixed(0)}
                         </span>
@@ -10338,7 +10002,7 @@ const UniversalPOS = () => {
 
                         {activeTrayTab === 'PreOrder' && (
                           <>
-                            <span className="text-[13px] flex items-center gap-1.5">⏰ Pre-Order</span>
+                            <span className="text-[13px] flex items-center gap-1.5">ΓÅ░ Pre-Order</span>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => {
@@ -10393,7 +10057,7 @@ const UniversalPOS = () => {
                                   onClick={() => setCart(prev => prev.filter(c => !(c.id === item.id && c.price === item.price && c.priceLabel === item.priceLabel)))}
                                   className="w-5 h-5 rounded-full bg-[#d63031] text-white flex items-center justify-center font-bold text-[9px] hover:bg-red-700 transition-colors"
                                 >
-                                  ✕
+                                  Γ£ò
                                 </button>
                               </div>
                               {/* Item Name */}
@@ -10419,7 +10083,7 @@ const UniversalPOS = () => {
                                   onTouchEnd={stopQtyChange}
                                   className={`w-7 h-6 rounded flex items-center justify-center font-bold text-[13px] select-none transition-colors ${isDark ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-[#f1f3f4] text-slate-800 hover:bg-[#e4e6e7]'}`}
                                 >
-                                  —
+                                  ΓÇö
                                 </button>
                                 <input
                                   type="number"
@@ -10595,7 +10259,7 @@ const UniversalPOS = () => {
                               onClick={() => setCart(prev => prev.filter(c => !(c.id === item.id && c.price === item.price && c.priceLabel === item.priceLabel)))}
                               className="w-5 h-5 rounded-full bg-[#d63031] text-white flex items-center justify-center font-bold text-[9px] hover:bg-red-700 transition-colors"
                             >
-                              ✕
+                              Γ£ò
                             </button>
                           </div>
                           {/* Item Name */}
@@ -10627,7 +10291,7 @@ const UniversalPOS = () => {
                               onTouchEnd={stopQtyChange}
                               className={`w-7 h-6 rounded flex items-center justify-center font-bold text-[13px] select-none transition-colors ${isDark ? 'bg-gray-800 text-white hover:bg-gray-700' : 'bg-[#f1f3f4] text-slate-800 hover:bg-[#e4e6e7]'}`}
                             >
-                              —
+                              ΓÇö
                             </button>
                             <input
                               type="number"
@@ -11018,8 +10682,8 @@ const UniversalPOS = () => {
                                   >
                                     <div className="flex items-center gap-2 truncate">
                                       <span className="shrink-0">{res.number}</span>
-                                      {res.name && <span className="opacity-80 text-[9px] uppercase truncate">• {res.name}</span>}
-                                      {res.address && <span className="opacity-60 text-[8px] truncate">• {res.address}</span>}
+                                      {res.name && <span className="opacity-80 text-[9px] uppercase truncate">ΓÇó {res.name}</span>}
+                                      {res.address && <span className="opacity-60 text-[8px] truncate">ΓÇó {res.address}</span>}
                                     </div>
                                   </div>
                                 );
@@ -11104,7 +10768,7 @@ const UniversalPOS = () => {
                           type="checkbox"
                           checked={ebillEnabled}
                           onChange={e => setEbillEnabled(e.target.checked)}
-                          className={`appearance-none w-[18px] h-[18px] border rounded transition-colors flex items-center justify-center outline-none checked:bg-[#388e67] checked:border-transparent checked:after:content-['✓'] checked:after:text-white checked:after:text-[10px] checked:after:font-black ${
+                          className={`appearance-none w-[18px] h-[18px] border rounded transition-colors flex items-center justify-center outline-none checked:bg-[#388e67] checked:border-transparent checked:after:content-['Γ£ô'] checked:after:text-white checked:after:text-[10px] checked:after:font-black ${
                             isDark
                               ? 'border-gray-700 bg-[#0d1117]'
                               : 'border-slate-300 bg-white'
@@ -11411,10 +11075,28 @@ const UniversalPOS = () => {
                     {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
                       <div className="flex items-center gap-4">
                         <button
+                          onClick={handleShowBillPreview}
+                          className="hover:text-slate-100 transition-colors"
+                        >
+                          <Eye size={20} strokeWidth={2.5} />
+                        </button>
+                        <button
                           onClick={() => handleCheckout('PRINT')}
                           className="transition-colors hover:text-slate-100"
                         >
                           <Printer size={20} strokeWidth={2.5} />
+                        </button>
+                        <button
+                          onClick={() => setIsDiscountModalOpen(true)}
+                          className="hover:text-slate-100 transition-colors"
+                        >
+                          <Tag size={20} strokeWidth={2.5} />
+                        </button>
+                        <button
+                          onClick={() => setIsChargesModalOpen(true)}
+                          className="hover:text-slate-100 transition-colors"
+                        >
+                          <Coins size={20} strokeWidth={2.5} />
                         </button>
                       </div>
                     )}
@@ -11594,13 +11276,9 @@ const UniversalPOS = () => {
                     </div>
                   ) : activeTrayTab === 'KOT' ? (
                     <div className={`flex gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#0d1117] border-gray-800' : 'bg-white border-slate-200'}`}>
-                      {!posSettings.disableSaveKOT && checkKOTPermission('save') && (
+                      {!posSettings.disableSaveKOT && (
                         <button
                           onClick={() => {
-                            if (!checkKOTPermission('save')) {
-                              toast.error("You do not have permission to Save KOT.");
-                              return;
-                            }
                             if (orderType === 'PICKUP') {
                               handleSaveTemporaryKOT(false);
                               return;
@@ -11628,53 +11306,47 @@ const UniversalPOS = () => {
                           Save
                         </button>
                       )}
-                      {checkKOTPermission('save_and_print') && (
-                        <button
-                          onClick={() => {
-                            if (!checkKOTPermission('save_and_print')) {
-                              toast.error("You do not have permission to Save and Print KOT.");
-                              return;
-                            }
-                            if (orderType === 'PICKUP') {
-                              handleSaveTemporaryKOT(true);
-                              return;
-                            }
-                            if (!selectedTable) { toast.error("Select a table!"); return; }
-                            if (cart.length === 0) { toast.error("KOT is empty!"); return; }
+                      <button
+                        onClick={() => {
+                          if (orderType === 'PICKUP') {
+                            handleSaveTemporaryKOT(true);
+                            return;
+                          }
+                          if (!selectedTable) { toast.error("Select a table!"); return; }
+                          if (cart.length === 0) { toast.error("KOT is empty!"); return; }
 
-                            let bNo = tableBillNumbers[selectedTable.id];
-                            if (!bNo) {
-                              bNo = nextBillNo;
-                              setTableBillNumbers(prev => ({...prev, [selectedTable.id]: bNo}));
-                              setNextBillNo(prev => prev + 1);
-                            }
+                          let bNo = tableBillNumbers[selectedTable.id];
+                          if (!bNo) {
+                            bNo = nextBillNo;
+                            setTableBillNumbers(prev => ({...prev, [selectedTable.id]: bNo}));
+                            setNextBillNo(prev => prev + 1);
+                          }
 
-                            const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));
-                            const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';
-                            setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));
-                            setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));
+                          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));
+                          const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';
+                          setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));
+                          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));
 
-                            // Print KOT
-                            handlePrintKOT(cart, selectedTable.table_name, bNo);
-                            // Set status to SAVED (Red)
-                            setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));
+                          // Print KOT
+                          handlePrintKOT(cart, selectedTable.table_name, bNo);
+                          // Set status to SAVED (Red)
+                          setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));
 
-                            setCart([]);
-                            setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));
-                            toast.success("KOT Printed & Saved!");
-                            setActiveTrayTab('Billing');
-                          }}
-                          className={`flex-1 py-2.5 rounded text-[11px] font-bold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
-                        >
-                          Print & Save
-                        </button>
-                      )}
+                          setCart([]);
+                          setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));
+                          toast.success("KOT Printed & Saved!");
+                          setActiveTrayTab('Billing');
+                        }}
+                        className={`flex-1 py-2.5 rounded text-[11px] font-bold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
+                      >
+                        Print & Save
+                      </button>
                     </div>
                   ) : (
                     <div className={`flex flex-col gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#0d1117] border-gray-800' : 'bg-white border-slate-200'}`}>
                       {/* Row 1: Save Bill | Print & Save | Payment */}
                       <div className="flex gap-1.5">
-                        {!posSettings.disableSaveBill && checkBillingPermission('save_bill') && (
+                        {!posSettings.disableSaveBill && (
                           <button
                             disabled={isCheckingOut}
                             onClick={() => handleCheckout('SAVE')}
@@ -11683,41 +11355,35 @@ const UniversalPOS = () => {
                             Save Bill
                           </button>
                         )}
-                        {checkBillingPermission('allow_draft_bill_printing') && (
-                          <button
-                            disabled={isCheckingOut}
-                            onClick={() => handleCheckout('PRINT')}
-                            className={`flex-1 py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
-                          >
-                            Print & Save
-                          </button>
-                        )}
-                        {checkBillingPermission('add_payment') && (
-                          <button
-                            disabled={isCheckingOut}
-                            onClick={() => {
-                              if (!isSettleEnabled) { toast.warning('Please save or print the bill first'); return; }
-                              setCustomerPaidAmount(''); setIsPaymentModalOpen(true);
-                            }}
-                            className={`flex-1 py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
-                          >
-                            Payment
-                          </button>
-                        )}
-                      </div>
-                      {/* Row 2: Settle Bill */}
-                      {checkBillingPermission('settle_bill') && (
+                        <button
+                          disabled={isCheckingOut}
+                          onClick={() => handleCheckout('PRINT')}
+                          className={`flex-1 py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
+                        >
+                          Print & Save
+                        </button>
                         <button
                           disabled={isCheckingOut}
                           onClick={() => {
                             if (!isSettleEnabled) { toast.warning('Please save or print the bill first'); return; }
-                            handleCheckout('SETTLE');
+                            setCustomerPaidAmount(''); setIsPaymentModalOpen(true);
                           }}
-                          className={`w-full py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed active:scale-100' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
+                          className={`flex-1 py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
                         >
-                          {isCheckingOut ? 'Settling...' : 'Settle Bill'}
+                          Payment
                         </button>
-                      )}
+                      </div>
+                      {/* Row 2: Settle Bill */}
+                      <button
+                        disabled={isCheckingOut}
+                        onClick={() => {
+                          if (!isSettleEnabled) { toast.warning('Please save or print the bill first'); return; }
+                          handleCheckout('SETTLE');
+                        }}
+                        className={`w-full py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed active:scale-100' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
+                      >
+                        {isCheckingOut ? 'Settling...' : 'Settle Bill'}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -11811,68 +11477,66 @@ const UniversalPOS = () => {
                         {/* Cards section */}
                         <div className="flex-1 flex flex-col gap-2.5 min-h-0">
 
-                                                    {/* Row 1 (Fixed): Centered, no icons */}
-                                                    <div className="grid grid-cols-4 gap-2.5 shrink-0">
-                                                      {accessLevels.todaysSale && checkDashboardPermission('todaysSale') && (
-                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Today's Sales</div>
-                                                          <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.todaySales.toFixed(2)}</div>
-                                                        </div>
-                                                      )}
-                                                      {accessLevels.totalSale && checkDashboardPermission('totalSale') && (
-                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Total Sales</div>
-                                                          <div className="text-base font-bold text-[#18ba60]">{stats.totalSales > 0 ? `${config.currency} ${stats.totalSales.toFixed(2)}` : ""}</div>
-                                                        </div>
-                                                      )}
-                                                      {accessLevels.thisMonthSale && checkDashboardPermission('thisMonthSale') && (
-                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>This Month</div>
-                                                          <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.monthSales.toFixed(2)}</div>
-                                                        </div>
-                                                      )}
-                                                      {accessLevels.ipAddress && checkDashboardPermission('ipAddress') && (
-                                                        <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                                                          <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>IP Address</div>
-                                                          <div className="text-base font-bold text-[#18ba60]">{stats.serverIp || '127.0.0.1'}</div>
-                                                        </div>
-                                                      )}
-                                                    </div>
+                          {/* Row 1 (Fixed): Centered, no icons */}
+                          <div className="grid grid-cols-4 gap-2.5 shrink-0">
+                            {accessLevels.todaysSale && (
+                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Today's Sales</div>
+                                <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.todaySales.toFixed(2)}</div>
+                              </div>
+                            )}
+                            {accessLevels.totalSale && (
+                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Total Sales</div>
+                                <div className="text-base font-bold text-[#18ba60]">{stats.totalSales > 0 ? `${config.currency} ${stats.totalSales.toFixed(2)}` : ""}</div>
+                              </div>
+                            )}
+                            {accessLevels.thisMonthSale && (
+                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>This Month</div>
+                                <div className="text-base font-bold text-[#18ba60]">{config.currency} {stats.monthSales.toFixed(2)}</div>
+                              </div>
+                            )}
+                            {accessLevels.ipAddress && (
+                              <div className={`rounded-xl text-center border shadow-sm flex flex-col justify-center p-4 h-[120px] transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                                <div className={`text-[10.5px] font-bold mb-1 transition-colors ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>IP Address</div>
+                                <div className="text-base font-bold text-[#18ba60]">{stats.serverIp || '127.0.0.1'}</div>
+                              </div>
+                            )}
+                          </div>
 
-                                                    {/* All Card Sets - Scrollable Grid with Green Scrollbar */}
-                                                    {accessLevels.allSalesAnalysis && checkDashboardPermission('allSalesAnalysis') && (
-                                                      <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                                                        <div className="grid grid-cols-4 gap-2.5">
-                                                          {/* Set 1: Prime Sales Channels & Performance */}
-                                                          <DashboardCard title="Offline Sales" val={`${config.currency} ${stats.offlineSales.toFixed(2)}`} icon={<Monitor size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Online Sales" val={`${config.currency} ${stats.onlineSales.toFixed(2)}`} icon={<Globe size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Dine In" val={`${config.currency} ${stats.dineInSales.toFixed(2)}`} icon={<Coffee size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Quick Bill" val={`${config.currency} ${stats.quickSales.toFixed(2)}`} icon={<Zap size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Takeaway" val={`${config.currency} ${stats.takeawaySales.toFixed(2)}`} icon={<ShoppingBag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Delivery" val={`${config.currency} ${stats.deliverySales.toFixed(2)}`} icon={<Bike size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                          {/* All Card Sets - Scrollable Grid with Green Scrollbar */}
+                          <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                            <div className="grid grid-cols-4 gap-2.5">
+                              {/* Set 1: Prime Sales Channels & Performance */}
+                              <DashboardCard title="Offline Sales" val={`${config.currency} ${stats.offlineSales.toFixed(2)}`} icon={<Monitor size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Online Sales" val={`${config.currency} ${stats.onlineSales.toFixed(2)}`} icon={<Globe size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Dine In" val={`${config.currency} ${stats.dineInSales.toFixed(2)}`} icon={<Coffee size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Quick Bill" val={`${config.currency} ${stats.quickSales.toFixed(2)}`} icon={<Zap size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Takeaway" val={`${config.currency} ${stats.takeawaySales.toFixed(2)}`} icon={<ShoppingBag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Delivery" val={`${config.currency} ${stats.deliverySales.toFixed(2)}`} icon={<Bike size={18} className="text-[#18ba60]"/>} isDark={isDark} />
 
-                                                          {/* Set 2: Core Business Metrics */}
-                                                          <DashboardCard title="Customers" val={`${Object.keys(customerDb || {}).length}`} icon={<Users size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Outstanding Dues" val={`${config.currency} ${outstandingDues.toFixed(2)}`} icon={<Clock size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Today's Credit Sales" val={`${config.currency} ${stats.todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Total Credit Sales" val={`${config.currency} ${stats.totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Total Expenses" val={`${config.currency} ${(stats.totalExpenses || 0).toFixed(2)}`} icon={<CreditCard size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Closing Balance" val={`${config.currency} ${stats.totalSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Total Discount" val={`${config.currency} ${stats.totalDiscount.toFixed(2)}`} icon={<Tag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Total Tax" val={`${config.currency} ${stats.totalTax.toFixed(2)}`} icon={<Percent size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Average Sale / Person" val={`${config.currency} ${parseFloat(stats.avgSalePerPerson || 0).toFixed(2)}`} icon={<Activity size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              {/* Set 2: Core Business Metrics */}
+                              <DashboardCard title="Customers" val={`${Object.keys(customerDb || {}).length}`} icon={<Users size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Outstanding Dues" val={`${config.currency} ${outstandingDues.toFixed(2)}`} icon={<Clock size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Today's Credit Sales" val={`${config.currency} ${stats.todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Total Credit Sales" val={`${config.currency} ${stats.totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Total Expenses" val={`${config.currency} ${(stats.totalExpenses || 0).toFixed(2)}`} icon={<CreditCard size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Closing Balance" val={`${config.currency} ${stats.totalSales.toFixed(2)}`} icon={<Wallet size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Total Discount" val={`${config.currency} ${stats.totalDiscount.toFixed(2)}`} icon={<Tag size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Total Tax" val={`${config.currency} ${stats.totalTax.toFixed(2)}`} icon={<Percent size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Average Sale / Person" val={`${config.currency} ${parseFloat(stats.avgSalePerPerson || 0).toFixed(2)}`} icon={<Activity size={18} className="text-[#18ba60]"/>} isDark={isDark} />
 
-                                                          {/* Set 3: Integrations & Complementary */}
-                                                          <DashboardCard title="Free Bill" val={`${config.currency} ${stats.freeSales.toFixed(2)}`} icon={<FileCheck size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              {/* Set 3: Integrations & Complementary */}
+                              <DashboardCard title="Free Bill" val={`${config.currency} ${stats.freeSales.toFixed(2)}`} icon={<FileCheck size={18} className="text-[#18ba60]"/>} isDark={isDark} />
 
-                                                          {/* Set 4: Cancellations & Audits */}
-                                                          <DashboardCard title="Cancelled Bill" val={`${config.currency} ${stats.cancelledSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Deleted Bill" val={`${config.currency} ${stats.deletedSales.toFixed(2)}`} icon={<Trash2 size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Cancelled (Online)" val={`${config.currency} ${stats.cancelledOnlineSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                          <DashboardCard title="Cancelled (Digital)" val={`${config.currency} ${stats.cancelledDigitalSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
-                                                        </div>
-                                                      </div>
-                                                    )}
+                              {/* Set 4: Cancellations & Audits */}
+                              <DashboardCard title="Cancelled Bill" val={`${config.currency} ${stats.cancelledSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Deleted Bill" val={`${config.currency} ${stats.deletedSales.toFixed(2)}`} icon={<Trash2 size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Cancelled (Online)" val={`${config.currency} ${stats.cancelledOnlineSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                              <DashboardCard title="Cancelled (Digital)" val={`${config.currency} ${stats.cancelledDigitalSales.toFixed(2)}`} icon={<FileX size={18} className="text-[#18ba60]"/>} isDark={isDark} />
+                            </div>
+                          </div>
 
                         </div>
                       </div>
@@ -11881,8 +11545,8 @@ const UniversalPOS = () => {
                       {/* Right Area (Sales Analysis Heatmap & Payment Breakdown Sidebar) */}
                       <div className="w-full lg:w-[240px] flex flex-col gap-3 shrink-0">
 
-                                                {/* Box 1: Sales Analysis (Solid Orange card) */}
-                                                {accessLevels.salesAnalysisByDays && checkDashboardPermission('salesAnalysisByDays') && (
+                        {/* Box 1: Sales Analysis (Solid Orange card) */}
+                        {accessLevels.salesAnalysisByDays && (
                           <div className="bg-[#f97316] rounded-2xl p-2.5 text-white shadow-sm flex flex-col h-[110px] justify-between">
                             <div className="flex justify-between items-center pb-1 border-b border-white/10">
                               <span className="text-[10px] font-bold uppercase tracking-wider">Sales Analysis</span>
@@ -11913,8 +11577,8 @@ const UniversalPOS = () => {
                           </div>
                         )}
 
-                                                {/* Box 2: Payment Breakdown (Solid Indigo/Blue card) */}
-                                                {accessLevels.paymentModesChart && checkDashboardPermission('paymentModesChart') && (
+                        {/* Box 2: Payment Breakdown (Solid Indigo/Blue card) */}
+                        {accessLevels.paymentModesChart && (
                           <div className="bg-[#3f51b5] rounded-2xl p-3 text-white shadow-sm flex flex-col justify-between" style={{ height: '200px' }}>
                             <span className="text-[10px] font-bold uppercase tracking-wider pb-1.5 border-b border-white/10">Payment Breakdown</span>
 
@@ -11948,8 +11612,8 @@ const UniversalPOS = () => {
                     <div className={`w-full rounded-2xl p-4 border shadow-sm mt-4 transition-colors shrink-0 lg:h-[380px] flex flex-col ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 flex-1 min-h-0">
 
-                                                {/* Donut Chart (Col 3) */}
-                                                {accessLevels.itemPieChart && checkDashboardPermission('itemPieChart') && (
+                        {/* Donut Chart (Col 3) */}
+                        {accessLevels.itemPieChart && (
                           <div className="lg:col-span-4 flex flex-col min-h-0">
 
                             <div className="flex gap-1.5 items-center mb-3 pb-3 border-b border-slate-100 dark:border-gray-800 flex-wrap justify-between">
@@ -12027,8 +11691,8 @@ const UniversalPOS = () => {
                           </div>
                         )}
 
-                                                {/* Line Chart (Col 3) */}
-                                                {accessLevels.lineSalesChart && checkDashboardPermission('lineSalesChart') && (
+                        {/* Line Chart (Col 3) */}
+                        {accessLevels.lineSalesChart && (
                           <div className="lg:col-span-4 flex flex-col lg:border-l lg:border-r border-slate-100 dark:border-gray-800 lg:px-4 min-h-0">
                             {/* Toolbar */}
                             <div className="flex gap-1.5 items-center mb-3 pb-3 border-b border-slate-100 dark:border-gray-800 flex-wrap justify-between">
@@ -12165,8 +11829,8 @@ const UniversalPOS = () => {
                           </div>
                         )}
 
-                                                {/* Bar Chart (Col 3) */}
-                                                {accessLevels.barSalesChart && checkDashboardPermission('barSalesChart') && (
+                        {/* Bar Chart (Col 3) */}
+                        {accessLevels.barSalesChart && (
                           <div className="lg:col-span-4 flex flex-col justify-between min-h-0">
                             <div className="flex-1 flex flex-col justify-between">
                               {/* Header / Legend */}
@@ -12343,7 +12007,7 @@ const UniversalPOS = () => {
                                       }}
                                       className="text-[9px] font-bold text-emerald-500 hover:underline mt-0.5"
                                     >
-                                      Ledger →
+                                      Ledger ΓåÆ
                                     </button>
                                   </div>
                                 </div>
@@ -12644,58 +12308,53 @@ const UniversalPOS = () => {
             {activeTab === 'receipts' && (
               <motion.div key="receipts" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex flex-col overflow-hidden bg-[#0d1117]">
 
-                                {/* Top Action Bar */}
-                                <div className="h-14 border-b border-[#30363d] flex items-center gap-3 px-4 shrink-0 bg-[#0d1117]">
-                                  {checkReceiptsPermission('all_bills') !== false && (
-                                    <button
-                                      onClick={() => { setReceiptsDateMode('all'); setSelectedReceiptIds([]); }}
-                                      className={`h-8 px-6 text-[11px] font-bold rounded border transition-colors cursor-pointer ${receiptsDateMode === 'all' ? 'bg-black border-black text-white hover:bg-neutral-800' : 'bg-[#21262d] text-[#c9d1d9] border-[#30363d] hover:bg-[#30363d]'}`}
-                                    >
-                                      All Bills
-                                    </button>
-                                  )}
-                                  {checkReceiptsPermission('todays_bills') !== false && (
-                                    <button
-                                      onClick={() => {
-                                        const start = new Date(); start.setHours(0,0,0,0);
-                                        const end = new Date(); end.setHours(23,59,59,999);
-                                        setReceiptsStartDate(start); setReceiptsEndDate(end);
-                                        setReceiptsDateMode('today'); setSelectedReceiptIds([]);
-                                      }}
-                                      className={`h-8 px-6 text-[11px] font-bold rounded border transition-colors cursor-pointer ${receiptsDateMode === 'today' ? 'bg-black border-black text-white hover:bg-neutral-850' : 'bg-[#21262d] text-[#c9d1d9] border-[#30363d] hover:bg-[#30363d]'}`}
-                                    >
-                                      Todays Bills
-                                    </button>
-                                  )}
+                {/* Top Action Bar */}
+                <div className="h-14 border-b border-[#30363d] flex items-center gap-3 px-4 shrink-0 bg-[#0d1117]">
+                  <button
+                    onClick={() => { setReceiptsDateMode('all'); setSelectedReceiptIds([]); }}
+                    className={`h-8 px-6 text-[11px] font-bold rounded border transition-colors cursor-pointer ${receiptsDateMode === 'all' ? 'bg-black border-black text-white hover:bg-neutral-800' : 'bg-[#21262d] text-[#c9d1d9] border-[#30363d] hover:bg-[#30363d]'}`}
+                  >
+                    All Bills
+                  </button>
+                  <button
+                    onClick={() => {
+                      const start = new Date(); start.setHours(0,0,0,0);
+                      const end = new Date(); end.setHours(23,59,59,999);
+                      setReceiptsStartDate(start); setReceiptsEndDate(end);
+                      setReceiptsDateMode('today'); setSelectedReceiptIds([]);
+                    }}
+                    className={`h-8 px-6 text-[11px] font-bold rounded border transition-colors cursor-pointer ${receiptsDateMode === 'today' ? 'bg-black border-black text-white hover:bg-neutral-800' : 'bg-[#21262d] text-[#c9d1d9] border-[#30363d] hover:bg-[#30363d]'}`}
+                  >
+                    Todays Bills
+                  </button>
 
-                                  <div className="flex items-center gap-2 ml-2">
-                                    <input
-                                      type="checkbox"
-                                      className="w-3 h-3 accent-[#238636] cursor-pointer"
-                                      checked={paginatedOrders.length > 0 && paginatedOrders.every(o => selectedReceiptIds.includes(o.id))}
-                                      onChange={handleToggleSelectAll}
-                                    />
-                                    <span className="text-[11px] font-bold text-[#c9d1d9] select-none cursor-pointer" onClick={handleToggleSelectAll}>Select All</span>
-                                  </div>
+                  <div className="flex items-center gap-2 ml-2">
+                    <input
+                      type="checkbox"
+                      className="w-3 h-3 accent-[#238636] cursor-pointer"
+                      checked={paginatedOrders.length > 0 && paginatedOrders.every(o => selectedReceiptIds.includes(o.id))}
+                      onChange={handleToggleSelectAll}
+                    />
+                    <span className="text-[11px] font-bold text-[#c9d1d9] select-none cursor-pointer" onClick={handleToggleSelectAll}>Select All</span>
+                  </div>
 
-                                  <input
-                                    type="text"
-                                    placeholder="Search"
-                                    value={receiptSearchQuery}
-                                    onChange={(e) => setReceiptSearchQuery(e.target.value)}
-                                    className="h-8 w-48 ml-2 bg-[#0d1117] border border-[#30363d] rounded px-3 text-[11px] text-[#c9d1d9] outline-none focus:border-[#238636]"
-                                  />
+                  <input
+                    type="text"
+                    placeholder="Search"
+                    value={receiptSearchQuery}
+                    onChange={(e) => setReceiptSearchQuery(e.target.value)}
+                    className="h-8 w-48 ml-2 bg-[#0d1117] border border-[#30363d] rounded px-3 text-[11px] text-[#c9d1d9] outline-none focus:border-[#238636]"
+                  />
 
-                                  {checkReceiptsPermission('date_filter') !== false && (
-                                    <div className="relative">
-                                      <button
-                                        onClick={handleOpenDatePicker}
-                                        className="h-8 px-3 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded text-[11px] font-medium border border-[#30363d] flex items-center gap-2 cursor-pointer transition-all duration-200"
-                                      >
-                                        <Calendar size={13} className="text-[#8b949e]" />
-                                        <span>{`${formatReceiptDate(receiptsStartDate)} - ${formatReceiptDate(receiptsEndDate)}`}</span>
-                                        <ChevronDown size={11} className="text-[#8b949e]" />
-                                      </button>
+                  <div className="relative">
+                    <button
+                      onClick={handleOpenDatePicker}
+                      className="h-8 px-3 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] rounded text-[11px] font-medium border border-[#30363d] flex items-center gap-2 cursor-pointer transition-all duration-200"
+                    >
+                      <Calendar size={13} className="text-[#8b949e]" />
+                      <span>{`${formatReceiptDate(receiptsStartDate)} - ${formatReceiptDate(receiptsEndDate)}`}</span>
+                      <ChevronDown size={11} className="text-[#8b949e]" />
+                    </button>
 
                     {isDatePickerOpen && (
                       <div className="absolute left-0 mt-2 z-50 bg-[#161b22] border border-[#30363d] rounded-lg shadow-2xl p-4 flex gap-4 w-[580px] backdrop-blur-sm">
@@ -12836,25 +12495,24 @@ const UniversalPOS = () => {
                             </div>
                           </div>
 
-                                                    <div className="flex justify-end gap-2 mt-2">
-                                                      <button
-                                                        onClick={() => setIsDatePickerOpen(false)}
-                                                        className="px-3 py-1.5 bg-black border border-black text-white rounded text-[11px] font-bold hover:bg-neutral-800"
-                                                      >
-                                                        Cancel
-                                                      </button>
-                                                      <button
-                                                        onClick={() => { handleApplyDateRange(); setSelectedReceiptIds([]); }}
-                                                        className="px-3 py-1.5 bg-black border border-black hover:bg-neutral-800 text-white rounded text-[11px] font-bold"
-                                                      >
-                                                        Apply Range
-                                                      </button>
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              )}
-                                            </div>
-                                            )}
+                          <div className="flex justify-end gap-2 mt-2">
+                            <button
+                              onClick={() => setIsDatePickerOpen(false)}
+                              className="px-3 py-1.5 bg-black border border-black text-white rounded text-[11px] font-bold hover:bg-neutral-800"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              onClick={() => { handleApplyDateRange(); setSelectedReceiptIds([]); }}
+                              className="px-3 py-1.5 bg-black border border-black hover:bg-neutral-800 text-white rounded text-[11px] font-bold"
+                            >
+                              Apply Range
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
                   <button
                     onClick={() => fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate)}
@@ -12901,7 +12559,7 @@ const UniversalPOS = () => {
                           <div className="flex items-center gap-1">
                             <span>Bill No</span>
                             {receiptsSortField === 'bill_no' && (
-                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? '▲' : '▼'}</span>
+                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
                             )}
                           </div>
                         </th>
@@ -12914,7 +12572,7 @@ const UniversalPOS = () => {
                           <div className="flex items-center gap-1">
                             <span>Status</span>
                             {receiptsSortField === 'status' && (
-                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? '▲' : '▼'}</span>
+                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
                             )}
                           </div>
                         </th>
@@ -12928,36 +12586,30 @@ const UniversalPOS = () => {
                           <div className="flex items-center gap-1">
                             <span>Date & Time</span>
                             {receiptsSortField === 'date' && (
-                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? '▲' : '▼'}</span>
+                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
                             )}
                           </div>
                         </th>
-                                                <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Waiter</th>
-                                                <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Cashier</th>
-                                                {checkReceiptsPermission('show_bill_amount') !== false && (
-                                                  <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Subtotal</th>
-                                                )}
-                                                <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Discount</th>
-                                                <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">CGST</th>
-                                                <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">SGST</th>
-                                                <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Service Chg</th>
-                                                <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Delivery Chg</th>
-                                                {checkReceiptsPermission('tip_amount') !== false && (
-                                                  <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">Tips</th>
-                                                )}
-                                                {checkReceiptsPermission('net_sale_amount') !== false && (
-                                                  <th
-                                                    onClick={() => handleSort('value')}
-                                                    className="px-6 py-3.5 w-28 min-w-[110px] cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-[#21262d] transition-colors text-right"
-                                                  >
-                                                    <div className="flex items-center justify-end gap-1">
-                                                      <span>Net Amount</span>
-                                                      {receiptsSortField === 'value' && (
-                                                        <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? '▲' : '▼'}</span>
-                                                      )}
-                                                    </div>
-                                                  </th>
-                                                )}
+                        <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Waiter</th>
+                        <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">Cashier</th>
+                        <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Subtotal</th>
+                        <th className="px-6 py-3.5 w-28 min-w-[100px] select-none text-right">Discount</th>
+                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">CGST</th>
+                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">SGST</th>
+                        <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Service Chg</th>
+                        <th className="px-6 py-3.5 w-32 min-w-[120px] select-none text-right">Delivery Chg</th>
+                        <th className="px-6 py-3.5 w-24 min-w-[90px] select-none text-right">Tips</th>
+                        <th
+                          onClick={() => handleSort('value')}
+                          className="px-6 py-3.5 w-28 min-w-[110px] cursor-pointer select-none hover:bg-slate-200 dark:hover:bg-[#21262d] transition-colors text-right"
+                        >
+                          <div className="flex items-center justify-end gap-1">
+                            <span>Net Amount</span>
+                            {receiptsSortField === 'value' && (
+                              <span className="text-[#18ba60] text-[8px]">{receiptsSortDirection === 'asc' ? 'Γû▓' : 'Γû╝'}</span>
+                            )}
+                          </div>
+                        </th>
                         <th className="px-6 py-3.5 w-28 min-w-[110px] select-none text-left">IRN Status</th>
                         <th className="px-6 py-3.5 w-20 min-w-[80px] select-none text-center">Covers</th>
                       </tr>
@@ -13031,36 +12683,30 @@ const UniversalPOS = () => {
                             </td>
                             <td className="px-6 py-3.5">{o.waiter || 'N/A'}</td>
                             <td className="px-6 py-3.5">{o.cashier || 'N/A'}</td>
-                                                        {checkReceiptsPermission('show_bill_amount') !== false && (
-                                                          <td className="px-6 py-3.5 text-right">
-                                                            {(() => {
-                                                              const sub = parseFloat(o.subtotal || 0) > 0
-                                                                ? parseFloat(o.subtotal)
-                                                                : (Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items || '[]') : [])).reduce((sum, item) =>
-                                                                    sum + (parseFloat(item.price || 0) + (item.modifiers || []).reduce((ma, m) => ma + parseFloat(m.price || 0), 0)) * parseFloat(item.qty || item.quantity || 1), 0);
-                                                              return sub.toFixed(2);
-                                                            })()}
-                                                          </td>
-                                                        )}
-                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-amber-300' : 'text-amber-500'}`}>
-                                                          {parseFloat(o.discountAmt || 0).toFixed(2)}
-                                                        </td>
-                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
-                                                          {parseFloat(o.tax_cgst || 0).toFixed(2)}
-                                                        </td>
-                                                        <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
-                                                          {parseFloat(o.tax_sgst || 0).toFixed(2)}
-                                                        </td>
-                                                        <td className="px-6 py-3.5 text-right">{parseFloat(o.service_charge || 0).toFixed(2)}</td>
-                                                        <td className="px-6 py-3.5 text-right">{parseFloat(o.delivery_charge || o.delivery_charges || 0).toFixed(2)}</td>
-                                                        {checkReceiptsPermission('tip_amount') !== false && (
-                                                          <td className="px-6 py-3.5 text-right">{parseFloat(o.tips || 0).toFixed(2)}</td>
-                                                        )}
-                                                        {checkReceiptsPermission('net_sale_amount') !== false && (
-                                                          <td className={`px-6 py-3.5 text-right font-bold ${isSelected ? 'text-white' : (isDark ? 'text-white' : 'text-slate-900')}`}>
-                                                            {parseFloat(o.total_price || 0).toFixed(2)}
-                                                          </td>
-                                                        )}
+                            <td className="px-6 py-3.5 text-right">
+                              {(() => {
+                                const sub = parseFloat(o.subtotal || 0) > 0
+                                  ? parseFloat(o.subtotal)
+                                  : (Array.isArray(o.items) ? o.items : (typeof o.items === 'string' ? JSON.parse(o.items || '[]') : [])).reduce((sum, item) =>
+                                      sum + (parseFloat(item.price || 0) + (item.modifiers || []).reduce((ma, m) => ma + parseFloat(m.price || 0), 0)) * parseFloat(item.qty || item.quantity || 1), 0);
+                                return sub.toFixed(2);
+                              })()}
+                            </td>
+                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-amber-300' : 'text-amber-500'}`}>
+                              {parseFloat(o.discountAmt || 0).toFixed(2)}
+                            </td>
+                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
+                              {parseFloat(o.tax_cgst || 0).toFixed(2)}
+                            </td>
+                            <td className={`px-6 py-3.5 text-right ${isSelected ? 'text-white/80' : 'text-[#8b949e]'}`}>
+                              {parseFloat(o.tax_sgst || 0).toFixed(2)}
+                            </td>
+                            <td className="px-6 py-3.5 text-right">{parseFloat(o.service_charge || 0).toFixed(2)}</td>
+                            <td className="px-6 py-3.5 text-right">{parseFloat(o.delivery_charge || o.delivery_charges || 0).toFixed(2)}</td>
+                            <td className="px-6 py-3.5 text-right">{parseFloat(o.tips || 0).toFixed(2)}</td>
+                            <td className={`px-6 py-3.5 text-right font-bold ${isSelected ? 'text-white' : (isDark ? 'text-white' : 'text-slate-900')}`}>
+                              {parseFloat(o.total_price || 0).toFixed(2)}
+                            </td>
                             <td className="px-6 py-3.5">
                               <span className={`px-2 py-1 rounded text-[9px] font-bold ${
                                 o.irn
@@ -13078,20 +12724,14 @@ const UniversalPOS = () => {
                   </table>
                 </div>
 
-                                {/* Summary Strip */}
-                                <div className="h-10 border-t border-b border-[#30363d] flex items-center justify-between px-4 shrink-0 bg-[#161b22] text-[11px] font-bold text-[#c9d1d9]">
-                                  <div className="flex items-center gap-2">
-                                    {checkReceiptsPermission('all_bills_amount') !== false && (
-                                      <span>Shown Bills Amount ({paginatedOrders.length}) : {config.currency} {paginatedTotal.toFixed(2)}</span>
-                                    )}
-                                  </div>
-                                  {checkReceiptsPermission('net_sale_amount') !== false && (
-                                    <span>Net Sale Amount : {config.currency} {filteredTotal.toFixed(2)}</span>
-                                  )}
-                                  {checkReceiptsPermission('total_fulfilled_amount') !== false && (
-                                    <span>Total fulfilled amount : {config.currency} {filteredTotal.toFixed(2)}</span>
-                                  )}
-                                </div>
+                {/* Summary Strip */}
+                <div className="h-10 border-t border-b border-[#30363d] flex items-center justify-between px-4 shrink-0 bg-[#161b22] text-[11px] font-bold text-[#c9d1d9]">
+                  <div className="flex items-center gap-2">
+                    <span>Shown Bills Amount ({paginatedOrders.length}) : {config.currency} {paginatedTotal.toFixed(2)}</span>
+                  </div>
+                  <span>Net Sale Amount : {config.currency} {filteredTotal.toFixed(2)}</span>
+                  <span>Total fulfilled amount : {config.currency} {filteredTotal.toFixed(2)}</span>
+                </div>
 
                 {/* Pagination Strip */}
                 <div className="h-10 flex items-center justify-end px-4 shrink-0 bg-[#0d1117] text-[11px] gap-2 text-[#8b949e] border-b border-[#30363d] select-none">
@@ -13391,13 +13031,11 @@ const UniversalPOS = () => {
               return (
                 <motion.div key="digital" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex overflow-hidden bg-[#0d1117]">
 
-                                    {/* Left Filters Sidebar */}
-                                    <div className="w-60 bg-[#161b22] border-r border-[#30363d] flex flex-col p-4 shrink-0 overflow-y-auto no-scrollbar">
-                                      {getStaffPermissions()?.pos_access?.OnlineOrder?.StoreSettings?.visible !== false && (
-                                        <button className="w-full py-2.5 mb-6 bg-[#0c1015] border border-[#30363d] text-white text-[10px] font-black uppercase italic rounded-lg tracking-wider hover:border-[#10ac84] hover:text-[#10ac84] transition-all">
-                                          Store Settings
-                                        </button>
-                                      )}
+                  {/* Left Filters Sidebar */}
+                  <div className="w-60 bg-[#161b22] border-r border-[#30363d] flex flex-col p-4 shrink-0 overflow-y-auto no-scrollbar">
+                    <button className="w-full py-2.5 mb-6 bg-[#0c1015] border border-[#30363d] text-white text-[10px] font-black uppercase italic rounded-lg tracking-wider hover:border-[#10ac84] hover:text-[#10ac84] transition-all">
+                      Store Settings
+                    </button>
 
                     <div className="text-[10px] font-black text-[#8b949e] uppercase tracking-wider mb-4 border-b border-[#30363d] pb-2">Filters</div>
 
@@ -13770,7 +13408,7 @@ const UniversalPOS = () => {
                                   <span className={`flex items-center gap-1 text-[9px] font-black uppercase italic ${sourceColor}`}>
                                     {sourceIcon} {sourceLabel}
                                   </span>
-                                  <span className="text-slate-500 text-[9px]">•</span>
+                                  <span className="text-slate-500 text-[9px]">ΓÇó</span>
                                   <span className="text-slate-500 text-[9px]">{dateFormatted}</span>
                                 </div>
                                 <div className="text-[10px] font-black uppercase mt-1.5">
@@ -13805,7 +13443,7 @@ const UniversalPOS = () => {
                                 </div>
                                 <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#30363d]/50">
                                   <div className="font-bold text-white text-xs">
-                                    ₹{parseFloat(order.total_price || 0).toFixed(2)}{' '}
+                                    Γé╣{parseFloat(order.total_price || 0).toFixed(2)}{' '}
                                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
                                       ({order.payment_method || 'UPI'})
                                     </span>
@@ -13980,8 +13618,8 @@ const UniversalPOS = () => {
                                         <tr key={idx} className="border-b border-[#30363d]/50 hover:bg-white/5 text-[#c9d1d9]">
                                           <td className="p-2 font-bold">{it.product_name || it.name}</td>
                                           <td className="p-2 text-center">{qty}</td>
-                                          <td className="p-2 text-right">₹{price.toFixed(2)}</td>
-                                          <td className="p-2 text-right font-black">₹{(price * qty).toFixed(2)}</td>
+                                          <td className="p-2 text-right">Γé╣{price.toFixed(2)}</td>
+                                          <td className="p-2 text-right font-black">Γé╣{(price * qty).toFixed(2)}</td>
                                         </tr>
                                       );
                                     })}
@@ -13994,30 +13632,30 @@ const UniversalPOS = () => {
                             <div className="space-y-1.5 border-t border-[#30363d] pt-3 text-[10px] text-slate-300">
                               <div className="flex justify-between">
                                 <span className="text-slate-500">Subtotal</span>
-                                <span>₹{subtotal.toFixed(2)}</span>
+                                <span>Γé╣{subtotal.toFixed(2)}</span>
                               </div>
                               {discountAmt > 0 && (
                                 <div className="flex justify-between text-red-400">
                                   <span>Discount</span>
-                                  <span>-₹{discountAmt.toFixed(2)}</span>
+                                  <span>-Γé╣{discountAmt.toFixed(2)}</span>
                                 </div>
                               )}
                               {cgst > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-slate-500">CGST</span>
-                                  <span>₹{cgst.toFixed(2)}</span>
+                                  <span>Γé╣{cgst.toFixed(2)}</span>
                                 </div>
                               )}
                               {sgst > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-slate-500">SGST</span>
-                                  <span>₹{sgst.toFixed(2)}</span>
+                                  <span>Γé╣{sgst.toFixed(2)}</span>
                                 </div>
                               )}
                               {serviceCharge > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-slate-500">Service Charge</span>
-                                  <span>₹{serviceCharge.toFixed(2)}</span>
+                                  <span>Γé╣{serviceCharge.toFixed(2)}</span>
                                 </div>
                               )}
                               {(() => {
@@ -14026,14 +13664,14 @@ const UniversalPOS = () => {
                                   return chargeDetails.map((c, idx) => (
                                     <div key={`charge-${idx}`} className="flex justify-between">
                                       <span className="text-slate-500">{c.name || 'Charge'}</span>
-                                      <span>₹{parseFloat(c.amount || c.value || 0).toFixed(2)}</span>
+                                      <span>Γé╣{parseFloat(c.amount || c.value || 0).toFixed(2)}</span>
                                     </div>
                                   ));
                                 } else if (deliveryCharge > 0) {
                                   return (
                                     <div className="flex justify-between">
                                       <span className="text-slate-500">Delivery Charge</span>
-                                      <span>₹{deliveryCharge.toFixed(2)}</span>
+                                      <span>Γé╣{deliveryCharge.toFixed(2)}</span>
                                     </div>
                                   );
                                 }
@@ -14042,12 +13680,12 @@ const UniversalPOS = () => {
                               {tipAmount > 0 && (
                                 <div className="flex justify-between">
                                   <span className="text-slate-500">Tips</span>
-                                  <span>₹{tipAmount.toFixed(2)}</span>
+                                  <span>Γé╣{tipAmount.toFixed(2)}</span>
                                 </div>
                               )}
                               <div className="flex justify-between font-black text-white text-xs pt-2 border-t border-[#30363d]/50">
                                 <span>Total Amount</span>
-                                <span>₹{totalPrice.toFixed(2)}</span>
+                                <span>Γé╣{totalPrice.toFixed(2)}</span>
                               </div>
                             </div>
 
@@ -14206,22 +13844,18 @@ const UniversalPOS = () => {
                               >
                                 Pull Order
                               </button>
-                                                            {getStaffPermissions()?.pos_access?.OnlineOrder?.kot_print !== false && (
-                                                              <button
-                                                                onClick={() => handlePrintKOT(orderItems, order.table_number || 'Digital', order.bill_no)}
-                                                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                                              >
-                                                                Print KOT
-                                                              </button>
-                                                            )}
-                                                            {getStaffPermissions()?.pos_access?.OnlineOrder?.print_bill !== false && (
-                                                              <button
-                                                                onClick={() => handlePrint(order)}
-                                                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                                                              >
-                                                                Print Bill
-                                                              </button>
-                                                            )}
+                              <button
+                                onClick={() => handlePrintKOT(orderItems, order.table_number || 'Digital', order.bill_no)}
+                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                              >
+                                Print KOT
+                              </button>
+                              <button
+                                onClick={() => handlePrint(order)}
+                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                              >
+                                Print Bill
+                              </button>
                             </div>
 
                             {/* Dynamic State Update Action Button */}
@@ -14295,60 +13929,56 @@ const UniversalPOS = () => {
                        <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Table Management</h4>
                        <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage tables, QR codes, and departments.</p>
                     </button>
-                                         {getStaffPermissions()?.pos_access?.UserManagement?.visible !== false && (
-                                            <button
-                                               onClick={() => setIsUserManagementModalOpen(true)}
-                                               className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                                            >
-                                               <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                                                  <Users size={20}/>
-                                               </div>
-                                               <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">User Management</h4>
-                                               <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage staff, roles, and KDS access.</p>
-                                            </button>
-                                         )}
-                                         <button
-                                            onClick={() => setIsCaptainAppModalOpen(true)}
-                                            className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                                         >
-                                            <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                                               <Monitor size={20}/>
-                                            </div>
-                                            <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Captain App</h4>
-                                            <p className="text-[9px] font-bold text-[#8b949e] mt-1">View Captain (Waiter) app mockup.</p>
-                                         </button>
-                                         <button
-                                            onClick={() => setIsFeedbackModalOpen(true)}
-                                            className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                                         >
-                                            <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                                               <MessageSquare size={20}/>
-                                            </div>
-                                            <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Feedback Management</h4>
-                                            <p className="text-[9px] font-bold text-[#8b949e] mt-1">View customer feedback form.</p>
-                                         </button>
-                                         <button
-                                            onClick={() => setIsInventoryModalOpen(true)}
-                                            className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                                         >
-                                            <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                                               <Package size={20}/>
-                                            </div>
-                                            <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Inventory Management</h4>
-                                            <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage stock on hand and vendors.</p>
-                                         </button>
-                                         {getStaffPermissions()?.pos_access?.OrderWindow?.table_reservation !== false && (
-                                            <button
-                                               onClick={() => setIsReservationModalOpen(true)}
-                                               className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                                            >
-                                               <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                                                  <Calendar size={20}/>
-                                               </div>
-                                               <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Table Reservations</h4>
-                                               <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage table bookings and guests.</p>
-                                            </button>
-                                         )}
+                    <button
+                       onClick={() => setIsUserManagementModalOpen(true)}
+                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                    >
+                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                          <Users size={20}/>
+                       </div>
+                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">User Management</h4>
+                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage staff, roles, and KDS access.</p>
+                    </button>
+                    <button
+                       onClick={() => setIsCaptainAppModalOpen(true)}
+                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                    >
+                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                          <Monitor size={20}/>
+                       </div>
+                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Captain App</h4>
+                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">View Captain (Waiter) app mockup.</p>
+                    </button>
+                    <button
+                       onClick={() => setIsFeedbackModalOpen(true)}
+                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                    >
+                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                          <MessageSquare size={20}/>
+                       </div>
+                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Feedback Management</h4>
+                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">View customer feedback form.</p>
+                    </button>
+                    <button
+                       onClick={() => setIsInventoryModalOpen(true)}
+                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                    >
+                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                          <Package size={20}/>
+                       </div>
+                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Inventory Management</h4>
+                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage stock on hand and vendors.</p>
+                    </button>
+                    <button
+                       onClick={() => setIsReservationModalOpen(true)}
+                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                    >
+                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                          <Calendar size={20}/>
+                       </div>
+                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Table Reservations</h4>
+                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage table bookings and guests.</p>
+                    </button>
                     <button
                        onClick={async () => {
                           setActiveTab('config');
@@ -14436,77 +14066,69 @@ const UniversalPOS = () => {
                     <h4 className={`text-xs font-bold ${isDark ? 'text-[#8b949e]' : 'text-slate-700'}`}>Customer Management</h4>
                  </div>
 
-                                   {/* Grey Container Band */}
-                                   <div className={`p-4 rounded-sm border ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#eaebed] border-[#dcdee2]'} flex items-center gap-4 flex-wrap`}>
-                                      {/* Adding Customers */}
-                                      {getStaffPermissions()?.pos_access?.CustomerManagement?.add !== false && (
-                                         <button
-                                            onClick={() => {
-                                               setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });
-                                               setIsAddCustomerModalOpen(true);
-                                            }}
-                                            className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
-                                         >
-                                            <UserPlus size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
-                                            <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
-                                               Adding<br />Customers
-                                            </span>
-                                         </button>
-                                      )}
+                 {/* Grey Container Band */}
+                 <div className={`p-4 rounded-sm border ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#eaebed] border-[#dcdee2]'} flex items-center gap-4 flex-wrap`}>
+                    {/* Adding Customers */}
+                    <button
+                       onClick={() => {
+                          setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });
+                          setIsAddCustomerModalOpen(true);
+                       }}
+                       className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
+                    >
+                       <UserPlus size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
+                       <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
+                          Adding<br />Customers
+                       </span>
+                    </button>
 
-                                      {/* Managing Customers */}
-                                      {getStaffPermissions()?.pos_access?.CustomerManagement?.edit !== false && (
-                                         <button
-                                            onClick={() => {
-                                               setCustomerSearchQuery('');
-                                               setEditingCustomerPhone(null);
-                                               setConfigSubView('manage-customers');
-                                            }}
-                                            className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
-                                         >
-                                            <Users size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
-                                            <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
-                                               Managing<br />Customers
-                                            </span>
-                                         </button>
-                                      )}
+                    {/* Managing Customers */}
+                    <button
+                       onClick={() => {
+                          setCustomerSearchQuery('');
+                          setEditingCustomerPhone(null);
+                          setConfigSubView('manage-customers');
+                       }}
+                       className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
+                    >
+                       <Users size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
+                       <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
+                          Managing<br />Customers
+                       </span>
+                    </button>
 
-                                      {/* Managing Customer Balances */}
-                                      {getStaffPermissions()?.pos_access?.CustomerManagement?.WalletManagement?.visible !== false && (
-                                         <button
-                                            onClick={() => {
-                                               setCustomerSearchQuery('');
-                                               setEditingCustomerPhone(null);
-                                               setAdjustmentAmount('');
-                                               setConfigSubView('manage-balances');
-                                            }}
-                                            className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
-                                         >
-                                            <Wallet size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
-                                            <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
-                                               Managing<br />Customer Balances
-                                            </span>
-                                         </button>
-                                      )}
+                    {/* Managing Customer Balances */}
+                    <button
+                       onClick={() => {
+                          setCustomerSearchQuery('');
+                          setEditingCustomerPhone(null);
+                          setAdjustmentAmount('');
+                          setConfigSubView('manage-balances');
+                       }}
+                       className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
+                    >
+                       <Wallet size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
+                       <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
+                          Managing<br />Customer Balances
+                       </span>
+                    </button>
 
-                                      {/* Managing Loyalty Points of Customers */}
-                                      {getStaffPermissions()?.pos_access?.CustomerManagement?.WalletManagement?.visible !== false && (
-                                         <button
-                                            onClick={() => {
-                                               setCustomerSearchQuery('');
-                                               setEditingCustomerPhone(null);
-                                               setAdjustmentAmount('');
-                                               setConfigSubView('manage-points');
-                                            }}
-                                            className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
-                                         >
-                                            <Award size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
-                                            <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
-                                               Managing<br />Loyalty Points
-                                            </span>
-                                         </button>
-                                      )}
-                                   </div>
+                    {/* Managing Loyalty Points of Customers */}
+                    <button
+                       onClick={() => {
+                          setCustomerSearchQuery('');
+                          setEditingCustomerPhone(null);
+                          setAdjustmentAmount('');
+                          setConfigSubView('manage-points');
+                       }}
+                       className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
+                    >
+                       <Award size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
+                       <span className={`text-[10px] font-bold text-center leading-tight ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
+                          Managing<br />Loyalty Points
+                       </span>
+                    </button>
+                 </div>
               </motion.div>
             )}
 
@@ -14744,7 +14366,7 @@ const UniversalPOS = () => {
                                                      )}
                                                      {item.recommended && (
                                                         <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/20 flex items-center gap-0.5">
-                                                           ★ Rec
+                                                           Γÿà Rec
                                                         </span>
                                                      )}
                                                   </div>
@@ -14878,24 +14500,20 @@ const UniversalPOS = () => {
                                     Include Itemized Purchases
                                  </label>
                               </div>
-                                                            <div className="flex items-center gap-2">
-                                                               {getStaffPermissions()?.pos_access?.CustomerManagement?.export !== false && (
-                                                                  <button
-                                                                     onClick={exportToExcel}
-                                                                     className="flex items-center gap-2 h-8 px-3 text-[10px] font-black uppercase rounded-lg bg-[#18ba60] hover:bg-[#15a353] text-white shadow-sm transition-colors cursor-pointer"
-                                                                  >
-                                                                     <Download size={12} /> Excel (.xlsx)
-                                                                  </button>
-                                                               )}
-                                                               {getStaffPermissions()?.pos_access?.CustomerManagement?.export !== false && (
-                                                                  <button
-                                                                     onClick={exportToPDF}
-                                                                     className="flex items-center gap-2 h-8 px-3 text-[10px] font-black uppercase rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors cursor-pointer"
-                                                                  >
-                                                                     <FileText size={12} /> PDF Statement
-                                                                  </button>
-                                                               )}
-                                                            </div>
+                              <div className="flex items-center gap-2">
+                                 <button
+                                    onClick={exportToExcel}
+                                    className="flex items-center gap-2 h-8 px-3 text-[10px] font-black uppercase rounded-lg bg-[#18ba60] hover:bg-[#15a353] text-white shadow-sm transition-colors cursor-pointer"
+                                 >
+                                    <Download size={12} /> Excel (.xlsx)
+                                 </button>
+                                 <button
+                                    onClick={exportToPDF}
+                                    className="flex items-center gap-2 h-8 px-3 text-[10px] font-black uppercase rounded-lg bg-red-600 hover:bg-red-700 text-white shadow-sm transition-colors cursor-pointer"
+                                 >
+                                    <FileText size={12} /> PDF Statement
+                                 </button>
+                              </div>
                            </div>
 
                            {isHistoryLoading ? (
@@ -15721,7 +15339,7 @@ const UniversalPOS = () => {
                      {/* Scrollable List of Reports */}
                      <div className="flex-1 overflow-y-auto pr-1 no-scrollbar" style={{ scrollbarColor: '#51983c #ffffff', scrollbarWidth: 'thin' }}>
                         <div className="px-3 pb-4 space-y-1">
-                           {getFilteredReportsList().map(item => {
+                           {REPORTS_LIST.map(item => {
                               const IconComponent = item.icon;
                               const isSelected = selectedReport === item.name;
                               return (
@@ -15768,12 +15386,7 @@ const UniversalPOS = () => {
                               <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Divide the check for individual payments</p>
                            </div>
                            <div className={`flex items-center rounded-xl p-1 ${isDark ? 'bg-[#0d1117] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
-                              {['PORTION', 'PERCENT', 'ITEM'].filter(mode => {
-                                 if (mode === 'PORTION') return checkSplitBillPermission('portion_wise');
-                                 if (mode === 'PERCENT') return checkSplitBillPermission('percentage_wise');
-                                 if (mode === 'ITEM') return checkSplitBillPermission('item_wise');
-                                 return true;
-                              }).map(mode => (
+                              {['PORTION', 'PERCENT', 'ITEM'].map(mode => (
                                  <button
                                     key={mode}
                                     type="button"
@@ -15785,7 +15398,7 @@ const UniversalPOS = () => {
                               ))}
                            </div>
                         </div>
-                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                     <div className="flex-1 overflow-y-auto p-8 bg-slate-50 no-scrollbar">
@@ -15997,7 +15610,7 @@ const UniversalPOS = () => {
                            <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><TrendingUp className="text-rose-400"/> Daily Expense Ledger</h3>
                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Track and manage your operational outflows</p>
                         </div>
-                        <button onClick={() => setIsExpenseModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsExpenseModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                     <div className="flex-1 flex overflow-hidden bg-slate-50">
@@ -16096,7 +15709,7 @@ const UniversalPOS = () => {
                                          <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-600"><Package size={18}/></div>
                                          <div>
                                             <p className="text-[10px] font-black uppercase italic">{e.description || e.category}</p>
-                                            <p className="text-[8px] font-bold text-slate-400">{e.category} • {e.date} • {e.paymentMode}</p>
+                                            <p className="text-[8px] font-bold text-slate-400">{e.category} ΓÇó {e.date} ΓÇó {e.paymentMode}</p>
                                          </div>
                                       </div>
                                       <div className="flex items-center gap-4">
@@ -16136,7 +15749,7 @@ const UniversalPOS = () => {
                                    <h3 className="text-xl font-black uppercase italic tracking-tighter text-white drop-shadow-lg">{selectedItemForModifiers.product_name}</h3>
                                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-80">Customize your selection</p>
                                 </div>
-                                <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-80 hover:opacity-100 text-2xl font-bold transition-all bg-black/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm">✕</button>
+                                <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-80 hover:opacity-100 text-2xl font-bold transition-all bg-black/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm">Γ£ò</button>
                              </div>
                           </div>
                        ) : (
@@ -16145,7 +15758,7 @@ const UniversalPOS = () => {
                                 <h3 className="text-xl font-black uppercase italic tracking-tighter">{selectedItemForModifiers.product_name}</h3>
                                 <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-60">Customize your selection</p>
                              </div>
-                             <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-60 hover:opacity-100 text-2xl font-bold transition-all">✕</button>
+                             <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-60 hover:opacity-100 text-2xl font-bold transition-all">Γ£ò</button>
                           </div>
                        )}
                     </div>
@@ -16357,7 +15970,7 @@ const UniversalPOS = () => {
                              isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                           }`}
                        >
-                          ✕
+                          Γ£ò
                        </button>
                     </div>
 
@@ -16381,12 +15994,12 @@ const UniversalPOS = () => {
 
                     {/* Keypad Buttons */}
                     <div className="px-5 pb-5 grid grid-cols-3 gap-2">
-                       {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', '⌫'].map((keyVal) => (
+                       {['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'Γî½'].map((keyVal) => (
                           <button
                              key={keyVal}
                              onClick={() => handleKeypadPress(keyVal)}
                              className={`py-3.5 rounded-xl text-base font-black transition-all active:scale-95 shadow-sm border ${
-                                keyVal === '⌫'
+                                keyVal === 'Γî½'
                                    ? (isDark ? 'bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20' : 'bg-red-50 border-red-100 text-red-500 hover:bg-red-100')
                                    : (isDark
                                       ? 'bg-[#21262d] border-[#30363d] text-white hover:bg-[#30363d]'
@@ -16468,7 +16081,7 @@ const UniversalPOS = () => {
                               isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                            }`}
                         >
-                           ✕
+                           Γ£ò
                         </button>
                      </div>
 
@@ -16707,7 +16320,7 @@ const UniversalPOS = () => {
                               isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
                            }`}
                         >
-                           ✕
+                           Γ£ò
                         </button>
                      </div>
 
@@ -16900,7 +16513,7 @@ const UniversalPOS = () => {
                                              onClick={() => setAppliedAdditionalCharges(prev => prev.filter(ac => ac.id !== c.id))}
                                              className="text-red-500 hover:text-red-600 p-1 rounded-lg transition-colors"
                                           >
-                                             ✕
+                                             Γ£ò
                                           </button>
                                        </div>
                                     </div>
@@ -16948,7 +16561,7 @@ const UniversalPOS = () => {
               { name: 'BhimPay', logo: <span className="font-extrabold text-[8px] italic flex items-center"><span className="text-[#FF9933]">BH</span><span className="text-[#138808]">IM</span></span> },
               { name: 'Cash', logo: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4 text-emerald-500"><rect x="2" y="6" width="20" height="12" rx="2" /><circle cx="12" cy="12" r="3" /><path d="M6 12h.01M18 12h.01" /></svg> },
               { name: 'Dineout', logo: <span className="text-[#ff4757] font-black text-[8px] uppercase tracking-wider">dineout</span> },
-              { name: 'ApplePay', logo: <span className="bg-black text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded text-[7px] font-black uppercase flex items-center gap-0.5"> <span className="text-[6px]">Pay</span></span> },
+              { name: 'ApplePay', logo: <span className="bg-black text-white dark:bg-white dark:text-black px-1.5 py-0.5 rounded text-[7px] font-black uppercase flex items-center gap-0.5">∩ú┐ <span className="text-[6px]">Pay</span></span> },
               { name: 'AmazonPay', logo: <span className="text-[#FF9900] font-black text-[8px] uppercase tracking-wider">amazon</span> },
               { name: 'BharatPe', logo: <span className="font-black text-[9px] bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent uppercase">BharatPe</span> },
               { name: 'Airtel Money', logo: <span className="bg-[#e11919] text-white px-1.5 py-0.5 rounded text-[6px] font-black uppercase">airtel</span> },
@@ -16989,14 +16602,12 @@ const UniversalPOS = () => {
               });
             }
 
-            if (checkBillingPermission('allowed_due_payment')) {
-              if (!activeOptions.some(opt => opt.name.toLowerCase() === 'credit')) {
-                activeOptions.push({
-                  name: 'Credit',
-                  displayName: 'Credit',
-                  logo: <Coins className="w-4 h-4 text-amber-500" />
-                });
-              }
+            if (!activeOptions.some(opt => opt.name.toLowerCase() === 'credit')) {
+              activeOptions.push({
+                name: 'Credit',
+                displayName: 'Credit',
+                logo: <Coins className="w-4 h-4 text-amber-500" />
+              });
             }
 
             const numericTip = isFreeMode ? 0 : (parseFloat(tipAmount) || 0);
@@ -17042,7 +16653,7 @@ const UniversalPOS = () => {
                            </h3>
                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Bill No: {billNo}</p>
                         </div>
-                        <button onClick={() => setIsPaymentModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsPaymentModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                      {/* Content */}
@@ -17134,12 +16745,12 @@ const UniversalPOS = () => {
                                     </div>
                                  ) : fullCustPhone ? (
                                     <div className={`text-[10px] font-bold ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>
-                                       Customer <span className="font-black">{fullCustPhone}</span> — new account will be created on checkout.
+                                       Customer <span className="font-black">{fullCustPhone}</span> ΓÇö new account will be created on checkout.
                                     </div>
                                  ) : (
                                     <div className="space-y-2">
                                        <div className={`text-[10px] font-bold ${isDark ? 'text-red-400' : 'text-red-600'}`}>
-                                          ⚠ No customer selected. Enter a customer mobile number in the tray before using Credit.
+                                          ΓÜá No customer selected. Enter a customer mobile number in the tray before using Credit.
                                        </div>
                                        <div className="relative">
                                           <div className={`flex items-center gap-1 h-9 rounded-xl px-2 ${isDark ? 'bg-black/30 border border-gray-700' : 'bg-white border border-slate-200'}`}>
@@ -17326,18 +16937,16 @@ const UniversalPOS = () => {
                                              className={`w-full p-2.5 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/30 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                                           />
                                        </div>
-                                       {checkBillingPermission('allowed_due_payment') && (
-                                          <div className="space-y-1">
-                                             <label className="text-[8px] font-black uppercase text-amber-500">To Credit</label>
-                                             <input
-                                                type="number"
-                                                value={splitCreditAmount}
-                                                onChange={e => handleSplitCreditChange(e.target.value)}
-                                                placeholder="Credit Amount"
-                                                className={`w-full p-2.5 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/30 border-white/10 text-amber-500' : 'bg-white border-slate-200 text-amber-600'}`}
-                                             />
-                                          </div>
-                                       )}
+                                       <div className="space-y-1">
+                                          <label className="text-[8px] font-black uppercase text-amber-500">To Credit</label>
+                                          <input
+                                             type="number"
+                                             value={splitCreditAmount}
+                                             onChange={e => handleSplitCreditChange(e.target.value)}
+                                             placeholder="Credit Amount"
+                                             className={`w-full p-2.5 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/30 border-white/10 text-amber-500' : 'bg-white border-slate-200 text-amber-600'}`}
+                                          />
+                                       </div>
                                     </div>
                                  </div>
                               )}
@@ -17471,9 +17080,9 @@ const UniversalPOS = () => {
                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
                              <Wallet size={18} className="text-emerald-500" /> Pay Previous Balance
                           </h3>
-                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>{trayCustomer?.name || 'Customer'} • {trayFullPhone}</p>
+                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>{trayCustomer?.name || 'Customer'} ΓÇó {trayFullPhone}</p>
                        </div>
-                       <button onClick={() => setIsPayDueModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                       <button onClick={() => setIsPayDueModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                     </div>
 
                     {/* Content */}
@@ -17598,7 +17207,7 @@ const UniversalPOS = () => {
                         }}
                         className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
 
@@ -17679,7 +17288,7 @@ const UniversalPOS = () => {
                                          }}
                                          className="w-6 h-6 bg-[#161b22] border border-[#30363d] rounded-full flex items-center justify-center text-[#8b949e] hover:text-white disabled:opacity-30 disabled:cursor-not-allowed"
                                       >
-                                         —
+                                         ΓÇö
                                       </button>
                                       <span className="w-6 text-center">{item.quantity}</span>
                                       <button
@@ -17750,29 +17359,21 @@ const UniversalPOS = () => {
                  {/* Footer Buttons */}
                  <div className="p-4 bg-[#161b22] border-t border-[#30363d] rounded-b-2xl flex flex-wrap gap-2 justify-between items-center">
                     <div className="flex flex-wrap gap-2">
-                       {checkOldKOTPermission('item_as_complementary') && (
-                          <button onClick={handleOldKOTComplementary} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
-                             Complementary
-                          </button>
-                       )}
+                       <button onClick={handleOldKOTComplementary} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
+                          Complementary
+                       </button>
                        <button onClick={handleOldKOTPrint} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
                           Print
                        </button>
-                       {checkOldKOTPermission('delete_kot') && (
-                          <button onClick={handleOldKOTDelete} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
-                             Delete KOT
-                          </button>
-                       )}
-                       {checkOldKOTPermission('cancel_kot') && (
-                          <button onClick={handleOldKOTCancel} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
-                             Cancel KOT
-                          </button>
-                       )}
-                       {checkOldKOTPermission('transfer_item') && (
-                          <button onClick={handleOpenTransferModal} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
-                             Transfer Item
-                          </button>
-                       )}
+                       <button onClick={handleOldKOTDelete} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
+                          Delete KOT
+                       </button>
+                       <button onClick={handleOldKOTCancel} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
+                          Cancel KOT
+                       </button>
+                       <button onClick={handleOpenTransferModal} className="bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] px-3 py-1.5 rounded-lg text-xs font-bold transition-all active:scale-95">
+                          Transfer Item
+                       </button>
                     </div>
                     <button
                        onClick={() => {
@@ -17799,7 +17400,7 @@ const UniversalPOS = () => {
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
                         Transfer Items to Table
                      </h3>
-                     <button onClick={() => setIsTransferModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     <button onClick={() => setIsTransferModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                   </div>
                  {/* Body */}
                  <div className="p-5 max-h-[60vh] overflow-y-auto no-scrollbar space-y-4">
@@ -17863,7 +17464,7 @@ const UniversalPOS = () => {
                         onClick={() => setIsWaiterModalOpen(false)}
                         className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
 
@@ -17951,7 +17552,7 @@ const UniversalPOS = () => {
                         onClick={() => setIsRiderModalOpen(false)}
                         className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
 
@@ -18047,7 +17648,7 @@ const UniversalPOS = () => {
                         onClick={() => setIsCouponModalOpen(false)}
                         className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
 
@@ -18157,7 +17758,7 @@ const UniversalPOS = () => {
                                           </button>
                                        ) : (
                                           <span className="text-[9px] font-black text-emerald-500 uppercase tracking-wider flex items-center gap-1">
-                                             ✓ Applied
+                                             Γ£ô Applied
                                           </span>
                                        )}
                                     </div>
@@ -18192,7 +17793,7 @@ const UniversalPOS = () => {
                               const cust = customerDb[fullPhone] || { name: customerName || 'POS Guest', phone: fullPhone };
                               return (
                                  <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mt-1">
-                                    {cust.name} • {cust.phone} {cust.address ? `• ${cust.address}` : ''}
+                                    {cust.name} ΓÇó {cust.phone} {cust.address ? `ΓÇó ${cust.address}` : ''}
                                  </p>
                               );
                            })()}
@@ -18231,7 +17832,7 @@ const UniversalPOS = () => {
                         }}
                         className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
 
@@ -18627,7 +18228,7 @@ const UniversalPOS = () => {
                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Lock className="text-[#10ac84]" size={22}/> Update Desktop Access Level</h3>
                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure visibility for dashboard and reports</p>
                        </div>
-                       <button onClick={() => setIsAccessLevelModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                       <button onClick={() => setIsAccessLevelModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-8 bg-[#0d1117] no-scrollbar space-y-8">
@@ -18685,7 +18286,7 @@ const UniversalPOS = () => {
                         </div>
                         <div className="flex items-center gap-3">
                            <span className="px-3 py-1.5 bg-[#10ac84]/20 text-[#10ac84] rounded-lg text-[10px] font-black uppercase">Call Waiter Functionality</span>
-                           <button onClick={() => setIsTableManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                           <button onClick={() => setIsTableManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                         </div>
                      </div>
 
@@ -18755,7 +18356,7 @@ const UniversalPOS = () => {
                            <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Users className="text-[#10ac84]" size={22}/> User Management</h3>
                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage staff, roles, and access levels</p>
                         </div>
-                        <button onClick={() => setIsUserManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsUserManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                     <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
@@ -18837,7 +18438,7 @@ const UniversalPOS = () => {
                         <div>
                            <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Monitor className="text-[#10ac84]" size={22}/> Captain App</h3>
                         </div>
-                        <button onClick={() => setIsCaptainAppModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-850'}`}>✕</button>
+                        <button onClick={() => setIsCaptainAppModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-850'}`}>Γ£ò</button>
                      </div>
 
                     <div className="flex-1 overflow-y-auto bg-[#18ba60] flex flex-col items-center justify-center p-6 gap-6">
@@ -18891,7 +18492,7 @@ const UniversalPOS = () => {
                            <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-905'}`}><MessageSquare className="text-[#10ac84]" size={22}/> Feedback Management</h3>
                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Customer experience form</p>
                         </div>
-                        <button onClick={() => setIsFeedbackModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsFeedbackModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                     <div className="p-8 bg-[#0d1117] space-y-6">
@@ -18952,7 +18553,7 @@ const UniversalPOS = () => {
                         </div>
 
                        <div className="space-y-2">
-                          <h4 className="text-lg font-bold text-white">4 › Please tell us about your experience *</h4>
+                          <h4 className="text-lg font-bold text-white">4 ΓÇ║ Please tell us about your experience *</h4>
                           <textarea
                              placeholder="Type your feedback here..."
                              className="w-full h-32 bg-[#161b22] border border-[#30363d] rounded-xl p-4 text-[#c9d1d9] text-sm focus:border-[#10ac84] outline-none resize-none"
@@ -18961,12 +18562,12 @@ const UniversalPOS = () => {
 
                        <div className="flex justify-between items-center">
                           <button onClick={() => { toast.success("Feedback Submitted!"); setIsFeedbackModalOpen(false); }} className="px-6 py-2.5 bg-[#10ac84] text-white rounded-xl text-xs font-black uppercase hover:bg-[#0e936f] flex items-center gap-2">
-                             OK <span className="text-[10px] opacity-70">press Enter ↵</span>
+                             OK <span className="text-[10px] opacity-70">press Enter Γå╡</span>
                           </button>
 
                           <div className="flex gap-2">
-                             <button className="w-8 h-8 bg-[#21262d] border border-[#30363d] rounded-lg flex items-center justify-center text-[#8b949e] hover:text-white">‹</button>
-                             <button className="w-8 h-8 bg-[#21262d] border border-[#30363d] rounded-lg flex items-center justify-center text-[#8b949e] hover:text-white">›</button>
+                             <button className="w-8 h-8 bg-[#21262d] border border-[#30363d] rounded-lg flex items-center justify-center text-[#8b949e] hover:text-white">ΓÇ╣</button>
+                             <button className="w-8 h-8 bg-[#21262d] border border-[#30363d] rounded-lg flex items-center justify-center text-[#8b949e] hover:text-white">ΓÇ║</button>
                           </div>
                        </div>
                     </div>
@@ -18989,7 +18590,7 @@ const UniversalPOS = () => {
                            <span className="px-3 py-1.5 bg-red-600/20 text-red-500 rounded-lg text-[10px] font-black uppercase">Expired Stock</span>
                            <span className="px-3 py-1.5 bg-yellow-600/20 text-yellow-500 rounded-lg text-[10px] font-black uppercase">Low Stock</span>
                            <span className="px-3 py-1.5 bg-purple-600/20 text-purple-500 rounded-lg text-[10px] font-black uppercase">Expire In 3 Days</span>
-                           <button onClick={() => setIsInventoryModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                           <button onClick={() => setIsInventoryModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                         </div>
                      </div>
 
@@ -19195,7 +18796,7 @@ const UniversalPOS = () => {
                            <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Calendar className="text-[#10ac84]" size={22}/> Table Reservations</h3>
                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage table bookings and guests</p>
                         </div>
-                        <button onClick={() => setIsReservationModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <button onClick={() => setIsReservationModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                      </div>
 
                     <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
@@ -19289,7 +18890,7 @@ const UniversalPOS = () => {
                     isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  ✕
+                  Γ£ò
                 </button>
               </div>
 
@@ -19341,12 +18942,19 @@ const UniversalPOS = () => {
                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={22}/> Terminal Settings</h3>
                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure terminal preferences and printer layouts</p>
                        </div>
-                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                     </div>
 
                     {/* Tab Headers */}
                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>
-                       {getFilteredSettingsTabs().map((tab) => (
+                       {[
+                          { id: 'general', label: 'General', icon: <Settings size={12} /> },
+                          { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} /> },
+                          { id: 'printer', label: 'Printers', icon: <Printer size={12} /> },
+                          { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} /> },
+                          { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} /> },
+                          { id: 'profile', label: 'Profile', icon: <User size={12} /> }
+                       ].map((tab) => (
                           <button
                              key={tab.id}
                              onClick={() => {
@@ -19795,188 +19403,6 @@ const UniversalPOS = () => {
                                     </button>
                                  </div>
                               </div>
-
-                              {/* Prebooking Order Copies */}
-                              <div className="grid grid-cols-2 gap-4">
-                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
-                                    <div className="flex flex-col gap-0.5">
-                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Print Customer Copy (Pre-Order)</span>
-                                       <span className="text-[8px] font-bold text-[#8b949e]">Print customer copy for prebooking order</span>
-                                    </div>
-                                    <button
-                                       type="button"
-                                       onClick={() => setPosSettings(prev => ({ ...prev, printCustomerCopyPreorder: prev.printCustomerCopyPreorder === undefined ? true : !prev.printCustomerCopyPreorder }))}
-                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.printCustomerCopyPreorder !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
-                                    >
-                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.printCustomerCopyPreorder !== false ? 'right-0.5' : 'left-0.5'}`} />
-                                    </button>
-                                 </div>
-
-                                 <div className={`flex items-center justify-between p-3.5 rounded-xl border transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200/80 shadow-sm'}`}>
-                                    <div className="flex flex-col gap-0.5">
-                                       <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Print Restaurant Copy (Pre-Order)</span>
-                                       <span className="text-[8px] font-bold text-[#8b949e]">Print restaurant copy for prebooking order</span>
-                                    </div>
-                                    <button
-                                       type="button"
-                                       onClick={() => setPosSettings(prev => ({ ...prev, printRestaurantCopyPreorder: prev.printRestaurantCopyPreorder === undefined ? true : !prev.printRestaurantCopyPreorder }))}
-                                       className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.printRestaurantCopyPreorder !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
-                                    >
-                                       <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.printRestaurantCopyPreorder !== false ? 'right-0.5' : 'left-0.5'}`} />
-                                    </button>
-                                 </div>
-                              </div>
-
-                              {/* Separate Printers configuration UI */}
-                              <div className="border-t pt-4 dark:border-gray-800 space-y-4">
-                                 <div>
-                                    <h4 className={`text-[11px] font-black uppercase tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Order Type Specific Printers</h4>
-                                    <p className={`text-[8.5px] font-bold ${isDark ? 'text-[#8b949e]' : 'text-slate-500'} mt-0.5`}>Configure separate KOT and Bill printers, toggles, and paper sizes for each order type.</p>
-                                 </div>
-                                 <div className="space-y-4">
-                                    {[
-                                       { key: 'DINE_IN', label: 'Dine-In' },
-                                       { key: 'PICKUP', label: 'Takeaway (Pickup)' },
-                                       { key: 'DELIVERY', label: 'Delivery' },
-                                       { key: 'QUICK', label: 'Quick Bill' },
-                                       { key: 'PRE_ORDER', label: 'Pre-Order' }
-                                    ].map(type => {
-                                       const printers = posSettings.orderPrinters || {};
-                                       const configGroup = printers[type.key] || {
-                                          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
-                                          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
-                                       };
-                                       const kotConfig = configGroup.kot || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
-                                       const billConfig = configGroup.bill || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
-
-                                       return (
-                                          <div key={type.key} className={`p-4 rounded-xl border transition-all ${isDark ? 'bg-[#161b22]/40 border-[#30363d] hover:border-gray-700' : 'bg-slate-50/50 border-slate-200 hover:border-slate-300'} space-y-3`}>
-                                             <div className="flex items-center justify-between border-b pb-2 dark:border-gray-800/80">
-                                                <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-emerald-400' : 'text-[#10ac84]'}`}>{type.label} settings</span>
-                                             </div>
-                                             
-                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                {/* KOT Printer Configuration */}
-                                                <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white border-slate-200/80'} space-y-3`}>
-                                                   <div className="flex items-center justify-between">
-                                                      <span className={`text-[9.5px] font-black uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>KOT Printer</span>
-                                                      <button
-                                                         type="button"
-                                                         onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'enabled', kotConfig.enabled === undefined ? false : !kotConfig.enabled)}
-                                                         className={`w-8 h-4.5 rounded-full transition-all relative shrink-0 ${kotConfig.enabled !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
-                                                      >
-                                                         <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${kotConfig.enabled !== false ? 'right-0.5' : 'left-0.5'}`} />
-                                                      </button>
-                                                   </div>
-                                                   
-                                                   <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase">Target Printer</label>
-                                                      {availablePrinters && availablePrinters.length > 0 ? (
-                                                         <select
-                                                            value={kotConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         >
-                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
-                                                            {availablePrinters.map(p => (
-                                                               <option key={p.id} value={p.name}>{p.name}</option>
-                                                            ))}
-                                                         </select>
-                                                      ) : (
-                                                         <input
-                                                            type="text"
-                                                            placeholder="Type system printer name..."
-                                                            value={kotConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         />
-                                                      )}
-                                                   </div>
-
-                                                   <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Paper Size</label>
-                                                      <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
-                                                         <button
-                                                            type="button"
-                                                            onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'paperSize', 'THERMAL_80MM')}
-                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${kotConfig.paperSize !== 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
-                                                         >
-                                                            80mm
-                                                         </button>
-                                                         <button
-                                                            type="button"
-                                                            onClick={() => updateOrderPrinterSetting(type.key, 'kot', 'paperSize', 'THERMAL_58MM')}
-                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${kotConfig.paperSize === 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
-                                                         >
-                                                            58mm
-                                                         </button>
-                                                      </div>
-                                                   </div>
-                                                </div>
-
-                                                {/* Bill Printer Configuration */}
-                                                <div className={`p-3 rounded-lg border ${isDark ? 'bg-[#0d1117]/80 border-[#30363d]' : 'bg-white border-slate-200/80'} space-y-3`}>
-                                                   <div className="flex items-center justify-between">
-                                                      <span className={`text-[9.5px] font-black uppercase tracking-wider ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>Bill Printer</span>
-                                                      <button
-                                                         type="button"
-                                                         onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'enabled', billConfig.enabled === undefined ? false : !billConfig.enabled)}
-                                                         className={`w-8 h-4.5 rounded-full transition-all relative shrink-0 ${billConfig.enabled !== false ? 'bg-[#238636]' : 'bg-gray-400'}`}
-                                                      >
-                                                         <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${billConfig.enabled !== false ? 'right-0.5' : 'left-0.5'}`} />
-                                                      </button>
-                                                   </div>
-                                                   
-                                                   <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Target Printer</label>
-                                                      {availablePrinters && availablePrinters.length > 0 ? (
-                                                         <select
-                                                            value={billConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         >
-                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
-                                                            {availablePrinters.map(p => (
-                                                               <option key={p.id} value={p.name}>{p.name}</option>
-                                                            ))}
-                                                         </select>
-                                                      ) : (
-                                                         <input
-                                                            type="text"
-                                                            placeholder="Type system printer name..."
-                                                            value={billConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         />
-                                                      )}
-                                                   </div>
-
-                                                   <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Paper Size</label>
-                                                      <div className={`flex rounded-lg overflow-hidden border ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-300 bg-slate-200/50'} p-0.5`}>
-                                                         <button
-                                                            type="button"
-                                                            onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'paperSize', 'THERMAL_80MM')}
-                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${billConfig.paperSize !== 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
-                                                         >
-                                                            80mm
-                                                         </button>
-                                                         <button
-                                                            type="button"
-                                                            onClick={() => updateOrderPrinterSetting(type.key, 'bill', 'paperSize', 'THERMAL_58MM')}
-                                                            className={`flex-1 py-1 text-[8.5px] font-black uppercase rounded transition-all ${billConfig.paperSize === 'THERMAL_58MM' ? 'bg-[#10ac84] text-white shadow-sm' : 'text-[#8b949e]'}`}
-                                                         >
-                                                            58mm
-                                                         </button>
-                                                      </div>
-                                                   </div>
-                                                </div>
-                                             </div>
-                                          </div>
-                                       );
-                                    })}
-                                 </div>
-                              </div>
                            </div>
                         )}
 
@@ -20137,7 +19563,7 @@ const UniversalPOS = () => {
                                              <option value="Rs">Rs (Rupees)</option>
                                              <option value="$">$ (USD)</option>
                                              <option value="AED">AED (Dirhams)</option>
-                                             <option value="£">£ (Pounds)</option>
+                                             <option value="┬ú">┬ú (Pounds)</option>
                                           </select>
                                        </div>
 
@@ -20373,7 +19799,7 @@ const UniversalPOS = () => {
                                        <div className="flex flex-col min-w-0">
                                           <span className={`text-[8.5px] font-black uppercase ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Print QR on Bill</span>
                                           <span className={`text-[9px] font-black tracking-wider ${business?.business_details?.settings?.print_upi_qr ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                             {business?.business_details?.settings?.print_upi_qr ? '● ENABLED IN BACK OFFICE' : '○ DISABLED IN BACK OFFICE'}
+                                             {business?.business_details?.settings?.print_upi_qr ? 'ΓùÅ ENABLED IN BACK OFFICE' : 'Γùï DISABLED IN BACK OFFICE'}
                                           </span>
                                        </div>
                                     </div>
@@ -20386,7 +19812,7 @@ const UniversalPOS = () => {
 
                                              {backendQrs.length === 0 ? (
                                                 <div className={`p-3 rounded-xl border border-dashed text-center text-[9px] font-bold ${isDark ? 'border-[#30363d] text-gray-500' : 'border-slate-200 text-slate-400'}`}>
-                                                   ⚠️ No QR Codes configured in Back Office. Configure them under "Outlet Payment Methods" on the dashboard.
+                                                   ΓÜá∩╕Å No QR Codes configured in Back Office. Configure them under "Outlet Payment Methods" on the dashboard.
                                                 </div>
                                              ) : (
                                                 <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
@@ -20454,7 +19880,7 @@ const UniversalPOS = () => {
                                                                      : isDark ? 'bg-[#161b22] border-[#30363d] text-gray-400 hover:border-gray-500' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
                                                                }`}
                                                             >
-                                                               {mode === 'dynamic' ? '⚡ Dynamic QR (Bill Amount)' : '📌 Static QR (Fixed VPA)'}
+                                                               {mode === 'dynamic' ? 'ΓÜí Dynamic QR (Bill Amount)' : '≡ƒôî Static QR (Fixed VPA)'}
                                                             </button>
                                                          ))}
                                                       </div>
@@ -20463,7 +19889,7 @@ const UniversalPOS = () => {
                                              } else if (selectedQr && isUrl) {
                                                 return (
                                                    <div className={`p-2.5 rounded-xl text-[8.5px] font-bold ${isDark ? 'bg-indigo-900/20 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
-                                                      📌 Selected QR code will print the exact payment URL. No billing amount modifier will be applied.
+                                                      ≡ƒôî Selected QR code will print the exact payment URL. No billing amount modifier will be applied.
                                                    </div>
                                                 );
                                              }
@@ -20679,7 +20105,7 @@ const UniversalPOS = () => {
                           </h3>
                           <p className="text-[9px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-0.5">Define item telemetry and validation targets</p>
                        </div>
-                       <button onClick={() => setIsItemFormOpen(false)} className={`p-2 rounded-full transition-all ${isDark ? 'hover:bg-white/10 text-[#8b949e] hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}>✕</button>
+                       <button onClick={() => setIsItemFormOpen(false)} className={`p-2 rounded-full transition-all ${isDark ? 'hover:bg-white/10 text-[#8b949e] hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'}`}>Γ£ò</button>
                     </div>
 
                     {/* Form Body */}
@@ -20943,7 +20369,7 @@ const UniversalPOS = () => {
                            isDark ? 'bg-[#21262d] border-[#30363d] hover:bg-[#30363d] text-gray-400 hover:text-white' : 'bg-white border-slate-200 hover:bg-slate-100 text-slate-500 hover:text-slate-900'
                         }`}
                      >
-                        ✕
+                        Γ£ò
                      </button>
                   </div>
                </div>
@@ -21253,9 +20679,9 @@ const UniversalPOS = () => {
                            )}
                            <span className="text-[9px] text-gray-500 font-mono flex items-center gap-1">
                               SYNC: {previewReceipt.synced ? (
-                                 <span className="text-emerald-500 font-bold">ONLINE ✓</span>
+                                 <span className="text-emerald-500 font-bold">ONLINE Γ£ô</span>
                               ) : (
-                                 <span className="text-amber-500 font-bold">LOCAL ONLY ⚠</span>
+                                 <span className="text-amber-500 font-bold">LOCAL ONLY ΓÜá</span>
                               )}
                            </span>
                         </div>
@@ -21531,7 +20957,7 @@ const UniversalPOS = () => {
                    onClick={() => setIsRejectionModalOpen(false)}
                    className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
                  >
-                   ✕
+                   Γ£ò
                  </button>
                </div>
 
@@ -21554,7 +20980,7 @@ const UniversalPOS = () => {
                               className="text-red-400 hover:text-red-500 font-bold p-1 transition-colors cursor-pointer text-xs"
                               title="Delete preset"
                             >
-                              ✕
+                              Γ£ò
                             </button>
                           </div>
                         ))}
@@ -21605,7 +21031,7 @@ const UniversalPOS = () => {
                         onClick={() => setIsManagingPresets(true)}
                         className="text-[10px] font-bold text-red-400 hover:text-red-300 flex items-center gap-1 transition-colors cursor-pointer"
                       >
-                        ⚙ Manage List
+                        ΓÜÖ Manage List
                       </button>
                     </div>
                     <select
@@ -21717,7 +21143,7 @@ const UniversalPOS = () => {
                         <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#10ac84]" size={22}/> Adding Customers</h3>
                         <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
                      </div>
-                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>Γ£ò</button>
                   </div>
 
                   <div className={`p-8 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
@@ -21894,7 +21320,7 @@ const UniversalPOS = () => {
                     isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
                   } disabled:opacity-50`}
                 >
-                  ✕
+                  Γ£ò
                 </button>
               </div>
 
@@ -22022,7 +21448,7 @@ const UniversalPOS = () => {
                     isDark ? 'hover:bg-white/10 text-gray-400 hover:text-white' : 'hover:bg-slate-200 text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  ✕
+                  Γ£ò
                 </button>
               </div>
 

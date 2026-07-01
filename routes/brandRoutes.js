@@ -3689,6 +3689,7 @@ router.get("/users/:id/pos-access", authMiddleware, async (req, res) => {
         Delivery: {
           new_order: true,
           select_delivery_boy: true,
+          customer_details_mandatory: false,
           Billing: {
             visible: true,
             visible_passcode: false,
@@ -3740,6 +3741,7 @@ router.get("/users/:id/pos-access", authMiddleware, async (req, res) => {
         },
         Pickup: {
           new_order: true,
+          customer_details_mandatory: false,
           Billing: {
             visible: true,
             visible_passcode: false,
