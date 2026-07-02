@@ -1,0 +1,1 @@
+sudo -u postgres psql -d sasloop_db -c "UPDATE app_users SET staff_permissions = jsonb_set(staff_permissions, '{pos_access,OrderWindow,item_categories}', 'true'::jsonb) WHERE username = 'shahetehzeebpos';"

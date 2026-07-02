@@ -665,6 +665,11 @@ async function initializeDatabase() {
                 table_number VARCHAR(50),
                 status VARCHAR(50) DEFAULT 'SCHEDULED',
                 notes TEXT,
+                discount NUMERIC(10,2) DEFAULT 0,
+                coupon_code VARCHAR(100) DEFAULT NULL,
+                coupon_discount NUMERIC(10,2) DEFAULT 0,
+                points_redeemed INTEGER DEFAULT 0,
+                points_discount NUMERIC(10,2) DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`,
             // 43. WhatsApp templates table (Live Integration)
@@ -837,7 +842,13 @@ async function initializeDatabase() {
                 status VARCHAR(50) DEFAULT 'ACTIVE',
                 created_by VARCHAR(100) DEFAULT 'ADMIN',
                 created_at TIMESTAMP DEFAULT NOW()
-            )`
+            )`,
+            // 62. Pre-Order enhancements migrations
+            `ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS discount NUMERIC(10,2) DEFAULT 0`,
+            `ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(100) DEFAULT NULL`,
+            `ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS coupon_discount NUMERIC(10,2) DEFAULT 0`,
+            `ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS points_redeemed INTEGER DEFAULT 0`,
+            `ALTER TABLE pre_orders ADD COLUMN IF NOT EXISTS points_discount NUMERIC(10,2) DEFAULT 0`
         ];
 
 

@@ -3124,8 +3124,8 @@ const UniversalPOS = () => {
     setIsDigitalDatePickerOpen(false);
   };
 
-  const handleSyncBills = async () => {
-    if (!checkReceiptsPasscode('resync_bills', "Enter Manager PIN to sync offline bills:")) {
+  const handleSyncBills = async (bypassPasscode = false) => {
+    if (!bypassPasscode && !checkReceiptsPasscode('resync_bills', "Enter Manager PIN to sync offline bills:")) {
       return;
     }
     const unsyncedOrders = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
@@ -4910,7 +4910,6 @@ const UniversalPOS = () => {
             key === 'pos_terminal_settings' ||
             key === 'pos_business' ||
             key === 'pos_brand_color' ||
-            key === 'pos_active_state' ||
             key === 'pos_available_printers'
           ) {
             continue;
@@ -4921,7 +4920,21 @@ const UniversalPOS = () => {
       keysToRemove.forEach(k => localStorage.removeItem(k));
       
       // Additional UI, statistics, dashboard and session states
-      setStats({ totalSales: 0, totalOrders: 0, averageOrderValue: 0, totalTax: 0 });
+      setStats({
+        todaySales: 0, todayCount: 0, totalSales: 0, totalCount: 0, monthSales: 0, monthCount: 0,
+        offlineSales: 0, offlineCount: 0, onlineSales: 0, onlineCount: 0,
+        dineInSales: 0, dineInCount: 0, quickSales: 0, quickCount: 0, takeawaySales: 0, takeawayCount: 0,
+        deliverySales: 0, deliveryCount: 0,
+        totalTax: 0, totalDiscount: 0,
+        todayCreditSales: 0, totalCreditSales: 0,
+        cancelledSales: 0, cancelledCount: 0,
+        freeSales: 0, freeCount: 0,
+        deletedSales: 0, deletedCount: 0,
+        cancelledOnlineSales: 0, cancelledOnlineCount: 0,
+        cancelledDigitalSales: 0, cancelledDigitalCount: 0,
+        totalTaxOnline: 0, totalDiscountOnline: 0,
+        avgSalePerPerson: '0.00', paymentBreakdown: []
+      });
       setTopItems([]);
       setPieItems([]);
       setLineData([]);
@@ -5088,8 +5101,20 @@ const UniversalPOS = () => {
       setCustomRejectionReason("");
       setIsManagingPresets(false);
       setNewPresetInput("");
-      setSaveToPresets(false);
       setNextBillNo(1);
+      setRecentOrders([]);
+      setTableBills({});
+      setTableCarts({});
+      setTableStatuses({});
+      setTableBillNumbers({});
+      setTableActiveTimestamps({});
+      setTableCustomers({});
+      setDineInCart([]);
+      setPickupCart([]);
+      setQuickCart([]);
+      setPreOrderCart([]);
+      setCart([]);
+      setCustomerDb({});
 
       toast.info("Local sales and shift data successfully cleared.");
     }
@@ -5138,8 +5163,10 @@ const UniversalPOS = () => {
         if (t.is_temporary && t.original_order_type !== 'DINE_IN') return false;
       } else if (orderType === 'PICKUP') {
         if (t.is_temporary && t.original_order_type !== 'PICKUP') return false;
+      } else if (orderType === 'PRE_ORDER') {
+        if (t.is_temporary && t.original_order_type !== 'PRE_ORDER') return false;
       } else {
-        if (t.is_temporary && t.original_order_type === 'PRE_ORDER') return false;
+        if (t.is_temporary) return false;
       }
       if (orderType === 'DINE_IN' && activeDepartment !== 'All') {
         if (t.department_name !== activeDepartment) return false;
@@ -6181,7 +6208,7 @@ const UniversalPOS = () => {
         const unsyncedOrders = recentOrders.filter(o => o.synced === false || String(o.id).startsWith('L-'));
         if (unsyncedOrders.length > 0) {
           toast.info(`🔄 Back online! Syncing ${unsyncedOrders.length} offline order(s)...`, { autoClose: 3000 });
-          await handleSyncBills();
+          await handleSyncBills(true);
         }
       } catch (err) {
         console.warn("[OFFLINE-SYNC] Auto-sync failed:", err);
@@ -6829,6 +6856,17 @@ const UniversalPOS = () => {
       await fetchDashboardStatsFromServer();
     } catch (e) {
       console.warn("initApp - Failed to load dashboard stats:", e);
+    }
+
+    // 12. Auto-sync offline orders on startup if online
+    try {
+      const unsynced = recentOrders.filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
+      if (unsynced.length > 0) {
+        console.log(`[INIT-SYNC] Found ${unsynced.length} unsynced orders. Starting background sync...`);
+        handleSyncBills(true);
+      }
+    } catch (syncErr) {
+      console.warn("[INIT-SYNC] Background sync failed:", syncErr);
     }
   };
 
@@ -8417,9 +8455,16 @@ const UniversalPOS = () => {
             synced: true
           };
           setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? serverOrder : o));
+          if (type === 'SAVE') {
+            setEditingOrder(serverOrder);
+          }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
         } else {
-          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, synced: true } : o));
+          const syncedOrder = { ...newOrder, synced: true };
+          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? syncedOrder : o));
+          if (type === 'SAVE') {
+            setEditingOrder(syncedOrder);
+          }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
         }
       }
@@ -9647,10 +9692,26 @@ const UniversalPOS = () => {
     setCouponCode(restoredCustomer.couponCode || '');
     // isRestoringCustomerRef.current is cleared automatically by the commit-phase useEffect
 
-    if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {
-      setCart([...tableBills[table.id]]);
+    const pendingOrder = (recentOrders || []).find(o => 
+      o && 
+      String(o.table_id || o.table_number) === String(table.id) && 
+      String(o.status).toUpperCase() === 'PENDING'
+    );
+
+    if (pendingOrder) {
+      setEditingOrder(pendingOrder);
+      setCart(Array.isArray(pendingOrder.items) ? pendingOrder.items : JSON.parse(pendingOrder.items || '[]'));
+      setCustomerName(pendingOrder.customer_name || 'POS Guest');
+      setCustomerPhone(pendingOrder.customer_phone || '');
+      setCustomerAddress(pendingOrder.address || '');
     } else {
-      setCart(tableCarts[table.id] || []);
+      setEditingOrder(null);
+      const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;
+      if (hasSavedBills) {
+        setCart([...tableBills[table.id]]);
+      } else {
+        setCart(tableCarts[table.id] || []);
+      }
     }
 
     if (activeTab !== 'live') {
@@ -10207,8 +10268,8 @@ const UniversalPOS = () => {
                       </button>
                       <div className="flex-1 flex justify-center gap-2">
                         {[
-                          { label: 'Filter tables', onClick: handleFilterTables, show: orderType === 'DINE_IN' && posSettings.separateView },
-                          { label: 'Change Table', onClick: handleChangeTable, show: orderType === 'DINE_IN' && posSettings.separateView },
+                          { label: 'Filter tables', onClick: handleFilterTables, show: true },
+                          { label: 'Change Table', onClick: handleChangeTable, show: true },
                           { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
                           { label: 'Refresh', onClick: localRefresh, show: true },
                           { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
@@ -10307,9 +10368,9 @@ const UniversalPOS = () => {
                          />)}
                          <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
                        </div>
-                       {/* Top Section: Tables Selector (Visible in Dine In mode) */}
-                       {orderType === 'DINE_IN' && (
-<div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
+                       {/* Top Section: Tables Selector (Visible in Dine In, Pickup, and Pre Order modes) */}
+                       {['DINE_IN', 'PICKUP', 'PRE_ORDER'].includes(orderType) && (
+                         <div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
                              {/* Department tabs */}
                              {posSettings.showTableDepartments && (
                                 <div className={`h-8 border-b flex items-center gap-2 px-3 shrink-0 overflow-x-auto no-scrollbar ${isDark ? 'border-[#30363d]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
@@ -10394,7 +10455,7 @@ const UniversalPOS = () => {
                        )}
 
                        {/* Action Bar (in between tables and menu) */}
-                       {orderType === 'DINE_IN' && (
+                       {['DINE_IN', 'PICKUP', 'QUICK', 'PRE_ORDER'].includes(orderType) && (
                           <div className={`h-10 border-b flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
                              <div className="flex-1 flex justify-center gap-1.5">
                                 {[
@@ -10696,6 +10757,42 @@ const UniversalPOS = () => {
                             {renderPreOrderTempTables()}
                           </div>
 
+                           {/* Bottom Action Bar for Tables view in separate view */}
+                           <div className={`h-11 border-t px-4 flex items-center justify-between shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
+                             <button
+                               onClick={() => setBillingView('menu')}
+                               className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
+                                 isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
+                               }`}
+                               title="View Menu"
+                             >
+                               <LayoutGrid size={20}/>
+                             </button>
+                             <div className="flex-1 flex justify-center gap-2">
+                               {[
+                                 { label: 'Filter tables', onClick: handleFilterTables, show: true },
+                                 { label: 'Change Table', onClick: handleChangeTable, show: true },
+                                 { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
+                                 { label: 'Refresh', onClick: localRefresh, show: true },
+                                 { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
+                               ].filter(btn => btn.show).map(btn => (
+                                 <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
+                                   {btn.label}
+                                 </button>
+                               ))}
+                             </div>
+                             <div className="ml-auto flex items-center gap-2">
+                               <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
+                               <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
+                               <div className="relative flex items-center justify-center">
+                                 <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
+                                 <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
+                                   LIVE
+                                 </span>
+                               </div>
+                             </div>
+                           </div>
+
                         </>
                       ) : (
                         <>
@@ -10969,6 +11066,7 @@ const UniversalPOS = () => {
                             if (tab.key === 'PRE_ORDER') {
                               setActiveTrayTab('PreOrder');
                               setPreOrderSubTab('KOT');
+                              setOrderType('PRE_ORDER');
                               setBillingView('menu');
                               // Load pre-order cart
                               setCart([...preOrderCart]);
@@ -11214,17 +11312,21 @@ const UniversalPOS = () => {
                       <>
                         {orderType === 'DINE_IN' && activeTrayTab === 'KOT' && (
                           <>
-                            <span className="text-[13px]">{selectedTable?.table_name || 'Table2'}</span>
-                            <span className="text-[13px] tracking-widest">K O T   {tableBillNumbers[selectedTable?.id] || lastKOTId || '6'}</span>
-                            <button className="border border-white/80 hover:bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-white transition-colors">
-                              Remote KOT
-                            </button>
+                            <span className="text-[13px]">{selectedTable ? selectedTable.table_name : 'No Table Selected'}</span>
+                            {selectedTable && (
+                              <span className="text-[13px] tracking-widest">K O T   {tableBillNumbers[selectedTable.id] || lastKOTId || '1'}</span>
+                            )}
+                            {selectedTable && (
+                              <button className="border border-white/80 hover:bg-white/10 px-2.5 py-0.5 rounded text-[10px] font-bold text-white transition-colors">
+                                Remote KOT
+                              </button>
+                            )}
                           </>
                         )}
 
                         {orderType === 'DINE_IN' && activeTrayTab === 'Billing' && (
                           <>
-                            <span className="text-[13px]">Bill {tableBillNumbers[selectedTable?.id] || '6'}</span>
+                            <span className="text-[13px]">{selectedTable ? `Bill ${tableBillNumbers[selectedTable.id] || '1'}` : 'No Active Bill'}</span>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={handleOpenOldKOT}
@@ -11236,7 +11338,7 @@ const UniversalPOS = () => {
                                 Split Bill
                               </button>
                             </div>
-                            <span className="text-[13px]">{selectedTable?.table_name || 'Table2'}</span>
+                            {selectedTable && <span className="text-[13px]">{selectedTable.table_name}</span>}
                           </>
                         )}
 

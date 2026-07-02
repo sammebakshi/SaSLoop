@@ -9,13 +9,14 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-async function checkBusinessItems() {
+async function checkSettings() {
   try {
-    const res = await pool.query("SELECT image_url, COUNT(*) FROM business_items GROUP BY image_url");
-    console.log('business_items Image URLs Breakdown:');
-    res.rows.forEach(r => {
-        console.log(`- URL: "${r.image_url}", Count: ${r.count}`);
-    });
+    const res = await pool.query('SELECT settings FROM restaurants WHERE user_id = 55');
+    if (res.rows.length > 0) {
+      console.log('Settings for user 55:', JSON.stringify(res.rows[0].settings, null, 2));
+    } else {
+      console.log('No restaurant found for user 55');
+    }
   } catch (err) {
     console.error('Database query error:', err.message);
   } finally {
@@ -23,4 +24,4 @@ async function checkBusinessItems() {
   }
 }
 
-checkBusinessItems();
+checkSettings();

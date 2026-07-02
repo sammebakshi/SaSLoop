@@ -11,7 +11,8 @@ router.post("/", authMiddleware, async (req, res) => {
       customer_name, customer_number, customer_address,
       items, total_price, advance_paid,
       scheduled_date, scheduled_time,
-      order_type, table_number, notes
+      order_type, table_number, notes,
+      discount, coupon_code, coupon_discount, points_redeemed, points_discount
     } = req.body;
 
     const advancePaid = parseFloat(advance_paid) || 0;
@@ -23,8 +24,10 @@ router.post("/", authMiddleware, async (req, res) => {
         user_id, customer_name, customer_number, customer_address,
         items, total_price, advance_paid, balance_due,
         scheduled_date, scheduled_time,
-        order_type, table_number, status, notes, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW()) RETURNING *`,
+        order_type, table_number, status, notes,
+        discount, coupon_code, coupon_discount, points_redeemed, points_discount,
+        created_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, NOW()) RETURNING *`,
       [
         userId,
         customer_name || 'Walk-in',
@@ -39,7 +42,12 @@ router.post("/", authMiddleware, async (req, res) => {
         order_type || 'PICKUP',
         table_number || '',
         'SCHEDULED',
-        notes || ''
+        notes || '',
+        parseFloat(discount) || 0,
+        coupon_code || null,
+        parseFloat(coupon_discount) || 0,
+        parseInt(points_redeemed) || 0,
+        parseFloat(points_discount) || 0
       ]
     );
 
@@ -80,7 +88,8 @@ router.put("/:id", authMiddleware, async (req, res) => {
       customer_name, customer_number, customer_address,
       items, total_price, advance_paid,
       scheduled_date, scheduled_time,
-      order_type, table_number, notes
+      order_type, table_number, notes,
+      discount, coupon_code, coupon_discount, points_redeemed, points_discount
     } = req.body;
 
     const advancePaid = parseFloat(advance_paid) || 0;
@@ -92,8 +101,10 @@ router.put("/:id", authMiddleware, async (req, res) => {
         customer_name = $1, customer_number = $2, customer_address = $3,
         items = $4, total_price = $5, advance_paid = $6, balance_due = $7,
         scheduled_date = $8, scheduled_time = $9,
-        order_type = $10, table_number = $11, notes = $12
-      WHERE id = $13 AND user_id = $14 RETURNING *`,
+        order_type = $10, table_number = $11, notes = $12,
+        discount = $13, coupon_code = $14, coupon_discount = $15,
+        points_redeemed = $16, points_discount = $17
+      WHERE id = $18 AND user_id = $19 RETURNING *`,
       [
         customer_name || 'Walk-in',
         customer_number || '',
@@ -104,6 +115,11 @@ router.put("/:id", authMiddleware, async (req, res) => {
         order_type || 'PICKUP',
         table_number || '',
         notes || '',
+        parseFloat(discount) || 0,
+        coupon_code || null,
+        parseFloat(coupon_discount) || 0,
+        parseInt(points_redeemed) || 0,
+        parseFloat(points_discount) || 0,
         id, userId
       ]
     );

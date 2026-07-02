@@ -150,7 +150,8 @@ router.post("/", authMiddleware, async (req, res) => {
         paid_amount, credit_amount, order_reference, waiter_id,
         source, charge_details,
         pre_order_scheduled_date, pre_order_scheduled_time,
-        coupon_code, rider_id, points_redeemed
+        coupon_code, rider_id, points_redeemed,
+        created_at
     } = req.body;
 
     const parsedPreOrderId = (pre_order_id && !isNaN(parseInt(pre_order_id))) ? parseInt(pre_order_id) : null;
@@ -208,7 +209,7 @@ router.post("/", authMiddleware, async (req, res) => {
               total_price = $4, payment_method = $5, status = $6, payment_status = $7,
               discount_amount = $8, tax_cgst = $9, tax_sgst = $10, tip_amount = $11,
               paid_amount = $12, credit_amount = $13, waiter_id = $14, charge_details = $15,
-              source = $16, table_number = $17, order_type = $18, coupon_code = $20, rider_id = $21, redeemed_points = $22, created_at = NOW()
+              source = $16, table_number = $17, order_type = $18, coupon_code = $20, rider_id = $21, redeemed_points = $22, created_at = COALESCE($23::timestamp, created_at, NOW())
              WHERE id = $19 RETURNING *, 
                (SELECT COALESCE(name, username) FROM app_users WHERE id = waiter_id) as waiter_name,
                (SELECT name FROM delivery_partners WHERE id = rider_id) as rider_name,
@@ -224,7 +225,8 @@ router.post("/", authMiddleware, async (req, res) => {
               existingOrder.id,
               coupon_code || null,
               rider_id || null,
-              parseInt(points_redeemed) || 0
+              parseInt(points_redeemed) || 0,
+              created_at || null
             ]
           );
 
@@ -384,7 +386,7 @@ router.post("/", authMiddleware, async (req, res) => {
         total_price, payment_method, status, payment_status, 
         table_number, address, source, discount_amount, tax_cgst, tax_sgst, tip_amount, bill_no, order_type, delivery_charge, service_charge,
         pre_order_id, pre_order_advance, pre_order_balance, paid_amount, credit_amount, waiter_id, charge_details, device_id, pre_order_scheduled_date, pre_order_scheduled_time, coupon_code, rider_id, redeemed_points, created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, NOW()) RETURNING *, 
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24, $25, $26, $27, $28, $29, $30, $31, $32, $33, $34, COALESCE($35::timestamp, NOW())) RETURNING *, 
         (SELECT COALESCE(name, username) FROM app_users WHERE id = waiter_id) as waiter_name,
         (SELECT name FROM delivery_partners WHERE id = rider_id) as rider_name,
         (SELECT phone FROM delivery_partners WHERE id = rider_id) as rider_phone`,
@@ -404,7 +406,8 @@ router.post("/", authMiddleware, async (req, res) => {
         pre_order_scheduled_time || null,
         coupon_code || null,
         rider_id || null,
-        parseInt(points_redeemed) || 0
+        parseInt(points_redeemed) || 0,
+        created_at || null
       ]
     );
 

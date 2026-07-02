@@ -9,13 +9,11 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-async function checkBusinessItems() {
+async function checkOrders() {
   try {
-    const res = await pool.query("SELECT image_url, COUNT(*) FROM business_items GROUP BY image_url");
-    console.log('business_items Image URLs Breakdown:');
-    res.rows.forEach(r => {
-        console.log(`- URL: "${r.image_url}", Count: ${r.count}`);
-    });
+    const res = await pool.query('SELECT id, bill_no, total_price, status, created_at, source FROM orders ORDER BY id DESC LIMIT 20');
+    console.log('Recent Orders:');
+    console.table(res.rows);
   } catch (err) {
     console.error('Database query error:', err.message);
   } finally {
@@ -23,4 +21,4 @@ async function checkBusinessItems() {
   }
 }
 
-checkBusinessItems();
+checkOrders();

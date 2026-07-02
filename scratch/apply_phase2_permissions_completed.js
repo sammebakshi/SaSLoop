@@ -425,43 +425,48 @@ replaceExactlyOnce(
 
 // 8. WhatsApp Invoice Button next to Printer Icon, and QuickBill Eye Preview check
 replaceExactlyOnce(
-`<div className="flex items-center gap-4">
-<button
-onClick={handleShowBillPreview}
-className="hover:text-slate-100 transition-colors"
->
-<Eye size={20} strokeWidth={2.5} />
-</button>
-<button
-onClick={() => handleCheckout('PRINT')}
-className="transition-colors hover:text-slate-100"
->
-<Printer size={20} strokeWidth={2.5} />
-</button>`,
-`<div className="flex items-center gap-4">
-  {!(orderType === 'QUICK' && getStaffPermissions()?.pos_access?.QuickBill?.show_preview === false) && (
-    <button
-      onClick={handleShowBillPreview}
-      className="hover:text-slate-100 transition-colors"
-    >
-      <Eye size={20} strokeWidth={2.5} />
-    </button>
-  )}
-  <button
-    onClick={() => handleCheckout('PRINT')}
-    className="transition-colors hover:text-slate-100"
-  >
-    <Printer size={20} strokeWidth={2.5} />
-  </button>
-  {checkBillingPermission('send_bill') && (
-    <button
-      onClick={handleSendWhatsAppInvoice}
-      className="transition-colors hover:text-slate-100"
-      title="Send WhatsApp Invoice"
-    >
-      <MessageSquare size={20} strokeWidth={2.5} />
-    </button>
-  )}`,
+`                    {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() => handleCheckout('PRINT')}
+                          className="transition-colors hover:text-slate-100"
+                        >
+                          <Printer size={20} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    )}`,
+`                    {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
+                      <div className="flex items-center gap-4">
+                        {!(orderType === 'QUICK' && getStaffPermissions()?.pos_access?.QuickBill?.show_preview === false) && checkBillingPermission('preview') && (
+                          <button
+                            onClick={() => {
+                              if (checkBillingPasscode('preview', "Enter Manager PIN to preview bill:")) {
+                                handleShowBillPreview();
+                              }
+                            }}
+                            className="hover:text-slate-100 transition-colors"
+                            title="View Bill Preview"
+                          >
+                            <Eye size={20} strokeWidth={2.5} />
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleCheckout('PRINT')}
+                          className="transition-colors hover:text-slate-100"
+                        >
+                          <Printer size={20} strokeWidth={2.5} />
+                        </button>
+                        {checkBillingPermission('send_bill') && (
+                          <button
+                            onClick={handleSendWhatsAppInvoice}
+                            className="transition-colors hover:text-slate-100"
+                            title="Send WhatsApp Invoice"
+                          >
+                            <MessageSquare size={20} strokeWidth={2.5} />
+                          </button>
+                        )}
+                      </div>
+                    )}`,
   "8. WhatsApp Invoice and QuickBill Preview"
 );
 

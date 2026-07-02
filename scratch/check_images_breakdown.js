@@ -9,10 +9,10 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-async function checkBusinessItems() {
+async function checkImages() {
   try {
-    const res = await pool.query("SELECT image_url, COUNT(*) FROM business_items GROUP BY image_url");
-    console.log('business_items Image URLs Breakdown:');
+    const res = await pool.query("SELECT image_url, COUNT(*) FROM outlet_menu_items GROUP BY image_url");
+    console.log('Image URLs Breakdown:');
     res.rows.forEach(r => {
         console.log(`- URL: "${r.image_url}", Count: ${r.count}`);
     });
@@ -23,4 +23,4 @@ async function checkBusinessItems() {
   }
 }
 
-checkBusinessItems();
+checkImages();

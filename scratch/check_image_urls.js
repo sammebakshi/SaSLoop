@@ -9,12 +9,12 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-async function checkBusinessItems() {
+async function checkImages() {
   try {
-    const res = await pool.query("SELECT image_url, COUNT(*) FROM business_items GROUP BY image_url");
-    console.log('business_items Image URLs Breakdown:');
+    const res = await pool.query('SELECT id, item_name, image_url FROM outlet_menu_items WHERE image_url IS NOT NULL AND image_url != \'\' LIMIT 10');
+    console.log('Sample Image URLs from DB:');
     res.rows.forEach(r => {
-        console.log(`- URL: "${r.image_url}", Count: ${r.count}`);
+        console.log(`- Item: "${r.item_name}", Image URL: "${r.image_url}"`);
     });
   } catch (err) {
     console.error('Database query error:', err.message);
@@ -23,4 +23,4 @@ async function checkBusinessItems() {
   }
 }
 
-checkBusinessItems();
+checkImages();

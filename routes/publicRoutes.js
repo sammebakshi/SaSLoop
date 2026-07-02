@@ -688,4 +688,9 @@ router.post("/reservation", async (req, res) => {
     }
 });
 
+// 🕒 GET SERVER TIME (Internet clock backup)
+router.get("/time", async (req, res) => {
+    res.json({ time: new Date().toISOString() });
+});
+
 module.exports = router;

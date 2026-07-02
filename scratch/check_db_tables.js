@@ -9,18 +9,21 @@ const pool = new Pool({
   port: process.env.DB_PORT || 5432,
 });
 
-async function checkBusinessItems() {
+async function checkTables() {
   try {
-    const res = await pool.query("SELECT image_url, COUNT(*) FROM business_items GROUP BY image_url");
-    console.log('business_items Image URLs Breakdown:');
-    res.rows.forEach(r => {
-        console.log(`- URL: "${r.image_url}", Count: ${r.count}`);
-    });
+    const res = await pool.query(`
+      SELECT table_name 
+      FROM information_schema.tables 
+      WHERE table_schema = 'public' 
+      ORDER BY table_name
+    `);
+    console.log('Tables inside DB:');
+    console.table(res.rows);
   } catch (err) {
-    console.error('Database query error:', err.message);
+    console.error('Error:', err.message);
   } finally {
     await pool.end();
   }
 }
 
-checkBusinessItems();
+checkTables();
