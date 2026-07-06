@@ -83,124 +83,51 @@ router.post("/ai-scan", authMiddleware, async (req, res) => {
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const ownerId = req.user.bizId;
-
-        // Check if there are any outlet menus defined for this user/outlet
-        const activeMenuCheck = await pool.query(
-            `SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $1`,
-            [ownerId]
-        );
-
-        if (activeMenuCheck.rows.length === 0) {
-            // Legacy / Fallback mode: No menus configured, return all business items
-            const result = await pool.query(
-                `SELECT bi.id, 
-                        bi.user_id,
-                        bi.code, 
-                        bi.product_name, 
-                        bi.product_name as name, 
-                        bi.price, 
-                        bi.availability, 
-                        bi.image_url, 
-                        bi.description, 
-                        bi.tax_applicable,
-                        bi.is_veg,
-                        CASE WHEN bi.is_veg = true THEN 'veg' ELSE 'non-veg' END as food_type,
-                        bi.stock_count,
-                        bi.tax_percent,
-                        bi.variants,
-                        bi.modifiers,
-                        bi.kot_category,
-                        bi.hsn_code,
-                        bi.barcode,
-                        bi.cost_price,
-                        bi.category,
-                        bi.sub_category,
-                        bi.sale_price_2,
-                        bi.sale_price_3,
-                        (
-                          SELECT jsonb_object_agg(order_type, price)
-                          FROM item_multiple_pricing
-                          WHERE item_id = bi.id
-                        ) as multiple_pricing
-                 FROM business_items bi
-                 WHERE bi.user_id = $1
-                   AND NOT EXISTS (
-                     SELECT 1 FROM outlet_menu_items omi
-                     WHERE omi.short_code = bi.code
-                       AND bi.code IS NOT NULL AND bi.code != ''
-                       AND omi.item_type = '1'
-                   )
-                 ORDER BY bi.id ASC`,
-                [ownerId]
-            );
-            return res.json(result.rows);
-        }
-
-        // Menus exist, resolve all POS-default menus
-        const posMenuRes = await pool.query(
-            `SELECT id FROM outlet_menus 
-             WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true`,
-            [ownerId]
-        );
-
-        if (posMenuRes.rows.length === 0) {
-            // Menus exist but none is marked as POS default -> return empty catalog
-            return res.json([]);
-        }
-
-        const menuIds = posMenuRes.rows.map(row => row.id);
-
-        // Fetch items matching any of these menus
-        // Prioritize joins on:
-        // 1. omi.item_id = bi.id
-        // 2. omi.short_code = bi.code
-        // 3. omi.item_name = bi.product_name
-        // Use DISTINCT ON (bi.id) to prevent duplicate items if shared across multiple active menus
+        console.log(`[CATALOG] Fetching full catalog for business ${ownerId}`);
         const result = await pool.query(
-            `SELECT DISTINCT ON (bi.id)
-                    bi.id, 
+            `SELECT bi.id, 
                     bi.user_id,
-                    COALESCE(omi.short_code, bi.code) as code, 
-                    omi.item_name as product_name, 
-                    omi.item_name as name, 
-                    omi.base_price as price, 
-                    omi.is_active as availability, 
-                    COALESCE(omi.image_url, bi.image_url) as image_url, 
-                    COALESCE(omi.description, bi.description) as description, 
+                    bi.code, 
+                    bi.product_name, 
+                    bi.product_name as name, 
+                    bi.price, 
+                    bi.availability, 
+                    bi.image_url, 
+                    bi.description, 
                     bi.tax_applicable,
-                    CASE WHEN omi.food_type = 'veg' THEN true ELSE false END as is_veg,
-                    omi.food_type,
-                    omi.stock_qty as stock_count,
+                    bi.is_veg,
+                    CASE WHEN bi.is_veg = true THEN 'veg' ELSE 'non-veg' END as food_type,
+                    bi.stock_count,
                     bi.tax_percent,
                     bi.variants,
                     bi.modifiers,
                     bi.kot_category,
-                    COALESCE(omi.hsn_code, bi.hsn_code) as hsn_code,
+                    bi.hsn_code,
                     bi.barcode,
                     bi.cost_price,
-                    COALESCE(c.name, bi.category) as category,
+                    bi.category,
                     bi.sub_category,
-                    omi.sale_price_2,
-                    omi.sale_price_3,
+                    bi.sale_price_2,
+                    bi.sale_price_3,
                     (
                       SELECT jsonb_object_agg(order_type, price)
                       FROM item_multiple_pricing
                       WHERE item_id = bi.id
                     ) as multiple_pricing
              FROM business_items bi
-             JOIN outlet_menu_items omi ON omi.menu_id = ANY($2) AND (
-               (omi.item_id = bi.id)
-               OR (omi.item_id IS NULL AND omi.short_code IS NOT NULL AND omi.short_code != '' AND omi.short_code = bi.code)
-               OR (omi.item_id IS NULL AND (omi.short_code IS NULL OR omi.short_code = '') AND omi.item_name = bi.product_name)
-             )
-             LEFT JOIN categories c ON omi.category_id = c.id
              WHERE bi.user_id = $1
-               AND omi.item_type = '0'
-             ORDER BY bi.id ASC, omi.id ASC`,
-            [ownerId, menuIds]
+               AND NOT EXISTS (
+                 SELECT 1 FROM outlet_menu_items omi
+                 WHERE omi.short_code = bi.code
+                   AND bi.code IS NOT NULL AND bi.code != ''
+                   AND omi.item_type = '1'
+               )
+             ORDER BY bi.id ASC`,
+            [ownerId]
         );
         res.json(result.rows);
     } catch (err) {
+        console.error("[CATALOG-ERROR] Failed to fetch catalog:", err);
         res.status(500).json({ error: err.message });
     }
 });

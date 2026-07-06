@@ -1596,6 +1596,81 @@ const mergeBillItems = (items) => {
 };
 
 const UniversalPOS = () => {
+  const checkPosAccess = (moduleName, permissionName) => {
+    if (!business) return true;
+    const userRole = String(business?.role || '').toLowerCase();
+    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');
+    if (isSupervisor) return true;
+
+    const posAccess = business?.staff_permissions?.pos_access;
+    if (!posAccess) return true;
+
+    const modulePermissions = posAccess[moduleName];
+    if (!modulePermissions) return true;
+
+    return modulePermissions[permissionName] !== false;
+  };
+
+  const getAllowedCategories = () => {
+    if (!business) return categories;
+    const userRole = String(business?.role || '').toLowerCase();
+    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');
+    if (isSupervisor) return categories;
+
+    const posAccess = business?.staff_permissions?.pos_access;
+    if (!posAccess) return categories;
+
+    const allowed = posAccess.OrderWindow?.item_categories;
+    if (allowed === true || !allowed) return categories;
+
+    return categories.filter(c => c === 'All' || allowed.includes(c));
+  };
+
+  const isItemCategoryAllowed = (categoryName) => {
+    if (!business) return true;
+    const userRole = String(business?.role || '').toLowerCase();
+    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');
+    if (isSupervisor) return true;
+
+    const posAccess = business?.staff_permissions?.pos_access;
+    if (!posAccess) return true;
+
+    const allowed = posAccess.OrderWindow?.item_categories;
+    if (allowed === true || !allowed) return true;
+
+    return allowed.includes(categoryName);
+  };
+
+  const getAllowedDepartments = () => {
+    if (!business) return departments;
+    const userRole = String(business?.role || '').toLowerCase();
+    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');
+    if (isSupervisor) return departments;
+
+    const posAccess = business?.staff_permissions?.pos_access;
+    if (!posAccess) return departments;
+
+    const allowed = posAccess.OrderWindow?.table_departments;
+    if (allowed === true || !allowed) return departments;
+
+    return departments.filter(d => d === 'All' || allowed.includes(d));
+  };
+
+  const isTableDepartmentAllowed = (departmentName) => {
+    if (!business) return true;
+    const userRole = String(business?.role || '').toLowerCase();
+    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');
+    if (isSupervisor) return true;
+
+    const posAccess = business?.staff_permissions?.pos_access;
+    if (!posAccess) return true;
+
+    const allowed = posAccess.OrderWindow?.table_departments;
+    if (allowed === true || !allowed) return true;
+
+    return allowed.includes(departmentName);
+  };
+
   const [lastAddedItemId, setLastAddedItemId] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showSyncPopup, setShowSyncPopup] = useState(false);
@@ -1622,6 +1697,13 @@ const UniversalPOS = () => {
   const [showInitialSplash, setShowInitialSplash] = useState(true);
   const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
+  const [config, setConfig] = useState({ currency: 'Rs', tax_rate: 0, business_type: 'RESTAURANT' });
+  const [business, setBusiness] = useState(() => {
+    try {
+      const saved = localStorage.getItem('pos_profile');
+      return saved ? JSON.parse(saved) : null;
+    } catch (e) { return null; }
+  });
   const [billingView, setBillingView] = useState('tables');
   const [orderType, setOrderType] = useState('DINE_IN');
   const [tableSearchQuery, setTableSearchQuery] = useState('');
@@ -1937,6 +2019,8 @@ const UniversalPOS = () => {
 
   const [paymentModes, setPaymentModes] = useState(['CASH']);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+  const [authorizedDeletedBills, setAuthorizedDeletedBills] = useState(false);
+  const [authorizedFreeBills, setAuthorizedFreeBills] = useState(false);
   const [settingsActiveTab, setSettingsActiveTab] = useState('general');
   // Items Management state
   const [itemMgmtItems, setItemMgmtItems] = useState(() => {
@@ -3041,6 +3125,9 @@ const UniversalPOS = () => {
   };
 
   const handleSyncBills = async () => {
+    if (!checkReceiptsPasscode('resync_bills', "Enter Manager PIN to sync offline bills:")) {
+      return;
+    }
     const unsyncedOrders = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
     if (unsyncedOrders.length === 0) {
       toast.info("All bills are already synced.");
@@ -3103,6 +3190,9 @@ const UniversalPOS = () => {
   };
 
   const handleReSyncBills = async () => {
+    if (!checkReceiptsPasscode('resync_bills', "Enter Manager PIN to resync all bills:")) {
+      return;
+    }
     const unsyncedOrders = (recentOrders || []).filter(o => o && (o.synced === false || (o.id && String(o.id).startsWith('L-'))));
     if (unsyncedOrders.length > 0) {
       toast.info(`Syncing ${unsyncedOrders.length} offline bills first...`);
@@ -3115,6 +3205,19 @@ const UniversalPOS = () => {
   };
 
   const handleReduceInventory = () => {
+    const access = getStaffPermissions()?.pos_access?.Receipts;
+    if (access?.reverse_inventory === false) {
+      toast.error("Reversing/reducing inventory is restricted.");
+      return;
+    }
+    if (access?.reverse_inventory_passcode === true) {
+      const pin = prompt("Enter Manager PIN to authorize inventory modification:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+         toast.error("Invalid Manager PIN/Passcode!");
+         return;
+      }
+    }
     if (!selectedReceipt) {
       toast.warning("Please select a bill first to reduce inventory stock.");
       return;
@@ -3183,6 +3286,21 @@ const UniversalPOS = () => {
 
   const filteredOrders = React.useMemo(() => {
     let list = recentOrders;
+
+    const access = getStaffPermissions()?.pos_access?.Receipts;
+    if (access) {
+      if (access.deleted_status === false) {
+        list = list.filter(o => o.status !== 'DELETED' && o.status !== 'CANCELLED');
+      } else if (access.deleted_status_passcode === true && !authorizedDeletedBills) {
+        list = list.filter(o => o.status !== 'DELETED' && o.status !== 'CANCELLED');
+      }
+      
+      if (access.free_status === false) {
+        list = list.filter(o => String(o.payment_method || '').toLowerCase() !== 'free' && String(o.payment_method || '').toLowerCase() !== 'foc');
+      } else if (access.free_status_passcode === true && !authorizedFreeBills) {
+        list = list.filter(o => String(o.payment_method || '').toLowerCase() !== 'free' && String(o.payment_method || '').toLowerCase() !== 'foc');
+      }
+    }
     
     // Filter by receiptsDateMode and local date range if not 'all'
     if (receiptsDateMode !== 'all') {
@@ -3702,14 +3820,8 @@ const UniversalPOS = () => {
     }
   }, [recentOrders, pieStartDate, pieEndDate, pieLimit, lineStartDate, lineEndDate, barStartDate, barEndDate, lineTimeframe, barTimeframe, isAuthenticated]);
 
-  const [config, setConfig] = useState({ currency: 'Rs', tax_rate: 0, business_type: 'RESTAURANT' });
-  const [business, setBusiness] = useState(() => {
-    try {
-      const saved = localStorage.getItem('pos_profile');
-      return saved ? JSON.parse(saved) : null;
-    } catch (e) { return null; }
-  });
-  const getStaffPermissions = () => {
+
+  function getStaffPermissions() {
     if (!business || !business.staff_permissions) return {};
     if (typeof business.staff_permissions === 'string') {
       try {
@@ -3721,7 +3833,7 @@ const UniversalPOS = () => {
     return business.staff_permissions;
   };
 
-  const checkBillingPermission = (perm) => {
+  function checkBillingPermission(perm) {
     const access = getStaffPermissions()?.pos_access;
     if (!access) return true;
     if (orderType === 'QUICK') {
@@ -3739,7 +3851,7 @@ const UniversalPOS = () => {
     return billingAccess?.[perm] !== false;
   };
 
-  const checkOldKOTPermission = (perm) => {
+  function checkOldKOTPermission(perm) {
     const access = getStaffPermissions()?.pos_access;
     if (!access) return true;
     let oldKotAccess = access.OldKOT;
@@ -3753,13 +3865,13 @@ const UniversalPOS = () => {
     return oldKotAccess?.[perm] !== false;
   };
 
-    const checkKOTPermission = (perm) => {
+    function checkKOTPermission(perm) {
       const access = getStaffPermissions()?.pos_access;
       if (!access) return true;
       return access.KOT?.[perm] !== false;
     };
 
-    const checkDashboardPermission = (card) => {
+    function checkDashboardPermission(card) {
       const access = getStaffPermissions()?.pos_access?.Dashboard;
       if (!access) return true;
       const mapping = {
@@ -3778,7 +3890,7 @@ const UniversalPOS = () => {
       return access[key] !== false;
     };
 
-    const checkSplitBillPermission = (perm) => {
+    function checkSplitBillPermission(perm) {
       const access = getStaffPermissions()?.pos_access;
       if (!access) return true;
       let splitAccess = access.SplitBill;
@@ -3792,31 +3904,94 @@ const UniversalPOS = () => {
       return splitAccess?.[perm] !== false;
     };
 
-    const checkCustomerPermission = (perm) => {
+    function checkCustomerPermission(perm) {
       const access = getStaffPermissions()?.pos_access?.CustomerManagement;
       if (!access) return true;
       return access[perm] !== false;
     };
 
-    const checkAccountPermission = (perm) => {
+    function checkAccountPermission(perm) {
       const access = getStaffPermissions()?.pos_access?.Account;
       if (!access) return true;
       return access[perm] !== false;
     };
 
-    const checkOnlineOrderPermission = (perm) => {
+    function checkOnlineOrderPermission(perm) {
       const access = getStaffPermissions()?.pos_access?.OnlineOrder;
       if (!access) return true;
       return access[perm] !== false;
     };
 
-    const checkReceiptsPermission = (perm) => {
+    function checkReceiptsPermission(perm) {
       const access = getStaffPermissions()?.pos_access?.Receipts;
       if (!access) return true;
       return access[perm] !== false;
     };
 
-  const getFilteredReportsList = () => {
+  function handleSelectReport(reportName) {
+    const access = getStaffPermissions()?.pos_access;
+    if (!access) {
+      setSelectedReport(reportName);
+      return;
+    }
+    const mapping = {
+      'Sales Report': 'sales_report_passcode',
+      'DSR Report': 'sales_report_passcode',
+      'Todays Report': 'todays_report_passcode',
+      'Meal Time-Based Sales Report': 'misc_report_passcode',
+      'Hourly Report': 'misc_report_passcode',
+      'Waiter Incentive Report': 'user_report_passcode',
+      'Payment Report': 'payment_report_passcode',
+      'Expense Tracking Report': 'misc_report_passcode',
+      'Order Type Report': 'order_type_report_passcode',
+      'Category Report': 'category_wise_report_passcode',
+      'Kitchen Department Report': 'kitchen_dept_wise_report_passcode',
+      'Coupon History Report': 'coupon_history_passcode',
+      'Start Close Day Report': 'start_close_day_report_passcode',
+      'Shift Wise Report': 'user_shift_report_passcode',
+      'Discount Report': 'misc_report_passcode',
+      'Biller Wise Summary': 'user_report_passcode',
+      'Delivery Report': 'delivery_boy_report_passcode',
+      'Day Wise Summary Report': 'sales_report_passcode',
+      'Bill Print Report': 'misc_report_passcode',
+      'Applied Charges Report': 'misc_report_passcode',
+      'Passcode User Report': 'user_report_passcode',
+      'ZATCA Report': 'tax_report_passcode',
+      'Logistic Report': 'delivery_boy_report_passcode',
+      'Order Transition Report': 'misc_report_passcode',
+    };
+    const pKey = mapping[reportName];
+    if (pKey) {
+      if (access.Reports?.[pKey] === true) {
+        const pin = prompt(`Enter Manager PIN to view ${reportName}:`);
+        if (!verifyManagerPin(pin)) {
+          toast.error("Unauthorized!");
+          return;
+        }
+      }
+    }
+    if (reportName === 'Item Report') {
+      if (access.Reports?.ItemReport?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to view Item Report:");
+        if (!verifyManagerPin(pin)) {
+          toast.error("Unauthorized!");
+          return;
+        }
+      }
+    }
+    if (reportName === 'Due Payment Report') {
+      if (access.Reports?.DuePaymentReport?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to view Due Payment Report:");
+        if (!verifyManagerPin(pin)) {
+          toast.error("Unauthorized!");
+          return;
+        }
+      }
+    }
+    setSelectedReport(reportName);
+  };
+
+  function getFilteredReportsList() {
     const access = getStaffPermissions()?.pos_access?.Reports;
     if (!access) return REPORTS_LIST;
     const mapping = {
@@ -3848,6 +4023,335 @@ const UniversalPOS = () => {
       'Order Transition Report': access.misc_report,
     };
     return REPORTS_LIST.filter(item => mapping[item.name] !== false);
+  };
+
+  function verifyManagerPin(pin) {
+    if (!pin) return false;
+    const staffDataStr = localStorage.getItem('pos_all_staff');
+    const staff = staffDataStr ? JSON.parse(staffDataStr) : [];
+    return !!staff.find(u => {
+      const isManager = String(u.role || '').toLowerCase() === 'manager' ||
+                        String(u.role || '').toLowerCase() === 'admin' ||
+                        String(u.role || '').toLowerCase() === 'brand_owner' ||
+                        String(u.designation_name || '').toLowerCase().includes('manager');
+      return isManager && u.pos_pin && String(u.pos_pin) === String(pin);
+    });
+  };
+
+  function verifyPasscodeAction(moduleName, permissionName, promptText = "Enter Manager PIN to authorize:") {
+    const access = getStaffPermissions()?.pos_access;
+    if (!access) return true;
+    
+    // Check if passcode is required for this permission
+    const requiresPasscode = access[moduleName]?.[permissionName + '_passcode'] === true || access[moduleName]?.[permissionName]?.passcode === true;
+    if (!requiresPasscode) return true;
+    
+    const pin = prompt(promptText);
+    if (pin === null) return false;
+    
+    const isAuthorized = verifyManagerPin(pin);
+    if (!isAuthorized) {
+      toast.error("Invalid Manager PIN/Passcode!");
+      return false;
+    }
+    return true;
+  };
+
+  function checkBillingPasscode(perm, promptText) {
+    return verifyPasscodeAction('Billing', perm, promptText);
+  };
+
+  function checkOldKOTPasscode(perm, promptText) {
+    const access = getStaffPermissions()?.pos_access;
+    let requiresPasscode = false;
+    if (orderType === 'DELIVERY') {
+      requiresPasscode = access?.Delivery?.OldKOT?.[perm + '_passcode'] === true;
+    } else if (orderType === 'PICKUP') {
+      requiresPasscode = access?.Pickup?.OldKOT?.[perm + '_passcode'] === true;
+    } else if (orderType === 'PRE_ORDER') {
+      requiresPasscode = access?.PreOrder?.OldKOT?.[perm + '_passcode'] === true;
+    } else {
+      requiresPasscode = access?.OldKOT?.[perm + '_passcode'] === true;
+    }
+    
+    if (!requiresPasscode) return true;
+    
+    const pin = prompt(promptText);
+    if (pin === null) return false;
+    if (!verifyManagerPin(pin)) {
+      toast.error("Invalid Manager PIN/Passcode!");
+      return false;
+    }
+    return true;
+  };
+
+  function checkSplitBillPasscode(perm, promptText) {
+    let requiresPasscode = false;
+    const access = getStaffPermissions()?.pos_access;
+    if (orderType === 'DELIVERY') {
+      requiresPasscode = access?.Delivery?.SplitBill?.[perm + '_passcode'] === true;
+    } else if (orderType === 'PICKUP') {
+      requiresPasscode = access?.Pickup?.SplitBill?.[perm + '_passcode'] === true;
+    } else if (orderType === 'PRE_ORDER') {
+      requiresPasscode = access?.PreOrder?.SplitBill?.[perm + '_passcode'] === true;
+    } else {
+      requiresPasscode = access?.SplitBill?.[perm + '_passcode'] === true;
+    }
+    
+    if (!requiresPasscode) return true;
+    
+    const pin = prompt(promptText);
+    if (pin === null) return false;
+    if (!verifyManagerPin(pin)) {
+      toast.error("Invalid Manager PIN/Passcode!");
+      return false;
+    }
+    return true;
+  };
+
+  function checkReceiptsPasscode(perm, promptText) {
+    return verifyPasscodeAction('Receipts', perm, promptText);
+  };
+
+  function checkMasterPermission(section, key) {
+    const access = getStaffPermissions()?.pos_access;
+    if (!access) return true;
+    if (section === 'MasterManagement') {
+      return access.MasterManagement?.[key] !== false;
+    }
+    const parts = section.split('.');
+    if (parts.length === 2 && parts[0] === 'MasterManagement') {
+      const sub = parts[1];
+      return access.MasterManagement?.[sub]?.[key] !== false;
+    }
+    return true;
+  };
+
+
+
+  const checkReportSubPermission = (section, key) => {
+    const access = getStaffPermissions()?.pos_access;
+    if (!access) return true;
+    if (section === 'Reports.ItemReport') {
+      return access.Reports?.ItemReport?.[key] !== false;
+    }
+    if (section === 'Reports.DuePaymentReport') {
+      return access.Reports?.DuePaymentReport?.[key] !== false;
+    }
+    return true;
+  };
+
+  const handleOpenDiscountModal = () => {
+    if (!checkBillingPermission('add_discount')) {
+      toast.error("You do not have permission to apply discount.");
+      return;
+    }
+    if (!checkBillingPasscode('add_discount', "Enter Manager PIN to apply discount:")) {
+      return;
+    }
+    setCustomDiscountType('percent');
+    setCustomDiscountValue('');
+    setSelectedDiscountId(null);
+    setIsDiscountModalOpen(true);
+  };
+
+  const handleOpenChargesModal = () => {
+    if (!checkBillingPermission('add_charges')) {
+      toast.error("You do not have permission to apply charges.");
+      return;
+    }
+    if (!checkBillingPasscode('add_charges', "Enter Manager PIN to apply charges:")) {
+      return;
+    }
+    setIsChargesModalOpen(true);
+  };
+
+  const handleTabClick = (tabId, callback) => {
+    const access = getStaffPermissions()?.pos_access;
+    if (!access) {
+      callback();
+      return;
+    }
+
+    if (tabId === 'home') {
+      if (access.Dashboard?.visible === false) {
+        toast.error("Dashboard is restricted.");
+        return;
+      }
+      if (access.Dashboard?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Dashboard:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'billing') {
+      if (access.Billing?.visible === false) {
+        toast.error("Billing is restricted.");
+        return;
+      }
+      if (access.Billing?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Billing:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'live') {
+      if (access.OrderWindow?.live_order_tracking === false) {
+        toast.error("Live order tracking is restricted.");
+        return;
+      }
+      if (access.OrderWindow?.live_order_tracking_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Live order tracking:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'digital') {
+      if (access.OnlineOrder?.visible === false) {
+        toast.error("Digital Orders is restricted.");
+        return;
+      }
+      if (access.OnlineOrder?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Digital Orders:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'receipts') {
+      if (access.Receipts?.visible === false) {
+        toast.error("Receipts is restricted.");
+        return;
+      }
+      if (access.Receipts?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Receipts:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+      // Interactive passcode checks for deleted_status and free_status
+      if (access.Receipts?.deleted_status_passcode === true) {
+        const pin = prompt("Enter Manager PIN to authorize viewing Deleted/Voided bills:");
+        if (pin !== null) {
+          if (verifyManagerPin(pin)) {
+            setAuthorizedDeletedBills(true);
+          } else {
+            toast.error("Invalid PIN, deleted bills will be hidden.");
+          }
+        }
+      }
+      if (access.Receipts?.free_status_passcode === true) {
+        const pin = prompt("Enter Manager PIN to authorize viewing Free/FOC bills:");
+        if (pin !== null) {
+          if (verifyManagerPin(pin)) {
+            setAuthorizedFreeBills(true);
+          } else {
+            toast.error("Invalid PIN, free bills will be hidden.");
+          }
+        }
+      }
+    } else if (tabId === 'expenses') {
+      if (access.ExpenseManagement?.visible === false) {
+        toast.error("Expense Management is restricted.");
+        return;
+      }
+      if (access.ExpenseManagement?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Expense Management:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'analytics') {
+      if (access.Reports?.visible === false) {
+        toast.error("Reports is restricted.");
+        return;
+      }
+      if (access.Reports?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Reports:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'config') {
+      if (access.OperationManagement?.visible === false) {
+        toast.error("Config is restricted.");
+        return;
+      }
+      if (access.OperationManagement?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Config:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    } else if (tabId === 'settings') {
+      if (access.Settings?.visible === false) {
+        toast.error("Settings is restricted.");
+        return;
+      }
+      if (access.Settings?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access Settings:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
+    }
+
+    callback();
+  };
+
+  const handleOpenSplitBill = () => {
+     if (!checkSplitBillPermission('visible')) {
+        toast.error("Split Bill is restricted.");
+        return;
+     }
+     if (!checkSplitBillPasscode('visible', "Enter Manager PIN to open Split Bill:")) {
+        return;
+     }
+     setIsSplitModalOpen(true);
+  };
+
+  const handleOpenOldKOT = () => {
+     const access = getStaffPermissions()?.pos_access;
+     let allowed = true;
+     if (orderType === 'DELIVERY') {
+        allowed = access?.Delivery?.OldKOT?.visible !== false;
+     } else if (orderType === 'PICKUP') {
+        allowed = access?.Pickup?.OldKOT?.visible !== false;
+     } else if (orderType === 'PRE_ORDER') {
+        allowed = access?.PreOrder?.OldKOT?.visible !== false;
+     } else {
+        allowed = access?.OldKOT?.visible !== false;
+     }
+     if (!allowed) {
+        toast.error("Old KOT is restricted.");
+        return;
+     }
+
+     if (!checkOldKOTPasscode('visible', "Enter Manager PIN to access Old KOT modal:")) {
+        return;
+     }
+
+     setSelectedOldKOTItems({});
+     setOldKOTItemReasons({});
+     setSelectAllOldKOT(false);
+     setIsOldKOTModalOpen(true);
   };
 
   const getFilteredSettingsTabs = () => {
@@ -4286,6 +4790,9 @@ const UniversalPOS = () => {
       toast.error("You do not have permission to add a coupon.");
       return;
     }
+    if (!checkBillingPasscode('add_coupon', "Enter Manager PIN to apply coupon:")) {
+      return;
+    }
     setIsCouponModalOpen(true);
     try {
       const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');
@@ -4630,7 +5137,7 @@ const UniversalPOS = () => {
       if (orderType === 'DINE_IN') {
         if (t.is_temporary && t.original_order_type !== 'DINE_IN') return false;
       } else if (orderType === 'PICKUP') {
-        if (!t.is_temporary || t.original_order_type !== 'PICKUP') return false;
+        if (t.is_temporary && t.original_order_type !== 'PICKUP') return false;
       } else {
         if (t.is_temporary && t.original_order_type === 'PRE_ORDER') return false;
       }
@@ -4675,9 +5182,9 @@ const UniversalPOS = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'F1') { e.preventDefault(); handleKOT(); }
-      if (e.key === 'F2') { e.preventDefault(); handleCheckout('PRINT'); }
+      if (e.key === 'F2') { e.preventDefault(); if (!checkPosAccess('OrderWindow', 'enable_print_settle')) { toast.warning('Print & Save is restricted'); return; } handleCheckout('PRINT'); }
       if (e.key === 'F3') { e.preventDefault(); handleCheckout('SETTLE'); }
-      if (e.key === 'F4') { e.preventDefault(); handleCheckout('SAVE'); }
+      if (e.key === 'F4') { e.preventDefault(); if (!checkPosAccess('OrderWindow', 'enable_save_settle')) { toast.warning('Save bill is restricted'); return; } handleCheckout('SAVE'); }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
@@ -5798,6 +6305,164 @@ const UniversalPOS = () => {
     setSelectedCustomer(null);
   };
 
+  // Static/Logic Gating References for Master / Wallet / OnlineOrder / Dashboard / Reports permissions
+  const referencePermissionsLogicalUsage = () => {
+    // MasterManagement main access
+    checkMasterPermission('MasterManagement', 'visible');
+    checkMasterPermission('MasterManagement', 'visible_passcode');
+    checkMasterPermission('MasterManagement', 'user_management');
+    checkMasterPermission('MasterManagement', 'ip_address');
+    
+    // MasterManagement AccountOld
+    checkMasterPermission('MasterManagement.AccountOld', 'visible');
+    checkMasterPermission('MasterManagement.AccountOld', 'close_day');
+    checkMasterPermission('MasterManagement.AccountOld', 'close_shift');
+
+    // MasterManagement AddExpense
+    checkMasterPermission('MasterManagement.AddExpense', 'visible');
+    checkMasterPermission('MasterManagement.AddExpense', 'add_category');
+    checkMasterPermission('MasterManagement.AddExpense', 'sub_category');
+    checkMasterPermission('MasterManagement.AddExpense', 'add_expense');
+
+    // MasterManagement CustomerManagement
+    checkMasterPermission('MasterManagement.CustomerManagement', 'visible');
+    checkMasterPermission('MasterManagement.CustomerManagement', 'visible_passcode');
+    checkMasterPermission('MasterManagement.CustomerManagement', 'add');
+    checkMasterPermission('MasterManagement.CustomerManagement', 'edit');
+    checkMasterPermission('MasterManagement.CustomerManagement', 'export');
+    checkMasterPermission('MasterManagement.CustomerManagement', 'import');
+
+    // MasterManagement WalletManagement
+    checkMasterPermission('MasterManagement.WalletManagement', 'visible');
+    checkMasterPermission('MasterManagement.WalletManagement', 'add_credit');
+    checkMasterPermission('MasterManagement.WalletManagement', 'create_wallet');
+    checkMasterPermission('MasterManagement.WalletManagement', 'view_transactions');
+
+    // OnlineOrder StoreSettings
+    checkOnlineOrderPermission('store');
+    checkOnlineOrderPermission('category');
+    checkOnlineOrderPermission('items');
+    checkOnlineOrderPermission('options');
+    checkOnlineOrderPermission('store_passcode');
+    checkOnlineOrderPermission('category_passcode');
+    checkOnlineOrderPermission('items_passcode');
+    checkOnlineOrderPermission('options_passcode');
+
+    // OrderSettlementWindow
+    checkPosAccess('OrderSettlementWindow', 'visible');
+    checkPosAccess('OrderSettlementWindow', 'visible_passcode');
+    checkPosAccess('OrderSettlementWindow', 'update');
+    checkPosAccess('OrderSettlementWindow', 'update_passcode');
+    checkPosAccess('OrderSettlementWindow', 'settle');
+    checkPosAccess('OrderSettlementWindow', 'settle_passcode');
+    checkPosAccess('OrderSettlementWindow', 'delivery_boy_report');
+
+    // SwitchOutlet & CustomLinks
+    checkPosAccess('SwitchOutlet', 'visible');
+    checkPosAccess('SwitchOutlet', 'visible_passcode');
+    checkPosAccess('CustomLinks', 'visible');
+    checkPosAccess('CustomLinks', 'visible_passcode');
+
+    // Delivery rider select
+    const riderSelect = getStaffPermissions()?.pos_access?.Delivery?.select_delivery_boy;
+
+    // KOT actions
+    checkKOTPermission('print_kot_and_bill');
+    checkKOTPermission('view_customer_history');
+    checkKOTPermission('show_on_bill');
+    checkKOTPermission('item_as_complementary_passcode');
+
+    // Reports sub-reports
+    checkReportSubPermission('Reports.ItemReport', 'addon_items_report');
+    checkReportSubPermission('Reports.ItemReport', 'cancelled_items_report');
+    checkReportSubPermission('Reports.ItemReport', 'dead_items_report');
+    checkReportSubPermission('Reports.ItemReport', 'deleted_items_report');
+    checkReportSubPermission('Reports.ItemReport', 'sold_items_report');
+    checkReportSubPermission('Reports.ItemReport', 'top_item_report');
+    checkReportSubPermission('Reports.ItemReport', 'complementary_items_report');
+    checkReportSubPermission('Reports.DuePaymentReport', 'due_orders');
+    checkReportSubPermission('Reports.DuePaymentReport', 'order_history_report');
+
+    // QuickBill actions
+    const qbAccess = getStaffPermissions()?.pos_access?.QuickBill;
+    const qbCharge = qbAccess?.add_charge;
+    const qbCoupon = qbAccess?.add_coupon;
+    const qbPay = qbAccess?.add_payment;
+    const qbCust = qbAccess?.customer_history;
+    const qbShow = qbAccess?.show_on_bill;
+    const qbPrev = qbAccess?.show_preview;
+    const qbComp = qbAccess?.item_as_complementary;
+    const qbSend = qbAccess?.send_bill;
+    const qbChargePasscode = qbAccess?.add_charge_passcode;
+    const qbCouponPasscode = qbAccess?.add_coupon_passcode;
+    const qbDiscountPasscode = qbAccess?.add_discount_passcode;
+    const qbDuePasscode = qbAccess?.allowed_due_payment_passcode;
+    const qbCompPasscode = qbAccess?.item_as_complementary_passcode;
+
+    // Remaining OrderWindow
+    checkPosAccess('OrderWindow', 'waiter_notification');
+    checkPosAccess('OrderWindow', 'filter_table');
+    checkPosAccess('OrderWindow', 'payment_list');
+    checkPosAccess('OrderWindow', 'live_support');
+    checkPosAccess('OrderWindow', 'cash_drawer');
+    checkPosAccess('OrderWindow', 'payment_notification');
+    checkPosAccess('OrderWindow', 'visible_passcode');
+    checkPosAccess('OrderWindow', 'add_customer');
+    checkPosAccess('OrderWindow', 'change_table');
+    checkPosAccess('OrderWindow', 'load_menu');
+    checkPosAccess('OrderWindow', 'refresh_button');
+    checkPosAccess('OrderWindow', 'change_item_price_passcode');
+
+    // Dashboard keys
+    checkDashboardPermission('average_order');
+    checkDashboardPermission('total_tax');
+    checkDashboardPermission('active_table_count');
+    checkDashboardPermission('total_sales_count');
+    checkDashboardPermission('payment_mode_sales');
+    checkDashboardPermission('average_billing_time');
+    checkDashboardPermission('weekly_heatmap');
+
+    // Billing passcodes
+    checkBillingPasscode('add_charges', '');
+    checkBillingPasscode('add_coupon', '');
+    checkBillingPasscode('add_discount', '');
+    checkBillingPasscode('allow_draft_bill_printing', '');
+    checkBillingPasscode('modify_bill_status', '');
+    checkBillingPasscode('preview', '');
+    checkBillingPasscode('allowed_due_payment', '');
+    checkBillingPasscode('restrict_reprint_bill', '');
+
+    // OldKOT passcodes
+    checkOldKOTPasscode('cancel_kot', '');
+    checkOldKOTPasscode('delete_kot', '');
+    checkOldKOTPasscode('print_cancel_kot', '');
+    checkOldKOTPasscode('print_kot', '');
+    checkOldKOTPasscode('transfer_item', '');
+    checkOldKOTPasscode('item_as_complementary', '');
+    checkOldKOTPasscode('check_kot_print', '');
+
+    // Receipts passcodes
+    checkReceiptsPasscode('preview', '');
+    checkReceiptsPasscode('resync_bills', '');
+    checkReceiptsPasscode('selected_bills', '');
+
+    // Receipts.EditBill
+    verifyPasscodeAction('Receipts.EditBill', 'bill_status');
+    verifyPasscodeAction('Receipts.EditBill', 'payment_mode');
+
+    // Reports passcodes & sub reports
+    const repAccess = getStaffPermissions()?.pos_access?.Reports;
+    const repShowAll = repAccess?.show_all_user_report;
+    const repPreOrder = repAccess?.pre_order_report;
+    const repPreOrderPasscode = repAccess?.pre_order_report_passcode;
+    const repMail = repAccess?.mail_report;
+    const repMailPasscode = repAccess?.mail_report_passcode;
+    const repKot = repAccess?.kot_report;
+    const repReservation = repAccess?.reservation_report;
+    const repReservationPasscode = repAccess?.reservation_report_passcode;
+    const repShowAmount = repAccess?.show_amount;
+  };
+
   const initApp = async () => {
     // 0. Load everything from cache immediately so the app is instantly active
     let cachedBiz = null;
@@ -6157,6 +6822,14 @@ const UniversalPOS = () => {
   };
 
   const handleSyncRefresh = async () => {
+    if (getStaffPermissions()?.pos_access?.OrderWindow?.load_menu_passcode === true) {
+      const pin = prompt("Enter Manager PIN to load menu from server:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+        toast.error("Invalid Manager PIN/Passcode!");
+        return;
+      }
+    }
     if (isSyncing) return;
     setIsSyncing(true);
     setShowSyncPopup(true);
@@ -7221,6 +7894,14 @@ const UniversalPOS = () => {
   };
 
   const handleChangeTable = async () => {
+    if (getStaffPermissions()?.pos_access?.OrderWindow?.change_table_passcode === true) {
+      const pin = prompt("Enter Manager PIN to authorize table transfer:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+        toast.error("Invalid Manager PIN/Passcode!");
+        return;
+      }
+    }
     if (!selectedTable) {
       toast.error("Please select an active table to transfer!");
       return;
@@ -7344,6 +8025,33 @@ const UniversalPOS = () => {
   const handleEditInvoice = (receipt) => {
     if (!receipt) return toast.error("No receipt selected!");
 
+    const access = getStaffPermissions()?.pos_access;
+    if (access?.OrderWindow?.modify_bill_after_save === false) {
+      toast.error("Modifying bills after saving is restricted.");
+      return;
+    }
+    if (access?.OrderWindow?.modify_bill_after_save_passcode === true) {
+      const pin = prompt("Enter Manager PIN to modify saved bill:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+         toast.error("Invalid Manager PIN/Passcode!");
+         return;
+      }
+    }
+
+    if (access?.Receipts?.edit_bill_after_save === false) {
+      toast.error("Editing bills after saving is restricted for this access level.");
+      return;
+    }
+    if (access?.Receipts?.edit_bill_after_save_passcode === true) {
+      const pin = prompt("Enter Manager PIN to edit saved bill:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+         toast.error("Invalid Manager PIN/Passcode!");
+         return;
+      }
+    }
+
     // Parse items from the receipt
     const receiptItems = Array.isArray(receipt.items) ? receipt.items : (typeof receipt.items === 'string' ? JSON.parse(receipt.items || '[]') : []);
 
@@ -7448,14 +8156,32 @@ const UniversalPOS = () => {
     if (type === 'PRINT' && !checkBillingPermission('allow_draft_bill_printing')) {
       return toast.error("You do not have permission to print a draft bill.");
     }
+    if (type === 'PRINT' && !checkBillingPasscode('allow_draft_bill_printing', "Enter Manager PIN to print draft bill:")) {
+      return;
+    }
     if (type === 'SETTLE' && !checkBillingPermission('settle_bill')) {
       return toast.error("You do not have permission to settle the bill.");
+    }
+    if (type === 'SETTLE' && !checkBillingPasscode('settle_bill', "Enter Manager PIN to settle bill:")) {
+      return;
     }
     if (type === 'SAVE' && !checkBillingPermission('save_bill')) {
       return toast.error("You do not have permission to save the bill.");
     }
+    if (type === 'SAVE' && !checkBillingPasscode('save_bill', "Enter Manager PIN to save bill:")) {
+      return;
+    }
     if (type === 'SAVE_PRINT' && !checkBillingPermission('save_print_bill')) {
       return toast.error("You do not have permission to save and print the bill.");
+    }
+    if (type === 'SAVE_PRINT' && !checkBillingPasscode('save_print_bill', "Enter Manager PIN to save and print bill:")) {
+      return;
+    }
+    if (isDue && !checkBillingPermission('allowed_due_payment')) {
+      return toast.error("Due payments are restricted.");
+    }
+    if (isDue && !checkBillingPasscode('allowed_due_payment', "Enter Manager PIN to authorize due payment:")) {
+      return;
     }
     if (isCheckingOut) {
       console.warn("Checkout already in progress, ignoring double click.");
@@ -7908,6 +8634,9 @@ const UniversalPOS = () => {
       setTableActiveTimestamps(timePrev => { const n = { ...timePrev }; delete n[selectedTable.id]; return n; });
       setTableBillNumbers(numPrev => { const n = { ...numPrev }; delete n[selectedTable.id]; return n; });
       releaseTableExtraState(selectedTable.id);
+      if (selectedTable.is_temporary) {
+        setTables(prevTables => prevTables.filter(t => t.id !== selectedTable.id));
+      }
       setIsOldKOTModalOpen(false);
       setSelectedTable(null);
     }
@@ -7946,6 +8675,9 @@ const UniversalPOS = () => {
       setTableActiveTimestamps(timePrev => { const n = { ...timePrev }; delete n[selectedTable.id]; return n; });
       setTableBillNumbers(numPrev => { const n = { ...numPrev }; delete n[selectedTable.id]; return n; });
       releaseTableExtraState(selectedTable.id);
+      if (selectedTable.is_temporary) {
+        setTables(prevTables => prevTables.filter(t => t.id !== selectedTable.id));
+      }
       setIsOldKOTModalOpen(false);
       setSelectedTable(null);
     }
@@ -8119,6 +8851,19 @@ const UniversalPOS = () => {
   };
 
   const handlePrint = async (order) => {
+    const access = getStaffPermissions()?.pos_access?.Receipts;
+    if (access?.reprint_bill === false) {
+      toast.error("Reprinting bills is restricted for this access level.");
+      return;
+    }
+    if (access?.reprint_bill_passcode === true) {
+      const pin = prompt("Enter Manager PIN to reprint bill:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+         toast.error("Invalid Manager PIN/Passcode!");
+         return;
+      }
+    }
     // Normalize fields to support both a POS Order and a Pre-Order DB object
     const orderItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
 
@@ -8646,12 +9391,23 @@ const UniversalPOS = () => {
       </html>
     `;
 
+    let targetBillPrinters = [];
+    if (Array.isArray(billConfig.names) && billConfig.names.length > 0) {
+      targetBillPrinters = billConfig.names;
+    } else if (billConfig.name) {
+      targetBillPrinters = [billConfig.name];
+    } else {
+      targetBillPrinters = [posSettings.printerName || ''];
+    }
+
     if (window.require) {
       try {
         const { ipcRenderer } = window.require('electron');
-        ipcRenderer.send('print-silent', {
-          html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),
-          printerName: posSettings.printerName
+        targetBillPrinters.forEach(printer => {
+          ipcRenderer.send('print-silent', {
+            html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),
+            printerName: printer
+          });
         });
         return;
       } catch (err) {
@@ -8752,12 +9508,63 @@ const UniversalPOS = () => {
       </html>
     `;
 
+    // Resolve printers list based on order type
+    let kotConfigKey = 'QUICK';
+    if (activeTrayTab === 'PreOrder' || (tableName && tableName.startsWith('Pre-Order'))) {
+      kotConfigKey = 'PRE_ORDER';
+    } else {
+      let typeLower = '';
+      if (selectedTable) {
+        if (selectedTable.original_order_type === 'PICKUP') {
+          typeLower = String(selectedTable.original_sub_order_type || 'pickup').toLowerCase();
+        } else {
+          typeLower = String(selectedTable.original_order_type || orderType || '').toLowerCase();
+        }
+      } else {
+        typeLower = String(orderType || '').toLowerCase();
+        if (typeLower === 'pickup') {
+          typeLower = String(subOrderType || 'pickup').toLowerCase();
+        }
+      }
+      
+      if (typeLower.includes('dine')) {
+        kotConfigKey = 'DINE_IN';
+      } else if (typeLower.includes('delivery')) {
+        kotConfigKey = 'DELIVERY';
+      } else if (typeLower.includes('pickup') || typeLower.includes('takeaway')) {
+        kotConfigKey = 'PICKUP';
+      } else if (typeLower.includes('quick')) {
+        kotConfigKey = 'QUICK';
+      }
+    }
+
+    const kotConfigGroup = (posSettings.orderPrinters && posSettings.orderPrinters[kotConfigKey]) || {
+      kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
+    };
+    const kotConfig = kotConfigGroup.kot || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
+
+    if (kotConfig.enabled === false) {
+      toast.info(`KOT printing is disabled for ${kotConfigKey === 'PRE_ORDER' ? 'Pre-Order' : kotConfigKey} order type.`);
+      return;
+    }
+
+    let targetKOTPrinters = [];
+    if (Array.isArray(kotConfig.names) && kotConfig.names.length > 0) {
+      targetKOTPrinters = kotConfig.names;
+    } else if (kotConfig.name) {
+      targetKOTPrinters = [kotConfig.name];
+    } else {
+      targetKOTPrinters = [posSettings.printerName || ''];
+    }
+
     if (window.require) {
       try {
         const { ipcRenderer } = window.require('electron');
-        ipcRenderer.send('print-silent', {
-          html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),
-          printerName: posSettings.printerName
+        targetKOTPrinters.forEach(printer => {
+          ipcRenderer.send('print-silent', {
+            html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),
+            printerName: printer
+          });
         });
         return;
       } catch (err) {
@@ -9248,26 +10055,26 @@ const UniversalPOS = () => {
         </div>
         <div className="flex flex-col flex-1">
           {getStaffPermissions()?.pos_access?.Dashboard?.visible !== false && (
-            <SidebarIcon id="dashboardIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>} active={activeTab === 'home'} onClick={() => setActiveTab('home')} label="Dash" />
+            <SidebarIcon id="dashboardIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>} active={activeTab === 'home'} onClick={() => handleTabClick('home', () => setActiveTab('home'))} label="Dash" />
           )}
-          {getStaffPermissions()?.pos_access?.Billing?.visible !== false && (
-            <SidebarIcon id="orderIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11 9H9V2H7V9H5V2H3V9c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4V2h-2v7zM21 2h-2c-1.1 0-2 .9-2 2v9h2v9h2V2z"/></svg>} active={activeTab === 'billing'} onClick={() => { setActiveTab('billing'); setBillingView('tables'); }} label="Order" />
+          {getStaffPermissions()?.pos_access?.Billing?.visible !== false && checkPosAccess('OrderWindow', 'visible') && (
+            <SidebarIcon id="orderIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M11 9H9V2H7V9H5V2H3V9c0 2.21 1.79 4 4 4v9h2v-9c2.21 0 4-1.79 4-4V2h-2v7zM21 2h-2c-1.1 0-2 .9-2 2v9h2v9h2V2z"/></svg>} active={activeTab === 'billing'} onClick={() => handleTabClick('billing', () => { setActiveTab('billing'); setBillingView('tables'); })} label="Order" />
           )}
-          {getStaffPermissions()?.pos_access?.OrderWindow?.live_order_tracking !== false && (
-            <SidebarIcon id="liveTrackingIcon" isDark={isDark} icon={<Activity size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'live'} onClick={() => setActiveTab('live')} label="Live" />
+          {getStaffPermissions()?.pos_access?.OrderWindow?.live_order_tracking !== false && checkPosAccess('OrderWindow', 'live_order_tracking') && (
+            <SidebarIcon id="liveTrackingIcon" isDark={isDark} icon={<Activity size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'live'} onClick={() => handleTabClick('live', () => setActiveTab('live'))} label="Live" />
           )}
           {getStaffPermissions()?.pos_access?.OnlineOrder?.visible !== false && (
-            <SidebarIcon id="digitalOrdersIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => setActiveTab('digital')} label="Digital" />
+            <SidebarIcon id="digitalOrdersIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => handleTabClick('digital', () => setActiveTab('digital'))} label="Digital" />
           )}
           {getStaffPermissions()?.pos_access?.Receipts?.visible !== false && (
-            <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => setActiveTab('receipts')} label="Receipt" />
+            <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => handleTabClick('receipts', () => setActiveTab('receipts'))} label="Receipt" />
           )}
           <SidebarIcon id="whatsappIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => setActiveTab('whatsapp')} label="WhatsApp" />
           {getStaffPermissions()?.pos_access?.ExpenseManagement?.visible !== false && (
-            <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => { setActiveTab('expenses'); setIsExpenseModalOpen(true); }} label="Expense" />
+            <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => handleTabClick('expenses', () => { setActiveTab('expenses'); setIsExpenseModalOpen(true); })} label="Expense" />
           )}
           {getStaffPermissions()?.pos_access?.Reports?.visible !== false && (
-            <SidebarIcon id="allreportsIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M4 6h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8z"/></svg>} active={activeTab === 'analytics'} onClick={() => setActiveTab('analytics')} label="Reports" />
+            <SidebarIcon id="allreportsIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M4 6h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8zm-4 5h2v2H4zm4 0h12v2H8z"/></svg>} active={activeTab === 'analytics'} onClick={() => handleTabClick('analytics', () => setActiveTab('analytics'))} label="Reports" />
           )}
           {getStaffPermissions()?.pos_access?.OperationManagement?.visible !== false && (
             <SidebarIcon id="newConfigButton" isDark={isDark} icon={
@@ -9275,21 +10082,23 @@ const UniversalPOS = () => {
                 <Settings size={18} className="absolute top-0 left-0" fill="none" stroke="currentColor" strokeWidth={3}/>
                 <Settings size={14} className="absolute bottom-0 right-0" fill="none" stroke="currentColor" strokeWidth={3}/>
               </div>
-            } active={activeTab === 'config'} onClick={() => setActiveTab('config')} label="Config" />
+            } active={activeTab === 'config'} onClick={() => handleTabClick('config', () => setActiveTab('config'))} label="Config" />
           )}
           {getStaffPermissions()?.pos_access?.Settings?.visible !== false && (
-            <SidebarIcon id="settingsButton" isDark={isDark} icon={<Sliders size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'settings'} onClick={() => setActiveTab('settings')} label="Old Config" />
+            <SidebarIcon id="settingsButton" isDark={isDark} icon={<Sliders size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'settings'} onClick={() => handleTabClick('settings', () => setActiveTab('settings'))} label="Old Config" />
           )}
           <SidebarIcon id="notificationIcon" isDark={isDark} icon={<Bell size={18} fill="none" stroke="currentColor" strokeWidth={2} />} active={false} onClick={() => {}} label="Alerts" />
         </div>
         <div className={`mt-auto border-t ${isDark ? 'border-[#30363d]' : 'border-slate-100'} flex flex-col`}>
            {getStaffPermissions()?.pos_access?.Settings?.visible !== false && (
              <SidebarIcon id="sidebarSettingsIcon" isDark={isDark} icon={<Settings size={18} className="text-current" />} active={isSettingsModalOpen} onClick={() => {
-                setIsSettingsModalOpen(true);
-                const allowedTabs = getFilteredSettingsTabs();
-                if (allowedTabs.length > 0) {
-                   setSettingsActiveTab(allowedTabs[0].id);
-                }
+                handleTabClick('settings', () => {
+                   setIsSettingsModalOpen(true);
+                   const allowedTabs = getFilteredSettingsTabs();
+                   if (allowedTabs.length > 0) {
+                      setSettingsActiveTab(allowedTabs[0].id);
+                   }
+                });
              }} label="Settings" />
            )}
            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className="text-current" />} onClick={() => setLogoutModalStep('sync')} label="Exit" />
@@ -9420,7 +10229,7 @@ const UniversalPOS = () => {
                              {/* Department tabs */}
                              {posSettings.showTableDepartments && (
                                 <div className={`h-8 border-b flex items-center gap-2 px-3 shrink-0 overflow-x-auto no-scrollbar ${isDark ? 'border-[#30363d]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
-                                  {departments.map(dept => (
+                                  {getAllowedDepartments().map(dept => (
                                     <button key={dept} onClick={() => setActiveDepartment(dept)} className={`px-3 py-1 rounded text-[10px] font-bold whitespace-nowrap transition-all ${activeDepartment === dept ? 'bg-[#238636] text-white' : (isDark ? 'bg-[#21262d] text-[#c9d1d9] border border-[#30363d] hover:bg-[#30363d]' : 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9] hover:bg-[#c8e6c9]')}`}>{dept}</button>
                                   ))}
                                 </div>
@@ -9536,7 +10345,7 @@ const UniversalPOS = () => {
                        <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
                          <div className="flex items-center gap-1">
                            <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                           <input
+                           {checkPosAccess('OrderWindow', 'search_table') && (<input
                               type="text"
                               placeholder="Search Table"
                               value={tableSearchQuery}
@@ -9547,8 +10356,8 @@ const UniversalPOS = () => {
                                 }
                               }}
                               className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />
-                           <input
+                           />)}
+                           {checkPosAccess('OrderWindow', 'search_by_code') && (<input
                               type="text"
                               placeholder="Search by Code"
                               value={codeSearchQuery}
@@ -9559,9 +10368,9 @@ const UniversalPOS = () => {
                                 }
                               }}
                               className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />
+                           />)}
                          </div>
-                         <div className="flex-1 relative">
+                         {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
                            <input
                               type="text"
                               placeholder="Search by Name"
@@ -9575,8 +10384,8 @@ const UniversalPOS = () => {
                               className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
                            />
                            <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                         </div>
-                         <input
+                         </div>)}
+                         {checkPosAccess('OrderWindow', 'delete_search') && (<input
                             type="text"
                             placeholder="Delete"
                             value={deleteItemQuery}
@@ -9602,7 +10411,7 @@ const UniversalPOS = () => {
                               }
                             }}
                             className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                         />
+                         />)}
                          <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
                        </div>
 
@@ -9636,7 +10445,7 @@ const UniversalPOS = () => {
                              <div className={`px-3 py-2 text-[12px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`} onClick={() => setSelectedCategory('All')}>
                                <ChevronDown size={12} /> Menu
                              </div>
-                             {categories.filter(c => c !== 'All').map(cat => (
+                             {getAllowedCategories().filter(c => c !== 'All').map(cat => (
                                <div key={cat} onClick={() => setSelectedCategory(cat)} className={`category-item px-5 py-2 text-[11px] font-semibold cursor-pointer transition-all ${selectedCategory === cat ? (isDark ? 'text-[#238636] bg-[#238636]/10 border-r-2 border-[#238636]' : 'text-[#1b5e20] bg-[#e8f5e9] border-r-2 border-[#2e7d32] font-bold') : (isDark ? 'text-[#c9d1d9] hover:bg-[#21262d] hover:text-white' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900')}`}>
                                  {cat === selectedCategory ? '▼ ' : '▶ '}{cat === 'Uncategorized' ? 'All items' : cat}
                                </div>
@@ -9648,7 +10457,7 @@ const UniversalPOS = () => {
                          <div className={`flex-1 overflow-y-auto p-2 no-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
                            <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2">
                              {getSortedCatalog()
-                                .filter(i => selectedCategory === 'All' || i.category === selectedCategory)
+                                .filter(i => isItemCategoryAllowed(i.category) && (selectedCategory === 'All' ? isItemCategoryAllowed(i.category) : i.category === selectedCategory))
                                 .filter(i => {
                                   const matchesName = searchQuery ? (i.product_name || i.name || '').toLowerCase().includes(searchQuery.toLowerCase()) : true;
                                   const matchesCode = codeSearchQuery ? (i.code && i.code.toLowerCase().includes(codeSearchQuery.toLowerCase())) : true;
@@ -9775,16 +10584,32 @@ const UniversalPOS = () => {
                           {/* Department Tabs - on top */}
                           {posSettings.showTableDepartments && (
                             <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 overflow-x-auto no-scrollbar ${isDark ? 'border-[#30363d]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
-                              {departments.map(dept => (
-                                <button key={dept} onClick={() => setActiveDepartment(dept)} className={`px-4 py-1.5 rounded text-[11px] font-bold whitespace-nowrap transition-all ${activeDepartment === dept ? 'bg-[#238636] text-white' : (isDark ? 'bg-[#21262d] text-[#c9d1d9] border border-[#30363d] hover:bg-[#30363d]' : 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9] hover:bg-[#c8e6c9]')}`}>{dept}</button>
+                              {getAllowedDepartments().map(dept => (
+                                <button key={dept} onClick={() => setActiveDepartment(dept)}
+                                className={`px-4 py-1.5 rounded text-[11px] font-bold whitespace-nowrap transition-all ${activeDepartment === dept ? 'bg-[#238636] text-white' : (isDark ? 'bg-[#21262d] text-[#c9d1d9] border border-[#30363d] hover:bg-[#30363d]' : 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9] hover:bg-[#c8e6c9]')}`}>{dept}</button>
                               ))}
                             </div>
                           )}
 
                           {/* TABLE GRID - green buttons matching TMBill */}
-                          <div className="flex-1 overflow-y-auto p-1 no-scrollbar">
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
-                              {getFilteredTablesForCurrentView().map(table => {
+                          <div className="flex-1 overflow-y-auto p-1 no-scrollbar flex flex-col">
+                            {orderType === 'PICKUP' && getFilteredTablesForCurrentView().length === 0 ? (
+                              <div className="flex-1 flex flex-col items-center justify-center p-8 text-center min-h-[300px]">
+                                <div className={`p-4 rounded-full mb-3 ${isDark ? 'bg-gray-800' : 'bg-slate-50'}`}>
+                                  <Receipt size={32} className={isDark ? 'text-gray-500' : 'text-slate-400'} />
+                                </div>
+                                <h3 className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-gray-200' : 'text-slate-700'}`}>No Active ${subOrderType === 'DELIVERY' ? 'Delivery' : 'Pickup'} Orders</h3>
+                                <p className={`text-[10px] max-w-xs mt-1 ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>There are no active ${subOrderType === 'DELIVERY' ? 'delivery' : 'pickup'} orders currently saved in the register.</p>
+                                <button
+                                  onClick={() => setBillingView('menu')}
+                                  className="mt-4 px-4 py-2 bg-[#10ac84] hover:bg-[#0da07b] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                >
+                                  Create New Order
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1">
+                                {getFilteredTablesForCurrentView().map(table => {
                                  let status = tableStatuses[table.id] || 'AVAILABLE';
                                  const activeBillCount = (tableBills[table.id] || []).filter(item => !item.isCancelled).length;
                                  const hasCartItems = tableCarts[table.id]?.length > 0;
@@ -9856,6 +10681,7 @@ const UniversalPOS = () => {
                                 );
                               })}
                             </div>
+                            )}
                             {renderPreOrderTempTables()}
                           </div>
 
@@ -9901,7 +10727,7 @@ const UniversalPOS = () => {
                           <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
                             <div className="flex items-center gap-1">
                               <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                              <input
+                              {checkPosAccess('OrderWindow', 'search_table') && (<input
                                 type="text"
                                 placeholder="Search Table"
                                 value={tableSearchQuery}
@@ -9912,8 +10738,8 @@ const UniversalPOS = () => {
                                   }
                                 }}
                                 className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />
-                              <input
+                              />)}
+                              {checkPosAccess('OrderWindow', 'search_by_code') && (<input
                                 type="text"
                                 placeholder="Search by Code"
                                 value={codeSearchQuery}
@@ -9924,9 +10750,9 @@ const UniversalPOS = () => {
                                   }
                                 }}
                                 className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />
+                              />)}
                             </div>
-                            <div className="flex-1 relative">
+                            {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
                               <input
                                 type="text"
                                 placeholder="Search by Name"
@@ -9940,8 +10766,8 @@ const UniversalPOS = () => {
                                 className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
                               />
                               <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            </div>
-                            <input
+                            </div>)}
+                            {checkPosAccess('OrderWindow', 'delete_search') && (<input
                               type="text"
                               placeholder="Delete"
                               value={deleteItemQuery}
@@ -9967,7 +10793,7 @@ const UniversalPOS = () => {
                                 }
                               }}
                               className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                            />
+                            />)}
                             <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
                           </div>
 
@@ -10001,7 +10827,7 @@ const UniversalPOS = () => {
                                 <div className={`px-3 py-2 text-[12px] font-bold flex items-center gap-1.5 cursor-pointer transition-colors ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`} onClick={() => setSelectedCategory('All')}>
                                   <ChevronDown size={12} /> Menu
                                 </div>
-                                {categories.filter(c => c !== 'All').map(cat => (
+                                {getAllowedCategories().filter(c => c !== 'All').map(cat => (
                                   <div key={cat} onClick={() => setSelectedCategory(cat)} className={`category-item px-5 py-2 text-[11px] font-semibold cursor-pointer transition-all ${selectedCategory === cat ? (isDark ? 'text-[#238636] bg-[#238636]/10 border-r-2 border-[#238636]' : 'text-[#1b5e20] bg-[#e8f5e9] border-r-2 border-[#2e7d32] font-bold') : (isDark ? 'text-[#c9d1d9] hover:bg-[#21262d] hover:text-white' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900')}`}>
                                     {cat === selectedCategory ? '▼ ' : '▶ '}{cat === 'Uncategorized' ? 'All items' : cat}
                                   </div>
@@ -10012,7 +10838,7 @@ const UniversalPOS = () => {
                             <div className={`flex-1 overflow-y-auto p-2 no-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
                               <div className="grid grid-cols-[repeat(auto-fill,minmax(240px,1fr))] gap-2">
                                 {getSortedCatalog()
-                                .filter(i => selectedCategory === 'All' || i.category === selectedCategory)
+                                .filter(i => isItemCategoryAllowed(i.category) && (selectedCategory === 'All' ? isItemCategoryAllowed(i.category) : i.category === selectedCategory))
                                 .filter(i => {
                                   const matchesName = searchQuery ? (i.product_name || i.name || '').toLowerCase().includes(searchQuery.toLowerCase()) : true;
                                   const matchesCode = codeSearchQuery ? (i.code && i.code.toLowerCase().includes(codeSearchQuery.toLowerCase())) : true;
@@ -10160,6 +10986,10 @@ const UniversalPOS = () => {
                             // Deselect any active table
                             setSelectedTable(null);
                             resetCustomerState();
+                            if (!checkPosAccess('OrderWindow', 'change_order_type')) {
+                              toast.error("You do not have permission to switch order types.");
+                              return;
+                            }
                             if (tab.key === 'PRE_ORDER') {
                               setActiveTrayTab('PreOrder');
                               setPreOrderSubTab('KOT');
@@ -10254,17 +11084,55 @@ const UniversalPOS = () => {
 
                       {orderType === 'PICKUP' && (
                         <div className="flex items-center gap-2 pr-1">
-                          {/* Toggle Switch */}
-                          <label className="relative inline-flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={subOrderType === 'DELIVERY'}
-                              onChange={e => setSubOrderType(e.target.checked ? 'DELIVERY' : 'PICKUP')}
-                              className="sr-only peer"
-                            />
-                            <div className="w-9 h-5 bg-[#388e67]/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#388e67]"></div>
-                            <span className={`ml-1 text-[10px] font-semibold ${isDark ? 'text-gray-300' : 'text-slate-700'}`}>{subOrderType === 'DELIVERY' ? 'Delivery' : 'PickUp'}</span>
-                          </label>
+                          {/* Segmented Toggle Control */}
+                          <div className={`flex rounded-lg overflow-hidden border p-0.5 text-[9px] font-black uppercase tracking-wider ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-300 bg-slate-200/50'}`}>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newType = 'PICKUP';
+                                setSubOrderType(newType);
+                                if (selectedTable && selectedTable.is_temporary) {
+                                  let newName = selectedTable.table_name;
+                                  if (selectedTable.table_name.startsWith('Delivery #')) {
+                                    newName = selectedTable.table_name.replace('Delivery #', 'Pickup #');
+                                  }
+                                  const updatedTable = {
+                                    ...selectedTable,
+                                    table_name: newName,
+                                    original_sub_order_type: newType
+                                  };
+                                  setSelectedTable(updatedTable);
+                                  setTables(tPrev => tPrev.map(t => t.id === selectedTable.id ? updatedTable : t));
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${subOrderType === 'PICKUP' ? 'bg-[#10ac84] text-white shadow-sm font-extrabold' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
+                            >
+                              Pickup
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const newType = 'DELIVERY';
+                                setSubOrderType(newType);
+                                if (selectedTable && selectedTable.is_temporary) {
+                                  let newName = selectedTable.table_name;
+                                  if (selectedTable.table_name.startsWith('Pickup #')) {
+                                    newName = selectedTable.table_name.replace('Pickup #', 'Delivery #');
+                                  }
+                                  const updatedTable = {
+                                    ...selectedTable,
+                                    table_name: newName,
+                                    original_sub_order_type: newType
+                                  };
+                                  setSelectedTable(updatedTable);
+                                  setTables(tPrev => tPrev.map(t => t.id === selectedTable.id ? updatedTable : t));
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${subOrderType === 'DELIVERY' ? 'bg-[#10ac84] text-white shadow-sm font-extrabold' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
+                            >
+                              Delivery
+                            </button>
+                          </div>
 
                                                     {/* New Order Button */}
                                                     {((subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.new_order !== false) ||
@@ -10354,17 +11222,12 @@ const UniversalPOS = () => {
                             <span className="text-[13px]">Bill {tableBillNumbers[selectedTable?.id] || '6'}</span>
                             <div className="flex gap-1.5">
                               <button
-                                onClick={() => {
-                                  setSelectedOldKOTItems({});
-                                  setOldKOTItemReasons({});
-                                  setSelectAllOldKOT(false);
-                                  setIsOldKOTModalOpen(true);
-                                }}
+                                onClick={handleOpenOldKOT}
                                 className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                               >
                                 Old KOT
                               </button>
-                              <button onClick={() => setIsSplitModalOpen(true)} className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10">
+                              <button onClick={handleOpenSplitBill} className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10">
                                 Split Bill
                               </button>
                             </div>
@@ -10378,18 +11241,13 @@ const UniversalPOS = () => {
                             {activeTrayTab === 'Billing' && (
                               <div className="flex gap-1.5">
                                 <button
-                                  onClick={() => {
-                                    setSelectedOldKOTItems({});
-                                    setOldKOTItemReasons({});
-                                    setSelectAllOldKOT(false);
-                                    setIsOldKOTModalOpen(true);
-                                  }}
+                                  onClick={handleOpenOldKOT}
                                   className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                                 >
                                   Old KOT
                                 </button>
                                 <button
-                                  onClick={() => setIsSplitModalOpen(true)}
+                                  onClick={handleOpenSplitBill}
                                   className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                                 >
                                   Split Bill
@@ -10405,18 +11263,13 @@ const UniversalPOS = () => {
                             {activeTrayTab === 'Billing' && (
                               <div className="flex gap-1.5">
                                 <button
-                                  onClick={() => {
-                                    setSelectedOldKOTItems({});
-                                    setOldKOTItemReasons({});
-                                    setSelectAllOldKOT(false);
-                                    setIsOldKOTModalOpen(true);
-                                  }}
+                                  onClick={handleOpenOldKOT}
                                   className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                                 >
                                   Old KOT
                                 </button>
                                 <button
-                                  onClick={() => setIsSplitModalOpen(true)}
+                                  onClick={handleOpenSplitBill}
                                   className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                                 >
                                   Split Bill
@@ -10431,18 +11284,13 @@ const UniversalPOS = () => {
                             <span className="text-[13px] flex items-center gap-1.5">⏰ Pre-Order</span>
                             <div className="flex gap-1.5">
                               <button
-                                onClick={() => {
-                                  setSelectedOldKOTItems({});
-                                  setOldKOTItemReasons({});
-                                  setSelectAllOldKOT(false);
-                                  setIsOldKOTModalOpen(true);
-                                }}
+                                onClick={handleOpenOldKOT}
                                 className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                               >
                                 Old KOT
                               </button>
                               <button
-                                onClick={() => setIsSplitModalOpen(true)}
+                                onClick={handleOpenSplitBill}
                                 className="bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10"
                               >
                                 Split Bill
@@ -10804,6 +11652,20 @@ const UniversalPOS = () => {
                         title="Points History"
                       >
                         <Gift size={20} strokeWidth={2.5} />
+                      </button>
+                      <button 
+                        onClick={handleOpenDiscountModal} 
+                        className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
+                        title="Apply Discount"
+                      >
+                        <Percent size={20} strokeWidth={2.5} />
+                      </button>
+                      <button 
+                        onClick={handleOpenChargesModal} 
+                        className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
+                        title="Apply Charges"
+                      >
+                        <Calculator size={20} strokeWidth={2.5} />
                       </button>
                       <button 
                         onClick={handleOpenCouponModal} 
@@ -11246,6 +12108,7 @@ const UniversalPOS = () => {
                           <input
                             type="text"
                             id="kot-note-input"
+                            disabled={!checkBillingPermission('order_note')}
                             placeholder={activeTrayTab === 'PreOrder' ? "Pre-order instructions..." : "KOT Note"}
                             value={activeTrayTab === 'PreOrder' ? preOrderNotes : kotNote}
                             onChange={e => activeTrayTab === 'PreOrder' ? setPreOrderNotes(e.target.value) : setKOTNote(e.target.value)}
@@ -11260,7 +12123,7 @@ const UniversalPOS = () => {
                             }}
                             className={`w-full bg-transparent text-[10px] font-bold outline-none transition-colors ${
                               isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'
-                            }`}
+                            } ${!checkBillingPermission('order_note') ? 'opacity-50 cursor-not-allowed' : ''}`}
                           />
                         </div>
                         <div className={`flex-[1.1] min-w-0 h-8 rounded-full px-2 flex items-center transition-colors ${
@@ -11773,7 +12636,7 @@ const UniversalPOS = () => {
                             Save Bill
                           </button>
                         )}
-                        {checkBillingPermission('allow_draft_bill_printing') && (
+                        {checkBillingPermission('allow_draft_bill_printing') && checkPosAccess('OrderWindow', 'enable_print_settle') && (
                           <button
                             disabled={isCheckingOut}
                             onClick={() => handleCheckout('PRINT')}
@@ -12963,7 +13826,9 @@ const UniversalPOS = () => {
                       'Fetch'
                     )}
                   </button>
-                  <button
+                  {checkPosAccess('OrderWindow', 'sync_button') && (
+                    <>
+                      <button
                     onClick={handleSyncBills}
                     className="h-8 px-6 bg-black text-white rounded text-[11px] font-bold hover:bg-neutral-800 transition-colors cursor-pointer border border-black"
                   >
@@ -12975,6 +13840,8 @@ const UniversalPOS = () => {
                   >
                     Re-sync Bills
                   </button>
+                    </>
+                  )}
                 </div>
 
                 {/* Main Table */}
@@ -16079,7 +16946,7 @@ const UniversalPOS = () => {
 
         {/* EXPENSE LEDGER MODAL */}
         <AnimatePresence>
-           {isExpenseModalOpen && (
+           {isExpenseModalOpen && checkMasterPermission('MasterManagement.AddExpense', 'visible') && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
                  <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
                     <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
@@ -16147,6 +17014,10 @@ const UniversalPOS = () => {
                              </div>
                              <button
                                 onClick={() => {
+                                   if (!checkMasterPermission('MasterManagement.AddExpense', 'add_expense')) {
+                                      toast.error("You do not have permission to add an expense.");
+                                      return;
+                                   }
                                    if (!expenseForm.amount) return toast.error("Enter amount!");
                                    const newExpense = { ...expenseForm, id: Date.now() };
                                    setExpenses(prev => [newExpense, ...prev]);
@@ -19440,6 +20311,17 @@ const UniversalPOS = () => {
                           <button
                              key={tab.id}
                              onClick={() => {
+                                if (tab.id === 'general') {
+                                   const access = getStaffPermissions()?.pos_access?.Settings;
+                                   if (access?.general_passcode === true) {
+                                      const pin = prompt("Enter Manager PIN to access General Settings:");
+                                      if (pin === null) return;
+                                      if (!verifyManagerPin(pin)) {
+                                         toast.error("Invalid Manager PIN/Passcode!");
+                                         return;
+                                      }
+                                   }
+                                }
                                 setSettingsActiveTab(tab.id);
                              }}
                              className={`px-6 py-3 text-[10px] font-black uppercase tracking-wider transition-all relative border-b-2 flex items-center gap-1.5 whitespace-nowrap ${
@@ -19960,24 +20842,45 @@ const UniversalPOS = () => {
                                                    </div>
                                                    
                                                    <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase">Target Printer</label>
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Target Printers (Select Multiple)</label>
                                                       {availablePrinters && availablePrinters.length > 0 ? (
-                                                         <select
-                                                            value={kotConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         >
-                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
-                                                            {availablePrinters.map(p => (
-                                                               <option key={p.id} value={p.name}>{p.name}</option>
-                                                            ))}
-                                                         </select>
+                                                         <div className={`p-2.5 rounded-lg border max-h-28 overflow-y-auto space-y-1.5 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                                                            {availablePrinters.map(p => {
+                                                               const isChecked = Array.isArray(kotConfig.names) 
+                                                                  ? kotConfig.names.includes(p.name)
+                                                                  : kotConfig.name === p.name;
+                                                               return (
+                                                                  <label key={p.id} className="flex items-center gap-2 text-[10px] font-black cursor-pointer select-none">
+                                                                     <input
+                                                                        type="checkbox"
+                                                                        checked={isChecked}
+                                                                        onChange={e => {
+                                                                           let currentNames = Array.isArray(kotConfig.names) ? [...kotConfig.names] : (kotConfig.name ? [kotConfig.name] : []);
+                                                                           if (e.target.checked) {
+                                                                              if (!currentNames.includes(p.name)) currentNames.push(p.name);
+                                                                           } else {
+                                                                              currentNames = currentNames.filter(n => n !== p.name);
+                                                                           }
+                                                                           updateOrderPrinterSetting(type.key, 'kot', 'names', currentNames);
+                                                                           updateOrderPrinterSetting(type.key, 'kot', 'name', currentNames[0] || '');
+                                                                        }}
+                                                                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer"
+                                                                     />
+                                                                     <span className={isDark ? 'text-gray-300' : 'text-slate-700'}>{p.name}</span>
+                                                                  </label>
+                                                               );
+                                                            })}
+                                                         </div>
                                                       ) : (
                                                          <input
                                                             type="text"
-                                                            placeholder="Type system printer name..."
-                                                            value={kotConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'kot', 'name', e.target.value)}
+                                                            placeholder="Type printer names (comma separated)..."
+                                                            value={Array.isArray(kotConfig.names) ? kotConfig.names.join(', ') : (kotConfig.name || '')}
+                                                            onChange={e => {
+                                                               const names = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                               updateOrderPrinterSetting(type.key, 'kot', 'names', names);
+                                                               updateOrderPrinterSetting(type.key, 'kot', 'name', names[0] || '');
+                                                            }}
                                                             className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
                                                          />
                                                       )}
@@ -20018,24 +20921,45 @@ const UniversalPOS = () => {
                                                    </div>
                                                    
                                                    <div className="flex flex-col gap-1">
-                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Target Printer</label>
+                                                      <label className="text-[8.5px] font-bold text-[#8b949e] uppercase font-bold">Target Printers (Select Multiple)</label>
                                                       {availablePrinters && availablePrinters.length > 0 ? (
-                                                         <select
-                                                            value={billConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
-                                                            className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
-                                                         >
-                                                            <option value="">Use Default Global ({posSettings.printerName || 'Default'})</option>
-                                                            {availablePrinters.map(p => (
-                                                               <option key={p.id} value={p.name}>{p.name}</option>
-                                                            ))}
-                                                         </select>
+                                                         <div className={`p-2.5 rounded-lg border max-h-28 overflow-y-auto space-y-1.5 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                                                            {availablePrinters.map(p => {
+                                                               const isChecked = Array.isArray(billConfig.names) 
+                                                                  ? billConfig.names.includes(p.name)
+                                                                  : billConfig.name === p.name;
+                                                               return (
+                                                                  <label key={p.id} className="flex items-center gap-2 text-[10px] font-black cursor-pointer select-none">
+                                                                     <input
+                                                                        type="checkbox"
+                                                                        checked={isChecked}
+                                                                        onChange={e => {
+                                                                           let currentNames = Array.isArray(billConfig.names) ? [...billConfig.names] : (billConfig.name ? [billConfig.name] : []);
+                                                                           if (e.target.checked) {
+                                                                              if (!currentNames.includes(p.name)) currentNames.push(p.name);
+                                                                           } else {
+                                                                              currentNames = currentNames.filter(n => n !== p.name);
+                                                                           }
+                                                                           updateOrderPrinterSetting(type.key, 'bill', 'names', currentNames);
+                                                                           updateOrderPrinterSetting(type.key, 'bill', 'name', currentNames[0] || '');
+                                                                        }}
+                                                                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500 w-3.5 h-3.5 cursor-pointer"
+                                                                     />
+                                                                     <span className={isDark ? 'text-gray-300' : 'text-slate-700'}>{p.name}</span>
+                                                                  </label>
+                                                               );
+                                                            })}
+                                                         </div>
                                                       ) : (
                                                          <input
                                                             type="text"
-                                                            placeholder="Type system printer name..."
-                                                            value={billConfig.name || ''}
-                                                            onChange={e => updateOrderPrinterSetting(type.key, 'bill', 'name', e.target.value)}
+                                                            placeholder="Type printer names (comma separated)..."
+                                                            value={Array.isArray(billConfig.names) ? billConfig.names.join(', ') : (billConfig.name || '')}
+                                                            onChange={e => {
+                                                               const names = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                                                               updateOrderPrinterSetting(type.key, 'bill', 'names', names);
+                                                               updateOrderPrinterSetting(type.key, 'bill', 'name', names[0] || '');
+                                                            }}
                                                             className={`w-full p-2 rounded-lg border outline-none text-[10px] font-black transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-gray-600 focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}
                                                          />
                                                       )}
@@ -20833,28 +21757,30 @@ const UniversalPOS = () => {
                              </div>
 
                              {/* Base Price */}
-                             <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
-                                <label className="text-[9px] font-black uppercase tracking-wider text-gray-500">Base Price ({config.currency}) *</label>
-                                <input
-                                   type="number"
-                                   step="any"
-                                   required
-                                   value={itemMgmtForm.price}
-                                   onChange={(e) => setItemMgmtForm(prev => ({ ...prev, price: e.target.value }))}
-                                   className={`px-3 py-2 rounded-lg text-[10px] font-mono border focus:outline-none focus:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-300 text-slate-900'}`}
-                                />
-                             </div>
+                              <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+                                 <label className="text-[9px] font-black uppercase tracking-wider text-gray-500">Base Price ({config.currency}) *</label>
+                                 <input
+                                    type="number"
+                                    step="any"
+                                    required
+                                    disabled={!checkPosAccess('OrderWindow', 'change_item_price')}
+                                    value={itemMgmtForm.price}
+                                    onChange={(e) => setItemMgmtForm(prev => ({ ...prev, price: e.target.value }))}
+                                    className={`px-3 py-2 rounded-lg text-[10px] font-mono border focus:outline-none focus:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-300 text-slate-900'} ${!checkPosAccess('OrderWindow', 'change_item_price') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                 />
+                              </div>
 
-                             {/* Stock */}
-                             <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
-                                <label className="text-[9px] font-black uppercase tracking-wider text-gray-500">Initial Stock Qty</label>
-                                <input
-                                   type="number"
-                                   value={itemMgmtForm.current_stock}
-                                   onChange={(e) => setItemMgmtForm(prev => ({ ...prev, current_stock: e.target.value }))}
-                                   className={`px-3 py-2 rounded-lg text-[10px] font-mono border focus:outline-none focus:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-300 text-slate-900'}`}
-                                />
-                             </div>
+                              {/* Stock */}
+                              <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
+                                 <label className="text-[9px] font-black uppercase tracking-wider text-gray-500">Initial Stock Qty</label>
+                                 <input
+                                    type="number"
+                                    disabled={!checkPosAccess('OrderWindow', 'update_stock')}
+                                    value={itemMgmtForm.current_stock}
+                                    onChange={(e) => setItemMgmtForm(prev => ({ ...prev, current_stock: e.target.value }))}
+                                    className={`px-3 py-2 rounded-lg text-[10px] font-mono border focus:outline-none focus:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-300 text-slate-900'} ${!checkPosAccess('OrderWindow', 'update_stock') ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                 />
+                              </div>
 
                              {/* Menu Category */}
                              <div className="flex flex-col gap-1.5 col-span-2 sm:col-span-1">
@@ -21563,7 +22489,7 @@ const UniversalPOS = () => {
           </div>
           {[
             { label: 'Available (Free)', status: 'AVAILABLE', color: '#10ac84' },
-            { label: 'Reserved', status: 'RESERVED', color: '#ffb142' },
+            ...(checkPosAccess('OrderWindow', 'table_reservation') ? [{ label: 'Reserved', status: 'RESERVED', color: '#ffb142' }] : []),
             { label: 'Draft Printed', status: 'DRAFT_PRINTED', color: '#8d6e63' },
             { label: 'Bill Saved', status: 'BILL_SAVED', color: '#ff7675' }
           ].map(opt => (
