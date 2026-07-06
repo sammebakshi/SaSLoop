@@ -11084,54 +11084,83 @@ const UniversalPOS = () => {
 
                       {orderType === 'PICKUP' && (
                         <div className="flex items-center gap-2 pr-1">
-                          {/* Segmented Toggle Control */}
-                          <div className={`flex rounded-lg overflow-hidden border p-0.5 text-[9px] font-black uppercase tracking-wider ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-300 bg-slate-200/50'}`}>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newType = 'PICKUP';
-                                setSubOrderType(newType);
-                                if (selectedTable && selectedTable.is_temporary) {
-                                  let newName = selectedTable.table_name;
-                                  if (selectedTable.table_name.startsWith('Delivery #')) {
-                                    newName = selectedTable.table_name.replace('Delivery #', 'Pickup #');
-                                  }
-                                  const updatedTable = {
-                                    ...selectedTable,
-                                    table_name: newName,
-                                    original_sub_order_type: newType
-                                  };
-                                  setSelectedTable(updatedTable);
-                                  setTables(tPrev => tPrev.map(t => t.id === selectedTable.id ? updatedTable : t));
+                          {/* iPhone-style Toggle Switch */}
+                          <div
+                            className="relative flex items-center rounded-full cursor-pointer select-none"
+                            style={{
+                              width: 140,
+                              height: 28,
+                              backgroundColor: subOrderType === 'PICKUP' ? '#10ac84' : '#3b82f6',
+                              transition: 'background-color 0.3s ease',
+                              padding: 2
+                            }}
+                            onClick={() => {
+                              const newType = subOrderType === 'PICKUP' ? 'DELIVERY' : 'PICKUP';
+                              setSubOrderType(newType);
+                              if (selectedTable && selectedTable.is_temporary) {
+                                let newName = selectedTable.table_name;
+                                if (newType === 'PICKUP' && selectedTable.table_name.startsWith('Delivery #')) {
+                                  newName = selectedTable.table_name.replace('Delivery #', 'Pickup #');
+                                } else if (newType === 'DELIVERY' && selectedTable.table_name.startsWith('Pickup #')) {
+                                  newName = selectedTable.table_name.replace('Pickup #', 'Delivery #');
                                 }
+                                const updatedTable = {
+                                  ...selectedTable,
+                                  table_name: newName,
+                                  original_sub_order_type: newType
+                                };
+                                setSelectedTable(updatedTable);
+                                setTables(tPrev => tPrev.map(t => t.id === selectedTable.id ? updatedTable : t));
+                              }
+                            }}
+                          >
+                            {/* Sliding Pill */}
+                            <div
+                              style={{
+                                position: 'absolute',
+                                top: 2,
+                                left: subOrderType === 'DELIVERY' ? 2 : 'calc(50% + 1px)',
+                                width: 'calc(50% - 3px)',
+                                height: 24,
+                                borderRadius: 12,
+                                backgroundColor: '#fff',
+                                transition: 'left 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
                               }}
-                              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${subOrderType === 'PICKUP' ? 'bg-[#10ac84] text-white shadow-sm font-extrabold' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
-                            >
-                              Pickup
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newType = 'DELIVERY';
-                                setSubOrderType(newType);
-                                if (selectedTable && selectedTable.is_temporary) {
-                                  let newName = selectedTable.table_name;
-                                  if (selectedTable.table_name.startsWith('Pickup #')) {
-                                    newName = selectedTable.table_name.replace('Pickup #', 'Delivery #');
-                                  }
-                                  const updatedTable = {
-                                    ...selectedTable,
-                                    table_name: newName,
-                                    original_sub_order_type: newType
-                                  };
-                                  setSelectedTable(updatedTable);
-                                  setTables(tPrev => tPrev.map(t => t.id === selectedTable.id ? updatedTable : t));
-                                }
+                            />
+                            {/* Labels */}
+                            <span
+                              style={{
+                                flex: 1,
+                                textAlign: 'center',
+                                fontSize: 9,
+                                fontWeight: 800,
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase',
+                                position: 'relative',
+                                zIndex: 1,
+                                color: subOrderType === 'DELIVERY' ? '#1e293b' : 'rgba(255,255,255,0.85)',
+                                transition: 'color 0.25s ease'
                               }}
-                              className={`px-2.5 py-1 rounded transition-all cursor-pointer ${subOrderType === 'DELIVERY' ? 'bg-[#10ac84] text-white shadow-sm font-extrabold' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
                             >
                               Delivery
-                            </button>
+                            </span>
+                            <span
+                              style={{
+                                flex: 1,
+                                textAlign: 'center',
+                                fontSize: 9,
+                                fontWeight: 800,
+                                letterSpacing: '0.05em',
+                                textTransform: 'uppercase',
+                                position: 'relative',
+                                zIndex: 1,
+                                color: subOrderType === 'PICKUP' ? '#1e293b' : 'rgba(255,255,255,0.85)',
+                                transition: 'color 0.25s ease'
+                              }}
+                            >
+                              Pickup
+                            </span>
                           </div>
 
                                                     {/* New Order Button */}
