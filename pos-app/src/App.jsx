@@ -10699,6 +10699,79 @@ const UniversalPOS = () => {
                         </>
                       ) : (
                         <>
+                          {/* Search Bar */}
+                          <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
+                            <div className="flex items-center gap-1">
+                              <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
+                              {checkPosAccess('OrderWindow', 'search_table') && (<input
+                                 type="text"
+                                 placeholder="Search Table"
+                                 value={tableSearchQuery}
+                                 onChange={e => setTableSearchQuery(e.target.value)}
+                                 onFocus={() => {
+                                   if (posSettings.showVirtualKeyboard) {
+                                     setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });
+                                   }
+                                 }}
+                                 className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                              />)}
+                              {checkPosAccess('OrderWindow', 'search_by_code') && (<input
+                                 type="text"
+                                 placeholder="Search by Code"
+                                 value={codeSearchQuery}
+                                 onChange={e => setCodeSearchQuery(e.target.value)}
+                                 onFocus={() => {
+                                   if (posSettings.showVirtualKeyboard) {
+                                     setKeyboardTarget({ value: codeSearchQuery, setValue: setCodeSearchQuery, type: 'text' });
+                                   }
+                                 }}
+                                 className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                              />)}
+                            </div>
+                            {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
+                              <input
+                                 type="text"
+                                 placeholder="Search by Name"
+                                 value={searchQuery}
+                                 onChange={e => setSearchQuery(e.target.value)}
+                                 onFocus={() => {
+                                   if (posSettings.showVirtualKeyboard) {
+                                     setKeyboardTarget({ value: searchQuery, setValue: setSearchQuery, type: 'text' });
+                                   }
+                                 }}
+                                 className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                              />
+                              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            </div>)}
+                            {checkPosAccess('OrderWindow', 'delete_search') && (<input
+                               type="text"
+                               placeholder="Delete"
+                               value={deleteItemQuery}
+                               onChange={e => setDeleteItemQuery(e.target.value)}
+                               onKeyDown={e => {
+                                 if (e.key === 'Enter' && deleteItemQuery) {
+                                   const code = deleteItemQuery.trim().toLowerCase();
+                                   setCart(prev => {
+                                     const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code);
+                                     if (idx !== -1) {
+                                       toast.info(`Removed ${prev[idx].product_name} from cart`);
+                                       return prev.filter((_, i) => i !== idx);
+                                     }
+                                     toast.error("Item code not found in cart");
+                                     return prev;
+                                   });
+                                   setDeleteItemQuery('');
+                                 }
+                               }}
+                               onFocus={() => {
+                                 if (posSettings.showVirtualKeyboard) {
+                                   setKeyboardTarget({ value: deleteItemQuery, setValue: setDeleteItemQuery, type: 'text' });
+                                 }
+                               }}
+                               className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                            />)}
+                            <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
+                          </div>
 
                           {/* Price Tier Tabs - show only if any item has multiple pricing */}
                           {(() => {
