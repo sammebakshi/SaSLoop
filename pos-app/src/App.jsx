@@ -11827,37 +11827,38 @@ const UniversalPOS = () => {
                     <div className={`p-2 shrink-0 space-y-1.5 transition-colors border-t ${isDark ? 'border-gray-800 bg-[#161b22]' : 'border-slate-200 bg-white'}`}>
 
                       {/* Customer Info Header Toolbar */}
-                      <div className="flex justify-end gap-3 px-1">
-                        <button 
-                          onClick={() => {
-                            if (!customerPhone) {
-                              toast.warn("Please enter a customer mobile number first.");
-                              return;
-                            }
-                            const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;
-                            refreshCustomerHistory(fullPhone);
-                            setCustomerHistoryActiveTab('points');
-                            setIsCustomerHistoryModalOpen(true);
-                          }} 
-                          className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
-                          title="Points History"
-                        >
-                          <Gift size={20} strokeWidth={2.5} />
-                        </button>
-                        <button 
-                          onClick={handleOpenCouponModal} 
-                          className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
-                          title="Apply Coupon"
-                        >
-                          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
-                            <path d="M13 5v14" strokeDasharray="2 2" strokeWidth="2" />
-                            <circle cx="8.5" cy="12" r="1.5" fill="currentColor" />
-                            <circle cx="15.5" cy="12" r="1.5" fill="currentColor" />
-                          </svg>
-                        </button>
-
-                      </div>
+                      {orderType !== 'QUICK' && (
+                        <div className="flex justify-end gap-3 px-1">
+                          <button 
+                            onClick={() => {
+                              if (!customerPhone) {
+                                toast.warn("Please enter a customer mobile number first.");
+                                return;
+                              }
+                              const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;
+                              refreshCustomerHistory(fullPhone);
+                              setCustomerHistoryActiveTab('points');
+                              setIsCustomerHistoryModalOpen(true);
+                            }} 
+                            className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
+                            title="Points History"
+                          >
+                            <Gift size={20} strokeWidth={2.5} />
+                          </button>
+                          <button 
+                            onClick={handleOpenCouponModal} 
+                            className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}
+                            title="Apply Coupon"
+                          >
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <path d="M2 9a3 3 0 0 1 0 6v2a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-2a3 3 0 0 1 0-6V7a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z" />
+                              <path d="M13 5v14" strokeDasharray="2 2" strokeWidth="2" />
+                              <circle cx="8.5" cy="12" r="1.5" fill="currentColor" />
+                              <circle cx="15.5" cy="12" r="1.5" fill="currentColor" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
 
                       {/* Row 1: Mobile, Name, History, Bell, Checkbox */}
                       <div className="flex items-center gap-1.5">
