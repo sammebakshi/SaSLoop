@@ -10234,6 +10234,79 @@ const UniversalPOS = () => {
                   {!posSettings.separateView && billingView !== 'tables' ? (
                     // --- COMBINED VIEW (TABLES + MENU ON ONE PAGE) ---
                     <div className="flex-1 flex flex-col overflow-hidden">
+                       {/* Search Bar */}
+                       <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
+                         <div className="flex items-center gap-1">
+                           <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
+                           {checkPosAccess('OrderWindow', 'search_table') && (<input
+                              type="text"
+                              placeholder="Search Table"
+                              value={tableSearchQuery}
+                              onChange={e => setTableSearchQuery(e.target.value)}
+                              onFocus={() => {
+                                if (posSettings.showVirtualKeyboard) {
+                                  setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });
+                                }
+                              }}
+                              className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                           />)}
+                           {checkPosAccess('OrderWindow', 'search_by_code') && (<input
+                              type="text"
+                              placeholder="Search by Code"
+                              value={codeSearchQuery}
+                              onChange={e => setCodeSearchQuery(e.target.value)}
+                              onFocus={() => {
+                                if (posSettings.showVirtualKeyboard) {
+                                  setKeyboardTarget({ value: codeSearchQuery, setValue: setCodeSearchQuery, type: 'text' });
+                                }
+                              }}
+                              className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                           />)}
+                         </div>
+                         {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
+                           <input
+                              type="text"
+                              placeholder="Search by Name"
+                              value={searchQuery}
+                              onChange={e => setSearchQuery(e.target.value)}
+                              onFocus={() => {
+                                if (posSettings.showVirtualKeyboard) {
+                                  setKeyboardTarget({ value: searchQuery, setValue: setSearchQuery, type: 'text' });
+                                }
+                              }}
+                              className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                           />
+                           <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                         </div>)}
+                         {checkPosAccess('OrderWindow', 'delete_search') && (<input
+                            type="text"
+                            placeholder="Delete"
+                            value={deleteItemQuery}
+                            onChange={e => setDeleteItemQuery(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter' && deleteItemQuery) {
+                                const code = deleteItemQuery.trim().toLowerCase();
+                                setCart(prev => {
+                                  const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code);
+                                  if (idx !== -1) {
+                                    toast.info(`Removed ${prev[idx].product_name} from cart`);
+                                    return prev.filter((_, i) => i !== idx);
+                                  }
+                                  toast.error("Item code not found in cart");
+                                  return prev;
+                                });
+                                setDeleteItemQuery('');
+                              }
+                            }}
+                            onFocus={() => {
+                              if (posSettings.showVirtualKeyboard) {
+                                setKeyboardTarget({ value: deleteItemQuery, setValue: setDeleteItemQuery, type: 'text' });
+                              }
+                            }}
+                            className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
+                         />)}
+                         <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
+                       </div>
                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}
                        {orderType === 'DINE_IN' && (
 <div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>
@@ -10352,79 +10425,6 @@ const UniversalPOS = () => {
                           </div>
                        )}
 
-                       {/* Search Bar */}
-                       <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
-                         <div className="flex items-center gap-1">
-                           <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                           {checkPosAccess('OrderWindow', 'search_table') && (<input
-                              type="text"
-                              placeholder="Search Table"
-                              value={tableSearchQuery}
-                              onChange={e => setTableSearchQuery(e.target.value)}
-                              onFocus={() => {
-                                if (posSettings.showVirtualKeyboard) {
-                                  setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });
-                                }
-                              }}
-                              className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />)}
-                           {checkPosAccess('OrderWindow', 'search_by_code') && (<input
-                              type="text"
-                              placeholder="Search by Code"
-                              value={codeSearchQuery}
-                              onChange={e => setCodeSearchQuery(e.target.value)}
-                              onFocus={() => {
-                                if (posSettings.showVirtualKeyboard) {
-                                  setKeyboardTarget({ value: codeSearchQuery, setValue: setCodeSearchQuery, type: 'text' });
-                                }
-                              }}
-                              className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />)}
-                         </div>
-                         {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
-                           <input
-                              type="text"
-                              placeholder="Search by Name"
-                              value={searchQuery}
-                              onChange={e => setSearchQuery(e.target.value)}
-                              onFocus={() => {
-                                if (posSettings.showVirtualKeyboard) {
-                                  setKeyboardTarget({ value: searchQuery, setValue: setSearchQuery, type: 'text' });
-                                }
-                              }}
-                              className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />
-                           <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                         </div>)}
-                         {checkPosAccess('OrderWindow', 'delete_search') && (<input
-                            type="text"
-                            placeholder="Delete"
-                            value={deleteItemQuery}
-                            onChange={e => setDeleteItemQuery(e.target.value)}
-                            onKeyDown={e => {
-                              if (e.key === 'Enter' && deleteItemQuery) {
-                                const code = deleteItemQuery.trim().toLowerCase();
-                                setCart(prev => {
-                                  const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code);
-                                  if (idx !== -1) {
-                                    toast.info(`Removed ${prev[idx].product_name} from cart`);
-                                    return prev.filter((_, i) => i !== idx);
-                                  }
-                                  toast.error("Item code not found in cart");
-                                  return prev;
-                                });
-                                setDeleteItemQuery('');
-                              }
-                            }}
-                            onFocus={() => {
-                              if (posSettings.showVirtualKeyboard) {
-                                setKeyboardTarget({ value: deleteItemQuery, setValue: setDeleteItemQuery, type: 'text' });
-                              }
-                            }}
-                            className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                         />)}
-                         <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
-                       </div>
 
                        {/* Price Tier Tabs - show only if any item has multiple pricing */}
                        {(() => {
@@ -10696,117 +10696,9 @@ const UniversalPOS = () => {
                             {renderPreOrderTempTables()}
                           </div>
 
-                          {/* Bottom Action Bar - four-square icon + buttons */}
-                          <div className={`h-11 border-t flex items-center px-3 gap-2 shrink-0 ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>
-                            <button 
-                              onClick={() => setBillingView(prev => prev === 'tables' ? 'menu' : 'tables')} 
-                              className={`h-8 w-8 flex items-center justify-center transition-colors shrink-0 ${
-                                isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'
-                              }`}
-                              title="View Menu"
-                            >
-                              <LayoutGrid size={20}/>
-                            </button>
-                            <div className="flex-1 flex justify-center gap-2">
-                              {[
-                                { label: 'Filter tables', onClick: handleFilterTables, show: true },
-                                { label: 'Change Table', onClick: handleChangeTable, show: true },
-                                { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },
-                                { label: 'Refresh', onClick: localRefresh, show: true },
-                                { label: 'Load Menu', onClick: handleSyncRefresh, show: true }
-                              ].filter(btn => btn.show).map(btn => (
-                                <button key={btn.label} onClick={btn.onClick} className="h-8 px-4 bg-[#1c2438] hover:bg-[#25304e] text-white rounded-lg text-[11.5px] font-bold flex items-center justify-center transition-all shrink-0">
-                                  {btn.label}
-                                </button>
-                              ))}
-                            </div>
-                            <div className="ml-auto flex items-center gap-2">
-                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Payment Report"><CreditCard size={20}/></button>
-                              <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="Alerts"><Bell size={20}/></button>
-                              <div className="relative flex items-center justify-center">
-                                <button className={`h-8 w-8 flex items-center justify-center transition-colors ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-600 hover:text-slate-900'}`} title="System Monitor"><Monitor size={20}/></button>
-                                <span className="absolute -top-0.5 -left-1 bg-red-500 text-[6px] text-white px-1.5 py-0.5 rounded shadow-sm font-black tracking-wider leading-none scale-75 origin-top-left">
-                                  LIVE
-                                </span>
-                              </div>
-                            </div>
-                          </div>
                         </>
                       ) : (
                         <>
-                          {/* Search Bar */}
-                          <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
-                            <div className="flex items-center gap-1">
-                              <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                              {checkPosAccess('OrderWindow', 'search_table') && (<input
-                                type="text"
-                                placeholder="Search Table"
-                                value={tableSearchQuery}
-                                onChange={e => setTableSearchQuery(e.target.value)}
-                                onFocus={() => {
-                                  if (posSettings.showVirtualKeyboard) {
-                                    setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });
-                                  }
-                                }}
-                                className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />)}
-                              {checkPosAccess('OrderWindow', 'search_by_code') && (<input
-                                type="text"
-                                placeholder="Search by Code"
-                                value={codeSearchQuery}
-                                onChange={e => setCodeSearchQuery(e.target.value)}
-                                onFocus={() => {
-                                  if (posSettings.showVirtualKeyboard) {
-                                    setKeyboardTarget({ value: codeSearchQuery, setValue: setCodeSearchQuery, type: 'text' });
-                                  }
-                                }}
-                                className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />)}
-                            </div>
-                            {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
-                              <input
-                                type="text"
-                                placeholder="Search by Name"
-                                value={searchQuery}
-                                onChange={e => setSearchQuery(e.target.value)}
-                                onFocus={() => {
-                                  if (posSettings.showVirtualKeyboard) {
-                                    setKeyboardTarget({ value: searchQuery, setValue: setSearchQuery, type: 'text' });
-                                  }
-                                }}
-                                className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />
-                              <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            </div>)}
-                            {checkPosAccess('OrderWindow', 'delete_search') && (<input
-                              type="text"
-                              placeholder="Delete"
-                              value={deleteItemQuery}
-                              onChange={e => setDeleteItemQuery(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter' && deleteItemQuery) {
-                                  const code = deleteItemQuery.trim().toLowerCase();
-                                  setCart(prev => {
-                                    const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code);
-                                    if (idx !== -1) {
-                                      toast.info(`Removed ${prev[idx].product_name} from cart`);
-                                      return prev.filter((_, i) => i !== idx);
-                                    }
-                                    toast.error("Item code not found in cart");
-                                    return prev;
-                                  });
-                                  setDeleteItemQuery('');
-                                }
-                              }}
-                              onFocus={() => {
-                                if (posSettings.showVirtualKeyboard) {
-                                  setKeyboardTarget({ value: deleteItemQuery, setValue: setDeleteItemQuery, type: 'text' });
-                                }
-                              }}
-                              className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                            />)}
-                            <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
-                          </div>
 
                           {/* Price Tier Tabs - show only if any item has multiple pricing */}
                           {(() => {
