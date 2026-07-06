@@ -6267,8 +6267,17 @@ const UniversalPOS = () => {
     }
   }, [isSettingsModalOpen, isAuthenticated]);
 
+  const prevSelectedTableIdRef = useRef(null);
+
   useEffect(() => {
     if (selectedTable && cart) {
+      // Guard: skip sync on the first render after a table switch
+      // to prevent the old table's cart from leaking into the new table
+      if (prevSelectedTableIdRef.current !== selectedTable.id) {
+        prevSelectedTableIdRef.current = selectedTable.id;
+        return; // Skip this sync cycle — the correct cart will be set by the table click handler
+      }
+
       const currentTableCart = tableCarts[selectedTable.id] || [];
       // Only sync if there is a meaningful difference
       if (currentTableCart.length !== cart.length || JSON.stringify(currentTableCart) !== JSON.stringify(cart)) {
@@ -6292,6 +6301,8 @@ const UniversalPOS = () => {
           }
         }
       }
+    } else {
+      prevSelectedTableIdRef.current = null;
     }
   }, [cart, selectedTable, tableBills]); // Removed tableCarts from dependencies to break the loop
 
