@@ -10238,7 +10238,7 @@ const UniversalPOS = () => {
                        <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
                          <div className="flex items-center gap-1">
                            <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                           <input
+                           {checkPosAccess('OrderWindow', 'search_table') && (<input
                               type="text"
                               placeholder="Search Table"
                               value={tableSearchQuery}
@@ -10249,8 +10249,8 @@ const UniversalPOS = () => {
                                 }
                               }}
                               className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />
-                           <input
+                           />)}
+                           {checkPosAccess('OrderWindow', 'search_by_code') && (<input
                               type="text"
                               placeholder="Search by Code"
                               value={codeSearchQuery}
@@ -10261,9 +10261,9 @@ const UniversalPOS = () => {
                                 }
                               }}
                               className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                           />
+                           />)}
                          </div>
-                         <div className="flex-1 relative">
+                         {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
                            <input
                               type="text"
                               placeholder="Search by Name"
@@ -10277,8 +10277,8 @@ const UniversalPOS = () => {
                               className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
                            />
                            <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                         </div>
-                         <input
+                         </div>)}
+                         {checkPosAccess('OrderWindow', 'delete_search') && (<input
                             type="text"
                             placeholder="Delete"
                             value={deleteItemQuery}
@@ -10304,7 +10304,7 @@ const UniversalPOS = () => {
                               }
                             }}
                             className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                         />
+                         />)}
                          <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
                        </div>
                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}
@@ -10703,7 +10703,7 @@ const UniversalPOS = () => {
                           <div className={`h-10 border-b flex items-center gap-2 px-3 shrink-0 transition-colors ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>
                             <div className="flex items-center gap-1">
                               <span className="text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold">?</span>
-                              <input
+                              {checkPosAccess('OrderWindow', 'search_table') && (<input
                                  type="text"
                                  placeholder="Search Table"
                                  value={tableSearchQuery}
@@ -10714,8 +10714,8 @@ const UniversalPOS = () => {
                                    }
                                  }}
                                  className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />
-                              <input
+                              />)}
+                              {checkPosAccess('OrderWindow', 'search_by_code') && (<input
                                  type="text"
                                  placeholder="Search by Code"
                                  value={codeSearchQuery}
@@ -10726,9 +10726,9 @@ const UniversalPOS = () => {
                                    }
                                  }}
                                  className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                              />
+                              />)}
                             </div>
-                            <div className="flex-1 relative">
+                            {checkPosAccess('OrderWindow', 'search_by_name') && (<div className="flex-1 relative">
                               <input
                                  type="text"
                                  placeholder="Search by Name"
@@ -10742,8 +10742,8 @@ const UniversalPOS = () => {
                                  className={`h-7 w-full border rounded-full text-[11px] px-3 pr-8 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
                               />
                               <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                            </div>
-                            <input
+                            </div>)}
+                            {checkPosAccess('OrderWindow', 'delete_search') && (<input
                                type="text"
                                placeholder="Delete"
                                value={deleteItemQuery}
@@ -10769,7 +10769,7 @@ const UniversalPOS = () => {
                                  }
                                }}
                                className={`h-7 w-24 border rounded-full text-[11px] px-3 outline-none transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`}
-                            />
+                            />)}
                             <button onClick={localRefresh} className="h-7 w-7 bg-[#238636] rounded-full flex items-center justify-center text-white select-none active:scale-95 transition-all"><RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} /></button>
                           </div>
 
