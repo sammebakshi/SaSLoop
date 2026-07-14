@@ -230,7 +230,7 @@ router.get("/staff", authMiddleware, async (req, res) => {
 });
 
 // POST /api/business/staff (Tiered Role Engine)
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 router.post("/staff", authMiddleware, async (req, res) => {
     const { name, email, password, role, target_user_id, phone, pos_pin, username } = req.body;
     try {

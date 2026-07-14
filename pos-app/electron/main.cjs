@@ -13,6 +13,28 @@ if (isDev) {
   app.setPath('userData', devUserDataPath);
 }
 
+// Detect if running in Terminal mode
+const isTerminalMode = app.getName().toLowerCase().includes('terminal') || 
+                       process.env.IS_TERMINAL === 'true';
+
+// Start local Express server in the background for Master POS
+if (!isTerminalMode) {
+  try {
+    const serverPath = app.isPackaged
+      ? path.join(__dirname, '../server/server.js')
+      : path.join(__dirname, '../../server.js');
+
+    if (fs.existsSync(serverPath)) {
+      console.log(`[Electron] Spawning Express backend server from: ${serverPath}`);
+      require(serverPath);
+    } else {
+      console.warn(`[Electron] Express server file not found at: ${serverPath}`);
+    }
+  } catch (serverErr) {
+    console.error('[Electron] Failed to start local Express server:', serverErr);
+  }
+}
+
 // Disable hardware acceleration to resolve GPU crashes/errors
 // app.disableHardwareAcceleration();
 // app.commandLine.appendSwitch('disable-gpu');

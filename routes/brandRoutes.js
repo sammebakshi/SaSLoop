@@ -196,7 +196,7 @@ router.get("/outlets", authMiddleware, async (req, res) => {
 });
 
 // ✅ ADD NEW OUTLET (Creates User + Restaurant Profile)
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 router.post("/outlets/add", authMiddleware, async (req, res) => {
   const { 
     name, email, password, brand_id, country, timezone, 
