@@ -8061,6 +8061,68 @@ const UniversalPOS = () => {
     }
   };
 
+  const autoDetectMasterServer = async () => {
+    setIsTestingConnection(true);
+    setConnectionStatus('scanning');
+    toast.info("Scanning local network for Master POS server...");
+    
+    // Get the subnet base, e.g. "192.168.1."
+    const ipParts = localIpAddress.split('.');
+    if (ipParts.length !== 4) {
+      toast.error("Could not determine local subnet range.");
+      setIsTestingConnection(false);
+      setConnectionStatus(null);
+      return;
+    }
+    const subnetBase = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
+    
+    // Create an array of promises to check all 254 possible IPs concurrently!
+    const promises = [];
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 seconds timeout for fast scanning
+    
+    for (let i = 1; i <= 254; i++) {
+      const targetIp = `${subnetBase}${i}`;
+      // Skip scanning the terminal's own IP
+      if (targetIp === localIpAddress) continue;
+      
+      promises.push(
+        fetch(`http://${targetIp}:5000/api/auth/profile`, { 
+          method: 'GET',
+          signal: controller.signal 
+        })
+        .then(res => {
+          if (res.status === 200 || res.status === 401 || res.status === 403 || res.status === 404) {
+            return targetIp;
+          }
+          throw new Error();
+        })
+        .catch(() => null)
+      );
+    }
+    
+    try {
+      const results = await Promise.all(promises);
+      const foundIp = results.find(ip => ip !== null);
+      if (foundIp) {
+        setMasterIp(foundIp);
+        setConnectionStatus('success');
+        updateApiBaseUrl(foundIp);
+        toast.success(`Found Master POS server at ${foundIp}!`);
+      } else {
+        setConnectionStatus('error');
+        toast.error("Master POS server not found on local network. Please enter the IP manually.");
+      }
+    } catch (e) {
+      console.warn("Auto-detect failed:", e);
+      setConnectionStatus('error');
+      toast.error("Auto-detect failed. Please type the IP manually.");
+    } finally {
+      clearTimeout(timeoutId);
+      setIsTestingConnection(false);
+    }
+  };
+
   const handleShowBillPreview = () => {
     const activeCart = getActiveCart();
     if (activeCart.length === 0) {
@@ -10663,9 +10725,18 @@ const UniversalPOS = () => {
                       type="button"
                       onClick={() => testMasterConnection(masterIp)}
                       disabled={isTestingConnection || !masterIp}
-                      className="px-4 py-2 bg-slate-800 hover:bg-slate-950 disabled:bg-slate-300 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                      className="px-3 py-2 bg-slate-800 hover:bg-slate-950 disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                     >
-                      {isTestingConnection ? '...' : 'Connect'}
+                      {isTestingConnection && connectionStatus === 'scanning' ? '...' : 'Connect'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={autoDetectMasterServer}
+                      disabled={isTestingConnection}
+                      className="px-3 py-2 bg-[#18ba60] hover:bg-[#15a353] disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                      title="Auto Detect Master POS Server on local subnet"
+                    >
+                      {isTestingConnection && connectionStatus === 'scanning' ? 'Scanning...' : 'Auto Detect'}
                     </button>
                   </div>
                   {connectionStatus === 'success' && (
@@ -10711,12 +10782,16 @@ const UniversalPOS = () => {
                      <Shield size={10} /> Secure Connection
                   </div>
               </div>
-              {isTerminalMode && (
-                  <div className="text-[9px] font-bold text-slate-500 text-left border-t border-slate-200/60 pt-2 flex justify-between">
-                      <span>Terminal IP: <b className="text-slate-800 select-all">{localIpAddress}</b></span>
-                      {masterIp && <span className="text-emerald-600 font-black">Connected to Master</span>}
-                  </div>
-              )}
+              <div className="text-[9px] font-bold text-slate-500 text-left border-t border-slate-200/60 pt-2 flex justify-between">
+                  {isTerminalMode ? (
+                      <>
+                          <span>Terminal IP: <b className="text-slate-800 select-all">{localIpAddress}</b></span>
+                          {masterIp && <span className="text-emerald-600 font-black">Connected to Master</span>}
+                      </>
+                  ) : (
+                      <span>Server Local IP: <b className="text-slate-800 select-all">{localIpAddress}</b></span>
+                  )}
+              </div>
           </div>
           </div>
         </div>

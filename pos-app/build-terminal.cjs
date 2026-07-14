@@ -31,6 +31,17 @@ try {
   console.log('🔨 Launching build compiler (npm run build && electron-builder)...');
   execSync('npm run build && npx electron-builder', { stdio: 'inherit', cwd: __dirname });
   console.log('✨ Build compiled successfully!');
+
+  // 3b. Rename win-unpacked to win-unpacked-terminal for isolated testing
+  const unpackedPath = path.join(__dirname, 'release-v2', 'win-unpacked');
+  const terminalUnpackedPath = path.join(__dirname, 'release-v2', 'win-unpacked-terminal');
+  if (fs.existsSync(unpackedPath)) {
+    if (fs.existsSync(terminalUnpackedPath)) {
+      fs.rmSync(terminalUnpackedPath, { recursive: true, force: true });
+    }
+    fs.renameSync(unpackedPath, terminalUnpackedPath);
+    console.log('📂 Moved Terminal unpacked folder to: release-v2/win-unpacked-terminal');
+  }
 } catch (err) {
   console.error('❌ Build failed:', err);
 } finally {
