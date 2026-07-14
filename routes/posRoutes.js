@@ -499,9 +499,10 @@ router.get("/active-state", authMiddleware, async (req, res) => {
             return res.json({ tableBills: {}, tableStatuses: {}, tableBillNumbers: {}, tableActiveTimestamps: {}, tables: [] });
         }
         const settings = result.rows[0].settings || {};
+        const syncAcross = settings.sync_active_state_across_devices === true || settings.sync_active_state_across_devices === 'true';
         
         let activePosState = settings.active_pos_state;
-        if (deviceId) {
+        if (deviceId && !syncAcross) {
             const deviceKey = `active_pos_state_${deviceId}`;
             if (settings[deviceKey]) {
                 activePosState = settings[deviceKey];
@@ -528,7 +529,11 @@ router.post("/active-state", authMiddleware, async (req, res) => {
         const deviceId = req.headers['x-device-id'] || req.headers['X-Device-ID'] || req.query.device_id || null;
         console.log(`[POS ACTIVE-STATE POST] Device ID: ${deviceId}, User: ${userId}`);
 
-        if (deviceId) {
+        const selectSettings = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1", [userId]);
+        const settings = selectSettings.rows[0]?.settings || {};
+        const syncAcross = settings.sync_active_state_across_devices === true || settings.sync_active_state_across_devices === 'true';
+
+        if (deviceId && !syncAcross) {
             const deviceKey = `active_pos_state_${deviceId}`;
             await pool.query(
                 `UPDATE restaurants 

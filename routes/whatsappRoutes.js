@@ -252,6 +252,92 @@ router.post("/chat/send", authMiddleware, async (req, res) => {
 });
 
 // ============================================
+// 📄 SEND PDF DOCUMENT VIA WHATSAPP
+// ============================================
+router.post("/chat/send-pdf", authMiddleware, async (req, res) => {
+  try {
+    const { to, pdfBase64, filename, target_user_id } = req.body;
+    if (!pdfBase64) {
+      return res.status(400).json({ error: "No PDF base64 data provided" });
+    }
+    const finalUserId = target_user_id || req.user.bizId || req.user.id;
+
+    // 1. Resolve Meta credentials
+    const dbRes = await pool.query("SELECT meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [finalUserId]);
+    let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+    if (token) token = token.trim();
+    if (phoneId) phoneId = phoneId.trim();
+    if (!token || !phoneId) {
+      return res.status(400).json({ error: "Missing Meta API credentials" });
+    }
+
+    const pdfBuffer = Buffer.from(pdfBase64, "base64");
+
+    // 2. Upload PDF to Meta media endpoint
+    const FormData = require("form-data");
+    const axios = require("axios");
+    const formData = new FormData();
+    formData.append("file", pdfBuffer, { filename: filename || "bill.pdf", contentType: "application/pdf" });
+    formData.append("messaging_product", "whatsapp");
+    formData.append("type", "application/pdf");
+
+    const uploadRes = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/media`, formData, {
+      headers: { ...formData.getHeaders(), Authorization: `Bearer ${token}` },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity
+    });
+    const mediaId = uploadRes.data?.id;
+    if (!mediaId) {
+      return res.status(500).json({ error: "Failed to upload PDF to Meta" });
+    }
+
+    // Fetch business name for caption
+    let businessName = "our restaurant";
+    try {
+      const bizRes = await pool.query("SELECT name FROM restaurants WHERE user_id = $1", [finalUserId]);
+      if (bizRes.rows[0]?.name) {
+        businessName = bizRes.rows[0].name;
+      } else {
+        const userRes = await pool.query("SELECT brand_name, business_name FROM app_users WHERE id = $1", [finalUserId]);
+        if (userRes.rows[0]?.brand_name) {
+          businessName = userRes.rows[0].brand_name;
+        } else if (userRes.rows[0]?.business_name) {
+          businessName = userRes.rows[0].business_name;
+        }
+      }
+    } catch (dbErr) {
+      console.error("Failed to fetch business name for PDF caption:", dbErr);
+    }
+
+    const captionText = `🧾 *E-Bill Receipt from ${businessName}*\n\nThank you for dining with us! We appreciate your business and hope to see you again soon! 😊`;
+
+    // 3. Send document message
+    const cleanTo = whatsappManager.formatToInter ? whatsappManager.formatToInter(to) : to.replace(/\D/g, '');
+    const payload = {
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: cleanTo,
+      type: "document",
+      document: {
+        id: mediaId,
+        filename: filename || "bill.pdf",
+        caption: captionText
+      }
+    };
+    await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+
+    // 4. Log to chat history
+    await whatsappManager.logChat(finalUserId, to, 'bot', `[PDF Document: ${filename || 'bill.pdf'}]`);
+    res.json({ success: true });
+  } catch (e) {
+    console.error("send-pdf error:", e?.response?.data || e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============================================
 // 📊 LIVE AI INBOX — Chat History & Interface Status
 // ============================================
 router.get("/status", authMiddleware, async (req, res) => {

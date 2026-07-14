@@ -11,7 +11,7 @@ import {
   Minus, Square, X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { posService, authService, API_BASE } from './services/api';
+import { posService, authService, API_BASE, updateApiBaseUrl } from './services/api';
 import WhatsAppMarketing from './components/WhatsAppMarketing';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -1595,6 +1595,35 @@ const mergeBillItems = (items) => {
   return merged;
 };
 
+// Detect if running in Terminal Mode
+const isTerminalMode = (typeof window !== 'undefined' && window.process && (
+  String(window.process.execPath).toLowerCase().includes('terminal') ||
+  window.process.env.IS_TERMINAL === 'true'
+)) || (typeof localStorage !== 'undefined' && localStorage.getItem('pos_is_terminal_mode') === 'true');
+
+// Fetch the local network IP address dynamically using os module
+let localIpAddress = '127.0.0.1';
+try {
+  if (typeof window !== 'undefined' && window.require) {
+    const os = window.require('os');
+    const networkInterfaces = os.networkInterfaces();
+    let found = false;
+    for (const interfaceName in networkInterfaces) {
+      if (found) break;
+      const interfaces = networkInterfaces[interfaceName];
+      for (const iface of interfaces) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          localIpAddress = iface.address;
+          found = true;
+          break;
+        }
+      }
+    }
+  }
+} catch (e) {
+  console.warn("Failed to retrieve local network IP:", e);
+}
+
 const UniversalPOS = () => {
   const checkPosAccess = (moduleName, permissionName) => {
     if (!business) return true;
@@ -1611,6 +1640,24 @@ const UniversalPOS = () => {
     return modulePermissions[permissionName] !== false;
   };
 
+  const normalizeAllowedArray = (allowed) => {
+    if (allowed === true || !allowed) return null;
+    let allowedArray = [];
+    if (Array.isArray(allowed)) {
+      allowedArray = allowed;
+    } else if (typeof allowed === 'string') {
+      try {
+        const parsed = JSON.parse(allowed);
+        allowedArray = Array.isArray(parsed) ? parsed : [parsed];
+      } catch (e) {
+        allowedArray = [allowed];
+      }
+    } else if (typeof allowed === 'object') {
+      allowedArray = Object.values(allowed);
+    }
+    return allowedArray;
+  };
+
   const getAllowedCategories = () => {
     if (!business) return categories;
     const userRole = String(business?.role || '').toLowerCase();
@@ -1621,9 +1668,10 @@ const UniversalPOS = () => {
     if (!posAccess) return categories;
 
     const allowed = posAccess.OrderWindow?.item_categories;
-    if (allowed === true || !allowed) return categories;
+    const allowedArray = normalizeAllowedArray(allowed);
+    if (!allowedArray || allowedArray.length === 0) return categories;
 
-    return categories.filter(c => c === 'All' || allowed.includes(c));
+    return categories.filter(c => c === 'All' || allowedArray.includes(c));
   };
 
   const isItemCategoryAllowed = (categoryName) => {
@@ -1636,9 +1684,10 @@ const UniversalPOS = () => {
     if (!posAccess) return true;
 
     const allowed = posAccess.OrderWindow?.item_categories;
-    if (allowed === true || !allowed) return true;
+    const allowedArray = normalizeAllowedArray(allowed);
+    if (!allowedArray || allowedArray.length === 0) return true;
 
-    return allowed.includes(categoryName);
+    return allowedArray.includes(categoryName);
   };
 
   const getAllowedDepartments = () => {
@@ -1651,9 +1700,10 @@ const UniversalPOS = () => {
     if (!posAccess) return departments;
 
     const allowed = posAccess.OrderWindow?.table_departments;
-    if (allowed === true || !allowed) return departments;
+    const allowedArray = normalizeAllowedArray(allowed);
+    if (!allowedArray || allowedArray.length === 0) return departments;
 
-    return departments.filter(d => d === 'All' || allowed.includes(d));
+    return departments.filter(d => d === 'All' || allowedArray.includes(d));
   };
 
   const isTableDepartmentAllowed = (departmentName) => {
@@ -1666,9 +1716,10 @@ const UniversalPOS = () => {
     if (!posAccess) return true;
 
     const allowed = posAccess.OrderWindow?.table_departments;
-    if (allowed === true || !allowed) return true;
+    const allowedArray = normalizeAllowedArray(allowed);
+    if (!allowedArray || allowedArray.length === 0) return true;
 
-    return allowed.includes(departmentName);
+    return allowedArray.includes(departmentName);
   };
 
   const [lastAddedItemId, setLastAddedItemId] = useState(null);
@@ -1716,6 +1767,9 @@ const UniversalPOS = () => {
   const [password, setPassword] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [masterIp, setMasterIp] = useState(() => localStorage.getItem('pos_master_ip') || '');
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState(null); // 'success', 'error', or null
   const [isAccessLevelModalOpen, setIsAccessLevelModalOpen] = useState(false);
   const [logoutModalStep, setLogoutModalStep] = useState(null);
   const [clearLocalDataChecked, setClearLocalDataChecked] = useState(false);
@@ -1755,6 +1809,7 @@ const UniversalPOS = () => {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [printDetailedBalance, setPrintDetailedBalance] = useState(true);
   const [kotNote, setKOTNote] = useState('');
   const [coversCount, setCoversCount] = useState('');
   const [ebillEnabled, setEbillEnabled] = useState(false);
@@ -4390,7 +4445,37 @@ const UniversalPOS = () => {
   const [selectedTable, setSelectedTable] = useState(null);
   const [selectedLiveOrderId, setSelectedLiveOrderId] = useState(null);
   const [activeDepartment, setActiveDepartment] = useState('All');
-  const departments = ['All', ...new Set(tables.map(t => t.department_name).filter(Boolean))];
+  
+  const resolveTableDepartment = (t) => {
+    if (t.department_name) return t.department_name;
+    const name = (t.table_name || t.name || '').toUpperCase();
+    if (name.includes('ROOM')) return 'Rooms';
+    if (name.includes('BAR')) return 'AC Section & BAR';
+    if (name.includes('VIP')) return 'VIP';
+    const match = name.match(/TABLE\s*(\d+)/i);
+    if (match) {
+      const num = parseInt(match[1]);
+      if (num <= 5) return 'Non AC Section';
+      if (num <= 10) return 'AC Section & BAR';
+      if (num <= 15) return 'Rooms';
+      if (num <= 20) return 'VIP';
+    }
+    return 'Non AC Section';
+  };
+
+  const getDepartmentsList = () => {
+    const customDepts = [...new Set(tables.map(t => t.department_name).filter(Boolean))]
+      .map(d => d.trim())
+      .filter(d => d && d !== 'Pre-Order' && d !== 'All');
+    console.log("POS - Loaded tables from cache/server:", tables);
+    console.log("POS - Detected custom departments:", customDepts);
+    if (customDepts.length > 0) {
+      return ['All', ...customDepts];
+    }
+    return ['All', 'Non AC Section', 'AC Section & BAR', 'Rooms', 'VIP', 'Pickup'];
+  };
+  const departments = getDepartmentsList();
+
   const [kotHistory, setKotHistory] = useState(() => {
     try {
       const saved = localStorage.getItem('pos_kot_history');
@@ -4578,6 +4663,9 @@ const UniversalPOS = () => {
       askPasswordForTableDelete: true,
       printLoyaltyPoints: true,
       loyaltyPrintOption: 'all',
+      enableEbill: false,
+      ebillMethod: 'DIRECT',
+      enableEbillPdf: false,
       orderPrinters: {
         DINE_IN: {
           kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },
@@ -4720,7 +4808,8 @@ const UniversalPOS = () => {
           selectedCustomer,
           redeemedPoints,
           appliedCoupon,
-          couponCode
+          couponCode,
+          printDetailedBalance
         }
       }));
     }
@@ -4733,7 +4822,8 @@ const UniversalPOS = () => {
     selectedCustomer,
     redeemedPoints,
     appliedCoupon,
-    couponCode
+    couponCode,
+    printDetailedBalance
   ]);
 
   useEffect(() => {
@@ -4824,6 +4914,90 @@ const UniversalPOS = () => {
     useEffect(() => {
       localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));
     }, [posSettings]);
+
+  // Live Active State Sync Polling for Terminals / Shared State
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    
+    // Only poll if we are in Terminal Mode OR if syncActiveStateAcrossDevices is enabled
+    const shouldPoll = isTerminalMode || posSettings.syncActiveStateAcrossDevices;
+    if (!shouldPoll) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await posService.getActiveState();
+        if (res && res.data) {
+          const stateData = res.data;
+          
+          setTableStatuses(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(stateData.tableStatuses || {})) {
+              localStorage.setItem('pos_table_statuses', JSON.stringify(stateData.tableStatuses || {}));
+              return stateData.tableStatuses || {};
+            }
+            return prev;
+          });
+
+          setTableBillNumbers(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(stateData.tableBillNumbers || {})) {
+              localStorage.setItem('pos_table_bill_numbers', JSON.stringify(stateData.tableBillNumbers || {}));
+              return stateData.tableBillNumbers || {};
+            }
+            return prev;
+          });
+
+          setTableActiveTimestamps(prev => {
+            if (JSON.stringify(prev) !== JSON.stringify(stateData.tableActiveTimestamps || {})) {
+              localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps || {}));
+              return stateData.tableActiveTimestamps || {};
+            }
+            return prev;
+          });
+
+          setTableBills(prev => {
+            const mergedBills = { ...prev };
+            let hasChanged = false;
+            
+            // Loop through all tables in the incoming state
+            Object.keys(stateData.tableBills || {}).forEach(tableId => {
+              // Safety: If the user is currently editing this table's cart (i.e. selectedTable?.id is this tableId
+              // AND they have items in their active cart), do not overwrite it.
+              const isCurrentlyEditing = selectedTable && String(selectedTable.id) === String(tableId);
+              if (isCurrentlyEditing) return;
+
+              const incomingBill = stateData.tableBills[tableId];
+              const currentBill = prev[tableId];
+
+              if (JSON.stringify(currentBill) !== JSON.stringify(incomingBill)) {
+                mergedBills[tableId] = incomingBill;
+                hasChanged = true;
+              }
+            });
+
+            // Also check for deleted tables/bills
+            Object.keys(prev).forEach(tableId => {
+              if (!(stateData.tableBills || {})[tableId]) {
+                const isCurrentlyEditing = selectedTable && String(selectedTable.id) === String(tableId);
+                if (!isCurrentlyEditing) {
+                  delete mergedBills[tableId];
+                  hasChanged = true;
+                }
+              }
+            });
+
+            if (hasChanged) {
+              localStorage.setItem('pos_table_bills', JSON.stringify(mergedBills));
+              return mergedBills;
+            }
+            return prev;
+          });
+        }
+      } catch (err) {
+        console.warn("Failed to poll live active state:", err);
+      }
+    }, 5000); // Poll every 5 seconds
+
+    return () => clearInterval(pollInterval);
+  }, [isAuthenticated, selectedTable, posSettings.syncActiveStateAcrossDevices]);
 
     useEffect(() => {
       if (isSplitModalOpen) {
@@ -5001,6 +5175,7 @@ const UniversalPOS = () => {
       setCustomerPhone('');
       setCustomerAddress('');
       setSelectedCustomer(null);
+      setPrintDetailedBalance(true);
       setKOTNote('');
       setCoversCount('');
       setEbillEnabled(false);
@@ -5169,7 +5344,8 @@ const UniversalPOS = () => {
         if (t.is_temporary) return false;
       }
       if (orderType === 'DINE_IN' && activeDepartment !== 'All') {
-        if (t.department_name !== activeDepartment) return false;
+        const resolvedDept = resolveTableDepartment(t);
+        if (resolvedDept !== activeDepartment) return false;
       }
       if (tableSearchQuery) {
         if (!t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase())) return false;
@@ -5644,7 +5820,8 @@ const UniversalPOS = () => {
         selectedCustomer,
         redeemedPoints,
         appliedCoupon,
-        couponCode
+        couponCode,
+        printDetailedBalance
       }
     }));
 
@@ -5664,6 +5841,7 @@ const UniversalPOS = () => {
       setAppliedCoupon(null);
       setCouponCode('');
       setSelectedCustomer(null);
+      setPrintDetailedBalance(true);
       setEditingOrder(null);
       setEditingPreOrder(null);
       if (activeTrayTab === 'PreOrder') {
@@ -5726,7 +5904,8 @@ const UniversalPOS = () => {
               selectedCustomer,
               redeemedPoints,
               appliedCoupon,
-              couponCode
+              couponCode,
+              printDetailedBalance
             }
           }));
 
@@ -5740,6 +5919,7 @@ const UniversalPOS = () => {
           setAppliedCoupon(null);
           setCouponCode('');
           setSelectedCustomer(null);
+          setPrintDetailedBalance(true);
           setEditingOrder(null);
           setEditingPreOrder(null);
           toast.success("Old order saved to selected table. New Order started!");
@@ -5758,6 +5938,7 @@ const UniversalPOS = () => {
       setAppliedCoupon(null);
       setCouponCode('');
       setSelectedCustomer(null);
+      setPrintDetailedBalance(true);
       setEditingOrder(null);
       setEditingPreOrder(null);
       setSelectedTable(null);
@@ -6333,6 +6514,14 @@ const UniversalPOS = () => {
     }
   }, [cart, selectedTable, tableBills]); // Removed tableCarts from dependencies to break the loop
 
+  useEffect(() => {
+    if (isPaymentModalOpen && selectedCustomer) {
+      const totals = calculateTotals();
+      setCustomerPaidAmount(totals.total.toFixed(2));
+      setSaveChangeToBalance(true);
+    }
+  }, [isPaymentModalOpen, selectedCustomer]);
+
   const resetCustomerState = () => {
     setCustomerPhone('');
     setCustomerName('');
@@ -6341,6 +6530,7 @@ const UniversalPOS = () => {
     setAppliedCoupon(null);
     setCouponCode('');
     setSelectedCustomer(null);
+    setPrintDetailedBalance(true);
   };
 
   // Static/Logic Gating References for Master / Wallet / OnlineOrder / Dashboard / Reports permissions
@@ -6630,6 +6820,16 @@ const UniversalPOS = () => {
       }
       localStorage.setItem('pos_profile', JSON.stringify(profile.data));
       biz = profile.data?.business_details || profile.data || {};
+      
+      if (biz.settings) {
+        const bizSettings = typeof biz.settings === 'string' ? JSON.parse(biz.settings) : biz.settings;
+        if (bizSettings.sync_active_state_across_devices !== undefined) {
+          setPosSettings(prev => ({
+            ...prev,
+            syncActiveStateAcrossDevices: bizSettings.sync_active_state_across_devices === true || bizSettings.sync_active_state_across_devices === 'true'
+          }));
+        }
+      }
     } catch (e) {
       console.warn("initApp - Failed to load profile:", e);
     }
@@ -7788,9 +7988,35 @@ const UniversalPOS = () => {
       toast.error("Please fill all fields");
       return;
     }
+    
+    // Safety check for Terminal IP configuration
+    if (isTerminalMode && !masterIp) {
+      toast.error("Please configure the Master POS IP address first.");
+      return;
+    }
+
     setIsLoggingIn(true);
     try {
       const res = await authService.posLogin(username, password);
+      
+      // Get role and designation name from response
+      const profile = res.data.user || {};
+      const userRole = String(profile.role || '').toLowerCase();
+      const designationName = String(profile.designation_name || '').toLowerCase();
+      
+      if (isTerminalMode) {
+        const hasTerminalAccess = 
+          ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) ||
+          userRole === 'terminal' ||
+          designationName === 'terminal';
+          
+        if (!hasTerminalAccess) {
+          toast.error("Access denied: Only users with terminal access are allowed to login on this terminal.");
+          setIsLoggingIn(false);
+          return;
+        }
+      }
+
       setIsTransitioningToDashboard(true);
       await new Promise(resolve => setTimeout(resolve, 2000));
       localStorage.setItem('pos_token', res.data.token);
@@ -7801,6 +8027,37 @@ const UniversalPOS = () => {
       toast.error(errMsg);
     } finally {
       setIsLoggingIn(false);
+    }
+  };
+
+  const testMasterConnection = async (ipToTest) => {
+    if (!ipToTest) {
+      setConnectionStatus(null);
+      return;
+    }
+    setIsTestingConnection(true);
+    setConnectionStatus(null);
+    try {
+      const response = await fetch(`http://${ipToTest}:5000/api/auth/profile`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(3000) // 3 seconds timeout
+      });
+      // A 401, 403, 404 or 200 all mean the server is reachable and running!
+      if (response.status === 200 || response.status === 401 || response.status === 403 || response.status === 404) {
+        setConnectionStatus('success');
+        updateApiBaseUrl(ipToTest);
+        toast.success("Successfully connected to Master POS server!");
+      } else {
+        setConnectionStatus('error');
+        toast.error("Failed to connect: Server responded with status " + response.status);
+      }
+    } catch (e) {
+      console.warn("Connection test failed:", e);
+      setConnectionStatus('error');
+      toast.error("Connection failed: Make sure the Master POS is running and on the same Wi-Fi network.");
+    } finally {
+      setIsTestingConnection(false);
     }
   };
 
@@ -8379,10 +8636,18 @@ const UniversalPOS = () => {
         ? parseFloat(splitPaidAmount) || 0
         : (method === 'CREDIT'
             ? 0
-            : (method.toLowerCase() === 'cash' && saveChangeToBalance
+            : (saveChangeToBalance
                 ? parseFloat(customerPaidAmount) || 0
                 : finalTotalPrice)),
-      credit_amount: method === 'SPLIT' ? parseFloat(splitCreditAmount) || 0 : (method === 'CREDIT' ? finalTotalPrice : 0)
+      credit_amount: method === 'SPLIT'
+        ? parseFloat(splitCreditAmount) || 0
+        : (method === 'CREDIT'
+            ? finalTotalPrice
+            : (saveChangeToBalance && (parseFloat(customerPaidAmount) || 0) < finalTotalPrice
+                ? finalTotalPrice - (parseFloat(customerPaidAmount) || 0)
+                : 0)),
+      print_detailed_balance: printDetailedBalance,
+      save_change_to_balance: saveChangeToBalance
     };
 
     // If editing, update in-place; if new, prepend
@@ -8396,7 +8661,7 @@ const UniversalPOS = () => {
       calculateStats(updatedOrders);
     }
 
-    try {
+     try {
       if (editingOrder && typeof editingOrder.id === 'number') {
         // Server-synced order — call update endpoint
         const res = await posService.updateOrder(editingOrder.id, newOrder);
@@ -8425,8 +8690,18 @@ const UniversalPOS = () => {
           };
           setRecentOrders(prev => prev.map(o => o.id === editingOrder.id ? serverOrder : o));
           toast.success(`Invoice Updated & Synced!`);
+          if (type === 'SAVE') {
+            triggerEbill(serverOrder, fullPhone);
+          } else if (type === 'SETTLE') {
+            triggerSettlementNotification(serverOrder, fullPhone);
+          }
         } else {
           toast.success(`Invoice Updated & Synced!`);
+          if (type === 'SAVE') {
+            triggerEbill(newOrder, fullPhone);
+          } else if (type === 'SETTLE') {
+            triggerSettlementNotification(newOrder, fullPhone);
+          }
         }
       } else {
         // New order or local-only edit — call create endpoint
@@ -8459,6 +8734,11 @@ const UniversalPOS = () => {
             setEditingOrder(serverOrder);
           }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
+          if (type === 'SAVE') {
+            triggerEbill(serverOrder, fullPhone);
+          } else if (type === 'SETTLE') {
+            triggerSettlementNotification(serverOrder, fullPhone);
+          }
         } else {
           const syncedOrder = { ...newOrder, synced: true };
           setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? syncedOrder : o));
@@ -8466,6 +8746,11 @@ const UniversalPOS = () => {
             setEditingOrder(syncedOrder);
           }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
+          if (type === 'SAVE') {
+            triggerEbill(syncedOrder, fullPhone);
+          } else if (type === 'SETTLE') {
+            triggerSettlementNotification(syncedOrder, fullPhone);
+          }
         }
       }
 
@@ -8479,6 +8764,11 @@ const UniversalPOS = () => {
       }
     } catch (err) {
       toast.error("Offline Mode: Saved Locally Only");
+      if (type === 'SAVE') {
+        triggerEbill(newOrder, fullPhone);
+      } else if (type === 'SETTLE') {
+        triggerSettlementNotification(newOrder, fullPhone);
+      }
     }
 
     if (fullPhone) {
@@ -8497,7 +8787,7 @@ const UniversalPOS = () => {
         const existing = prev[fullPhone] || { name: customerName, phone: fullPhone, address: customerAddress || "", points: 0, orders: 0, totalSpent: 0, balance: 0 };
         const balanceChange = ((method || 'CASH').toLowerCase() === 'credit') ? -finalTotalPrice :
                               (((method || 'CASH').toLowerCase() === 'split') ? -(parseFloat(splitCreditAmount) || 0) :
-                              (((method || 'CASH').toLowerCase() === 'cash' && saveChangeToBalance) ? ((parseFloat(customerPaidAmount) || 0) - finalTotalPrice) : 0));
+                              (saveChangeToBalance ? ((parseFloat(customerPaidAmount) || 0) - finalTotalPrice) : 0));
         const updatedCust = type === 'SETTLE' ? {
           ...existing,
           name: customerName || existing.name,
@@ -8581,6 +8871,7 @@ const UniversalPOS = () => {
       setAppliedCoupon(null);
       setCouponCode('');
       setSelectedCustomer(null);
+      setPrintDetailedBalance(true);
       setKOTNote('');
       setCoversCount('');
       setDiscount({ type: 'NONE', value: 0 });
@@ -8906,20 +9197,61 @@ const UniversalPOS = () => {
     });
   };
 
-  const handlePrint = async (order) => {
-    const access = getStaffPermissions()?.pos_access?.Receipts;
-    if (access?.reprint_bill === false) {
-      toast.error("Reprinting bills is restricted for this access level.");
-      return;
+  const generateEbillText = (order) => {
+    const lines = [];
+    const header = posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
+    const address = posSettings.address || '';
+    const footer = posSettings.greetingMessage || 'THANK YOU! VISIT AGAIN';
+
+    lines.push(`🧾 *${header.toUpperCase()}*`);
+    if (address) {
+      lines.push(address.split('\n')[0]);
     }
-    if (access?.reprint_bill_passcode === true) {
-      const pin = prompt("Enter Manager PIN to reprint bill:");
-      if (pin === null) return;
-      if (!verifyManagerPin(pin)) {
-         toast.error("Invalid Manager PIN/Passcode!");
-         return;
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*Bill No:* #${order.bill_no || order.id}`);
+    lines.push(`*Date:* ${new Date(order.created_at || Date.now()).toLocaleString()}`);
+    if (order.customer_name && order.customer_name !== 'POS Guest') {
+      lines.push(`*Customer:* ${order.customer_name}`);
+    }
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    
+    const items = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
+    items.forEach(item => {
+      const itemTotal = parseFloat(item.price || 0) * parseInt(item.qty || 1);
+      lines.push(`${item.qty}x ${item.name} - Rs ${itemTotal.toFixed(2)}`);
+      if (item.modifiers && item.modifiers.length > 0) {
+        item.modifiers.forEach(mod => {
+          lines.push(`  + ${mod.name} (Rs ${parseFloat(mod.price || 0).toFixed(2)})`);
+        });
       }
+    });
+    
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*Subtotal:* Rs ${parseFloat(order.subtotal || 0).toFixed(2)}`);
+    if (parseFloat(order.discount || 0) > 0) {
+      lines.push(`*Discount:* Rs ${parseFloat(order.discount || 0).toFixed(2)}`);
     }
+    if (parseFloat(order.tax_cgst || 0) > 0 || parseFloat(order.tax_sgst || 0) > 0) {
+      const taxTotal = parseFloat(order.tax_cgst || 0) + parseFloat(order.tax_sgst || 0);
+      lines.push(`*Tax:* Rs ${taxTotal.toFixed(2)}`);
+    }
+    if (parseFloat(order.delivery_charge || 0) > 0) {
+      lines.push(`*Delivery Charge:* Rs ${parseFloat(order.delivery_charge || 0).toFixed(2)}`);
+    }
+    if (parseFloat(order.service_charge || 0) > 0) {
+      lines.push(`*Service Charge:* Rs ${parseFloat(order.service_charge || 0).toFixed(2)}`);
+    }
+    
+    lines.push(`*Grand Total: Rs ${parseFloat(order.total_price || 0).toFixed(2)}*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*Payment:* ${order.payment_method || 'CASH'}`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`_${footer}_`);
+    
+    return lines.join('\n');
+  };
+
+  const generateThermalReceiptHtml = async (order) => {
     // Normalize fields to support both a POS Order and a Pre-Order DB object
     const orderItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
 
@@ -8947,13 +9279,6 @@ const UniversalPOS = () => {
       bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
     };
     const billConfig = configGroup.bill || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
-
-    if (billConfig.enabled === false) {
-      toast.info(`Bill printing is disabled for ${configKey === 'PRE_ORDER' ? 'Pre-Order' : configKey} order type.`);
-      return;
-    }
-
-    const targetPrinter = billConfig.name || posSettings.printerName || '';
     const paperSize = billConfig.paperSize || posSettings.printerType || 'THERMAL_80MM';
     const finalPrintWidth = paperSize === 'THERMAL_58MM' ? 48 : (posSettings.printWidth || 72);
 
@@ -9008,7 +9333,6 @@ const UniversalPOS = () => {
           const ratio = pointsAwarded / threshold;
           pointsEarnedOnBill = Math.floor(subtotal * ratio);
         } else {
-          // Loyalty disabled — no points earned
           pointsEarnedOnBill = 0;
         }
       }
@@ -9053,14 +9377,8 @@ const UniversalPOS = () => {
       try {
         const payeeName = business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
         let upiUri = '';
-        let displayUpiId = '';
-        let brandLabel = '';
-
         const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId));
         if (activeEntry) {
-          displayUpiId = activeEntry.upi_id;
-          brandLabel = activeEntry.name || '';
-
           const isUrl = activeEntry.upi_id.startsWith('http://') || activeEntry.upi_id.startsWith('https://') || activeEntry.upi_id.startsWith('upi://');
           if (isUrl) {
             upiUri = activeEntry.upi_id;
@@ -9095,7 +9413,7 @@ const UniversalPOS = () => {
       }
     }
 
-    const receiptHtml = `
+    return `
       <html>
         <head>
           <style>
@@ -9426,6 +9744,118 @@ const UniversalPOS = () => {
             `}
           </div>
 
+          ${(() => {
+            const shouldPrintDetails = order.print_detailed_balance !== undefined ? order.print_detailed_balance : printDetailedBalance;
+            if (!shouldPrintDetails) return '';
+            const numericPhone = customerPhone.replace(/\D/g, '');
+            let customerInfo = customerDb[fullPhoneKey];
+            if (!customerInfo && customerPhone) {
+              customerInfo = Object.values(customerDb).find(c => {
+                if (!c.phone) return false;
+                const cNumeric = c.phone.replace(/\D/g, '');
+                return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
+              });
+            }
+            if (!customerInfo && selectedCustomer) {
+              const selNumeric = (selectedCustomer.phone || selectedCustomer.number || '').replace(/\D/g, '');
+              if (selNumeric.endsWith(numericPhone) || numericPhone.endsWith(selNumeric)) {
+                customerInfo = selectedCustomer;
+              }
+            }
+            if (!customerInfo) return '';
+
+            let change = 0;
+            const payMethod = (order.payment_method || '').toUpperCase();
+            if (payMethod === 'CREDIT' || payMethod === 'DUE') {
+              change = -parseFloat(order.total_price || 0);
+            } else if (payMethod === 'SPLIT') {
+              change = -parseFloat(order.credit_amount || 0);
+            } else if (order.save_change_to_balance) {
+              change = parseFloat(order.paid_amount || 0) - parseFloat(order.total_price || 0);
+            }
+
+            const isReprint = recentOrders.some(o => o.id === order.id);
+            let prevBal = 0;
+            let netBal = 0;
+            if (isReprint) {
+              netBal = parseFloat(customerInfo.balance || 0);
+              prevBal = netBal - change;
+            } else {
+              prevBal = parseFloat(customerInfo.balance || 0);
+              netBal = prevBal + change;
+            }
+
+            const prevDue = prevBal < 0 ? Math.abs(prevBal) : -prevBal;
+            const billAmt = parseFloat(order.total_price || 0);
+            const totalOutstanding = prevDue + billAmt;
+
+            const paidAmt = order.paid_amount !== undefined 
+              ? parseFloat(order.paid_amount || 0) 
+              : (payMethod === 'CREDIT' || payMethod === 'DUE' ? 0 : parseFloat(order.total_price || 0));
+
+            const balanceDue = totalOutstanding - paidAmt;
+
+            const prevBalStr = prevBal >= 0 
+              ? `Rs ${prevBal.toFixed(2)} (Adv)` 
+              : `Rs ${Math.abs(prevBal).toFixed(2)} (Due)`;
+
+            const totalOutstandingStr = totalOutstanding >= 0
+              ? `Rs ${totalOutstanding.toFixed(2)} (Due)`
+              : `Rs ${Math.abs(totalOutstanding).toFixed(2)} (Adv)`;
+
+            const balanceDueStr = balanceDue >= 0
+              ? `Rs ${balanceDue.toFixed(2)} (Due)`
+              : `Rs ${Math.abs(balanceDue).toFixed(2)} (Adv)`;
+
+            const isPending = order.status === 'PENDING' || (isPreOrder && order.status !== 'COMPLETED');
+
+            if (isPending) {
+              return `
+                <div class="dashed-line"></div>
+                <div style="font-size: 10px; font-weight: bold;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Prev Balance:</span>
+                    <span>${prevBalStr}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Bill Amount:</span>
+                    <span>Rs ${billAmt.toFixed(2)}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-top: 1px dotted #000; margin-top: 0.5mm; padding-top: 0.5mm; font-size: 10.5px;">
+                    <span>Total:</span>
+                    <span>${totalOutstandingStr}</span>
+                  </div>
+                </div>
+              `;
+            } else {
+              return `
+                <div class="dashed-line"></div>
+                <div style="font-size: 10px; font-weight: bold;">
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Prev Balance:</span>
+                    <span>${prevBalStr}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Bill Amount:</span>
+                    <span>Rs ${billAmt.toFixed(2)}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Total:</span>
+                    <span>${totalOutstandingStr}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between;">
+                    <span>Amount Paid:</span>
+                    <span>Rs ${paidAmt.toFixed(2)}</span>
+                  </div>
+                  <div style="display: flex; justify-content: space-between; border-top: 1px dotted #000; margin-top: 0.5mm; padding-top: 0.5mm; font-size: 10.5px;">
+                    <span>Balance Due:</span>
+                    <span>${balanceDueStr}</span>
+                  </div>
+                </div>
+              `;
+            }
+          })()}
+
           ${qrCodeHtml}
 
           ${(posSettings.printLoyaltyPoints && customerPhone && (pointsRedeemed > 0 || (pointsEarnedOnBill > 0 && (posSettings.loyaltyPrintOption !== 'saved' || isSavedCustomer)))) ? `
@@ -9439,13 +9869,293 @@ const UniversalPOS = () => {
 
           <div class="dashed-line"></div>
 
-          <div class="center footer-version">${posSettings.appVersion || 'SaSLoop Master POS Version: 1.0.1'}</div>
           <div class="center bold footer-thankyou">${(posSettings.greetingMessage || 'THANK YOU! VISIT AGAIN').toUpperCase()}</div>
+          <div class="center footer-version">${posSettings.appVersion || 'SaSLoop Master POS Version: 1.0.1'}</div>
           <div class="dashed-line"></div>
-          <script>window.onload = () => { window.print(); window.close(); }</script>
         </body>
       </html>
     `;
+  };
+
+  const generatePdfFromHtml = async (html, savePath, fileName) => {
+    if (window.require) {
+      const { ipcRenderer } = window.require('electron');
+      return await ipcRenderer.invoke('generate-pdf', { html, savePath, fileName });
+    }
+    return null;
+  };
+
+  const triggerEbill = async (order, targetPhone) => {
+    if (!posSettings.enableEbill) return;
+    if (!ebillEnabled) return; // Only send when ebill checkbox is checked
+    
+    let phone = targetPhone;
+    if (!phone) {
+      const optPhone = prompt("Enter customer WhatsApp number for E-Bill (or leave empty to skip):");
+      if (!optPhone) return;
+      phone = optPhone.trim();
+    }
+    
+    // Clean and validate phone number
+    let cleanPhone = phone.replace(/\D/g, ''); // remove non-digits
+    if (cleanPhone.length === 10) {
+      cleanPhone = (customerCountryCode || '+91').replace(/\+/g, '') + cleanPhone;
+    }
+    
+    if (!cleanPhone) {
+      toast.error("Invalid phone number for E-Bill.");
+      return;
+    }
+
+    // --- PDF E-Bill path ---
+    if (posSettings.enableEbillPdf) {
+      try {
+        const pdfHtml = await generateThermalReceiptHtml(order);
+        const billFileName = `Bill_${order.bill_no || order.id}.pdf`;
+        const userHome = window.require ? window.require('os').homedir() : '';
+        const saveFolderPath = userHome ? window.require('path').join(userHome, 'Desktop', 'SaSLoop-Bills') : null;
+
+        toast.info("Generating PDF E-Bill...");
+        const pdfResult = await generatePdfFromHtml(pdfHtml, saveFolderPath, billFileName);
+
+        if (!pdfResult || !pdfResult.base64) {
+          toast.error("Failed to generate PDF. Sending text E-Bill instead...");
+          // Fallback to text
+          const text = generateEbillText(order);
+          if (posSettings.ebillMethod === 'AUTOMATION') {
+            await posService.sendWhatsAppMessage(cleanPhone, text);
+          } else {
+            window.open(`https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`, '_blank');
+          }
+          return;
+        }
+
+        if (posSettings.ebillMethod === 'AUTOMATION') {
+          toast.info("Uploading PDF E-Bill via WhatsApp Automation...");
+          await posService.sendWhatsAppPdf(cleanPhone, pdfResult.base64, billFileName);
+          toast.success("PDF E-Bill sent successfully!");
+        } else {
+          // Direct mode — PDF saved locally, open WhatsApp with a short intro message
+          const text = `Hello! Please find your PDF E-Bill receipt attached below. 🧾`;
+          const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+          window.open(directUrl, '_blank');
+          if (pdfResult.savedFilePath) {
+            toast.success(`PDF saved! Drag & drop the highlighted file, or click attach and press Ctrl+V.`);
+            if (window.require) {
+              try {
+                const { shell, clipboard } = window.require('electron');
+                clipboard.writeText(pdfResult.savedFilePath);
+                shell.showItemInFolder(pdfResult.savedFilePath);
+              } catch (shellErr) {
+                console.error("Failed to open folder/copy path:", shellErr);
+              }
+            }
+          } else {
+            toast.success("Opening WhatsApp E-Bill link...");
+          }
+        }
+      } catch (err) {
+        console.error("PDF E-Bill error:", err);
+        toast.error("PDF E-Bill failed. Falling back to text E-Bill...");
+        // Fallback to text
+        const text = generateEbillText(order);
+        const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+        window.open(directUrl, '_blank');
+      }
+      return;
+    }
+
+    // --- Text E-Bill path (original) ---
+    const text = generateEbillText(order);
+
+    if (posSettings.ebillMethod === 'AUTOMATION') {
+      try {
+        toast.info("Sending E-Bill via WhatsApp Automation...");
+        await posService.sendWhatsAppMessage(cleanPhone, text);
+        toast.success("E-Bill sent successfully!");
+      } catch (err) {
+        console.error("Failed to send WhatsApp automation e-bill:", err);
+        toast.error("Failed to send WhatsApp automation. Opening direct link instead...");
+        const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+        window.open(directUrl, '_blank');
+      }
+    } else {
+      const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+      window.open(directUrl, '_blank');
+      toast.success("Opening WhatsApp E-Bill link...");
+    }
+  };
+
+  const triggerSettlementNotification = async (order, targetPhone) => {
+    if (!posSettings.enableEbill) return;
+    if (!ebillEnabled) return; // Only send when ebill checkbox is checked
+
+    let phone = targetPhone;
+    if (!phone) {
+      const optPhone = prompt("Enter customer WhatsApp number for Payment Confirmation (or leave empty to skip):");
+      if (!optPhone) return;
+      phone = optPhone.trim();
+    }
+
+    // Clean and validate phone number
+    let cleanPhone = phone.replace(/\D/g, ''); // remove non-digits
+    if (cleanPhone.length === 10) {
+      cleanPhone = (customerCountryCode || '+91').replace(/\+/g, '') + cleanPhone;
+    }
+    
+    if (!cleanPhone) {
+      toast.error("Invalid phone number.");
+      return;
+    }
+
+    const paidAmt = parseFloat(order.paid_amount !== undefined ? order.paid_amount : order.total_price || 0);
+    const payMethod = order.payment_method || 'CASH';
+    const billNo = order.bill_no || order.id;
+
+    // Fetch customer details to calculate balance
+    const fullPhoneKey = cleanPhone ? (cleanPhone.startsWith('+') ? cleanPhone : '+' + cleanPhone) : '';
+    let customerInfo = customerDb[fullPhoneKey];
+    if (!customerInfo && cleanPhone) {
+      const numericPhone = cleanPhone.replace(/\D/g, '');
+      customerInfo = Object.values(customerDb).find(c => {
+        if (!c.phone) return false;
+        const cNumeric = c.phone.replace(/\D/g, '');
+        return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
+      });
+    }
+    if (!customerInfo && selectedCustomer) {
+      const numericPhone = cleanPhone.replace(/\D/g, '');
+      const selNumeric = (selectedCustomer.phone || selectedCustomer.number || '').replace(/\D/g, '');
+      if (selNumeric.endsWith(numericPhone) || numericPhone.endsWith(selNumeric)) {
+        customerInfo = selectedCustomer;
+      }
+    }
+
+    let balanceDetails = '';
+    if (customerInfo) {
+      let change = 0;
+      const payMethodUpper = payMethod.toUpperCase();
+      if (payMethodUpper === 'CREDIT' || payMethodUpper === 'DUE') {
+        change = -parseFloat(order.total_price || 0);
+      } else if (payMethodUpper === 'SPLIT') {
+        change = -parseFloat(order.credit_amount || 0);
+      } else if (order.save_change_to_balance) {
+        change = parseFloat(order.paid_amount || 0) - parseFloat(order.total_price || 0);
+      }
+
+      const isReprint = recentOrders.some(o => o.id === order.id);
+      let prevBal = 0;
+      let netBal = 0;
+      if (isReprint) {
+        netBal = parseFloat(customerInfo.balance || 0);
+        prevBal = netBal - change;
+      } else {
+        prevBal = parseFloat(customerInfo.balance || 0);
+        netBal = prevBal + change;
+      }
+
+      const prevDue = prevBal < 0 ? Math.abs(prevBal) : -prevBal;
+      const billAmt = parseFloat(order.total_price || 0);
+      const totalOutstanding = prevDue + billAmt;
+      const balanceDue = totalOutstanding - paidAmt;
+
+      const prevBalStr = prevBal >= 0 
+        ? `Rs ${prevBal.toFixed(2)} (Adv)` 
+        : `Rs ${Math.abs(prevBal).toFixed(2)} (Due)`;
+
+      const totalOutstandingStr = totalOutstanding >= 0
+        ? `Rs ${totalOutstanding.toFixed(2)} (Due)`
+        : `Rs ${Math.abs(totalOutstanding).toFixed(2)} (Adv)`;
+
+      const balanceDueStr = balanceDue >= 0
+        ? `Rs ${balanceDue.toFixed(2)} (Due)`
+        : `Rs ${Math.abs(balanceDue).toFixed(2)} (Adv)`;
+
+      balanceDetails = `*Previous Balance:* ${prevBalStr}\n*Bill Amount:* Rs ${billAmt.toFixed(2)}\n*Total:* ${totalOutstandingStr}\n*Amount Paid:* Rs ${paidAmt.toFixed(2)}\n*Balance Due:* ${balanceDueStr}`;
+    } else {
+      // General walk-in customer with no ledger profile
+      const balanceDue = parseFloat(order.credit_amount || 0);
+      if (balanceDue > 0) {
+        balanceDetails = `*Balance Due:* Rs ${balanceDue.toFixed(2)}`;
+      } else {
+        balanceDetails = `*Balance Due:* Rs 0.00`;
+      }
+    }
+
+    const lines = [];
+    lines.push(`✅ *Payment Received!*`);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`*Bill No:* #${billNo}`);
+    lines.push(`*Payment Mode:* ${payMethod}`);
+    lines.push(``);
+    lines.push(balanceDetails);
+    lines.push(`━━━━━━━━━━━━━━━━━━━━`);
+    lines.push(`Thank you for dining with us!`);
+
+    const text = lines.join('\n');
+
+    if (posSettings.ebillMethod === 'AUTOMATION') {
+      try {
+        toast.info("Sending payment confirmation via WhatsApp Automation...");
+        await posService.sendWhatsAppMessage(cleanPhone, text);
+        toast.success("Payment confirmation sent successfully!");
+      } catch (err) {
+        console.error("Failed to send WhatsApp confirmation:", err);
+        const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+        window.open(directUrl, '_blank');
+      }
+    } else {
+      const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
+      window.open(directUrl, '_blank');
+      toast.success("Opening WhatsApp payment confirmation link...");
+    }
+  };
+
+  const handlePrint = async (order) => {
+    const access = getStaffPermissions()?.pos_access?.Receipts;
+    if (access?.reprint_bill === false) {
+      toast.error("Reprinting bills is restricted for this access level.");
+      return;
+    }
+    if (access?.reprint_bill_passcode === true) {
+      const pin = prompt("Enter Manager PIN to reprint bill:");
+      if (pin === null) return;
+      if (!verifyManagerPin(pin)) {
+         toast.error("Invalid Manager PIN/Passcode!");
+         return;
+      }
+    }
+    // Normalize fields to support both a POS Order and a Pre-Order DB object
+    const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));
+
+    // Resolve order type key
+    let configKey = 'QUICK';
+    if (isPreOrder) {
+      configKey = 'PRE_ORDER';
+    } else {
+      const typeLower = String(order.order_type || '').toLowerCase();
+      if (typeLower.includes('dine')) {
+        configKey = 'DINE_IN';
+      } else if (typeLower.includes('delivery')) {
+        configKey = 'DELIVERY';
+      } else if (typeLower.includes('pickup') || typeLower.includes('takeaway')) {
+        configKey = 'PICKUP';
+      } else if (typeLower.includes('quick')) {
+        configKey = 'QUICK';
+      }
+    }
+
+    const configGroup = (posSettings.orderPrinters && posSettings.orderPrinters[configKey]) || {
+      bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }
+    };
+    const billConfig = configGroup.bill || { enabled: true, name: '', paperSize: 'THERMAL_80MM' };
+
+    if (billConfig.enabled === false) {
+      toast.info(`Bill printing is disabled for ${configKey === 'PRE_ORDER' ? 'Pre-Order' : configKey} order type.`);
+      return;
+    }
+
+    const receiptHtml = await generateThermalReceiptHtml(order);
 
     let targetBillPrinters = [];
     if (Array.isArray(billConfig.names) && billConfig.names.length > 0) {
@@ -9673,7 +10383,8 @@ const UniversalPOS = () => {
       selectedCustomer: null,
       redeemedPoints: 0,
       appliedCoupon: null,
-      couponCode: ''
+      couponCode: '',
+      printDetailedBalance: true
     };
 
     setSelectedWaiter(restoredWaiter);
@@ -9690,6 +10401,7 @@ const UniversalPOS = () => {
     setRedeemedPoints(restoredCustomer.redeemedPoints || 0);
     setAppliedCoupon(restoredCustomer.appliedCoupon || null);
     setCouponCode(restoredCustomer.couponCode || '');
+    setPrintDetailedBalance(restoredCustomer.printDetailedBalance !== undefined ? restoredCustomer.printDetailedBalance : true);
     // isRestoringCustomerRef.current is cleared automatically by the commit-phase useEffect
 
     const pendingOrder = (recentOrders || []).find(o => 
@@ -9706,12 +10418,7 @@ const UniversalPOS = () => {
       setCustomerAddress(pendingOrder.address || '');
     } else {
       setEditingOrder(null);
-      const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;
-      if (hasSavedBills) {
-        setCart([...tableBills[table.id]]);
-      } else {
-        setCart(tableCarts[table.id] || []);
-      }
+      setCart(tableCarts[table.id] || []);
     }
 
     if (activeTab !== 'live') {
@@ -9891,7 +10598,9 @@ const UniversalPOS = () => {
           {/* Form Container */}
           <div className="p-8 pb-10">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">Master Pos Login</h2>
+              <h2 className="text-xl font-bold text-slate-800">
+                {isTerminalMode ? "SaSLoop POS Terminal Login" : "Master Pos Login"}
+              </h2>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
@@ -9933,6 +10642,41 @@ const UniversalPOS = () => {
                 </button>
               </div>
 
+              {/* Master POS IP Input for Terminals */}
+              {isTerminalMode && (
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-left">
+                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Master POS Connection Settings</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1 group">
+                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+                        <Globe className="w-4 h-4" />
+                      </div>
+                      <input
+                        className="w-full py-2.5 pl-10 pr-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none text-xs font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400"
+                        placeholder="Master PC IP (e.g. 192.168.1.50)"
+                        value={masterIp}
+                        onChange={e => setMasterIp(e.target.value)}
+                        autoComplete="off"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => testMasterConnection(masterIp)}
+                      disabled={isTestingConnection || !masterIp}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-950 disabled:bg-slate-300 text-white rounded-xl text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      {isTestingConnection ? '...' : 'Connect'}
+                    </button>
+                  </div>
+                  {connectionStatus === 'success' && (
+                    <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">✔ Connection Active</p>
+                  )}
+                  {connectionStatus === 'error' && (
+                    <p className="text-[9px] text-rose-600 font-bold flex items-center gap-1">❌ Connection Failed</p>
+                  )}
+                </div>
+              )}
+
               {/* Connectivity Status Banner */}
               {typeof window !== 'undefined' && !window.navigator.onLine && (
                 <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
@@ -9958,13 +10702,21 @@ const UniversalPOS = () => {
           </div>
 
           {/* Footer */}
-          <div className="bg-slate-50 border-t border-slate-100 text-center flex justify-between items-center px-6 py-4">
-              <p className="text-[10px] text-slate-500 font-bold">
-                SaSLoop Master POS v1.0.1
-              </p>
-              <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold">
-                 <Shield size={10} /> Secure Connection
+          <div className="bg-slate-50 border-t border-slate-100 text-center flex flex-col gap-2 px-6 py-4">
+              <div className="flex justify-between items-center w-full">
+                  <p className="text-[10px] text-slate-500 font-bold">
+                    {isTerminalMode ? "SaSLoop POS Terminal v1.0.1" : "SaSLoop Master POS v1.0.1"}
+                  </p>
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold">
+                     <Shield size={10} /> Secure Connection
+                  </div>
               </div>
+              {isTerminalMode && (
+                  <div className="text-[9px] font-bold text-slate-500 text-left border-t border-slate-200/60 pt-2 flex justify-between">
+                      <span>Terminal IP: <b className="text-slate-800 select-all">{localIpAddress}</b></span>
+                      {masterIp && <span className="text-emerald-600 font-black">Connected to Master</span>}
+                  </div>
+              )}
           </div>
           </div>
         </div>
@@ -11301,6 +12053,7 @@ const UniversalPOS = () => {
                             setAppliedCoupon(null);
                             setCouponCode('');
                             setSelectedCustomer(null);
+                            setPrintDetailedBalance(true);
                             toast.info("Pre-order edit cancelled.");
                           }}
                           className="bg-red-600 hover:bg-red-700 text-white border border-red-700 px-2 py-0.5 rounded text-[9px] font-black uppercase transition-all"
@@ -12033,7 +12786,7 @@ const UniversalPOS = () => {
                                     setCustomerPhone(parsed.localNumber);
                                     setCustomerName(res.name || '');
                                     setCustomerAddress(res.address || '');
-                                    setSelectedCustomer(res);
+                                    setSelectedCustomer(res); setPrintDetailedBalance(true);
                                     setShowSearchResults(false);
                                     setActiveSearchResultIndex(-1);
                                   }
@@ -12067,7 +12820,7 @@ const UniversalPOS = () => {
                                       setCustomerPhone(parsed.localNumber);
                                       setCustomerName(res.name || '');
                                       setCustomerAddress(res.address || '');
-                                      setSelectedCustomer(res);
+                                      setSelectedCustomer(res); setPrintDetailedBalance(true);
                                       setShowSearchResults(false);
                                     }}
                                     className={`px-3 py-2 text-[10px] font-bold cursor-pointer border-b border-solid last:border-b-0 ${
@@ -12262,6 +13015,7 @@ const UniversalPOS = () => {
                             setAppliedCoupon(null);
                             setCouponCode('');
                             setSelectedCustomer(null);
+                            setPrintDetailedBalance(true);
                             setKOTNote('');
                             setCoversCount('');
                           }}
@@ -12293,21 +13047,34 @@ const UniversalPOS = () => {
                                 {bal >= 0 ? `Balance: ${config.currency} ${bal.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(bal).toFixed(2)}`}
                               </span>
                             </div>
-                            {bal < 0 && (
-                              <button
-                                onClick={() => {
-                                  setPayDueAmount(Math.abs(bal).toFixed(2));
-                                  setPayDueMethod('Cash');
-                                  setPayDueNotes('');
-                                  setIsPayDueModalOpen(true);
-                                }}
-                                className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all active:scale-95 ${
-                                  isDark ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                                }`}
-                              >
-                                Pay Due
-                              </button>
-                            )}
+                            <div className="flex items-center gap-2">
+                              <label className="flex items-center gap-1.5 cursor-pointer select-none shrink-0">
+                                <input
+                                  type="checkbox"
+                                  checked={printDetailedBalance}
+                                  onChange={e => setPrintDetailedBalance(e.target.checked)}
+                                  className="w-3.5 h-3.5 accent-[#388e67] cursor-pointer shrink-0"
+                                />
+                                <span className="text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
+                                  Print Balance Details
+                                </span>
+                              </label>
+                              {bal < 0 && (
+                                <button
+                                  onClick={() => {
+                                    setPayDueAmount(Math.abs(bal).toFixed(2));
+                                    setPayDueMethod('Cash');
+                                    setPayDueNotes('');
+                                    setIsPayDueModalOpen(true);
+                                  }}
+                                  className={`px-2 py-1 rounded-lg text-[8px] font-black uppercase tracking-wider transition-all active:scale-95 ${
+                                    isDark ? 'bg-emerald-600 hover:bg-emerald-500 text-white' : 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                                  }`}
+                                >
+                                  Pay Due
+                                </button>
+                              )}
+                            </div>
                           </div>
                         );
                       })()}
@@ -12461,25 +13228,96 @@ const UniversalPOS = () => {
                   )}
 
                   {/* Total Bar - green, matching TMBill */}
-                  <div className="h-12 bg-[#388e67] flex items-center justify-between px-4 text-white font-extrabold text-[15px] shrink-0 border-t border-white/20">
-                    <div className="flex items-center gap-2">
-                      <span>Total:</span>
-                      <span className="tabular-nums ml-2">
-                        {calculateTotals().total.toFixed(2)}
-                      </span>
-                    </div>
-
-                    {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
-                      <div className="flex items-center gap-4">
-                        <button
-                          onClick={() => handleCheckout('PRINT')}
-                          className="transition-colors hover:text-slate-100"
-                        >
-                          <Printer size={20} strokeWidth={2.5} />
-                        </button>
+                  {selectedCustomer ? (
+                    <div className="h-auto py-2.5 bg-[#388e67] flex flex-col justify-center px-4 text-white font-extrabold text-[12px] shrink-0 border-t border-white/20">
+                      <div className="flex items-center justify-between w-full">
+                        <span>Previous Balance:</span>
+                        <span className="tabular-nums">
+                          {(() => {
+                            const bal = parseFloat(selectedCustomer.balance) || 0;
+                            return bal >= 0 ? `Adv: ${config.currency} ${bal.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(bal).toFixed(2)}`;
+                          })()}
+                        </span>
                       </div>
-                    )}
-                  </div>
+                      <div className="flex items-center justify-between w-full mt-0.5">
+                        <span>Bill Amount:</span>
+                        <span className="tabular-nums">
+                          {config.currency} {calculateTotals().total.toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between w-full border-t border-white/20 pt-1 mt-1 text-[14px]">
+                        <span>Total:</span>
+                        <div className="flex items-center gap-4">
+                          <span className="tabular-nums">
+                            {(() => {
+                              const bal = parseFloat(selectedCustomer.balance) || 0;
+                              const bill = calculateTotals().total;
+                              const net = bal - bill;
+                              return net >= 0 ? `Adv: ${config.currency} ${net.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(net).toFixed(2)}`;
+                            })()}
+                          </span>
+                          {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
+                            <>
+                              <button
+                                onClick={handleShowBillPreview}
+                                className="transition-colors hover:text-slate-100 mr-2"
+                              >
+                                <Eye size={18} strokeWidth={2.5} />
+                              </button>
+                              <button
+                                onClick={() => handleCheckout('PRINT')}
+                                className="transition-colors hover:text-slate-100"
+                              >
+                                <Printer size={18} strokeWidth={2.5} />
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-12 bg-[#388e67] flex items-center justify-between px-4 text-white font-extrabold text-[15px] shrink-0 border-t border-white/20">
+                      <div className="flex items-center gap-2">
+                        <span>Total:</span>
+                        <span className="tabular-nums ml-2">
+                          {calculateTotals().total.toFixed(2)}
+                        </span>
+                      </div>
+
+                      {(activeTrayTab === 'Billing' || orderType === 'QUICK') && (
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={handleShowBillPreview}
+                            className="transition-colors hover:text-slate-100"
+                          >
+                            <Eye size={20} strokeWidth={2.5} />
+                          </button>
+                          <button
+                            onClick={() => handleCheckout('PRINT')}
+                            className="transition-colors hover:text-slate-100"
+                          >
+                            <Printer size={20} strokeWidth={2.5} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {activeTrayTab === 'PreOrder' && preOrderSubTab === 'BILLING' && (
+                    <div className={`px-3 py-1.5 flex items-center justify-between shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800/60' : 'bg-white border-slate-200'}`}>
+                      <label className="flex items-center gap-2 cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={ebillEnabled}
+                          onChange={e => setEbillEnabled(e.target.checked)}
+                          className="w-4 h-4 accent-[#388e67] cursor-pointer shrink-0"
+                        />
+                        <span className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400">
+                          Send eBill (WhatsApp)
+                        </span>
+                      </label>
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   {activeTrayTab === 'PreOrder' ? (
@@ -12561,31 +13399,75 @@ const UniversalPOS = () => {
                                 notes: preOrderNotes || ''
                               };
 
-                              try {
-                                if (editingPreOrder) {
-                                  const res = await posService.updatePreOrder(editingPreOrder.id, preOrderData);
-                                  if (res.data) {
-                                    setPreOrders(prev => prev.map(p => p.id === editingPreOrder.id ? res.data : p));
-                                    toast.success(`Pre-Order updated successfully!`);
-                                    handlePrint(res.data);
-                                    setEditingPreOrder(null);
-                                    // Clean up temporary table if one was active
-                                    if (selectedTable?.is_temporary && selectedTable?.original_order_type === 'PRE_ORDER') {
-                                      const tempId = selectedTable.id;
-                                      setTables(prev => prev.filter(t => t.id !== tempId));
-                                      setTableBills(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableCarts(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableStatuses(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableBillNumbers(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                try {
+                                  if (editingPreOrder) {
+                                    const res = await posService.updatePreOrder(editingPreOrder.id, preOrderData);
+                                    if (res.data) {
+                                      setPreOrders(prev => prev.map(p => p.id === editingPreOrder.id ? res.data : p));
+                                      toast.success(`Pre-Order updated successfully!`);
+                                      handlePrint(res.data);
+                                      
+                                      // Trigger E-Bill if checked
+                                      const fullPhone = customerPhone.startsWith('+') ? customerPhone : (customerCountryCode || '+91') + customerPhone;
+                                      triggerEbill(res.data, fullPhone);
+
+                                      setEditingPreOrder(null);
+                                      // Clean up temporary table if one was active
+                                      if (selectedTable?.is_temporary && selectedTable?.original_order_type === 'PRE_ORDER') {
+                                        const tempId = selectedTable.id;
+                                        setTables(prev => prev.filter(t => t.id !== tempId));
+                                        setTableBills(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableCarts(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableStatuses(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableBillNumbers(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                      }
+                                      setSelectedTable(null);
+                                      // Clear form
+                                      setPreOrderScheduledDate(getCurrentDateString());
+                                      setPreOrderScheduledTime(getCurrentTimeString());
+                                      setPreOrderAdvanceAmount('');
+                                      setPreOrderTableNumber('');
+                                      setPreOrderNotes('');
+                                      setCart([]);
+                                      setCustomerName('');
+                                      setCustomerPhone('');
+                                      setCustomerAddress('');
+                                      setRedeemedPoints(0);
+                                      setAppliedCoupon(null);
+                                      setCouponCode('');
+                                      setSelectedCustomer(null);
+                                      setPrintDetailedBalance(true);
+                                      setPreOrderSubTab('KOT');
                                     }
-                                    setSelectedTable(null);
-                                    // Clear form
-                                    setPreOrderScheduledDate(getCurrentDateString());
-                                    setPreOrderScheduledTime(getCurrentTimeString());
-                                    setPreOrderAdvanceAmount('');
-                                    setPreOrderTableNumber('');
-                                    setPreOrderNotes('');
+                                  } else {
+                                    const res = await posService.createPreOrder(preOrderData);
+                                    if (res.data) {
+                                      setPreOrders(prev => [res.data, ...prev]);
+                                      toast.success(`Pre-Order booked for ${new Date(preOrderScheduledDate + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at ${preOrderScheduledTime}!`);
+                                      handlePrint(res.data);
+
+                                      // Trigger E-Bill if checked
+                                      const fullPhone = customerPhone.startsWith('+') ? customerPhone : (customerCountryCode || '+91') + customerPhone;
+                                      triggerEbill(res.data, fullPhone);
+
+                                      // Clean up temporary table if one was active
+                                      if (selectedTable?.is_temporary && selectedTable?.original_order_type === 'PRE_ORDER') {
+                                        const tempId = selectedTable.id;
+                                        setTables(prev => prev.filter(t => t.id !== tempId));
+                                        setTableBills(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableCarts(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableStatuses(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                        setTableBillNumbers(prev => { const n = { ...prev }; delete n[tempId]; return n; });
+                                      }
+                                      setSelectedTable(null);
+                                      // Clear form
+                                      setPreOrderScheduledDate(getCurrentDateString());
+                                      setPreOrderScheduledTime(getCurrentTimeString());
+                                      setPreOrderAdvanceAmount('');
+                                      setPreOrderTableNumber('');
+                                      setPreOrderNotes('');
                                     setCart([]);
                                     setCustomerName('');
                                     setCustomerPhone('');
@@ -12594,39 +13476,7 @@ const UniversalPOS = () => {
                                     setAppliedCoupon(null);
                                     setCouponCode('');
                                     setSelectedCustomer(null);
-                                    setPreOrderSubTab('KOT');
-                                  }
-                                } else {
-                                  const res = await posService.createPreOrder(preOrderData);
-                                  if (res.data) {
-                                    setPreOrders(prev => [res.data, ...prev]);
-                                    toast.success(`Pre-Order booked for ${new Date(preOrderScheduledDate + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} at ${preOrderScheduledTime}!`);
-                                    handlePrint(res.data);
-                                    // Clean up temporary table if one was active
-                                    if (selectedTable?.is_temporary && selectedTable?.original_order_type === 'PRE_ORDER') {
-                                      const tempId = selectedTable.id;
-                                      setTables(prev => prev.filter(t => t.id !== tempId));
-                                      setTableBills(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableCarts(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableStatuses(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                      setTableBillNumbers(prev => { const n = { ...prev }; delete n[tempId]; return n; });
-                                    }
-                                    setSelectedTable(null);
-                                    // Clear form
-                                    setPreOrderScheduledDate(getCurrentDateString());
-                                    setPreOrderScheduledTime(getCurrentTimeString());
-                                    setPreOrderAdvanceAmount('');
-                                    setPreOrderTableNumber('');
-                                    setPreOrderNotes('');
-                                    setCart([]);
-                                    setCustomerName('');
-                                    setCustomerPhone('');
-                                    setCustomerAddress('');
-                                    setRedeemedPoints(0);
-                                    setAppliedCoupon(null);
-                                    setCouponCode('');
-                                    setSelectedCustomer(null);
+                                    setPrintDetailedBalance(true);
                                     setPreOrderSubTab('KOT');
                                   }
                                 }
@@ -18101,7 +18951,7 @@ const UniversalPOS = () => {
 
             return (
                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
 
                      {/* Header */}
                      <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
@@ -18256,7 +19106,7 @@ const UniversalPOS = () => {
                                                          setCustomerPhone(parsed.localNumber);
                                                          setCustomerName(res.name || '');
                                                          setCustomerAddress(res.address || '');
-                                                         setSelectedCustomer(res);
+                                                         setSelectedCustomer(res); setPrintDetailedBalance(true);
                                                          setCreditSearchQuery('');
                                                          setCreditSearchResults([]);
                                                       }}
@@ -18353,30 +19203,73 @@ const UniversalPOS = () => {
                                  );
                               })()}
 
-                              {!isFreeMode && selectedPaymentMode.toLowerCase() === 'cash' && !isSplitPayment && (
-                                 <div className="space-y-1">
-                                    <label className="text-[9px] font-black uppercase text-slate-400">Customer Paid Amount</label>
-                                    <input
-                                       type="number"
-                                       value={customerPaidAmount}
-                                       onChange={e => setCustomerPaidAmount(e.target.value)}
-                                       placeholder="Amount Received"
-                                       className={`w-full p-3 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
-                                    />
-                                    {returnAmount > 0 && customerPhone && (
-                                       <div className="mt-2 flex items-center justify-between p-2.5 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5">
-                                          <label className="flex items-center gap-2 cursor-pointer select-none">
-                                             <input
-                                                type="checkbox"
-                                                checked={saveChangeToBalance}
-                                                onChange={e => setSaveChangeToBalance(e.target.checked)}
-                                                className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                                             />
-                                             <span className="text-[8px] font-black uppercase tracking-wider text-emerald-500">Save change to customer account (Advance/Pay Due)</span>
-                                          </label>
+                              {!isFreeMode && !isSplitPayment && (
+                                 selectedCustomer ? (
+                                    <div className="space-y-3 p-4 rounded-2xl border border-dashed border-emerald-500/20 bg-emerald-500/5">
+                                       <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400">Amount Paid Today</label>
+                                          <input
+                                             type="number"
+                                             value={selectedPaymentMode.toLowerCase() === 'credit' ? '0' : customerPaidAmount}
+                                             disabled={selectedPaymentMode.toLowerCase() === 'credit'}
+                                             onChange={e => {
+                                                setCustomerPaidAmount(e.target.value);
+                                                setSaveChangeToBalance(true);
+                                             }}
+                                             placeholder="Enter Amount Paid"
+                                             className={`w-full p-3 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-white border-slate-200 text-slate-900'}`}
+                                          />
                                        </div>
-                                    )}
-                                 </div>
+                                       <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-500 dark:text-gray-400 pt-1">
+                                          <div>Prev Balance: <span className="font-black text-slate-700 dark:text-gray-200">
+                                             {(() => {
+                                                const bal = parseFloat(selectedCustomer.balance) || 0;
+                                                return bal >= 0 ? `Adv: ${config.currency} ${bal.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(bal).toFixed(2)}`;
+                                             })()}
+                                          </span></div>
+                                          <div>This Bill: <span className="font-black text-slate-700 dark:text-gray-200">{config.currency} {grandTotal.toFixed(2)}</span></div>
+                                          <div className="col-span-2 border-t border-slate-300/40 pt-1.5 mt-1 flex justify-between items-center text-xs">
+                                             <span>New Balance:</span>
+                                             <span className={`font-black ${
+                                                (parseFloat(selectedCustomer.balance) || 0) - grandTotal + (selectedPaymentMode.toLowerCase() === 'credit' ? 0 : (parseFloat(customerPaidAmount) || 0)) >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                                             }`}>
+                                                {(() => {
+                                                   const bal = parseFloat(selectedCustomer.balance) || 0;
+                                                   const paid = selectedPaymentMode.toLowerCase() === 'credit' ? 0 : (parseFloat(customerPaidAmount) || 0);
+                                                   const net = bal - grandTotal + paid;
+                                                   return net >= 0 ? `Adv: ${config.currency} ${net.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(net).toFixed(2)}`;
+                                                })()}
+                                             </span>
+                                          </div>
+                                       </div>
+                                    </div>
+                                 ) : (
+                                    selectedPaymentMode.toLowerCase() === 'cash' && (
+                                       <div className="space-y-1">
+                                          <label className="text-[9px] font-black uppercase text-slate-400">Customer Paid Amount</label>
+                                          <input
+                                             type="number"
+                                             value={customerPaidAmount}
+                                             onChange={e => setCustomerPaidAmount(e.target.value)}
+                                             placeholder="Amount Received"
+                                             className={`w-full p-3 rounded-xl border outline-none text-[11px] font-bold ${isDark ? 'bg-black/20 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-900'}`}
+                                          />
+                                          {returnAmount > 0 && customerPhone && (
+                                             <div className="mt-2 flex items-center justify-between p-2.5 rounded-xl border border-dashed border-emerald-500/30 bg-emerald-500/5">
+                                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                                   <input
+                                                      type="checkbox"
+                                                      checked={saveChangeToBalance}
+                                                      onChange={e => setSaveChangeToBalance(e.target.checked)}
+                                                      className="w-3.5 h-3.5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
+                                                   />
+                                                   <span className="text-[8px] font-black uppercase tracking-wider text-emerald-500">Save change to customer account (Advance/Pay Due)</span>
+                                                </label>
+                                             </div>
+                                          )}
+                                       </div>
+                                    )
+                                 )
                               )}
 
                               {isSplitPayment && (
@@ -18472,6 +19365,35 @@ const UniversalPOS = () => {
                                        </div>
                                     </>
                                  )}
+                                  {selectedCustomer && (
+                                     <div className="border-t border-dashed border-slate-700/40 pt-2 mt-2 space-y-1.5">
+                                        <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400">
+                                           <span>Previous Balance:</span>
+                                           <span>
+                                              {(() => {
+                                                 const bal = parseFloat(selectedCustomer.balance) || 0;
+                                                 return bal >= 0 ? `Adv: ${config.currency} ${bal.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(bal).toFixed(2)}`;
+                                              })()}
+                                           </span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400">
+                                           <span>This Bill:</span>
+                                           <span>{config.currency} {grandTotal.toFixed(2)}</span>
+                                        </div>
+                                        <div className={`flex justify-between items-center text-xs uppercase font-black border-t border-solid border-slate-700/20 pt-1.5 ${
+                                           (parseFloat(selectedCustomer.balance) || 0) - grandTotal >= 0 ? 'text-emerald-500' : 'text-rose-500'
+                                        }`}>
+                                           <span>Net Balance:</span>
+                                           <span>
+                                              {(() => {
+                                                 const bal = parseFloat(selectedCustomer.balance) || 0;
+                                                 const net = bal - grandTotal;
+                                                 return net >= 0 ? `Adv: ${config.currency} ${net.toFixed(2)}` : `Due: ${config.currency} ${Math.abs(net).toFixed(2)}`;
+                                              })()}
+                                           </span>
+                                        </div>
+                                     </div>
+                                  )}
                               </div>
 
                               {selectedPaymentMode.toLowerCase() === 'cash' && !isSplitPayment && (
@@ -18507,8 +19429,8 @@ const UniversalPOS = () => {
                                  return;
                               }
                               const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;
-                              const isDuePayment = selectedPaymentMode === 'DUE' || isDue;
-                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);
+                              const isDue = selectedPaymentMode.toUpperCase() === 'DUE' || isDuePayment;
+                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDue);
                               setIsPaymentModalOpen(false);
                            }}
                            className={`px-8 py-3 bg-emerald-600 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg transition-all ${
@@ -20700,44 +21622,123 @@ const UniversalPOS = () => {
 
                               {/* Loyalty Print Settings */}
                               <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-3`}>
-                                 <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Loyalty Print Settings</span>
+                                  <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Loyalty Print Settings</span>
+                                  <div className="flex flex-col gap-4">
+                                     <label className="flex items-center gap-2 cursor-pointer select-none">
+                                        <input
+                                           type="checkbox"
+                                           checked={!!posSettings.printLoyaltyPoints}
+                                           onChange={e => setPosSettings(prev => ({ ...prev, printLoyaltyPoints: e.target.checked }))}
+                                           className="w-4 h-4 rounded accent-[#10ac84]"
+                                        />
+                                        <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Print Loyalty Points on Bill</span>
+                                     </label>
+                                     
+                                     {posSettings.printLoyaltyPoints && (
+                                        <div className="flex flex-col gap-2 pl-6">
+                                           <span className={`text-[9px] font-black uppercase tracking-wider block ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Print Points Earned For:</span>
+                                           <div className="flex gap-6">
+                                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                                 <input
+                                                    type="radio"
+                                                    name="loyaltyPrintOption"
+                                                    checked={posSettings.loyaltyPrintOption === 'all'}
+                                                    onChange={() => setPosSettings(prev => ({ ...prev, loyaltyPrintOption: 'all' }))}
+                                                    className="accent-[#10ac84]"
+                                                 />
+                                                 <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>All Customers</span>
+                                              </label>
+                                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                                                 <input
+                                                    type="radio"
+                                                    name="loyaltyPrintOption"
+                                                    checked={posSettings.loyaltyPrintOption === 'saved'}
+                                                    onChange={() => setPosSettings(prev => ({ ...prev, loyaltyPrintOption: 'saved' }))}
+                                                    className="accent-[#10ac84]"
+                                                 />
+                                                 <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Only Saved Customers</span>
+                                              </label>
+                                           </div>
+                                        </div>
+                                     )}
+                                  </div>
+                               </div>
+
+                              {/* Local Network State Sync Settings */}
+                              <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-3`}>
+                                 <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Local Network Synchronization</span>
                                  <div className="flex flex-col gap-4">
                                     <label className="flex items-center gap-2 cursor-pointer select-none">
                                        <input
                                           type="checkbox"
-                                          checked={!!posSettings.printLoyaltyPoints}
-                                          onChange={e => setPosSettings(prev => ({ ...prev, printLoyaltyPoints: e.target.checked }))}
+                                          checked={!!posSettings.syncActiveStateAcrossDevices}
+                                          onChange={e => {
+                                            const newVal = e.target.checked;
+                                            setPosSettings(prev => ({ ...prev, syncActiveStateAcrossDevices: newVal }));
+                                            // Silently save settings to the backend
+                                            if (posService && posService.saveSettings) {
+                                              posService.saveSettings({ sync_active_state_across_devices: newVal });
+                                            }
+                                          }}
                                           className="w-4 h-4 rounded accent-[#10ac84]"
                                        />
-                                       <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Print Loyalty Points on Bill</span>
+                                       <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Sync Live Tables / KOTs across Terminals (Local Network)</span>
+                                    </label>
+                                 </div>
+                              </div>
+
+                              {/* WhatsApp E-Bill Settings */}
+                              <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-3`}>
+                                 <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>WhatsApp E-Bill Configuration</span>
+                                 <div className="flex flex-col gap-4">
+                                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                                       <input
+                                          type="checkbox"
+                                          checked={!!posSettings.enableEbill}
+                                          onChange={e => setPosSettings(prev => ({ ...prev, enableEbill: e.target.checked }))}
+                                          className="w-4 h-4 rounded accent-[#10ac84]"
+                                       />
+                                       <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Enable WhatsApp E-Bill on Settlement/Save</span>
                                     </label>
                                     
-                                    {posSettings.printLoyaltyPoints && (
+                                    {posSettings.enableEbill && (
                                        <div className="flex flex-col gap-2 pl-6">
-                                          <span className={`text-[9px] font-black uppercase tracking-wider block ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Print Points Earned For:</span>
+                                          <span className={`text-[9px] font-black uppercase tracking-wider block ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>E-Bill Delivery Channel:</span>
                                           <div className="flex gap-6">
                                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                 <input
                                                    type="radio"
-                                                   name="loyaltyPrintOption"
-                                                   checked={posSettings.loyaltyPrintOption === 'all'}
-                                                   onChange={() => setPosSettings(prev => ({ ...prev, loyaltyPrintOption: 'all' }))}
+                                                   name="ebillMethod"
+                                                   checked={posSettings.ebillMethod === 'DIRECT'}
+                                                   onChange={() => setPosSettings(prev => ({ ...prev, ebillMethod: 'DIRECT' }))}
                                                    className="accent-[#10ac84]"
                                                 />
-                                                <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>All Customers</span>
+                                                <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Direct (wa.me link)</span>
                                              </label>
                                              <label className="flex items-center gap-1.5 cursor-pointer select-none">
                                                 <input
                                                    type="radio"
-                                                   name="loyaltyPrintOption"
-                                                   checked={posSettings.loyaltyPrintOption === 'saved'}
-                                                   onChange={() => setPosSettings(prev => ({ ...prev, loyaltyPrintOption: 'saved' }))}
+                                                   name="ebillMethod"
+                                                   checked={posSettings.ebillMethod === 'AUTOMATION'}
+                                                   onChange={() => setPosSettings(prev => ({ ...prev, ebillMethod: 'AUTOMATION' }))}
                                                    className="accent-[#10ac84]"
                                                 />
-                                                <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Only Saved Customers</span>
+                                                <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Same Automation Number (Meta API)</span>
                                              </label>
                                           </div>
                                        </div>
+                                    )}
+
+                                    {posSettings.enableEbill && (
+                                       <label className="flex items-center gap-2 cursor-pointer select-none pl-6">
+                                          <input
+                                             type="checkbox"
+                                             checked={!!posSettings.enableEbillPdf}
+                                             onChange={e => setPosSettings(prev => ({ ...prev, enableEbillPdf: e.target.checked }))}
+                                             className="w-4 h-4 rounded accent-[#10ac84]"
+                                          />
+                                          <span className={`text-[10px] font-bold ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Send as PDF Document</span>
+                                       </label>
                                     )}
                                  </div>
                               </div>
@@ -22285,11 +23286,86 @@ const UniversalPOS = () => {
                               <span className="w-24 text-right">{(posSettings.currency || 'Rs')} {getReceiptGrandTotal(previewReceipt, posSettings?.isTaxInclusive).toFixed(posSettings.decimalPlaces || 2)}</span>
                            </div>
                         </div>
-
                         {/* Amount in words */}
-                        <div className="text-[8px] italic text-gray-600 lowercase text-left mt-2">
+                        <div className="text-[8px] italic text-gray-600 lowercase text-left mt-2 animate-fade-in">
                            {numberToWords(getReceiptGrandTotal(previewReceipt, posSettings?.isTaxInclusive))} only
                         </div>
+
+                        {/* Balance Details Block */}
+                        {(() => {
+                          const shouldPrintDetails = previewReceipt.print_detailed_balance !== undefined ? previewReceipt.print_detailed_balance : printDetailedBalance;
+                          if (!shouldPrintDetails) return null;
+                          const customerPhone = previewReceipt.customer_phone || previewReceipt.customer_number || '';
+                          const fullPhoneKey = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
+                          let customerInfo = customerDb[fullPhoneKey];
+                          if (!customerInfo && customerPhone) {
+                            const numericPhone = customerPhone.replace(/\D/g, '');
+                            customerInfo = Object.values(customerDb).find(c => {
+                              if (!c.phone) return false;
+                              const cNumeric = c.phone.replace(/\D/g, '');
+                              return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
+                            });
+                          }
+                          if (!customerInfo && selectedCustomer) {
+                            const numericPhone = customerPhone.replace(/\D/g, '');
+                            const selNumeric = (selectedCustomer.phone || selectedCustomer.number || '').replace(/\D/g, '');
+                            if (selNumeric.endsWith(numericPhone) || numericPhone.endsWith(selNumeric)) {
+                              customerInfo = selectedCustomer;
+                            }
+                          }
+                          if (!customerInfo) return null;
+
+                          let change = 0;
+                          const payMethod = (previewReceipt.payment_method || '').toUpperCase();
+                          if (payMethod === 'CREDIT' || payMethod === 'DUE') {
+                            change = -parseFloat(previewReceipt.total_price || 0);
+                          } else if (payMethod === 'SPLIT') {
+                            change = -parseFloat(previewReceipt.credit_amount || 0);
+                          } else if (previewReceipt.save_change_to_balance) {
+                            change = parseFloat(previewReceipt.paid_amount || 0) - parseFloat(previewReceipt.total_price || 0);
+                          }
+
+                          let prevBal = 0;
+                          let netBal = 0;
+                          prevBal = parseFloat(customerInfo.balance || 0);
+                          netBal = prevBal + change;
+
+                          const prevBalStr = prevBal >= 0 
+                            ? `Rs ${prevBal.toFixed(2)} (Adv)` 
+                            : `Rs ${Math.abs(prevBal).toFixed(2)} (Due)`;
+                            
+                          const paidAmt = previewReceipt.paid_amount !== undefined 
+                            ? parseFloat(previewReceipt.paid_amount || 0) 
+                            : (payMethod === 'CREDIT' || payMethod === 'DUE' ? 0 : parseFloat(previewReceipt.total_price || 0));
+
+                          const netBalStr = netBal >= 0 
+                            ? `Rs ${netBal.toFixed(2)} (Adv)` 
+                            : `Rs ${Math.abs(netBal).toFixed(2)} (Due)`;
+
+                          return (
+                            <>
+                              <div className="border-t border-dashed border-black/45 my-2"></div>
+                              <div className="flex flex-col text-[8px] leading-relaxed mb-2 font-bold">
+                                 <div className="flex justify-between w-full">
+                                    <span>Prev Balance:</span>
+                                    <span>{prevBalStr}</span>
+                                 </div>
+                                 <div className="flex justify-between w-full">
+                                    <span>Bill Amount:</span>
+                                    <span>Rs {parseFloat(previewReceipt.total_price || 0).toFixed(2)}</span>
+                                 </div>
+                                 <div className="flex justify-between w-full">
+                                    <span>Amount Paid:</span>
+                                    <span>Rs {paidAmt.toFixed(2)}</span>
+                                 </div>
+                                 <div className="flex justify-between w-full border-t border-dotted border-black/45 mt-1 pt-1 text-[8.5px] font-extrabold">
+                                    <span>Net Balance:</span>
+                                    <span>{netBalStr}</span>
+                                 </div>
+                              </div>
+                            </>
+                          );
+                        })()}
 
                         {previewQrUrl && (
                            <>

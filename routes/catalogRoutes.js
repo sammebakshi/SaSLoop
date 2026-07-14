@@ -6,6 +6,30 @@ const path = require("path");
 const fs = require("fs");
 const { scanMenuWithAI } = require("../utils/aiCatalogUtils");
 
+// Helper to recursively resolve the root brand owner (parent_user_id)
+const getBrandOwnerAndOutlet = async (userId) => {
+    const userRes = await pool.query("SELECT parent_user_id, role FROM app_users WHERE id = $1", [userId]);
+    if (userRes.rows.length === 0) {
+        return { brandOwnerId: userId, outletId: userId };
+    }
+    const user = userRes.rows[0];
+    
+    if (!user.parent_user_id) {
+        return { brandOwnerId: userId, outletId: userId };
+    }
+    
+    const parentRes = await pool.query("SELECT parent_user_id, role FROM app_users WHERE id = $1", [user.parent_user_id]);
+    if (parentRes.rows.length === 0) {
+        return { brandOwnerId: user.parent_user_id, outletId: userId };
+    }
+    const parent = parentRes.rows[0];
+    
+    if (!parent.parent_user_id) {
+        return { brandOwnerId: user.parent_user_id, outletId: userId };
+    }
+    
+    return { brandOwnerId: parent.parent_user_id, outletId: user.parent_user_id };
+};
 
 // Image Upload
 router.post("/upload", authMiddleware, async (req, res) => {
@@ -76,18 +100,18 @@ router.post("/ai-scan", authMiddleware, async (req, res) => {
     }
 });
 
-
 // GET all items for the user from the business items catalog
 // Excludes option/variant items (item_type = '1' in outlet_menu_items)
 // so they only appear inside option group dialogs, not as standalone menu tiles.
 router.get("/", authMiddleware, async (req, res) => {
     try {
         const ownerId = req.user.bizId;
+        const { brandOwnerId, outletId } = await getBrandOwnerAndOutlet(ownerId);
 
         // Check if there are any outlet menus defined for this user/outlet
         const activeMenuCheck = await pool.query(
-            `SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $1`,
-            [ownerId]
+            `SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $2`,
+            [outletId, brandOwnerId]
         );
 
         if (activeMenuCheck.rows.length === 0) {
@@ -131,7 +155,7 @@ router.get("/", authMiddleware, async (req, res) => {
                        AND omi.item_type = '1'
                    )
                  ORDER BY bi.id ASC`,
-                [ownerId]
+                [brandOwnerId]
             );
             return res.json(result.rows);
         }
@@ -139,8 +163,8 @@ router.get("/", authMiddleware, async (req, res) => {
         // Menus exist, resolve all POS-default menus
         const posMenuRes = await pool.query(
             `SELECT id FROM outlet_menus 
-             WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true`,
-            [ownerId]
+             WHERE (outlet_id = $1 OR user_id = $2) AND is_pos_default = true`,
+            [outletId, brandOwnerId]
         );
 
         if (posMenuRes.rows.length === 0) {
@@ -197,7 +221,7 @@ router.get("/", authMiddleware, async (req, res) => {
              WHERE bi.user_id = $1
                AND omi.item_type = '0'
              ORDER BY bi.id ASC, omi.id ASC`,
-            [ownerId, menuIds]
+            [brandOwnerId, menuIds]
         );
         res.json(result.rows);
     } catch (err) {
@@ -209,11 +233,12 @@ router.get("/", authMiddleware, async (req, res) => {
 router.get("/categories", authMiddleware, async (req, res) => {
     try {
         const ownerId = req.user.bizId;
+        const { brandOwnerId, outletId } = await getBrandOwnerAndOutlet(ownerId);
 
         // Check if there are any outlet menus defined for this user/outlet
         const activeMenuCheck = await pool.query(
-            `SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $1`,
-            [ownerId]
+            `SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $2`,
+            [outletId, brandOwnerId]
         );
 
         if (activeMenuCheck.rows.length === 0) {
@@ -222,7 +247,7 @@ router.get("/categories", authMiddleware, async (req, res) => {
                 `SELECT * FROM categories 
                  WHERE user_id = $1 
                  ORDER BY sorting_order ASC, name ASC`,
-                [ownerId]
+                [brandOwnerId]
             );
             return res.json(result.rows);
         }
@@ -230,8 +255,8 @@ router.get("/categories", authMiddleware, async (req, res) => {
         // Menus exist, resolve all POS-default menus
         const posMenuRes = await pool.query(
             `SELECT id FROM outlet_menus 
-             WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true`,
-            [ownerId]
+             WHERE (outlet_id = $1 OR user_id = $2) AND is_pos_default = true`,
+            [outletId, brandOwnerId]
         );
 
         if (posMenuRes.rows.length === 0) {
@@ -265,6 +290,8 @@ router.post("/", authMiddleware, async (req, res) => {
         kot_category, hsn_code, barcode, cost_price 
     } = req.body;
     try {
+        const ownerId = req.user.bizId;
+        const { brandOwnerId } = await getBrandOwnerAndOutlet(ownerId);
         const result = await pool.query(
             `INSERT INTO business_items (
                 user_id, code, product_name, category, sub_category, 
@@ -273,7 +300,7 @@ router.post("/", authMiddleware, async (req, res) => {
                 kot_category, hsn_code, barcode, cost_price
             ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19) RETURNING *`,
             [
-                req.user.bizId, code, product_name, category, sub_category, 
+                brandOwnerId, code, product_name, category, sub_category, 
                 price, availability, image_url || null, description || null, 
                 tax_applicable !== undefined ? tax_applicable : 1, is_veg || false, 
                 stock_count !== undefined && stock_count !== '' && stock_count !== null ? parseInt(stock_count) : null,
@@ -295,7 +322,9 @@ router.post("/", authMiddleware, async (req, res) => {
 // DELETE all items for user
 router.delete("/clear", authMiddleware, async (req, res) => {
     try {
-        const result = await pool.query("DELETE FROM business_items WHERE user_id = $1", [req.user.bizId]);
+        const ownerId = req.user.bizId;
+        const { brandOwnerId } = await getBrandOwnerAndOutlet(ownerId);
+        const result = await pool.query("DELETE FROM business_items WHERE user_id = $1", [brandOwnerId]);
         res.json({ message: "Catalog cleared", count: result.rowCount });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -305,7 +334,9 @@ router.delete("/clear", authMiddleware, async (req, res) => {
 // DELETE item
 router.delete("/:id", authMiddleware, async (req, res) => {
     try {
-        await pool.query("DELETE FROM business_items WHERE id = $1 AND user_id = $2", [req.params.id, req.user.bizId]);
+        const ownerId = req.user.bizId;
+        const { brandOwnerId } = await getBrandOwnerAndOutlet(ownerId);
+        await pool.query("DELETE FROM business_items WHERE id = $1 AND user_id = $2", [req.params.id, brandOwnerId]);
         res.json({ message: "Item deleted" });
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -315,7 +346,9 @@ router.delete("/:id", authMiddleware, async (req, res) => {
 // Import bulk
 router.post("/import", authMiddleware, async (req, res) => {
     const { items } = req.body; 
-    console.log(`[IMPORT] User ${req.user.id} attempting bulk import of ${items?.length} items`);
+    const ownerId = req.user.bizId;
+    const { brandOwnerId } = await getBrandOwnerAndOutlet(ownerId);
+    console.log(`[IMPORT] User ${req.user.id} (BrandOwner: ${brandOwnerId}) attempting bulk import of ${items?.length} items`);
     
     if (!items || !Array.isArray(items)) {
         return res.status(400).json({ error: "Invalid items format" });
@@ -335,7 +368,7 @@ router.post("/import", authMiddleware, async (req, res) => {
                     tax_percent, kot_category, hsn_code
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)`,
                 [
-                    req.user.bizId, item.code, item.product_name, item.category, 
+                    brandOwnerId, item.code, item.product_name, item.category, 
                     item.sub_category, item.price, item.availability, 
                     item.image_url || null, item.description || null, 
                     item.tax_applicable !== undefined ? item.tax_applicable : 1,
@@ -367,6 +400,8 @@ router.put("/:id", authMiddleware, async (req, res) => {
         kot_category, hsn_code, barcode, cost_price 
     } = req.body;
     try {
+        const ownerId = req.user.bizId;
+        const { brandOwnerId } = await getBrandOwnerAndOutlet(ownerId);
         const result = await pool.query(
             `UPDATE business_items SET 
                 code=$1, product_name=$2, category=$3, sub_category=$4, 
@@ -387,7 +422,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
                 barcode || null,
                 cost_price || 0.00,
                 req.params.id, 
-                req.user.bizId
+                brandOwnerId
             ]
         );
         if (result.rows.length === 0) return res.status(404).json({ error: "Item not found" });
@@ -398,3 +433,4 @@ router.put("/:id", authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+

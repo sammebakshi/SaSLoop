@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 // ✅ Dynamic Connection (Local vs Production)
+const storedMasterIp = typeof localStorage !== 'undefined' ? localStorage.getItem('pos_master_ip') : null;
 export const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:5000"
+    ? (storedMasterIp ? `http://${storedMasterIp}:5000` : "http://localhost:5000")
     : 'https://backend.sasloop.in';
 
 // Initialize device ID for isolation
@@ -16,6 +17,17 @@ const api = axios.create({
     baseURL: API_BASE,
     timeout: 10000,
 });
+
+// Helper to update the base URL dynamically when Master IP changes
+export const updateApiBaseUrl = (ip) => {
+    if (!ip) {
+        localStorage.removeItem('pos_master_ip');
+        api.defaults.baseURL = "http://localhost:5000";
+    } else {
+        localStorage.setItem('pos_master_ip', ip);
+        api.defaults.baseURL = `http://${ip}:5000`;
+    }
+};
 
 // Add token and terminal to requests
 api.interceptors.request.use((config) => {
@@ -185,9 +197,13 @@ export const posService = {
     getQRs: () => api.get('/api/pos/qrs'),
     getCoupons: (outletId) => api.get(`/api/brand/analytics/coupon-codes`, { params: { outlet_id: outletId } }),
     sendWhatsAppMessage: (phone, text) => api.post('/api/whatsapp/chat/send', { to: phone, text }),
+    sendWhatsAppPdf: (phone, pdfBase64, filename) => {
+        return api.post('/api/whatsapp/chat/send-pdf', { to: phone, pdfBase64, filename });
+    },
     saveSettings: (settings) => api.post('/api/pos/settings', { settings }),
     clearSalesData: () => api.post('/api/pos/clear-sales-data'),
     sendEmailReport: (data) => api.post('/api/brand/reports/email', data),
+    getTableDepartments: (outletId) => api.get('/api/brand/table-departments', { params: { target_user_id: outletId } }),
 };
 
 
