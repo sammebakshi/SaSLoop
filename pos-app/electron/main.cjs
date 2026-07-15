@@ -1,6 +1,10 @@
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
+// Detect if running in Terminal mode
+const isTerminalMode = app.getName().toLowerCase().includes('terminal') || 
+                       process.env.IS_TERMINAL === 'true';
+
 // Detect if running in development mode or as an unpacked test build from the workspace folder
 const appPathLower = app.getAppPath().toLowerCase();
 const isDev = process.env.NODE_ENV === 'development' || 
@@ -9,13 +13,9 @@ const isDev = process.env.NODE_ENV === 'development' ||
               appPathLower.includes('desktop\\sasloop');
 
 if (isDev) {
-  const devUserDataPath = path.join(app.getPath('appData'), 'sasloop-master-pos-dev');
+  const devUserDataPath = path.join(app.getPath('appData'), isTerminalMode ? 'sasloop-terminal-pos-dev' : 'sasloop-master-pos-dev');
   app.setPath('userData', devUserDataPath);
 }
-
-// Detect if running in Terminal mode
-const isTerminalMode = app.getName().toLowerCase().includes('terminal') || 
-                       process.env.IS_TERMINAL === 'true';
 
 // Start local Express server in the background for Master POS
 if (!isTerminalMode) {

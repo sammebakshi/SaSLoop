@@ -55,6 +55,11 @@ try {
     }
   }
 
+  // Create a local package.json to force CommonJS mode for the server folder files
+  const serverPackageJsonPath = path.join(destDir, 'package.json');
+  fs.writeFileSync(serverPackageJsonPath, JSON.stringify({ type: 'commonjs' }, null, 2));
+  console.log('✓ Created local package.json to force CommonJS scope for server files');
+
   console.log('✅ Express backend successfully bundled in pos-app/server!');
 } catch (err) {
   console.error('❌ Pre-build bundling failed:', err);
