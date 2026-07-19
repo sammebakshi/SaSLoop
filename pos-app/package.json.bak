@@ -1,6 +1,6 @@
 {
   "name": "pos-app",
-  "productName": "sasloop-master-pos-v1.0.1",
+  "productName": "sasloop-terminal-pos-v1.0.1",
   "private": true,
   "version": "1.0.1",
   "main": "electron/main.cjs",
@@ -25,7 +25,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SaSLoop POS Master",
+      "shortcutName": "SaSLoop POS Terminal",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     }

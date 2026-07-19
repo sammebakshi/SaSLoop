@@ -18446,9 +18446,6 @@ const UniversalPOS = () => {
                            <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
                            <span className="text-[#18ba60]">Apply Discount</span>
                         </div>
-                        <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
-                           Select pre-configured or enter custom discount
-                        </div>
                         <div className="flex items-center h-full">
                            <button
                               type="button"
