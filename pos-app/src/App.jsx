@@ -24223,14 +24223,30 @@ const UniversalPOS = () => {
                   initial={{ scale: 0.95, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 20 }}
-                  className={`w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
+                  className={`w-full max-w-xl rounded-3xl overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
                >
-                  <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                     <div>
-                        <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#10ac84]" size={22}/> Adding Customers</h3>
-                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
+                  {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <UserPlus className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Adding Customers</span>
                      </div>
-                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
+                        Create a new customer profile
+                     </div>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => setIsAddCustomerModalOpen(false)}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                              isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
 
                   <div className={`p-8 space-y-5 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
