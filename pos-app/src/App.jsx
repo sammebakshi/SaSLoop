@@ -18435,35 +18435,32 @@ const UniversalPOS = () => {
                      initial={{ scale: 0.9, y: 20 }}
                      animate={{ scale: 1, y: 0 }}
                      exit={{ scale: 0.9, y: 20 }}
-                     className={`w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
+                     className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border transition-all ${
                         isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
                      }`}
                   >
-                     {/* Header */}
-                     <div className={`p-6 flex justify-between items-center border-b ${
-                        isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                     }`}>
-                        <div className="flex items-center gap-2.5">
-                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
-                              <Tag size={16} />
-                           </div>
-                           <div>
-                              <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                 Apply Discount
-                              </h3>
-                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
-                                 Select pre-configured or enter custom discount
-                              </p>
-                           </div>
+                     {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Tag className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Apply Discount</span>
                         </div>
-                        <button
-                           onClick={() => setIsDiscountModalOpen(false)}
-                           className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
-                              isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
-                           }`}
-                        >
-                           ✕
-                        </button>
+                        <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
+                           Select pre-configured or enter custom discount
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => setIsDiscountModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
                      </div>
 
                      {/* Content */}
