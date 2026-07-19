@@ -24232,9 +24232,7 @@ const UniversalPOS = () => {
                         <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
                         <span className="text-[#18ba60]">Adding Customers</span>
                      </div>
-                     <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
-                        Create a new customer profile
-                     </div>
+
                      <div className="flex items-center h-full">
                         <button
                            type="button"
