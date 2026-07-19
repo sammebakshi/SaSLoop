@@ -18,6 +18,24 @@ import 'react-toastify/dist/ReactToastify.css';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
 
+// Electron window.prompt override fallback for Windows
+if (typeof window !== 'undefined' && window.process && window.process.versions && window.process.versions.electron) {
+  window.prompt = (message, defaultValue = "") => {
+    try {
+      const { execSync } = window.require('child_process');
+      const escapedMessage = (message || "").replace(/'/g, "''").replace(/[\r\n]+/g, " ");
+      const escapedDefault = (defaultValue || "").replace(/'/g, "''").replace(/[\r\n]+/g, " ");
+      
+      const psCommand = `[void][System.Reflection.Assembly]::LoadWithPartialName('Microsoft.VisualBasic'); [Microsoft.VisualBasic.Interaction]::InputBox('${escapedMessage}', 'SaSLoop Authorization', '${escapedDefault}')`;
+      const result = execSync(`powershell -Command "${psCommand}"`, { encoding: 'utf8', windowsHide: true }).trim();
+      return result || null;
+    } catch (e) {
+      console.error("Failed to execute fallback window.prompt in Electron:", e);
+      return null;
+    }
+  };
+}
+
 // --- THEME CONSTANTS (SaSTech POS) ---
 const COUNTRY_CODES = [
   { code: 'IN', dialCode: '+91', name: 'India', flag: '🇮🇳' },
@@ -1805,6 +1823,8 @@ const UniversalPOS = () => {
     }
   });
 
+  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false);
+  const changeTableResolveRef = useRef(null);
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
@@ -2887,6 +2907,27 @@ const UniversalPOS = () => {
   });
 
   useEffect(() => {
+    const seenIds = new Set();
+    const seenBillNos = new Set();
+    const uniqueOrders = (recentOrders || []).filter(o => {
+      if (!o) return false;
+      const idStr = String(o.id);
+      if (seenIds.has(idStr)) return false;
+      seenIds.add(idStr);
+
+      if (o.bill_no && String(o.bill_no).trim() !== "" && !String(o.bill_no).startsWith('L-')) {
+        const billStr = String(o.bill_no).trim();
+        if (seenBillNos.has(billStr)) return false;
+        seenBillNos.add(billStr);
+      }
+      return true;
+    });
+
+    if (uniqueOrders.length !== recentOrders.length) {
+      setRecentOrders(uniqueOrders);
+      return;
+    }
+
     localStorage.setItem('pos_local_orders', JSON.stringify(recentOrders));
     calculateStats(recentOrders);
   }, [recentOrders]);
@@ -3061,6 +3102,21 @@ const UniversalPOS = () => {
     if (!date) return '';
     const pad = (num) => String(num).padStart(2, '0');
     return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+  };
+
+  const formatElapsedTime = (tTime) => {
+    if (!tTime) return null;
+    const elapsedMs = Date.now() - tTime;
+    const elapsedSec = Math.max(0, Math.floor(elapsedMs / 1000));
+    if (elapsedSec < 60) {
+      return `${elapsedSec}s ago`;
+    }
+    const min = Math.floor(elapsedSec / 60);
+    const sec = elapsedSec % 60;
+    if (sec === 0) {
+      return `${min}m ago`;
+    }
+    return `${min}m ${sec}s ago`;
   };
 
   // Centralized Receipts Fetching Function
@@ -5447,7 +5503,7 @@ const UniversalPOS = () => {
             }
             const isSelected = selectedTable?.id === table.id;
             const tTime = tableActiveTimestamps[table.id];
-            const tMin = tTime ? Math.max(1, Math.floor((Date.now() - tTime) / 60000)) : null;
+            const tAgo = tTime ? formatElapsedTime(tTime) : null;
             return (
               <div
                 key={table.id}
@@ -5501,7 +5557,7 @@ const UniversalPOS = () => {
                     : status === 'RESERVED' ? (isDark ? 'bg-amber-500/20 text-amber-400' : 'bg-amber-50 text-amber-600')
                     : (isDark ? 'bg-emerald-500/20 text-emerald-400' : 'bg-emerald-50 text-emerald-600')
                   }`}>{status}</span>
-                  {tMin !== null && <span className={`text-[7px] font-bold ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>{tMin}m ago</span>}
+                  {tAgo !== null && <span className={`text-[7px] font-bold ${isDark ? 'text-gray-500' : 'text-slate-400'}`}>{tAgo}</span>}
                 </div>
                 <div className="flex items-center justify-between">
                   <span className={`text-[9px] font-bold ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{items.length} item{items.length !== 1 ? 's' : ''}</span>
@@ -8274,14 +8330,14 @@ const UniversalPOS = () => {
       toast.error("Please select an active table to transfer!");
       return;
     }
-    const targetName = prompt(`Enter target table name to transfer ${selectedTable.table_name} to:`);
-    if (!targetName) return;
 
-    const targetTable = tables.find(t => t.table_name.toLowerCase() === targetName.trim().toLowerCase());
-    if (!targetTable) {
-      toast.error(`Table "${targetName}" not found!`);
-      return;
-    }
+    // Open modal and wait for target table selection
+    const targetTable = await new Promise((resolve) => {
+      changeTableResolveRef.current = resolve;
+      setIsChangeTableModalOpen(true);
+    });
+
+    if (!targetTable) return;
 
     if (targetTable.id === selectedTable.id) {
       toast.error("Cannot transfer to the same table!");
@@ -8294,59 +8350,130 @@ const UniversalPOS = () => {
     const oldBillNo = tableBillNumbers[selectedTable.id];
     const oldTime = tableActiveTimestamps[selectedTable.id];
 
-    // Transfer states
+    // Transfer additional details
+    const oldWaiter = tableWaiters?.[selectedTable.id];
+    const oldDiscount = tableDiscounts?.[selectedTable.id];
+    const oldAddCharges = tableAdditionalCharges?.[selectedTable.id];
+    const oldCustomer = tableCustomers?.[selectedTable.id];
+
+    // Merge carts and bills
+    const targetTableExistingCart = tableCarts[targetTable.id] || [];
+    const targetTableExistingBill = tableBills[targetTable.id] || [];
+
+    const mergedCart = mergeBillItems([...targetTableExistingCart, ...oldCart]);
+    const mergedBill = mergeBillItems([...targetTableExistingBill, ...oldBill]);
+
+    // Merge metadata
+    const mergedBillNo = tableBillNumbers[targetTable.id] || oldBillNo;
+    const mergedTime = tableActiveTimestamps[targetTable.id] || oldTime;
+
+    // Resolve merged status
+    let mergedStatus = 'AVAILABLE';
+    const sourceStatus = tableStatuses[selectedTable.id] || 'AVAILABLE';
+    const targetStatus = tableStatuses[targetTable.id] || 'AVAILABLE';
+    if (sourceStatus === 'BILL_SAVED' || targetStatus === 'BILL_SAVED') {
+      mergedStatus = 'BILL_SAVED';
+    } else if (sourceStatus === 'PRINTED' || targetStatus === 'PRINTED') {
+      mergedStatus = 'PRINTED';
+    } else if (sourceStatus === 'DRAFT_PRINTED' || targetStatus === 'DRAFT_PRINTED') {
+      mergedStatus = 'DRAFT_PRINTED';
+    } else if (sourceStatus === 'ORDERING' || targetStatus === 'ORDERING') {
+      mergedStatus = 'ORDERING';
+    } else if (sourceStatus === 'ITEMS_IN_KOT' || targetStatus === 'ITEMS_IN_KOT') {
+      mergedStatus = 'ITEMS_IN_KOT';
+    } else if (mergedCart.length > 0 || mergedBill.length > 0) {
+      mergedStatus = 'ORDERING';
+    }
+
+    // Set states
     setTableCarts(prev => {
       const updated = { ...prev };
-      updated[targetTable.id] = oldCart;
+      updated[targetTable.id] = mergedCart;
       delete updated[selectedTable.id];
       return updated;
     });
 
     setTableBills(prev => {
       const updated = { ...prev };
-      updated[targetTable.id] = oldBill;
+      updated[targetTable.id] = mergedBill;
       delete updated[selectedTable.id];
       return updated;
     });
 
     setTableStatuses(prev => {
       const updated = { ...prev };
-      updated[targetTable.id] = oldStatus;
+      updated[targetTable.id] = mergedStatus;
       updated[selectedTable.id] = 'AVAILABLE';
       return updated;
     });
 
     setTableBillNumbers(prev => {
       const updated = { ...prev };
-      if (oldBillNo) {
-        updated[targetTable.id] = oldBillNo;
-        delete updated[selectedTable.id];
+      if (mergedBillNo) {
+        updated[targetTable.id] = mergedBillNo;
       }
+      delete updated[selectedTable.id];
       return updated;
     });
 
     setTableActiveTimestamps(prev => {
       const updated = { ...prev };
-      if (oldTime) {
-        updated[targetTable.id] = oldTime;
-        delete updated[selectedTable.id];
+      if (mergedTime) {
+        updated[targetTable.id] = mergedTime;
       }
+      delete updated[selectedTable.id];
       return updated;
     });
 
+    if (setTableWaiters && oldWaiter) {
+      setTableWaiters(prev => {
+        const updated = { ...prev };
+        updated[targetTable.id] = oldWaiter || prev[targetTable.id];
+        delete updated[selectedTable.id];
+        return updated;
+      });
+    }
+
+    if (setTableDiscounts && oldDiscount) {
+      setTableDiscounts(prev => {
+        const updated = { ...prev };
+        updated[targetTable.id] = oldDiscount || prev[targetTable.id];
+        delete updated[selectedTable.id];
+        return updated;
+      });
+    }
+
+    if (setTableAdditionalCharges && oldAddCharges) {
+      setTableAdditionalCharges(prev => {
+        const updated = { ...prev };
+        updated[targetTable.id] = oldAddCharges || prev[targetTable.id];
+        delete updated[selectedTable.id];
+        return updated;
+      });
+    }
+
+    if (setTableCustomers && oldCustomer) {
+      setTableCustomers(prev => {
+        const updated = { ...prev };
+        updated[targetTable.id] = oldCustomer || prev[targetTable.id];
+        delete updated[selectedTable.id];
+        return updated;
+      });
+    }
+
     setSelectedTable(targetTable);
-    setCart(oldCart);
+    setCart(mergedCart); // Make sure the active checkout panel updates to the merged cart!
 
     try {
       if (posService.updateTableStatus) {
-        await posService.updateTableStatus(targetTable.table_name, oldStatus);
+        await posService.updateTableStatus(targetTable.table_name, mergedStatus);
         await posService.updateTableStatus(selectedTable.table_name, 'AVAILABLE');
       }
     } catch (e) {
       console.error("Error updating table statuses in DB:", e);
     }
 
-    toast.success(`Transferred order to ${targetTable.table_name}`);
+    toast.success(`Merged and transferred order to ${targetTable.table_name}`);
   };
 
   const handleSaveCustomer = async () => {
@@ -8873,6 +9000,25 @@ const UniversalPOS = () => {
     }
 
     if (selectedTable) {
+      if (type === 'SAVE' || type === 'PRINT' || type === 'SAVE_PRINT') {
+        const toCartFormat = (items) => (items || []).map(i => ({
+          ...i,
+          product_name: i.product_name || i.name || 'Item',
+          quantity: parseFloat(i.quantity || i.qty || 1),
+          price: parseFloat(i.price || 0),
+          modifiers: i.modifiers || [],
+          kot_category: i.kot_category || 'Main Kitchen'
+        }));
+        const consolidatedItems = mergeBillItems([
+          ...toCartFormat(tableBills[selectedTable.id]),
+          ...toCartFormat(cart)
+        ]);
+        setTableBills(prev => ({ ...prev, [selectedTable.id]: consolidatedItems }));
+        setCart([]);
+        setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));
+        setActiveTrayTab('Billing');
+      }
+
       if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'BILL_SAVED' }));
       else if (type === 'PRINT') {
         setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'PRINTED' }));
@@ -10414,6 +10560,7 @@ const UniversalPOS = () => {
     saveCurrentCartForMode(orderType, activeTrayTab, selectedTable, cart);
 
     if (selectedTable) {
+      setTableCarts(prev => ({ ...prev, [selectedTable.id]: cart }));
       setTableWaiters(prev => ({ ...prev, [selectedTable.id]: selectedWaiter }));
       setTableDiscounts(prev => ({ ...prev, [selectedTable.id]: discount }));
       setTableAdditionalCharges(prev => ({ ...prev, [selectedTable.id]: appliedAdditionalCharges }));
@@ -10474,10 +10621,29 @@ const UniversalPOS = () => {
 
     if (pendingOrder) {
       setEditingOrder(pendingOrder);
-      setCart(Array.isArray(pendingOrder.items) ? pendingOrder.items : JSON.parse(pendingOrder.items || '[]'));
-      setCustomerName(pendingOrder.customer_name || 'POS Guest');
-      setCustomerPhone(pendingOrder.customer_phone || '');
-      setCustomerAddress(pendingOrder.address || '');
+      const parsedItems = Array.isArray(pendingOrder.items) ? pendingOrder.items : JSON.parse(pendingOrder.items || '[]');
+      const mappedItems = parsedItems.map(i => ({
+        ...i,
+        product_name: i.product_name || i.name || 'Item',
+        quantity: parseFloat(i.quantity || i.qty || 1),
+        price: parseFloat(i.price || 0),
+        modifiers: i.modifiers || [],
+        kot_category: i.kot_category || 'Main Kitchen'
+      }));
+      setTableBills(prev => {
+        const currentBill = prev[table.id] || [];
+        const hasActiveItems = currentBill.filter(item => !item.isCancelled).length > 0;
+        if (hasActiveItems) {
+          return prev;
+        }
+        return { ...prev, [table.id]: mergeBillItems(mappedItems) };
+      });
+      setCart(tableCarts[table.id] || []);
+      if (!restoredCustomer.customerPhone) {
+        setCustomerName(pendingOrder.customer_name || 'POS Guest');
+        setCustomerPhone(pendingOrder.customer_phone || '');
+        setCustomerAddress(pendingOrder.address || '');
+      }
     } else {
       setEditingOrder(null);
       setCart(tableCarts[table.id] || []);
@@ -11242,7 +11408,7 @@ const UniversalPOS = () => {
                                     const total = calculateTotals(items).total;
 
                                     const tTime = tableActiveTimestamps[table.id];
-                                    const tMin = tTime ? Math.max(1, Math.floor((Date.now() - tTime) / 60000)) : null;
+                                    const tAgo = tTime ? formatElapsedTime(tTime) : null;
 
                                     return (
                                       <button
@@ -11262,8 +11428,8 @@ const UniversalPOS = () => {
                                        {posSettings.showBillDetailsOnTable !== false && total > 0 && (
                                          <span className="text-[8px] opacity-90 tabular-nums">Rs {total.toFixed(0)}</span>
                                        )}
-                                       {posSettings.displayTimeOnTable && tMin !== null && (
-                                         <span className="text-[7.5px] opacity-75 tabular-nums mt-0.5">{tMin}m ago</span>
+                                       {posSettings.displayTimeOnTable && tAgo !== null && (
+                                         <span className="text-[7.5px] opacity-75 tabular-nums mt-0.5">{tAgo}</span>
                                        )}
                                        {posSettings.showKOTNoOnTable && (
                                          <span className="text-[7px] opacity-75 mt-0.5">KOT: {tableBillNumbers[table.id] || 'N/A'}</span>
@@ -11541,7 +11707,7 @@ const UniversalPOS = () => {
                                  const total = calculateTotals(items).total;
 
                                  const tTime = tableActiveTimestamps[table.id];
-                                 const tMin = tTime ? Math.max(1, Math.floor((Date.now() - tTime) / 60000)) : null;
+                                 const tAgo = tTime ? formatElapsedTime(tTime) : null;
 
                                  return (
                                    <button
@@ -11558,8 +11724,8 @@ const UniversalPOS = () => {
                                       className={`aspect-[16/10] w-full rounded-none ${statusColors[status] || statusColors.AVAILABLE} text-white font-bold text-xs cursor-pointer transition-all active:scale-[0.98] relative shadow-sm flex flex-col justify-between p-1.5 ${isSelected ? 'ring-2 ring-offset-2 ring-[#ff9f43] border-2 border-[#ff9f43]' : 'border-0'}`}>
                                     <div className="flex justify-between items-center w-full">
                                       <span>{table.table_name}</span>
-                                      {posSettings.displayTimeOnTable && tMin !== null && (
-                                        <span className="text-[9px] opacity-75 tabular-nums">{tMin}m ago</span>
+                                      {posSettings.displayTimeOnTable && tAgo !== null && (
+                                        <span className="text-[9px] opacity-75 tabular-nums">{tAgo}</span>
                                       )}
                                     </div>
                                     <div className="flex justify-between items-center w-full mt-2 text-[9px] opacity-95">
@@ -12244,7 +12410,9 @@ const UniversalPOS = () => {
                   {/* Item Table Header - hidden on Pre-Order payments tab */}
                   {(activeTrayTab !== 'PreOrder' || (activeTrayTab === 'PreOrder' && preOrderSubTab === 'KOT')) && (
                   <div className={`flex border-b text-[11px] font-bold shrink-0 transition-colors ${isDark ? 'border-[#30363d] text-[#8b949e] bg-[#161b22]' : 'border-slate-200 text-slate-500 bg-slate-50'}`}>
-                    <div className={`w-8 border-r text-center ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}></div>
+                    {!(activeTrayTab === 'Billing' && orderType !== 'QUICK') && (
+                      <div className={`w-8 border-r text-center ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}></div>
+                    )}
                     <div className={`flex-1 px-3 py-1.5 border-r ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}>Item Name</div>
                     <div className={`w-28 px-2 py-1.5 text-center border-r ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}>Qty</div>
                     <div className="w-20 px-3 py-1.5 text-right">Amount</div>
@@ -12537,8 +12705,6 @@ const UniversalPOS = () => {
                     ) : (
                       (tableBills[selectedTable?.id] || []).filter(item => !item.isCancelled).map((item, idx) => (
                         <div key={idx} className={`flex items-stretch border-b text-[12px] transition-colors ${isDark ? 'border-[#30363d] hover:bg-[#161b22]' : 'border-slate-200 hover:bg-slate-50 bg-white'}`}>
-                          {/* Empty spacer column on the left */}
-                          <div className={`w-8 border-r shrink-0 ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}></div>
                           {/* Item Name */}
                           <div className={`flex-1 px-3 py-1.5 min-w-0 border-r flex flex-col justify-center shrink-0 ${isDark ? 'border-[#30363d] text-[#c9d1d9]' : 'border-slate-200 text-slate-800'}`}>
                              <span className="font-semibold truncate">{item.product_name} {item.isComplementary && <span className="text-[9px] text-amber-500 font-bold uppercase">(Comp)</span>}</span>
@@ -13675,7 +13841,7 @@ const UniversalPOS = () => {
                             onClick={() => handleCheckout('PRINT')}
                             className={`flex-1 py-2.5 rounded text-[10px] font-bold transition-all border ${isCheckingOut ? 'opacity-50 cursor-not-allowed' : 'active:scale-95'} ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-[#1a2530] hover:bg-[#2c3e50] border-slate-800 text-white'}`}
                           >
-                            Print & Save
+                            {selectedTableStatus === 'PRINTED' && cart.length === 0 ? 'Reprint Bill' : 'Print & Save'}
                           </button>
                         )}
                         {checkBillingPermission('add_payment') && (
@@ -19850,6 +20016,82 @@ const UniversalPOS = () => {
            </div>
         )}
 
+        {isChangeTableModalOpen && (
+           <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
+              <div className={`border rounded-[2rem] w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden ${
+                 isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'
+              }`}>
+                 {/* Header */}
+                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                     <h3 className={`text-lg font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Change Table / Transfer Order
+                     </h3>
+                     <button 
+                        onClick={() => {
+                           if (changeTableResolveRef.current) changeTableResolveRef.current(null);
+                           setIsChangeTableModalOpen(false);
+                        }} 
+                        className={`p-2 rounded-xl transition-all text-sm cursor-pointer ${
+                           isDark ? 'text-[#8b949e] hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'
+                        }`}
+                     >
+                        ✕
+                     </button>
+                  </div>
+                 {/* Body */}
+                 <div className="p-6 space-y-4">
+                    <p className={`text-[11px] font-black uppercase tracking-widest ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
+                       Select target table to transfer <span className="text-[#18ba60]">{selectedTable?.table_name}</span> to:
+                    </p>
+                    
+                    {/* Wide grid of tables */}
+                    <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-[45vh] overflow-y-auto pr-1 no-scrollbar">
+                       {tables
+                         .filter(t => t.id !== selectedTable?.id)
+                         .map(table => {
+                            const isOccupied = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0 || (tableCarts[table.id] || []).length > 0;
+                            return (
+                               <button
+                                  key={table.id}
+                                  onClick={() => {
+                                     if (changeTableResolveRef.current) changeTableResolveRef.current(table);
+                                     setIsChangeTableModalOpen(false);
+                                  }}
+                                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 group cursor-pointer ${
+                                     isOccupied
+                                       ? (isDark ? 'bg-amber-500/5 border-amber-500/30 text-amber-400 hover:bg-amber-500/10' : 'bg-amber-50 border-amber-200 text-amber-600 hover:bg-amber-100')
+                                       : (isDark ? 'bg-[#161b22] border-[#30363d] text-[#c9d1d9] hover:bg-[#21262d] hover:border-emerald-500/50 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100 hover:border-emerald-500/50 hover:text-slate-900')
+                                  }`}
+                               >
+                                  <div className={`w-2 h-2 rounded-full ${isOccupied ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`}></div>
+                                  <span className="text-xs font-black uppercase tracking-tight">{table.table_name}</span>
+                                  <span className="text-[8px] font-bold uppercase px-2.5 py-0.5 rounded tracking-wide bg-black/10">
+                                     {isOccupied ? 'Merge' : 'Vacant'}
+                                  </span>
+                               </button>
+                            );
+                         })}
+                    </div>
+                 </div>
+                 {/* Footer */}
+                 <div className={`p-4 flex justify-end ${isDark ? 'bg-[#161b22] border-t border-[#30363d]' : 'bg-slate-50 border-t border-slate-200'}`}>
+                    <button
+                       onClick={() => {
+                          if (changeTableResolveRef.current) changeTableResolveRef.current(null);
+                          setIsChangeTableModalOpen(false);
+                       }}
+                       className={`px-4 py-2 rounded-lg text-xs font-bold transition-all active:scale-95 cursor-pointer ${
+                          isDark ? 'bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9]' : 'bg-slate-200 hover:bg-slate-300 text-slate-700'
+                       }`}
+                    >
+                       Cancel
+                    </button>
+                 </div>
+              </div>
+           </div>
+        )}
+
         {isTransferModalOpen && (
            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
               <div className="bg-[#0d1117] border border-[#30363d] rounded-[2rem] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
@@ -23981,55 +24223,42 @@ const UniversalPOS = () => {
                   initial={{ scale: 0.95, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 20 }}
-                  className={`w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
+                  className={`w-full max-w-xl rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
                >
-                  {/* UDM Title Bar */}
-                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
-                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
-                        <UserPlus className="text-[#18ba60]" size={14} />
-                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
-                        <span className="text-[#18ba60]">Add Customer</span>
+                  <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
+                     <div>
+                        <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#10ac84]" size={22}/> Adding Customers</h3>
+                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
                      </div>
-                     <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
-                        Create a new customer profile
-                     </div>
-                     <div className="flex items-center h-full">
-                        <button
-                           type="button"
-                           onClick={() => setIsAddCustomerModalOpen(false)}
-                           className={`w-12 h-full flex items-center justify-center transition-colors ${isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'}`}
-                           title="Close"
-                        >
-                           <X size={14} strokeWidth={2.5} />
-                        </button>
-                     </div>
+                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                   </div>
 
-                  {/* Form Body */}
-                  <div className={`p-6 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
-                     {/* Row 1: Customer Name */}
-                     <div className="flex flex-col gap-1.5 text-left">
-                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Customer Name</label>
-                        <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                           <input
-                              type="text"
-                              value={newCustomerForm.name}
-                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
-                              placeholder="e.g. John Doe"
-                              className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                           />
+                  <div className={`p-8 space-y-5 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                     {/* Customer Name */}
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Name</label>
+                        <div className="col-span-3">
+                           <div className={`h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <input
+                                 type="text"
+                                 value={newCustomerForm.name}
+                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                                 placeholder="e.g. John Doe"
+                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
+                              />
+                           </div>
                         </div>
                      </div>
 
-                     {/* Row 2: Country Code + Phone */}
-                     <div className="flex flex-col gap-1.5 text-left">
-                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Phone Number *</label>
-                        <div className="flex gap-2">
-                           <div className={`h-9 rounded-lg px-2 flex items-center border ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                     {/* Phone Number */}
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Phone *</label>
+                        <div className="col-span-3">
+                           <div className={`h-9 rounded-full px-2 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                               <select
                                  value={newCustomerCountryCode}
                                  onChange={(e) => setNewCustomerCountryCode(e.target.value)}
-                                 className={`bg-transparent text-[11px] font-bold outline-none cursor-pointer ${isDark ? 'text-gray-300' : 'text-slate-800'}`}
+                                 className={`bg-transparent text-[11px] font-black pr-1 border-r outline-none max-w-[70px] scrollbar-none cursor-pointer ${isDark ? 'text-gray-400 border-gray-800 bg-[#161b22]' : 'text-slate-500 border-transparent bg-[#f1f3f4]'}`}
                               >
                                  {COUNTRY_CODES.map(c => (
                                     <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
@@ -24037,38 +24266,38 @@ const UniversalPOS = () => {
                                     </option>
                                  ))}
                               </select>
-                           </div>
-                           <div className={`flex-1 h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                               <input
                                  type="text"
                                  value={newCustomerForm.phone}
                                  onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
                                  placeholder="e.g. 9876543210"
+                                 className={`w-full pl-2 bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
+                              />
+                           </div>
+                        </div>
+                     </div>
+
+                     {/* Address */}
+                     <div className="grid grid-cols-4 items-center gap-4">
+                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Address</label>
+                        <div className="col-span-3">
+                           <div className={`h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <input
+                                 type="text"
+                                 value={newCustomerForm.address}
+                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
+                                 placeholder="e.g. 123 Street Name"
                                  className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
                               />
                            </div>
                         </div>
                      </div>
 
-                     {/* Row 3: Address */}
-                     <div className="flex flex-col gap-1.5 text-left">
-                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Address</label>
-                        <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                           <input
-                              type="text"
-                              value={newCustomerForm.address}
-                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
-                              placeholder="e.g. 123 Street Name"
-                              className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                           />
-                        </div>
-                     </div>
-
-                     {/* Row 4: Balance & Points in grid */}
-                     <div className="grid grid-cols-2 gap-4 text-left">
-                        <div className="flex flex-col gap-1.5">
-                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Balance</label>
-                           <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                     {/* Balance & Points */}
+                     <div className="grid grid-cols-4 gap-4">
+                        <div className="col-span-2 grid grid-cols-3 items-center gap-2">
+                           <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Balance</label>
+                           <div className={`col-span-2 h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                               <input
                                  type="number"
                                  value={newCustomerForm.balance}
@@ -24079,9 +24308,9 @@ const UniversalPOS = () => {
                            </div>
                         </div>
 
-                        <div className="flex flex-col gap-1.5">
-                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Points</label>
-                           <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                        <div className="col-span-2 grid grid-cols-3 items-center gap-2">
+                           <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Points</label>
+                           <div className={`col-span-2 h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                               <input
                                  type="number"
                                  value={newCustomerForm.points}
@@ -24094,10 +24323,10 @@ const UniversalPOS = () => {
                      </div>
                   </div>
 
-                  <div className={`p-6 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                  <div className={`p-8 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f8f9fa] border-slate-200'}`}>
                      <button
                         onClick={() => setIsAddCustomerModalOpen(false)}
-                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase transition-all bg-transparent border ${isDark ? 'text-[#8b949e] border-[#30363d] hover:bg-white/5' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase transition-all bg-transparent border ${isDark ? 'text-[#8b949e] border-[#30363d] hover:bg-white/5' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                      >
                         Cancel
                      </button>
@@ -24155,7 +24384,7 @@ const UniversalPOS = () => {
                            setIsAddCustomerModalOpen(false);
                            setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });
                         }}
-                        className="px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all bg-[#18ba60] text-white hover:bg-[#159a4f] shadow-lg shadow-[#18ba60]/20"
+                        className="px-6 py-2.5 rounded-full text-[10px] font-bold uppercase transition-all bg-[#18ba60] text-white hover:bg-[#159a4f] shadow-lg shadow-[#18ba60]/20"
                      >
                         Save Customer
                      </button>

@@ -72,33 +72,6 @@
   scrollbar-color: #18ba60 transparent;
 }
 
-/* Settings Scrollbar: Green thumb with Grey track */
-.settings-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-.settings-scrollbar::-webkit-scrollbar-track {
-  background: #161b22;
-}
-.light .settings-scrollbar::-webkit-scrollbar-track {
-  background: #f1f3f4;
-}
-.settings-scrollbar::-webkit-scrollbar-thumb {
-  background: #18ba60;
-  border-radius: 9999px;
-}
-.settings-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #159a4f;
-}
-.settings-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: #18ba60 #161b22;
-}
-.light .settings-scrollbar {
-  scrollbar-color: #18ba60 #f1f3f4;
-}
-
-
 /* ========================================================================= */
 /* ==================== CUSTOM GLOBAL DESIGN OVERRIDES ===================== */
 /* ========================================================================= */
