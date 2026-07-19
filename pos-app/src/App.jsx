@@ -24247,100 +24247,116 @@ const UniversalPOS = () => {
                      </div>
                   </div>
 
-                  <div className={`p-8 space-y-5 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                  <div className="p-5 space-y-4">
                      {/* Customer Name */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Name</label>
-                        <div className="col-span-3">
-                           <div className={`h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                              <input
-                                 type="text"
-                                 value={newCustomerForm.name}
-                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
-                                 placeholder="e.g. John Doe"
-                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                              />
-                           </div>
-                        </div>
+                     <div className="space-y-1.5">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Name</label>
+                        <input
+                           type="text"
+                           value={newCustomerForm.name}
+                           onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                           placeholder="e.g. John Doe"
+                           className={`w-full h-9 rounded-xl text-xs font-bold px-3 outline-none transition-colors border ${
+                              isDark
+                                 ? 'bg-[#0d1117] border-gray-800 text-gray-300 placeholder-gray-600 focus:border-emerald-500'
+                                 : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-emerald-500'
+                           }`}
+                        />
                      </div>
 
                      {/* Phone Number */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Phone *</label>
-                        <div className="col-span-3">
-                           <div className={`h-9 rounded-full px-2 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                              <select
-                                 value={newCustomerCountryCode}
-                                 onChange={(e) => setNewCustomerCountryCode(e.target.value)}
-                                 className={`bg-transparent text-[11px] font-black pr-1 border-r outline-none max-w-[70px] scrollbar-none cursor-pointer ${isDark ? 'text-gray-400 border-gray-800 bg-[#161b22]' : 'text-slate-500 border-transparent bg-[#f1f3f4]'}`}
-                              >
-                                 {COUNTRY_CODES.map(c => (
-                                    <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
-                                       {c.flag} {c.dialCode}
-                                    </option>
-                                 ))}
-                              </select>
-                              <input
-                                 type="text"
-                                 value={newCustomerForm.phone}
-                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
-                                 placeholder="e.g. 9876543210"
-                                 className={`w-full pl-2 bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                              />
-                           </div>
+                     <div className="space-y-1.5">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Phone *</label>
+                        <div className="flex gap-2">
+                           <select
+                              value={newCustomerCountryCode}
+                              onChange={(e) => setNewCustomerCountryCode(e.target.value)}
+                              className={`h-9 rounded-xl text-xs font-bold px-2 outline-none transition-colors border cursor-pointer ${
+                                 isDark
+                                    ? 'bg-[#0d1117] border-gray-800 text-gray-300 focus:border-emerald-500'
+                                    : 'bg-white border-slate-300 text-slate-800 focus:border-emerald-500'
+                              }`}
+                           >
+                              {COUNTRY_CODES.map(c => (
+                                 <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
+                                    {c.flag} {c.dialCode}
+                                 </option>
+                              ))}
+                           </select>
+                           <input
+                              type="text"
+                              value={newCustomerForm.phone}
+                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
+                              placeholder="e.g. 9876543210"
+                              className={`flex-1 min-w-0 h-9 rounded-xl text-xs font-bold px-3 outline-none transition-colors border ${
+                                 isDark
+                                    ? 'bg-[#0d1117] border-gray-800 text-gray-300 placeholder-gray-600 focus:border-emerald-500'
+                                    : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-emerald-500'
+                              }`}
+                           />
                         </div>
                      </div>
 
                      {/* Address */}
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Address</label>
-                        <div className="col-span-3">
-                           <div className={`h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                              <input
-                                 type="text"
-                                 value={newCustomerForm.address}
-                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
-                                 placeholder="e.g. 123 Street Name"
-                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                              />
-                           </div>
-                        </div>
+                     <div className="space-y-1.5">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Address</label>
+                        <input
+                           type="text"
+                           value={newCustomerForm.address}
+                           onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
+                           placeholder="e.g. 123 Street Name"
+                           className={`w-full h-9 rounded-xl text-xs font-bold px-3 outline-none transition-colors border ${
+                              isDark
+                                 ? 'bg-[#0d1117] border-gray-800 text-gray-300 placeholder-gray-600 focus:border-emerald-500'
+                                 : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-emerald-500'
+                           }`}
+                        />
                      </div>
 
                      {/* Balance & Points */}
-                     <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-2 grid grid-cols-3 items-center gap-2">
-                           <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Balance</label>
-                           <div className={`col-span-2 h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                              <input
-                                 type="number"
-                                 value={newCustomerForm.balance}
-                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, balance: e.target.value }))}
-                                 placeholder="0"
-                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                              />
-                           </div>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Balance</label>
+                           <input
+                              type="number"
+                              value={newCustomerForm.balance}
+                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, balance: e.target.value }))}
+                              placeholder="0"
+                              className={`w-full h-9 rounded-xl text-xs font-bold px-3 outline-none transition-colors border ${
+                                 isDark
+                                    ? 'bg-[#0d1117] border-gray-800 text-gray-300 placeholder-gray-600 focus:border-emerald-500'
+                                    : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-emerald-500'
+                              }`}
+                           />
                         </div>
-
-                        <div className="col-span-2 grid grid-cols-3 items-center gap-2">
-                           <label className={`text-[10px] font-black uppercase tracking-wider text-right ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Points</label>
-                           <div className={`col-span-2 h-9 rounded-full px-3.5 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
-                              <input
-                                 type="number"
-                                 value={newCustomerForm.points}
-                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, points: e.target.value }))}
-                                 placeholder="0"
-                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
-                              />
-                           </div>
+                        <div className="space-y-1.5">
+                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Points</label>
+                           <input
+                              type="number"
+                              value={newCustomerForm.points}
+                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, points: e.target.value }))}
+                              placeholder="0"
+                              className={`w-full h-9 rounded-xl text-xs font-bold px-3 outline-none transition-colors border ${
+                                 isDark
+                                    ? 'bg-[#0d1117] border-gray-800 text-gray-300 placeholder-gray-600 focus:border-emerald-500'
+                                    : 'bg-white border-slate-300 text-slate-800 placeholder-slate-400 focus:border-emerald-500'
+                              }`}
+                           />
                         </div>
                      </div>
                   </div>
 
-                  <div className={`p-8 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f8f9fa] border-slate-200'}`}>
+                  {/* Footer */}
+                  <div className={`p-5 flex gap-3 border-t ${
+                     isDark ? 'bg-[#0d1117]/30 border-[#30363d]' : 'bg-slate-50 border-slate-100'
+                  }`}>
                      <button
                         onClick={() => setIsAddCustomerModalOpen(false)}
-                        className={`px-6 py-2.5 rounded-full text-[10px] font-bold uppercase transition-all bg-transparent border ${isDark ? 'text-[#8b949e] border-[#30363d] hover:bg-white/5' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        className={`flex-1 py-3 border rounded-xl font-black uppercase text-[10px] tracking-widest transition-all ${
+                           isDark
+                              ? 'border-[#30363d] text-[#c9d1d9] hover:bg-white/5'
+                              : 'border-slate-200 text-slate-500 hover:bg-slate-100'
+                        }`}
                      >
                         Cancel
                      </button>
@@ -24398,7 +24414,7 @@ const UniversalPOS = () => {
                            setIsAddCustomerModalOpen(false);
                            setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });
                         }}
-                        className="px-6 py-2.5 rounded-full text-[10px] font-bold uppercase transition-all bg-[#18ba60] text-white hover:bg-[#159a4f] shadow-lg shadow-[#18ba60]/20"
+                        className="flex-1 py-3 bg-[#18ba60] hover:bg-[#159a4f] text-white rounded-xl font-black uppercase text-[10px] tracking-widest transition-colors"
                      >
                         Save Customer
                      </button>
