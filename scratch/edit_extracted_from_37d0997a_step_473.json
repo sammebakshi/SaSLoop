@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable the Action Bar row in combined view for all order types.\"",
+  "EndLine": "10509",
+  "Instruction": "\"Change {orderType === 'DINE_IN' && ( to {true && ( on line 10509.\"",
+  "ReplacementContent": "\"                        {true && (\"",
+  "StartLine": "10509",
+  "TargetContent": "\"                        {orderType === 'DINE_IN' && (\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing orderType check on middle Action Bar\"",
+  "toolSummary": "\"Update App.jsx Action Bar condition\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Combined View item grid to have at least 2 columns on smaller screen sizes.\"",
+  "EndLine": "10565",
+  "Instruction": "\"Make Combined View item grid have a minimum of 2 columns using grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))].\"",
+  "ReplacementContent": "\"                            <div className=\\\"grid grid-cols-2 lg:grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2\\\">\"",
+  "StartLine": "10563",
+  "TargetContent": "\"                            <div className=\\\"grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-2\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Combined View item grid to minimum 2 columns\"",
+  "toolSummary": "\"Updating Combined View item grid to minimum 2 columns\""
+}

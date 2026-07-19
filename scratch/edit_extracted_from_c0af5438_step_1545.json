@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wrap receiptHtml string into getReceiptHtml function parameterizing copyLabel.\"",
+  "EndLine": "9202",
+  "Instruction": "\"Replace const receiptHtml declaration with a function.\"",
+  "ReplacementContent": "\"    const getReceiptHtml = (copyLabel = '') => {\\n      return `\\n        <html>\"",
+  "StartLine": "9201",
+  "TargetContent": "\"    const receiptHtml = `\\n      <html>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wrapping receiptHtml declaration\"",
+  "toolSummary": "\"File edit\""
+}

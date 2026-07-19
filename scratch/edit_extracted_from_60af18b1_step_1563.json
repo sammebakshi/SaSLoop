@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add a ToastContainer to the login screen so toast notifications (like 'Invalid Credentials') appear in the bottom-left corner even before the user is authenticated.\"",
+  "EndLine": "3385",
+  "Instruction": "\"Add a ToastContainer with position bottom-left inside the login screen return block.\"",
+  "ReplacementContent": "\"      <div className=\\\"min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans bg-slate-50\\\">\\n        <ToastContainer theme=\\\"light\\\" position=\\\"bottom-left\\\" />\\n        <ChatAnimationBackground />\"",
+  "StartLine": "3384",
+  "TargetContent": "\"      <div className=\\\"min-h-screen flex items-center justify-center p-4 relative overflow-hidden font-sans bg-slate-50\\\">\\n        <ChatAnimationBackground />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding ToastContainer to login\"",
+  "toolSummary": "\"Add toast to login screen\""
+}

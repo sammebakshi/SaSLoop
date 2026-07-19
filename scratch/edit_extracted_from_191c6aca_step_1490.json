@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define tableDepartments state and update departments computation in App.jsx.\"",
+  "EndLine": "4396",
+  "Instruction": "\"Add tableDepartments state and merge backend departments with table-derived departments.\"",
+  "ReplacementContent": "\"  const [activeDepartment, setActiveDepartment] = useState('All');\\n  const [tableDepartments, setTableDepartments] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_departments');\\n      return saved ? JSON.parse(saved) : [];\\n    } catch (e) { return []; }\\n  });\\n  const departments = [\\n    'All',\\n    ...new Set([\\n      ...tableDepartments.map(d => d.department_name),\\n      ...tables.map(t => t.department_name)\\n    ].filter(Boolean))\\n  ];\"",
+  "StartLine": "4394",
+  "TargetContent": "\"  const [activeDepartment, setActiveDepartment] = useState('All');\\n  const departments = ['All', ...new Set(tables.map(t => t.department_name).filter(Boolean))];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding tableDepartments state to App.jsx\"",
+  "toolSummary": "\"Adding tableDepartments state to App.jsx\""
+}

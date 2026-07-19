@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove the block returning isTransitioningToDashboard separately.\"",
+  "EndLine": "8904",
+  "ReplacementContent": "\"\"",
+  "StartLine": "8897",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing separate transition splash screen return block\"",
+  "toolSummary": "\"Updating App.jsx\""
+}

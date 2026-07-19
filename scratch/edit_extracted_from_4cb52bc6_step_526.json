@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Repaired print button by targeting lines 13456 to 13460 in App.jsx\"",
+  "EndLine": "13460",
+  "Instruction": "\"Replace print button container with gated one\"",
+  "ReplacementContent": "\"                                 </button>\\n                                 <button\\n                                   className=\\\"text-white hover:text-white/80 transition-all cursor-pointer hover:scale-110 active:scale-90 bg-transparent border-0 p-0\\\"\\n                                   onClick={() => executeReprintAction(() => handlePrint(activeReceipt))}\\n                                   title=\\\"Print Bill\\\"\\n                                 >\\n                                   <Printer size={18} />\\n                                 </button>\"",
+  "StartLine": "13456",
+  "TargetContent": "\"                                 </button>\\n                                 <button\\n                                 >\\n                                   <Printer size={18} />\\n                                 </button>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing print button block in App.jsx\"",
+  "toolSummary": "\"Replace print button block\""
+}

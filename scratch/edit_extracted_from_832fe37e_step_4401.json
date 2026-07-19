@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added points discount to the financial ledger diagnostics HUD.\"",
+  "EndLine": "18730",
+  "Instruction": "\"Append points discount rendering below campaign discount in financial ledger HUD.\"",
+  "ReplacementContent": "\"                           {parseFloat(previewReceipt.discount || 0) > 0 && (\\n                              <div className=\\\"flex justify-between items-center py-0.5 border-b border-[#30363d]/50 text-red-400\\\">\\n                                 <span className=\\\"text-gray-500\\\">Campaign Discount:</span>\\n                                 <span className=\\\"font-bold\\\">-{parseFloat(previewReceipt.discount).toFixed(2)}</span>\\n                              </div>\\n                           )}\\n                           {parseFloat(previewReceipt.points_discount || 0) > 0 && (\\n                              <div className=\\\"flex justify-between items-center py-0.5 border-b border-[#30363d]/50 text-red-400\\\">\\n                                 <span className=\\\"text-gray-500\\\">Points Discount:</span>\\n                                 <span className=\\\"font-bold\\\">-{parseFloat(previewReceipt.points_discount).toFixed(2)} ({previewReceipt.points_redeemed || 0} pts)</span>\\n                              </div>\\n                           )}\"",
+  "StartLine": "18725",
+  "TargetContent": "\"                           {parseFloat(previewReceipt.discount || 0) > 0 && (\\n                              <div className=\\\"flex justify-between items-center py-0.5 border-b border-[#30363d]/50 text-red-400\\\">\\n                                 <span className=\\\"text-gray-500\\\">Campaign Discount:</span>\\n                                 <span className=\\\"font-bold\\\">-{parseFloat(previewReceipt.discount).toFixed(2)}</span>\\n                              </div>\\n                           )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding points discount to ledger panel\"",
+  "toolSummary": "\"Modify App.jsx ledger panel\""
+}

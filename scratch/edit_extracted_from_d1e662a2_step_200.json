@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Mount PasscodeModal at the bottom of App.jsx\"",
+  "EndLine": "21840",
+  "Instruction": "\"Render PasscodeModal before the closing div of the main return statement\"",
+  "ReplacementContent": "\"      <VirtualKeyboard target={keyboardTarget} onClose={() => setKeyboardTarget(null)} />\\n\\n      <PasscodeModal\\n         isOpen={passcodeModal.isOpen}\\n         actionKey={passcodeModal.actionKey}\\n         actionName={passcodeModal.actionName}\\n         isDark={isDark}\\n         onClose={() => setPasscodeModal(prev => ({ ...prev, isOpen: false }))}\\n         onSuccess={() => {\\n            setPasscodeModal(prev => ({ ...prev, isOpen: false }));\\n            if (passcodeModal.onSuccess) passcodeModal.onSuccess();\\n         }}\\n      />\\n    </div>\"",
+  "StartLine": "21834",
+  "TargetContent": "\"      <VirtualKeyboard target={keyboardTarget} onClose={() => setKeyboardTarget(null)} />\\n    </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Mounting PasscodeModal\"",
+  "toolSummary": "\"Mounting PasscodeModal\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix ReferenceError by defining checkIsDue cleanly without shadowing state variable\"",
+  "EndLine": "14997",
+  "Instruction": "\"Change isDuePayment to checkIsDue and correct variable name definition\"",
+  "ReplacementContent": "\"                               const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                               const checkIsDue = selectedPaymentMode.toLowerCase() === 'credit' || selectedPaymentMode.toLowerCase() === 'due' || isDuePayment;\\n                               await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, checkIsDue);\\n                               setIsPaymentModalOpen(false);\"",
+  "StartLine": "14993",
+  "TargetContent": "\"                               const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                               const isDuePayment = selectedPaymentMode === 'DUE' || isDue;\\n                               await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\\n                               setIsPaymentModalOpen(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resolving ReferenceError in App.jsx\"",
+  "toolSummary": "\"Resolving ReferenceError in App.jsx\""
+}

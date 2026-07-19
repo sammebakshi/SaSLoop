@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fixed a syntax typo by adding the missing closing brace to the JSX ternary expression in App.jsx.\"",
+  "EndLine": "9129",
+  "Instruction": "\"Add the missing closing brace to the JSX ternary expression closing tag.\"",
+  "ReplacementContent": "\"                  )}\"",
+  "StartLine": "9128",
+  "TargetContent": "\"                  )\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset active React states upon clearing local data on logout.\"",
+  "EndLine": "5109",
+  "Instruction": "\"Add state reset calls inside handleLogoutFlow when clearData is true.\"",
+  "ReplacementContent": "\"      setNextBillNo(1);\\n      setRecentOrders([]);\\n      setTableBills({});\\n      setTableCarts({});\\n      setTableStatuses({});\\n      setTableBillNumbers({});\\n      setTableActiveTimestamps({});\\n      setTableCustomers({});\\n      setDineInCart([]);\\n      setPickupCart([]);\\n      setQuickCart([]);\\n      setPreOrderCart([]);\\n      setCart([]);\\n      setCustomerDb({});\\n\\n      toast.info(\\\"Local sales and shift data successfully cleared.\\\");\\n    }\"",
+  "StartLine": "5105",
+  "TargetContent": "\"      setSaveToPresets(false);\\n      setNextBillNo(1);\\n\\n      toast.info(\\\"Local sales and shift data successfully cleared.\\\");\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding React state wipe on logout\"",
+  "toolSummary": "\"Wipe React states on logout\""
+}

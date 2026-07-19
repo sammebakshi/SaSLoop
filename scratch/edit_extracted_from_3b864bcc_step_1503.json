@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update conditional block to explicitly match UPI.\"",
+  "EndLine": "8857",
+  "Instruction": "\"Change the last else block in the payment method check to else if (method.includes('UPI')).\"",
+  "ReplacementContent": "\"                  if (method.includes('CARD')) acc.Card += amt;\\n                  else if (method.includes('CASH')) acc.Cash += amt;\\n                  else if (method.includes('GOOGLEPAY') || method.includes('GPAY')) acc.GooglePay += amt;\\n                  else if (method.includes('PAYTM')) acc.Paytm += amt;\\n                  else if (method.includes('UPI')) acc.UPI += amt;\"",
+  "StartLine": "8852",
+  "TargetContent": "\"                  if (method.includes('CARD')) acc.Card += amt;\\n                  else if (method.includes('CASH')) acc.Cash += amt;\\n                  else if (method.includes('GOOGLEPAY') || method.includes('GPAY')) acc.GooglePay += amt;\\n                  else if (method.includes('PAYTM')) acc.Paytm += amt;\\n                  else acc.UPI += amt;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating conditional block for UPI check in App.jsx\"",
+  "toolSummary": "\"Edit file\""
+}

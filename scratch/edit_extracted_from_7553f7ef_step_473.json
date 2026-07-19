@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Delete duplicated trailing code block and stray bracket\"",
+  "EndLine": "19763",
+  "Instruction": "\"Delete duplicated code block from line 19754 to 19763\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "19754",
+  "TargetContent": "\"                                  </div>                                              >\\n                                                             58mm\\n                                                          </button>\\n                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Remove duplicated bracket block\"",
+  "toolSummary": "\"Remove duplicated bracket block\""
+}

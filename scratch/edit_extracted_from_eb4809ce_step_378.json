@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up custom departments filtering to exclude Pre-Order/empty strings and add console logs to diagnose table departments returned by the server.\"",
+  "EndLine": "4420",
+  "Instruction": "\"Add console logging and clean up departments list parsing in App.jsx.\"",
+  "ReplacementContent": "\"  const getDepartmentsList = () => {\\n    const customDepts = [...new Set(tables.map(t => t.department_name).filter(Boolean))]\\n      .map(d => d.trim())\\n      .filter(d => d && d !== 'Pre-Order' && d !== 'All');\\n    console.log(\\\"POS - Loaded tables from cache/server:\\\", tables);\\n    console.log(\\\"POS - Detected custom departments:\\\", customDepts);\\n    if (customDepts.length > 0) {\\n      return ['All', ...customDepts];\\n    }\\n    return ['All', 'Non AC Section', 'AC Section & BAR', 'Rooms', 'VIP', 'Pickup'];\\n  };\\n  const departments = getDepartmentsList();\"",
+  "StartLine": "4412",
+  "TargetContent": "\"  const getDepartmentsList = () => {\\n    const customDepts = [...new Set(tables.map(t => t.department_name).filter(Boolean))];\\n    if (customDepts.length > 0) {\\n      return ['All', ...customDepts];\\n    }\\n    return ['All', 'Non AC Section', 'AC Section & BAR', 'Rooms', 'VIP', 'Pickup'];\\n  };\\n  const departments = getDepartmentsList();\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding department log and filter cleanup\"",
+  "toolSummary": "\"Add department log and filter cleanup\""
+}

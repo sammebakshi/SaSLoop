@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define filteredTotal, paginatedTotal, and getPageNumbers helper for the receipts tab pagination and summary bar.\"",
+  "EndLine": "924",
+  "Instruction": "\"Insert filteredTotal, paginatedTotal, and getPageNumbers functions.\"",
+  "ReplacementContent": "\"  const paginatedOrders = React.useMemo(() => {\\n    const startIdx = (receiptsPage - 1) * receiptsPageSize;\\n    return filteredOrders.slice(startIdx, startIdx + receiptsPageSize);\\n  }, [filteredOrders, receiptsPage]);\\n\\n  const filteredTotal = React.useMemo(() => {\\n    return filteredOrders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);\\n  }, [filteredOrders]);\\n\\n  const paginatedTotal = React.useMemo(() => {\\n    return paginatedOrders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);\\n  }, [paginatedOrders]);\\n\\n  const getPageNumbers = () => {\\n    const pages = [];\\n    const maxVisible = 5;\\n    if (totalPages <= maxVisible) {\\n      for (let i = 1; i <= totalPages; i++) pages.push(i);\\n    } else {\\n      pages.push(1);\\n      if (receiptsPage > 3) {\\n        pages.push('...');\\n      }\\n      const start = Math.max(2, receiptsPage - 1);\\n      const end = Math.min(totalPages - 1, receiptsPage + 1);\\n      for (let i = start; i <= end; i++) {\\n        pages.push(i);\\n      }\\n      if (receiptsPage < totalPages - 2) {\\n        pages.push('...');\\n      }\\n      pages.push(totalPages);\\n    }\\n    return pages;\\n  };\"",
+  "StartLine": "920",
+  "TargetContent": "\"  const paginatedOrders = React.useMemo(() => {\\n    const startIdx = (receiptsPage - 1) * receiptsPageSize;\\n    return filteredOrders.slice(startIdx, startIdx + receiptsPageSize);\\n  }, [filteredOrders, receiptsPage]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pagination totals helper\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define passcodeModalState state in UniversalPOS component\"",
+  "EndLine": "1734",
+  "Instruction": "\"Insert passcodeModalState definition in App.jsx.\"",
+  "ReplacementContent": "\"  const [cart, setCart] = useState([]);\\n  const [passcodeModalState, setPasscodeModalState] = useState({\\n    isOpen: false,\\n    requiredModules: [],\\n    actionKey: '',\\n    onSuccess: null,\\n    actionName: ''\\n  });\"",
+  "StartLine": "1733",
+  "TargetContent": "\"  const [cart, setCart] = useState([]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Define passcodeModalState state in App.jsx\"",
+  "toolSummary": "\"Define passcodeModalState state\""
+}

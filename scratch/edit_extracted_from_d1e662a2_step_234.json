@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Billing add_discount and add_charges button triggers\"",
+  "EndLine": "11285",
+  "Instruction": "\"Use isFeatureVisible and checkPermissionAndExecute for discount and charges buttons in App.jsx\"",
+  "ReplacementContent": "\"                        {isFeatureVisible(getBillingPermissionSection(), 'add_discount') && (\\n                          <button\\n                            onClick={() => checkPermissionAndExecute(getBillingPermissionSection(), 'add_discount', 'Add Discount', handleOpenDiscountModal)}\\n                            className=\\\"hover:text-slate-100 transition-colors\\\"\\n                          >\\n                            <Tag size={20} strokeWidth={2.5} />\\n                          </button>\\n                        )}\\n                        {isFeatureVisible(getBillingPermissionSection(), 'add_charges') && (\\n                          <button\\n                            onClick={() => checkPermissionAndExecute(getBillingPermissionSection(), 'add_charges', 'Add Charges', handleOpenChargesModal)}\\n                            className=\\\"hover:text-slate-100 transition-colors\\\"\\n                          >\\n                            <Coins size={20} strokeWidth={2.5} />\\n                          </button>\\n                        )}\"",
+  "StartLine": "11264",
+  "TargetContent": "\"                        {checkBillingPermission('add_discount') && (\\n                          <button\\n                            onClick={handleOpenDiscountModal}\\n                            className=\\\"hover:text-slate-100 transition-colors\\\"\\n                          >\\n                            <Tag size={20} strokeWidth={2.5} />\\n                          </button>\\n                        )}\\n                        {checkBillingPermission('add_charges') && (\\n                          <button\\n                            onClick={handleOpenChargesModal}\\n                            className=\\\"hover:text-slate-100 transition-colors\\\"\\n                          >\\n                            <Coins size={20} strokeWidth={2.5} />\\n                          </button>\\n                        )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating discount and charges triggers\"",
+  "toolSummary": "\"Updating discount and charges triggers\""
+}

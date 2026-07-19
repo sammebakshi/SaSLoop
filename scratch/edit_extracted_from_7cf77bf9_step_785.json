@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Preserve server stats in calculateStats when online\"",
+  "EndLine": "4025",
+  "Instruction": "\"Modify calculateStats to check navigator.onLine and preserve current stats when true\"",
+  "ReplacementContent": "\"    const top = aggregated.sort((a, b) => b.qty - a.qty).slice(0, 5);\\n    setTopItems(top);\\n\\n    if (navigator.onLine && stats.totalSales > 0) {\\n      setStats(prev => ({\\n        ...calculated,\\n        todaySales: prev.todaySales,\\n        todayCount: prev.todayCount,\\n        totalSales: prev.totalSales,\\n        totalCount: prev.totalCount,\\n        monthSales: prev.monthSales,\\n        monthCount: prev.monthCount,\\n        offlineSales: prev.offlineSales,\\n        onlineSales: prev.onlineSales,\\n        dineInSales: prev.dineInSales,\\n        quickSales: prev.quickSales,\\n        takeawaySales: prev.takeawaySales,\\n        deliverySales: prev.deliverySales,\\n        deliveryCount: prev.deliveryCount,\\n        totalTax: prev.totalTax,\\n        totalDiscount: prev.totalDiscount\\n      }));\\n    } else {\\n      setStats(calculated);\\n    }\\n  };\"",
+  "StartLine": "4020",
+  "TargetContent": "\"    const top = aggregated.sort((a, b) => b.qty - a.qty).slice(0, 5);\\n    setTopItems(top);\\n\\n    setStats(calculated);\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating calculateStats preservation check\"",
+  "toolSummary": "\"App.jsx calculateStats preservation edit\""
+}

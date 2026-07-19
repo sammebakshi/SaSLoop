@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add ChatAnimationBackground behind the TransitionSplashScreen so the multi-layer hub animation plays as the backdrop with the transparent text overlay on top.\"",
+  "EndLine": "8826",
+  "Instruction": "\"Add ChatAnimationBackground behind TransitionSplashScreen and add overflow-hidden + relative to the container.\"",
+  "ReplacementContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden\\\">\\n        <ChatAnimationBackground />\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "StartLine": "8820",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding ChatAnimationBackground behind transition\"",
+  "toolSummary": "\"Adding hub animation backdrop\""
+}

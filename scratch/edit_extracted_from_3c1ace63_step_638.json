@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare isSavedCustomer in handlePrintBill for conditional loyalty receipt printing.\"",
+  "EndLine": "7502",
+  "Instruction": "\"Declare isSavedCustomer based on customerDb mapping.\"",
+  "ReplacementContent": "\"    }\\n\\n    const fullPhoneKey = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';\\n    const isSavedCustomer = !!(fullPhoneKey && customerDb[fullPhoneKey]);\\n\\n    const taxRate = parseFloat(posSettings.taxRate || 0);\"",
+  "StartLine": "7499",
+  "TargetContent": "\"    }\\n\\n    const taxRate = parseFloat(posSettings.taxRate || 0);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing file\"",
+  "toolSummary": "\"Declare isSavedCustomer helper in printBill\""
+}

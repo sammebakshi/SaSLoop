@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert copyLabel banner after body tag inside getReceiptHtml template.\"",
+  "EndLine": "9330",
+  "Instruction": "\"Add copyLabel block below body tag.\"",
+  "ReplacementContent": "\"        <body>\\n          ${copyLabel ? `\\n          <div class=\\\"center bold\\\" style=\\\"border: 1.2px solid #000; padding: 1mm; font-size: 11px; margin-bottom: 2mm; text-transform: uppercase; letter-spacing: 0.5px;\\\">\\n            ${copyLabel}\\n          </div>\\n          ` : ''}\\n          <div class=\\\"center bold text-large\\\" style=\\\"margin-bottom: 1.5mm;\\\">\\n            ${(business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}\\n          </div>\"",
+  "StartLine": "9327",
+  "TargetContent": "\"        <body>\\n          <div class=\\\"center bold text-large\\\" style=\\\"margin-bottom: 1.5mm;\\\">\\n            ${(business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}\\n          </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Inserting copyLabel inside body\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add state variables for Items Management feature: items list, categories, search filters, selected category, edit item state, and loading flag.\"",
+  "EndLine": "658",
+  "Instruction": "\"Add new state variables for items management after settingsActiveTab.\"",
+  "ReplacementContent": "\"  const [settingsActiveTab, setSettingsActiveTab] = useState('general');\\n  // Items Management state\\n  const [itemMgmtItems, setItemMgmtItems] = useState([]);\\n  const [itemMgmtCategories, setItemMgmtCategories] = useState([]);\\n  const [itemMgmtSearch, setItemMgmtSearch] = useState('');\\n  const [itemMgmtCodeSearch, setItemMgmtCodeSearch] = useState('');\\n  const [itemMgmtSelectedCategory, setItemMgmtSelectedCategory] = useState('All');\\n  const [itemMgmtEditItem, setItemMgmtEditItem] = useState(null);\\n  const [itemMgmtLoading, setItemMgmtLoading] = useState(false);\"",
+  "StartLine": "658",
+  "TargetContent": "\"  const [settingsActiveTab, setSettingsActiveTab] = useState('general');\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding state variables\"",
+  "toolSummary": "\"Adding Items Management state variables\""
+}

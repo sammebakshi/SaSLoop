@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change Bar Chart column layout to span 3 columns\"",
+  "EndLine": "7903",
+  "StartLine": "7898",
+  "TargetContent": "\"                        {/* Bar Chart (Col 4) */}\\n                        {accessLevels.barSalesChart && (\\n                          <div className=\\\"lg:col-span-4 flex flex-col justify-between min-h-0\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Changing Bar Chart column span\"",
+  "toolSummary": "\"App.jsx Bar Chart span edit\""
+}

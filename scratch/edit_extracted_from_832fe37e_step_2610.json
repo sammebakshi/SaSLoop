@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update pointsRatio calculation in calculateTotals to use getLoyaltySetting helper.\"",
+  "EndLine": "4318",
+  "Instruction": "\"Use getLoyaltySetting for pointsRatio.\"",
+  "ReplacementContent": "\"    const pointsRatio = parseFloat(getLoyaltySetting('points_to_amount_ratio', 1.00));\\n    const pointsDiscountAmt = (redeemedPoints || 0) * pointsRatio;\"",
+  "StartLine": "4315",
+  "TargetContent": "\"    const pointsRatio = business && business.points_to_amount_ratio !== undefined ? parseFloat(business.points_to_amount_ratio) : 1.00;\\n    const pointsDiscountAmt = (redeemedPoints || 0) * pointsRatio;\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating pointsRatio in calculateTotals function\"",
+  "toolSummary": "\"Update pointsRatio in calculateTotals\""
+}

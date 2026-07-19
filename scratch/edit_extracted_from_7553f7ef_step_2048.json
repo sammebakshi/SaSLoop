@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clear active cart, selected table, customer data, coupons, and notes inside handleLogoutFlow on logout.\"",
+  "EndLine": "4328",
+  "Instruction": "\"Add cart, selectedTable, KOT note, coupon, and customer state resets to handleLogoutFlow.\"",
+  "ReplacementContent": "\"    // Also clear other cached lists to avoid state leakage\\n    setCatalog([]);\\n    setCategories(['All']);\\n    setTables([]);\\n    setSyncedTax(null);\\n    setPaymentModes(['CASH']);\\n    setWaitersList([]);\\n    setRiders([]);\\n    setOptionGroups([]);\\n    setAvailableDiscounts([]);\\n    setAvailableCharges([]);\\n    setBusiness(null);\\n    \\n    // Clear active UI and customer states\\n    setCart([]);\\n    setSelectedTable(null);\\n    setKOTNote('');\\n    setCoversCount('');\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setSelectedCustomer(null);\\n    setCustomerPhone('');\\n    setCustomerName('');\\n    setCustomerAddress('');\\n    setRedeemedPoints(0);\\n    setTableSearchQuery('');\\n    setCodeSearchQuery('');\\n    setReceiptSearchQuery('');\\n    setDeleteItemQuery('');\\n    setKeyboardTarget(null);\"",
+  "StartLine": "4315",
+  "TargetContent": "\"    // Also clear other cached lists to avoid state leakage\\n    setCatalog([]);\\n    setCategories(['All']);\\n    setTables([]);\\n    setSyncedTax(null);\\n    setPaymentModes(['CASH']);\\n    setWaitersList([]);\\n    setRiders([]);\\n    setOptionGroups([]);\\n    setAvailableDiscounts([]);\\n    setAvailableCharges([]);\\n    setBusiness(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleLogoutFlow state resets\"",
+  "toolSummary": "\"Edit App.jsx to reset all active states in handleLogoutFlow\""
+}

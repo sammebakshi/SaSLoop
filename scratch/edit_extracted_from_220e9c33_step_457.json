@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added quickBillKotPrint and quickBillNumberPrint state variables to App.jsx with localStorage persistence.\"",
+  "EndLine": "1651",
+  "Instruction": "\"Add quickBillKotPrint and quickBillNumberPrint states\"",
+  "ReplacementContent": "\"  const [ebillEnabled, setEbillEnabled] = useState(false);\\n  const [quickBillKotPrint, setQuickBillKotPrint] = useState(() => {\\n    const saved = localStorage.getItem('quickBillKotPrint');\\n    return saved !== null ? JSON.parse(saved) : true;\\n  });\\n  const [quickBillNumberPrint, setQuickBillNumberPrint] = useState(() => {\\n    const saved = localStorage.getItem('quickBillNumberPrint');\\n    return saved !== null ? JSON.parse(saved) : true;\\n  });\\n  const [searchResults, setSearchResults] = useState([]);\"",
+  "StartLine": "1648",
+  "TargetContent": "\"  const [coversCount, setCoversCount] = useState('');\\n  const [ebillEnabled, setEbillEnabled] = useState(false);\\n  const [searchResults, setSearchResults] = useState([]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding state definitions in App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

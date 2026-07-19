@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gated points history button in active tray bottom with checkCustomerHistoryPermission in App.jsx\"",
+  "EndLine": "10841",
+  "Instruction": "\"Wrap points history button callback in checkCustomerHistoryPermission\"",
+  "ReplacementContent": "\"                      <button \\n                        onClick={() => {\\n                          if (!customerPhone) {\\n                            toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                            return;\\n                          }\\n                          const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                          checkCustomerHistoryPermission(() => {\\n                            refreshCustomerHistory(fullPhone);\\n                            setCustomerHistoryActiveTab('points');\\n                            setIsCustomerHistoryModalOpen(true);\\n                          });\\n                        }}\"",
+  "StartLine": "10830",
+  "TargetContent": "\"                      <button \\n                        onClick={() => {\\n                          if (!customerPhone) {\\n                            toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                            return;\\n                          }\\n                          const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                          refreshCustomerHistory(fullPhone);\\n                          setCustomerHistoryActiveTab('points');\\n                          setIsCustomerHistoryModalOpen(true);\\n                        }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating active tray bottom customer points button in App.jsx\"",
+  "toolSummary": "\"Gate active tray customer points button\""
+}

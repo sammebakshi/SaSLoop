@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define handleOpenDiscountModal, handleOpenChargesModal, and handleChangeTableGated as passcode-gated wrappers that check permissions before opening the respective modals or executing the action. These were previously undefined references causing silent failures.\"",
+  "EndLine": "3772",
+  "Instruction": "\"Add passcode-gated handler functions for discount modal, charges modal, and table change after verifyPasscodeAction\"",
+  "ReplacementContent": "\"    actionName: name\\n    });\\n  };\\n\\n  // Passcode-gated handler: Open Discount Modal\\n  const handleOpenDiscountModal = () => {\\n    verifyPasscodeAction(['Billing'], 'add_discount', () => {\\n      setIsDiscountModalOpen(true);\\n    }, 'Apply Discount');\\n  };\\n\\n  // Passcode-gated handler: Open Charges Modal\\n  const handleOpenChargesModal = () => {\\n    verifyPasscodeAction(['Billing'], 'add_charges', () => {\\n      setIsChargesModalOpen(true);\\n    }, 'Add Charges');\\n  };\\n\\n  const checkBillingPermission = (perm) => {\"",
+  "StartLine": "3768",
+  "TargetContent": "\"    actionName: name\\n    });\\n  };\\n\\n  const checkBillingPermission = (perm) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding passcode-gated handlers\"",
+  "toolSummary": "\"Add gated handlers\""
+}

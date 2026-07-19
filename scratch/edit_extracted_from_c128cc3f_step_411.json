@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clear pos_profile and set business state to null on app logout.\"",
+  "EndLine": "7331",
+  "Instruction": "\"Reset business state and remove pos_profile on logout.\"",
+  "ReplacementContent": "\"            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className=\\\"text-current\\\" />} onClick={() => { localStorage.removeItem('pos_token'); localStorage.removeItem('pos_profile'); setBusiness(null); setIsAuthenticated(false); setUsername(''); setPassword(''); setActiveTab('home'); }} label=\\\"Exit\\\" />\"",
+  "StartLine": "7329",
+  "TargetContent": "\"            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className=\\\"text-current\\\" />} onClick={() => { localStorage.removeItem('pos_token'); setIsAuthenticated(false); setUsername(''); setPassword(''); setActiveTab('home'); }} label=\\\"Exit\\\" />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Exit button onClick in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

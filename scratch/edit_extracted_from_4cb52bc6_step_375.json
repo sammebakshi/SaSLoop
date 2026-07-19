@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gated handleOpenCouponModal with POS billing coupon permissions and passcode triggers\"",
+  "EndLine": "4350",
+  "Instruction": "\"Gate coupon modal opening by permissions\"",
+  "ReplacementContent": "\"  const handleOpenCouponModal = async () => {\\n    executeBillingAction('add_coupon', 'Apply Coupon', async () => {\\n      setIsCouponModalOpen(true);\\n      try {\\n        const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');\\n        const res = await posService.getCoupons(outletId);\\n        setAvailableCoupons(res.data || []);\\n      } catch (err) {\\n        console.error(\\\"Failed to fetch coupons:\\\", err);\\n        setAvailableCoupons([]);\\n      }\\n    });\\n  };\"",
+  "StartLine": "4339",
+  "TargetContent": "\"  const handleOpenCouponModal = async () => {\\n    setIsCouponModalOpen(true);\\n    try {\\n      const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');\\n      const res = await posService.getCoupons(outletId);\\n      setAvailableCoupons(res.data || []);\\n    } catch (err) {\\n      console.error(\\\"Failed to fetch coupons:\\\", err);\\n      setAvailableCoupons([]);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating coupon opening function in App.jsx\"",
+  "toolSummary": "\"Gate coupon opening function\""
+}

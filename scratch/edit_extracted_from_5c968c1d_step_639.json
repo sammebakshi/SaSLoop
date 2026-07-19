@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Swap greeting message and app version in print HTML receipt footer\"",
+  "EndLine": "6926",
+  "Instruction": "\"Swap the lines containing footer-version and footer-thankyou in receiptHtml template\"",
+  "ReplacementContent": "\"          <div class=\\\"center bold footer-thankyou\\\">${(posSettings.greetingMessage || 'THANK YOU! VISIT AGAIN').toUpperCase()}</div>\\n          <div class=\\\"center footer-version\\\">${posSettings.appVersion || 'SaSLoop POS Version: 19.02'}</div>\"",
+  "StartLine": "6923",
+  "TargetContent": "\"          <div class=\\\"center footer-version\\\">${posSettings.appVersion || 'SaSLoop POS Version: 19.02'}</div>\\n          <div class=\\\"center bold footer-thankyou\\\">${(posSettings.greetingMessage || 'THANK YOU! VISIT AGAIN').toUpperCase()}</div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Swapping printed receipt footer order\"",
+  "toolSummary": "\"Edit App.jsx print footer order\""
+}

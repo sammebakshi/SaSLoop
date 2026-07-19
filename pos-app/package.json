@@ -1,9 +1,8 @@
 {
   "name": "pos-app",
-  "productName": "sasloop-master-pos-v1.0.1",
+  "productName": "sasloop-terminal-pos-v1.0.1",
   "private": true,
   "version": "1.0.1",
-  "type": "module",
   "main": "electron/main.cjs",
   "build": {
     "files": [
@@ -26,7 +25,7 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "SaSLoop Master POS",
+      "shortcutName": "SaSLoop POS Terminal",
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico"
     }
@@ -46,7 +45,6 @@
     "@tailwindcss/vite": "^4.2.4",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.5.0",
-    "axios": "^1.16.0",
     "concurrently": "^9.2.1",
     "cross-env": "^10.1.0",
     "electron": "^41.5.0",
@@ -67,12 +65,14 @@
   },
   "dependencies": {
     "@ngrok/ngrok": "^1.7.0",
+    "axios": "^1.18.1",
     "bcryptjs": "^3.0.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "express-fileupload": "^1.5.2",
     "express-rate-limit": "^8.4.1",
+    "form-data": "^4.0.6",
     "groq-sdk": "^1.1.2",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",

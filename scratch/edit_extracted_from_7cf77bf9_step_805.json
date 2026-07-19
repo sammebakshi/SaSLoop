@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add activeTab home hook to fetch dashboard stats\"",
+  "EndLine": "1847",
+  "Instruction": "\"Add useEffect for activeTab home tab change to fetch stats\"",
+  "ReplacementContent": "\"  // Auto-fetch hook for Receipts filtering changes\\n  useEffect(() => {\\n    if (activeTab === 'receipts') {\\n      fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n    }\\n  }, [receiptsDateMode, receiptsStartDate, receiptsEndDate, activeTab]);\\n\\n  // Auto-fetch dashboard stats when switching to the home/dashboard tab\\n  useEffect(() => {\\n    if (activeTab === 'home') {\\n      fetchDashboardStatsFromServer();\\n    }\\n  }, [activeTab]);\"",
+  "StartLine": "1841",
+  "TargetContent": "\"  // Auto-fetch hook for Receipts filtering changes\\n  useEffect(() => {\\n    if (activeTab === 'receipts') {\\n      fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n    }\\n  }, [receiptsDateMode, receiptsStartDate, receiptsEndDate, activeTab]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding dashboard stats hook on tab switch\"",
+  "toolSummary": "\"App.jsx activeTab hook edit\""
+}

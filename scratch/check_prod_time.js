@@ -1,16 +1,18 @@
 const axios = require('axios');
 
-async function checkDateHeader() {
+async function checkProdTimeAPI() {
   try {
-    const res = await axios.get('https://backend.sasloop.in/');
-    console.log('Date Header (success):', res.headers.date);
+    const res = await axios.get('https://backend.sasloop.in/api/public/time');
+    console.log('Production Server Time Response status:', res.status);
+    console.log('Production Server Time Response data:', res.data);
   } catch (err) {
     if (err.response) {
-      console.log('Date Header (error):', err.response.headers.date);
+      console.log('Error Status:', err.response.status);
+      console.log('Error Data:', err.response.data);
     } else {
       console.error('Error:', err.message);
     }
   }
 }
 
-checkDateHeader();
+checkProdTimeAPI();

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Pass pre-order details to handlePrintKOT inside handlePreOrderKOTAction\"",
+  "EndLine": "4053",
+  "Instruction": "\"Pass pre-order details as extraDetails in handlePrintKOT call\"",
+  "ReplacementContent": "\"    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo, 'NEW', {\\n        isPreOrder: true,\\n        scheduledDate: preOrderScheduledDate,\\n        scheduledTime: preOrderScheduledTime,\\n        customerName: customerName,\\n        customerPhone: customerPhone\\n      });\\n    }\\n\"",
+  "StartLine": "4050",
+  "TargetContent": "\"    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo);\\n    }\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding extraDetails to handlePrintKOT call in handlePreOrderKOTAction\"",
+  "toolSummary": "\"Pass pre-order metadata to KOT printout\""
+}

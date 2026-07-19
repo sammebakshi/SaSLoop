@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore pending server order details and editingOrder state when selecting a table with saved bills.\"",
+  "EndLine": "9671",
+  "Instruction": "\"Modify selectPosTable to find and link the table to an existing PENDING order in recentOrders.\"",
+  "ReplacementContent": "\"    const pendingOrder = (recentOrders || []).find(o => \\n      o && \\n      String(o.table_id || o.table_number) === String(table.id) && \\n      String(o.status).toUpperCase() === 'PENDING'\\n    );\\n\\n    if (pendingOrder) {\\n      setEditingOrder(pendingOrder);\\n      setCart(Array.isArray(pendingOrder.items) ? pendingOrder.items : JSON.parse(pendingOrder.items || '[]'));\\n      setCustomerName(pendingOrder.customer_name || 'POS Guest');\\n      setCustomerPhone(pendingOrder.customer_phone || '');\\n      setCustomerAddress(pendingOrder.address || '');\\n    } else {\\n      setEditingOrder(null);\\n      const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;\\n      if (hasSavedBills) {\\n        setCart([...tableBills[table.id]]);\\n      } else {\\n        setCart(tableCarts[table.id] || []);\\n      }\\n    }\"",
+  "StartLine": "9666",
+  "TargetContent": "\"    const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;\\n    if (hasSavedBills) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating table selection order linking logic\"",
+  "toolSummary": "\"Link table to pending order\""
+}

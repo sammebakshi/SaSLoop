@@ -29,7 +29,11 @@ try {
 
   // 3. Compile and build the application
   console.log('🔨 Launching build compiler (npm run build && electron-builder)...');
-  execSync('npm run build && npx electron-builder', { stdio: 'inherit', cwd: __dirname });
+  execSync('npm run build && npx electron-builder', {
+    stdio: 'inherit',
+    cwd: __dirname,
+    env: { ...process.env, CSC_IDENTITY_AUTO_DISCOVERY: 'false', NODE_OPTIONS: '--max-old-space-size=4096' }
+  });
   console.log('✨ Build compiled successfully!');
 
   // 3b. Rename win-unpacked to win-unpacked-terminal for isolated testing

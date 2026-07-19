@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate React element closing brackets with CRLF line endings\"",
+  "EndLine": "19908",
+  "Instruction": "\"Replace the duplicate closing block using exact CRLF representation\"",
+  "ReplacementContent": "\"                           );\\n                        })()\"",
+  "StartLine": "19898",
+  "TargetContent": "\"                           );\\n                                       >\\n                                          <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.showLogoOnReceipt ? 'right-0.5' : 'left-0.5'}`} />\\n                                       </button>\\n                                    </div>\\n                                 </div>\\n                              </div>\\n                           );\\n                        })()\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing settings printer tab wrapper duplicate block\"",
+  "toolSummary": "\"Fix Settings UI duplicate code\""
+}

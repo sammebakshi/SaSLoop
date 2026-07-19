@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set printDetailedBalance to true when selecting customer from search results in App.jsx\"",
+  "EndLine": "12088",
+  "Instruction": "\"Set printDetailedBalance to true.\"",
+  "ReplacementContent": "\"                                       setCustomerCountryCode(parsed.dialCode);\\n                                       setCustomerPhone(parsed.localNumber);\\n                                       setCustomerName(res.name || '');\\n                                       setCustomerAddress(res.address || '');\\n                                       setSelectedCustomer(res);\\n                                       setPrintDetailedBalance(true);\\n                                       setShowSearchResults(false);\\n                                     }}\"",
+  "StartLine": "12080",
+  "TargetContent": "\"                                       setCustomerCountryCode(parsed.dialCode);\\n                                       setCustomerPhone(parsed.localNumber);\\n                                       setCustomerName(res.name || '');\\n                                       setCustomerAddress(res.address || '');\\n                                       setSelectedCustomer(res);\\n                                       setShowSearchResults(false);\\n                                     }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting printDetailedBalance on dropdown customer selection\"",
+  "toolSummary": "\"Set printDetailedBalance on dropdown customer selection\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change orderType check to true to enable middle action bar.\"",
+  "EndLine": "10509",
+  "Instruction": "\"Change {orderType === 'DINE_IN' && ( to {true && ( on line 10509.\"",
+  "ReplacementContent": "\"                        {true && (\"",
+  "StartLine": "10509",
+  "TargetContent": "\"                        {orderType === 'DINE_IN' && (\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Action Bar condition on line 10509\"",
+  "toolSummary": "\"Update App.jsx Action Bar line 10509\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import xlsx library at the top of App.jsx\"",
+  "EndLine": "18",
+  "Instruction": "\"Import xlsx library below the qrcode import\"",
+  "ReplacementContent": "\"import QRCode from 'qrcode';\\nimport * as XLSX from 'xlsx';\\n\"",
+  "StartLine": "16",
+  "TargetContent": "\"import QRCode from 'qrcode';\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Import xlsx in App.jsx\"",
+  "toolSummary": "\"Adding XLSX import to App.jsx\""
+}

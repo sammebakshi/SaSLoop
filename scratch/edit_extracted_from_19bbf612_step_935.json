@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update split view Action Bar Refresh button configuration.\"",
+  "EndLine": "6514",
+  "Instruction": "\"Replace static refresh button configuration in split action bar with animated handleSyncRefresh config on line 6513.\"",
+  "ReplacementContent": "\"                                 { label: 'Add Customer', icon: <Users size={12}/>, onClick: handleSaveCustomer },\\n                                 { label: 'Refresh', icon: <RefreshCcw size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh },\\n                                 { label: 'Load Menu', icon: <Package size={12}/>, onClick: () => setBillingView('menu') }\"",
+  "StartLine": "6512",
+  "TargetContent": "\"                                 { label: 'Add Customer', icon: <Users size={12}/>, onClick: handleSaveCustomer },\\n                                 { label: 'Refresh', icon: <RefreshCcw size={12}/>, onClick: () => { initApp(); toast.success(\\\"Data synced from server!\\\"); } },\\n                                 { label: 'Load Menu', icon: <Package size={12}/>, onClick: () => setBillingView('menu') }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing split action bar Refresh button config with wide context\"",
+  "toolSummary": "\"Replace File Content App.jsx for split action bar Refresh\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add printDetailedBalance to tableCustomers mapping in App.jsx\"",
+  "EndLine": "4738",
+  "Instruction": "\"Update the tableCustomers tracking useEffect to include printDetailedBalance.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode,\\n          printDetailedBalance\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode,\\n    printDetailedBalance\\n  ]);\"",
+  "StartLine": "4712",
+  "TargetContent": "\"  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode\\n  ]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating tableCustomers mapping in App.jsx\"",
+  "toolSummary": "\"Add printDetailedBalance to tableCustomers mapping\""
+}

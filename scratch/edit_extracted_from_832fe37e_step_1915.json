@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"In the print receipt template, only show the Waiter row when a waiter is assigned (not 'Default' fallback)\"",
+  "EndLine": "7399",
+  "Instruction": "\"Fix waiter row in print template to not show 'Default'\"",
+  "ReplacementContent": "\"               ${order.waiter_name ? `<div>Waiter: ${order.waiter_name}</div>` : ''}\"",
+  "StartLine": "7399",
+  "TargetContent": "\"               <div>Waiter: ${order.waiter_name || 'Default'}</div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing waiter in print template\"",
+  "toolSummary": "\"Fix waiter print template\""
+}

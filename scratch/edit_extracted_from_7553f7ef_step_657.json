@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add transparent TransitionSplashScreen overlay to Login view tail end\"",
+  "EndLine": "8841",
+  "Instruction": "\"Insert TransitionSplashScreen overlay before the final closing div of the login screen block\"",
+  "ReplacementContent": "\"          </div>\\n          </div>\\n        </div>\\n      </div>\\n      {isTransitioningToDashboard && (\\n        <div className=\\\"absolute inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md select-none animate-fade-in\\\">\\n          <TransitionSplashScreen username={username} />\\n        </div>\\n      )}\\n    </div>\\n    );\\n  }\"",
+  "StartLine": "8834",
+  "TargetContent": "\"          </div>\\n          </div>\\n        </div>\\n      </div>\\n    </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Add transparent dial overlay\"",
+  "toolSummary": "\"Add transparent dial overlay\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore closing dependency array and brackets of useEffect and add resetCustomerState\"",
+  "EndLine": "5207",
+  "Instruction": "\"Restore useEffect closing parenthesis and bracket and add resetCustomerState helper\"",
+  "ReplacementContent": "\"    }\\n  }, [cart, selectedTable, tableBills]); // Removed tableCarts from dependencies to break the loop\\n\\n  const resetCustomerState = () => {\"",
+  "StartLine": "5204",
+  "TargetContent": "\"    }\\n  const resetCustomerState = () => {\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Restoring useEffect closing bracket in App.jsx\"",
+  "toolSummary": "\"Restore useEffect closing bracket\""
+}

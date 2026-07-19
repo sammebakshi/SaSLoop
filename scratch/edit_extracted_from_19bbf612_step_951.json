@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enforce a minimum of 800ms duration for the sync refresh animation to make it clearly visible.\"",
+  "EndLine": "3589",
+  "Instruction": "\"Add timestamp delay in handleSyncRefresh to guarantee visible spinner rotation.\"",
+  "ReplacementContent": "\"  const handleSyncRefresh = async () => {\\n    if (isSyncing) return;\\n    setIsSyncing(true);\\n    const startTime = Date.now();\\n    try {\\n      await initApp();\\n      const elapsed = Date.now() - startTime;\\n      if (elapsed < 800) {\\n        await new Promise(resolve => setTimeout(resolve, 800 - elapsed));\\n      }\\n      toast.success(\\\"Data synced from server!\\\");\\n    } catch (err) {\\n      console.error(err);\\n      const elapsed = Date.now() - startTime;\\n      if (elapsed < 800) {\\n        await new Promise(resolve => setTimeout(resolve, 800 - elapsed));\\n      }\\n      toast.error(\\\"Failed to sync data from server.\\\");\\n    } finally {\\n      setIsSyncing(false);\\n    }\\n  };\"",
+  "StartLine": "3575",
+  "TargetContent": "\"  const handleSyncRefresh = async () => {\\n    if (isSyncing) return;\\n    setIsSyncing(true);\\n    try {\\n      await initApp();\\n      toast.success(\\\"Data synced from server!\\\");\\n    } catch (err) {\\n      console.error(err);\\n      toast.error(\\\"Failed to sync data from server.\\\");\\n    } finally {\\n      setIsSyncing(false);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Enforcing minimum animation duration in handleSyncRefresh\"",
+  "toolSummary": "\"Replace File Content App.jsx for visible refresh animation\""
+}

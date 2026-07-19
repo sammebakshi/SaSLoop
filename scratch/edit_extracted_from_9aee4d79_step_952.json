@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove escape backslash from template literal body variable.\"",
+  "EndLine": "1995",
+  "Instruction": "\"Remove the backslash before $ in ${reportElem.innerHTML}.\"",
+  "ReplacementContent": "\"          <body>\\n            ${reportElem.innerHTML}\\n          </body>\"",
+  "StartLine": "1991",
+  "TargetContent": "\"          <body>\\n            \\\\${reportElem.innerHTML}\\n          </body>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing HTML template variable syntax\"",
+  "toolSummary": "\"Fix HTML template variable syntax\""
+}

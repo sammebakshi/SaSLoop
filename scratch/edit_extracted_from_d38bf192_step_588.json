@@ -1,0 +1,9 @@
+{
+  "ArtifactMetadata": "{\"ArtifactType\":\"other\",\"RequestFeedback\":false,\"Summary\":\"Clear password state on logout and application startup.\"}",
+  "Description": "\"Clear the password state when logging out (Sidebar Exit button) or when the application restarts.\"",
+  "Instruction": "\"Modify pos-app/src/App.jsx to setPassword('') alongside setUsername('').\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":3931,\"ReplacementContent\":\"  useEffect(() => {\\n    // Force login screen every time the app reopens by removing saved token on startup\\n    localStorage.removeItem('pos_token');\\n    setIsAuthenticated(false);\\n    setUsername('');\\n    setPassword('');\\n  }, []);\",\"StartLine\":3924,\"TargetContent\":\"  useEffect(() => {\\n    // Force login screen every time the app reopens by removing saved token on startup\\n    localStorage.removeItem('pos_token');\\n    setIsAuthenticated(false);\\n    setUsername('');\\n  }, []);\"},{\"AllowMultiple\":false,\"EndLine\":7147,\"ReplacementContent\":\"            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className=\\\"text-current\\\" />} onClick={() => { localStorage.removeItem('pos_token'); setIsAuthenticated(false); setUsername(''); setPassword(''); setActiveTab('home'); }} label=\\\"Exit\\\" />\",\"StartLine\":7144,\"TargetContent\":\"            <SidebarIcon isDark={isDark} icon={<LogOut size={18} className=\\\"text-current\\\" />} onClick={() => { localStorage.removeItem('pos_token'); setIsAuthenticated(false); setUsername(''); setActiveTab('home'); }} label=\\\"Exit\\\" />\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Clearing password in App.jsx\"",
+  "toolSummary": "\"App.jsx logout edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Render preorder temp tables or pickup temp tables conditionally at line 9372.\"",
+  "EndLine": "9374",
+  "Instruction": "\"Update preorder temp tables render call to be conditional.\"",
+  "ReplacementContent": "\"                                </div>\\n                              </div>\\n                              {activeTrayTab === 'PreOrder' ? renderPreOrderTempTables() : (orderType === 'PICKUP' ? renderPickupTempTables() : null)}\\n                           </div>\"",
+  "StartLine": "9370",
+  "TargetContent": "\"                                </div>\\n                              </div>\\n                              {renderPreOrderTempTables()}\\n                           </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating preorder temp tables call to be conditional\"",
+  "toolSummary": "\"Make preorder table call conditional\""
+}

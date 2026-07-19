@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use API_BASE instead of localhost for posting error logs in App.jsx.\"",
+  "EndLine": "3379",
+  "Instruction": "\"Make log-error call in App.jsx dynamic.\"",
+  "ReplacementContent": "\"      fetch(`${API_BASE}/api/pos/log-error`, {\\n        method: 'POST',\\n        headers: { 'Content-Type': 'application/json' },\\n        body: JSON.stringify({\\n          message: err.message,\\n          stack: err.stack,\\n          context: 'handleCatalogItemClick'\\n        })\\n      }).catch(() => {});\"",
+  "StartLine": "3370",
+  "TargetContent": "\"      fetch('http://localhost:5000/api/pos/log-error', {\\n        method: 'POST',\\n        headers: { 'Content-Type': 'application/json' },\\n        body: JSON.stringify({\\n          message: err.message,\\n          stack: err.stack,\\n          context: 'handleCatalogItemClick'\\n        })\\n      }).catch(() => {});\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update log-error endpoint in App.jsx to use API_BASE\"",
+  "toolSummary": "\"Update log-error in App.jsx\""
+}

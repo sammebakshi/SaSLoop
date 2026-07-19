@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add loading of pos_table_customers cache in localRefresh in App.jsx.\"",
+  "EndLine": "7023",
+  "Instruction": "\"Insert cachedTableCustomers check inside localRefresh.\"",
+  "ReplacementContent": "\"      const cachedTableDepts = localStorage.getItem('pos_table_departments');\\n      if (cachedTableDepts) {\\n        setTableDepartments(JSON.parse(cachedTableDepts));\\n      }\\n\\n      const cachedTableCustomers = localStorage.getItem('pos_table_customers');\\n      if (cachedTableCustomers) {\\n        setTableCustomers(JSON.parse(cachedTableCustomers));\\n      }\\n\\n      const cachedTaxes = localStorage.getItem('pos_taxes');\"",
+  "StartLine": "7018",
+  "TargetContent": "\"      const cachedTableDepts = localStorage.getItem('pos_table_departments');\\n      if (cachedTableDepts) {\\n        setTableDepartments(JSON.parse(cachedTableDepts));\\n      }\\n\\n      const cachedTaxes = localStorage.getItem('pos_taxes');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pos_table_customers loading to localRefresh\"",
+  "toolSummary": "\"Adding pos_table_customers loading to localRefresh\""
+}

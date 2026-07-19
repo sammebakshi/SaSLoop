@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update KOT body width to use resolvedWidth\"",
+  "EndLine": "8474",
+  "Instruction": "\"Replace printWidth with resolvedWidth on line 8473\"",
+  "ReplacementContent": "\"              width: ${resolvedWidth}mm;\"",
+  "StartLine": "8472",
+  "TargetContent": "\"              width: ${posSettings.printWidth || 72}mm;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating body width styling for KOT\"",
+  "toolSummary": "\"Update body width styling for KOT\""
+}

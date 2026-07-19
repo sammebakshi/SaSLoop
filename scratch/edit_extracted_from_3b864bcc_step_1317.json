@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove + prefix from options in KOT history view.\"",
+  "EndLine": "238",
+  "Instruction": "\"Remove the '+ ' prefix from the rendering of modifiers in KOTHistoryView.\"",
+  "ReplacementContent": "\"                      {it.modifiers && it.modifiers.map((m, mIdx) => (\\n                         <span key={mIdx} className=\\\"text-[7.5px] text-slate-400 pl-3 leading-tight\\\">{m.name.toUpperCase()}</span>\\n                      ))}\"",
+  "StartLine": "235",
+  "TargetContent": "\"                      {it.modifiers && it.modifiers.map((m, mIdx) => (\\n                         <span key={mIdx} className=\\\"text-[7.5px] text-slate-400 pl-3 leading-tight\\\">+ {m.name.toUpperCase()}</span>\\n                      ))}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing + prefix from KOTHistoryView\"",
+  "toolSummary": "\"Edit file\""
+}

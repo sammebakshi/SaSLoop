@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add printReviewQr and googleReviewUrl default values in posSettings state\"",
+  "EndLine": "3011",
+  "Instruction": "\"Add printReviewQr and googleReviewUrl default values to defaultSettings object\"",
+  "ReplacementContent": "\"      printWidth: 72,\\n      upiId: '',\\n      upiPaymentMethod: 'direct',\\n      printUpiQr: false,\\n      qrMode: 'dynamic',\\n      staticUpiList: [],\\n      activeStaticUpiId: '',\\n      countAdvanceInSales: false,\\n      printReviewQr: false,\\n      googleReviewUrl: ''\\n    };\"",
+  "StartLine": "3002",
+  "TargetContent": "\"      printWidth: 72,\\n      upiId: '',\\n      upiPaymentMethod: 'direct',\\n      printUpiQr: false,\\n      qrMode: 'dynamic',\\n      staticUpiList: [],\\n      activeStaticUpiId: '',\\n      countAdvanceInSales: false\\n    };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding review QR settings to defaultSettings\"",
+  "toolSummary": "\"Edit App.jsx default settings\""
+}

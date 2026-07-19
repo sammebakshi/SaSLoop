@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Synchronize tableCarts dynamically in background active state polling hook.\"",
+  "EndLine": "5029",
+  "ReplacementContent": "\"            if (hasChanged) {\\n              localStorage.setItem('pos_table_bills', JSON.stringify(mergedBills));\\n              return mergedBills;\\n            }\\n            return prev;\\n          });\\n\\n          setTableCarts(prev => {\\n            const mergedCarts = { ...prev };\\n            let hasChanged = false;\\n\\n            Object.keys(stateData.tableCarts || {}).forEach(tableId => {\\n              const isCurrentlyEditing = selectedTable && String(selectedTable.id) === String(tableId);\\n              if (isCurrentlyEditing) return;\\n\\n              const incomingCart = stateData.tableCarts[tableId];\\n              const currentCart = prev[tableId];\\n\\n              if (JSON.stringify(currentCart) !== JSON.stringify(incomingCart)) {\\n                mergedCarts[tableId] = incomingCart;\\n                hasChanged = true;\\n              }\\n            });\\n\\n            Object.keys(prev).forEach(tableId => {\\n              if (!(stateData.tableCarts || {})[tableId]) {\\n                const isCurrentlyEditing = selectedTable && String(selectedTable.id) === String(tableId);\\n                if (!isCurrentlyEditing) {\\n                  delete mergedCarts[tableId];\\n                  hasChanged = true;\\n                }\\n              }\\n            });\\n\\n            if (hasChanged) {\\n              localStorage.setItem('pos_table_carts', JSON.stringify(mergedCarts));\\n              return mergedCarts;\\n            }\\n            return prev;\\n          });\\n        }\"",
+  "StartLine": "5023",
+  "TargetContent": "\"            if (hasChanged) {\\n              localStorage.setItem('pos_table_bills', JSON.stringify(mergedBills));\\n              return mergedBills;\\n            }\\n            return prev;\\n          });\\n        }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding tableCarts syncer to polling hook\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

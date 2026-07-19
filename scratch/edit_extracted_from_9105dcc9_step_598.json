@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace manual clear in Exit Pre-order click handler with resetCustomerState().\"",
+  "EndLine": "10528",
+  "Instruction": "\"Replace the inline clearing in onClick of the Exit Pre-order button with resetCustomerState().\"",
+  "ReplacementContent": "\"                        <button\\n                          onClick={() => {\\n                            resetCustomerState();\\n                            toast.info(\\\"Pre-order edit cancelled.\\\");\\n                          }}\"",
+  "StartLine": "10515",
+  "TargetContent": "\"                        <button\\n                          onClick={() => {\\n                            setEditingPreOrder(null);\\n                            setCart([]);\\n                            setCustomerName('');\\n                            setCustomerPhone('');\\n                            setCustomerAddress('');\\n                            setRedeemedPoints(0);\\n                            setAppliedCoupon(null);\\n                            setCouponCode('');\\n                            setSelectedCustomer(null);\\n                            toast.info(\\\"Pre-order edit cancelled.\\\");\\n                          }}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating Exit Pre-order button click handler\"",
+  "toolSummary": "\"Edit App.jsx to update Exit Pre-order button click handler\""
+}

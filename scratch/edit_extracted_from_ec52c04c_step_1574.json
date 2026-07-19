@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate isPreOrder declaration.\"",
+  "EndLine": "7758",
+  "Instruction": "\"Remove the duplicate const isPreOrder line.\"",
+  "ReplacementContent": "\"    // Normalize customer details\"",
+  "StartLine": "7754",
+  "TargetContent": "\"    // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid and status != 'COMPLETED')\\n    const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));\\n\\n    // Normalize customer details\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing duplicate declaration of isPreOrder\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Filtering out cancelled items in second table grid status calculation.\"",
+  "EndLine": "4192",
+  "Instruction": "\"Filter out cancelled items from tableBills in second table grid status check.\"",
+  "ReplacementContent": "\"                                 let status = tableStatuses[table.id] || 'AVAILABLE';\\n                                 const activeBillCount = (tableBills[table.id] || []).filter(item => !item.isCancelled).length;\\n                                 if (activeBillCount > 0 && status === 'AVAILABLE') {\\n                                   status = 'SAVED';\\n                                 }\"",
+  "StartLine": "4182",
+  "TargetContent": "\"                                 let status = tableStatuses[table.id] || 'AVAILABLE';\\n                                 if (tableBills[table.id]?.length > 0 && status === 'AVAILABLE') {\\n                                   status = 'SAVED';\\n                                 }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing status logic in second grid\"",
+  "toolSummary": "\"Replace status logic in second grid\""
+}

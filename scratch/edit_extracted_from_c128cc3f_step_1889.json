@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add permission checks to keyboard shortcuts F2, F3, F4.\"",
+  "EndLine": "3180",
+  "Instruction": "\"Add permission checks to F2, F3, and F4 in keyboard shortcuts.\"",
+  "ReplacementContent": "\"  // --- KEYBOARD SHORTCUTS (TMBill Parity) ---\\n  useEffect(() => {\\n    const handleKeyDown = (e) => {\\n      if (e.key === 'F1') { e.preventDefault(); handleKOT(); }\\n      if (e.key === 'F2') { e.preventDefault(); if (!checkPosAccess('Billing', 'allow_draft_bill_printing') || !checkPosAccess('OrderWindow', 'enable_print_settle')) { toast.warning('Draft bill printing or Print & Save is restricted'); return; } handleCheckout('PRINT'); }\\n      if (e.key === 'F3') { e.preventDefault(); if (!checkPosAccess('Billing', 'settle_bill')) { toast.warning('Settle bill is restricted'); return; } handleCheckout('SETTLE'); }\\n      if (e.key === 'F4') { e.preventDefault(); if (!checkPosAccess('Billing', 'save_bill') || !checkPosAccess('OrderWindow', 'enable_save_settle')) { toast.warning('Save bill is restricted'); return; } handleCheckout('SAVE'); }\\n    };\\n    window.addEventListener('keydown', handleKeyDown);\\n    return () => window.removeEventListener('keydown', handleKeyDown);\\n  }, [cart, selectedTable, recentOrders]);\"",
+  "StartLine": "3170",
+  "TargetContent": "\"  // --- KEYBOARD SHORTCUTS (TMBill Parity) ---\\n  useEffect(() => {\\n    const handleKeyDown = (e) => {\\n      if (e.key === 'F1') { e.preventDefault(); handleKOT(); }\\n      if (e.key === 'F2') { e.preventDefault(); handleCheckout('PRINT'); }\\n      if (e.key === 'F3') { e.preventDefault(); handleCheckout('SETTLE'); }\\n      if (e.key === 'F4') { e.preventDefault(); handleCheckout('SAVE'); }\\n    };\\n    window.addEventListener('keydown', handleKeyDown);\\n    return () => window.removeEventListener('keydown', handleKeyDown);\\n  }, [cart, selectedTable, recentOrders]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating keyboard shortcuts F2, F3, F4\"",
+  "toolSummary": "\"Edit App.jsx (keyboard shortcuts)\""
+}

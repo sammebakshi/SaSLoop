@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replacing legacy version string on line 17028 in App.jsx.\"",
+  "EndLine": "17029",
+  "Instruction": "\"Update appVersion fallback string in App.jsx.\"",
+  "ReplacementContent": "\"                                     {posSettings.appVersion || \\\"SaSLoop POS Version: 19.02\\\"}\"",
+  "StartLine": "17027",
+  "TargetContent": "\"                                     {posSettings.appVersion || \\\"TMBill Pacific Version: 19.02\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing version on line 17028 in App.jsx\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

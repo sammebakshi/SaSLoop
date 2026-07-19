@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change regular view tables to be square shaped with compact padding.\"",
+  "EndLine": "6433",
+  "Instruction": "\"Replace regular view table button className with aspect-square rounded-none p-1.5 styling.\"",
+  "ReplacementContent": "\"                                      className={`aspect-square w-full rounded-none ${statusColors[status] || statusColors.AVAILABLE} text-white font-bold text-xs cursor-pointer transition-all active:scale-[0.98] relative shadow-sm flex flex-col justify-between p-1.5 ${isSelected ? 'ring-2 ring-offset-2 ring-[#ff9f43] border-2 border-[#ff9f43]' : 'border-0'}`}>\"",
+  "StartLine": "6429",
+  "TargetContent": "\"                                      className={`h-24 w-full rounded-md ${statusColors[status] || statusColors.AVAILABLE} text-white font-bold text-xs cursor-pointer transition-all active:scale-[0.98] relative shadow-sm flex flex-col justify-between p-3 ${isSelected ? 'ring-2 ring-offset-2 ring-[#ff9f43] border-2 border-[#ff9f43]' : 'border-0'}`}>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying regular view table button shape\"",
+  "toolSummary": "\"Replace File Content App.jsx for regular view table shape\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore closing braces/parentheses for isChargesModalOpen block.\"",
+  "EndLine": "18286",
+  "Instruction": "\"Insert )} before </AnimatePresence> to fix the JSX syntax error.\"",
+  "ReplacementContent": "\"               </motion.div>\\n            )}\\n         </AnimatePresence>\"",
+  "StartLine": "18284",
+  "TargetContent": "\"               </motion.div>\\n          </AnimatePresence>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring syntax closing braces\"",
+  "toolSummary": "\"File edit\""
+}

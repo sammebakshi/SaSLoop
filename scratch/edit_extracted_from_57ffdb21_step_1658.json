@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up duplicate check in credit customer click handler\"",
+  "EndLine": "15917",
+  "Instruction": "\"Remove the duplicate if check in credit customer click handler.\"",
+  "ReplacementContent": "\"                                                          const parsed = parsePhoneNumber(res.number || '');\\n                                                          if (parsed.localNumber !== customerPhone) {\\n                                                             justSelectedCustomerRef.current = true;\\n                                                          }\"",
+  "StartLine": "15908",
+  "TargetContent": "\"                                                          const parsed = parsePhoneNumber(res.number || '');\\n                                        if (parsed.localNumber !== customerPhone) {\\n                                          justSelectedCustomerRef.current = true;\\n                                        }\\n                                                          if (parsed.localNumber !== customerPhone) {\\n                                                             justSelectedCustomerRef.current = true;\\n                                                          }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Cleaning up duplicate logic\"",
+  "toolSummary": "\"Clean up duplicate logic\""
+}

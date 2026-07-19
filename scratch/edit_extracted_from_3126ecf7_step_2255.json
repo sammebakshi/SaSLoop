@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "true",
+  "Description": "\"Make search filter resilient to items where `product_name` is undefined and only `name` is present.\"",
+  "EndLine": "7721",
+  "Instruction": "\"Update search filter to use fallback to item.name\"",
+  "ReplacementContent": "\"                                  const matchesName = searchQuery ? (i.product_name || i.name || '').toLowerCase().includes(searchQuery.toLowerCase()) : true;\"",
+  "StartLine": "7393",
+  "TargetContent": "\"                                  const matchesName = searchQuery ? i.product_name.toLowerCase().includes(searchQuery.toLowerCase()) : true;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing search filter fallback\"",
+  "toolSummary": "\"Fix search filter in App.jsx\""
+}

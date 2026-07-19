@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset pre-order date and time to current on starting a new order (fallback branch)\"",
+  "EndLine": "3585",
+  "Instruction": "\"Reset scheduled date and time to current in startNewOrder fallback branch\"",
+  "ReplacementContent": "\"      if (activeTrayTab === 'PreOrder') {\\n        setPreOrderScheduledDate(getCurrentDateString());\\n        setPreOrderScheduledTime(getCurrentTimeString());\"",
+  "StartLine": "3580",
+  "TargetContent": "\"      if (activeTrayTab === 'PreOrder') {\\n        setPreOrderScheduledDate('');\\n        setPreOrderScheduledTime('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying date/time resets in startNewOrder (2)\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

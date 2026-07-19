@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset expandedOrderId on closing customer history view.\"",
+  "EndLine": "8505",
+  "Instruction": "\"Update history close click handler to reset expandedOrderId.\"",
+  "ReplacementContent": "\"                                  <button \\n                                     onClick={() => { setHistoryCustomerPhone(null); setExpandedOrderId(null); }}\"",
+  "StartLine": "8503",
+  "TargetContent": "\"                                  <button \\n                                     onClick={() => setHistoryCustomerPhone(null)}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing history close button handler\"",
+  "toolSummary": "\"Reset expandedOrderId on close\""
+}

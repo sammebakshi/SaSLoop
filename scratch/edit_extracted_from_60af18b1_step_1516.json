@@ -1,0 +1,8 @@
+{
+  "Description": "\"Insert the Pre-Order temporary tables tray below both table grid views (combined and separate).\"",
+  "Instruction": "\"Add {renderPreOrderTempTables()} call after the table grid closing divs in both the combined view (line 3643-3644) and the separate view (line 3954-3955).\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":3644,\"ReplacementContent\":\"                              </div>\\n                              {renderPreOrderTempTables()}\\n                           </div>\",\"StartLine\":3642,\"TargetContent\":\"                              </div>\\n                           </div>\"},{\"AllowMultiple\":false,\"EndLine\":3956,\"ReplacementContent\":\"                            </div>\\n                            {renderPreOrderTempTables()}\\n                          </div>\\n\",\"StartLine\":3954,\"TargetContent\":\"                            </div>\\n                          </div>\\n\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Inserting temp tables tray\"",
+  "toolSummary": "\"Insert tray below table grids\""
+}

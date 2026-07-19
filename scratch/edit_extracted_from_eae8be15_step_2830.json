@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Bound the eBill checkbox in the Quick Bill Row to the ebillEnabled reactive state.\"",
+  "EndLine": "3250",
+  "Instruction": "\"Bind Quick Bill eBill checkbox to state.\"",
+  "ReplacementContent": "\"                      <label className=\\\"flex items-center gap-1 cursor-pointer\\\">\\n                        <input \\n                          type=\\\"checkbox\\\" \\n                          checked={ebillEnabled}\\n                          onChange={e => setEbillEnabled(e.target.checked)}\\n                          className=\\\"accent-[#388e67]\\\" \\n                        />\\n                        <span>eBill</span>\\n                      </label>\"",
+  "StartLine": "3247",
+  "TargetContent": "\"                      <label className=\\\"flex items-center gap-1 cursor-pointer\\\">\\n                        <input type=\\\"checkbox\\\" className=\\\"accent-[#388e67]\\\" />\\n                        <span>eBill</span>\\n                      </label>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing eBill checkbox binding\"",
+  "toolSummary": "\"File edit\""
+}

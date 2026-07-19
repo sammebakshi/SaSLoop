@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add discount and charge state variables in App.jsx\"",
+  "EndLine": "996",
+  "Instruction": "\"Add the new state variables for Discounts and Additional Charges after extraCharges state definition\"",
+  "ReplacementContent": "\"  const [extraCharges, setExtraCharges] = useState({ packing: 0, delivery: 0, service: 0 });\\n  const [isDiscountModalOpen, setIsDiscountModalOpen] = useState(false);\\n  const [isChargesModalOpen, setIsChargesModalOpen] = useState(false);\\n  const [availableDiscounts, setAvailableDiscounts] = useState([]);\\n  const [availableCharges, setAvailableCharges] = useState([]);\\n  const [appliedAdditionalCharges, setAppliedAdditionalCharges] = useState([]);\\n  const [customDiscountType, setCustomDiscountType] = useState('percent');\\n  const [customDiscountValue, setCustomDiscountValue] = useState('');\\n  const [selectedDiscountId, setSelectedDiscountId] = useState(null);\\n  const [customChargeName, setCustomChargeName] = useState('');\\n  const [customChargeType, setCustomChargeType] = useState('fixed');\\n  const [customChargeValue, setCustomChargeValue] = useState('');\"",
+  "StartLine": "995",
+  "TargetContent": "\"  const [extraCharges, setExtraCharges] = useState({ packing: 0, delivery: 0, service: 0 });\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding state variables in App.jsx\"",
+  "toolSummary": "\"Add states to App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update first checkbox permission check in App.jsx to support owners/admins.\"",
+  "EndLine": "8758",
+  "Instruction": "\"Modify the getStaffPermissions check for the checkbox to allow owners/admins by checking !business?.staff_permissions.\"",
+  "ReplacementContent": "\"                      {/* Back-office controlled clear data checkbox */}\\n                      {(!business?.staff_permissions || getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true) && (\\n                        <div className=\\\"p-4 rounded-xl border bg-[#161b22]/50 border-gray-800 space-y-3\\\">\"",
+  "StartLine": "8755",
+  "TargetContent": "\"                      {/* Back-office controlled clear data checkbox */}\\n                      {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (\\n                        <div className=\\\"p-4 rounded-xl border bg-[#161b22]/50 border-gray-800 space-y-3\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update first checkbox permission check in App.jsx\"",
+  "toolSummary": "\"Update App.jsx source code\""
+}

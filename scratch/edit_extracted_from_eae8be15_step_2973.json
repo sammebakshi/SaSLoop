@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import Coins from lucide-react in App.jsx\"",
+  "EndLine": "11",
+  "Instruction": "\"Add Coins to the lucide-react import list\"",
+  "ReplacementContent": "\"  Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck, Coins\\n} from 'lucide-react';\"",
+  "StartLine": "10",
+  "TargetContent": "\"  Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck\\n} from 'lucide-react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating App.jsx imports\"",
+  "toolSummary": "\"Import Coins in App\""
+}

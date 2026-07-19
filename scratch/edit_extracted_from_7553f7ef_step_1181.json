@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wrap pre-configured discounts in the map function with verifyPasscodeAction.\"",
+  "EndLine": "16422",
+  "Instruction": "\"Wrap onClick in availableDiscounts.map in App.jsx.\"",
+  "ReplacementContent": "\"                                  {availableDiscounts.map((d) => {\\n                                     const isActive = selectedDiscountId === d.id;\\n                                     return (\\n                                        <button\\n                                           key={d.id}\\n                                           onClick={() => {\\n                                              verifyPasscodeAction(['discount_actions'], 'apply_discount', () => {\\n                                                 setDiscount({ type: d.type, value: parseFloat(d.value) || 0 });\\n                                                 setSelectedDiscountId(d.id);\\n                                                 setIsDiscountModalOpen(false);\\n                                              }, `Apply Discount (${d.name})`);\\n                                           }}\\n                                           className={`p-3 rounded-xl border text-left transition-all active:scale-95 flex flex-col justify-between h-20 ${\"",
+  "StartLine": "16411",
+  "TargetContent": "\"                                  {availableDiscounts.map((d) => {\\n                                     const isActive = selectedDiscountId === d.id;\\n                                     return (\\n                                        <button\\n                                           key={d.id}\\n                                           onClick={() => {\\n                                              setDiscount({ type: d.type, value: parseFloat(d.value) || 0 });\\n                                              setSelectedDiscountId(d.id);\\n                                              setIsDiscountModalOpen(false);\\n                                           }}\\n                                           className={`p-3 rounded-xl border text-left transition-all active:scale-95 flex flex-col justify-between h-20 ${\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wrap pre-configured discounts in App.jsx\"",
+  "toolSummary": "\"Wrap pre-configured discounts with permissions\""
+}

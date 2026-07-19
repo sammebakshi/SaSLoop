@@ -1,0 +1,697 @@
+﻿diff --git a/pos-app/src/App.jsx b/pos-app/src/App.jsx
+index 773e52f..6b4b29b 100644
+--- a/pos-app/src/App.jsx
++++ b/pos-app/src/App.jsx
+@@ -1624,6 +1624,32 @@ try {
+   console.warn("Failed to retrieve local network IP:", e);
+ }
+ 
++// Reusable Diagnostic Console Component with auto-scroll logic
++const DiagnosticConsole = ({ logs }) => {
++  const containerRef = useRef(null);
++
++  useEffect(() => {
++    if (containerRef.current) {
++      containerRef.current.scrollTop = containerRef.current.scrollHeight;
++    }
++  }, [logs]);
++
++  return (
++    <div 
++      ref={containerRef}
++      className="mt-3 p-3 bg-slate-900 text-emerald-400 font-mono text-[9px] rounded-xl border border-slate-800 max-h-[140px] overflow-y-auto space-y-1 shadow-inner select-text"
++    >
++      {logs.length === 0 ? (
++        <div className="text-slate-500 italic">No logs available yet.</div>
++      ) : (
++        logs.map((log, index) => (
++          <div key={index} className="leading-relaxed border-b border-slate-800/30 pb-0.5 last:border-0">{log}</div>
++        ))
++      )}
++    </div>
++  );
++};
++
+ const UniversalPOS = () => {
+   const checkPosAccess = (moduleName, permissionName) => {
+     if (!business) return true;
+@@ -1731,6 +1757,7 @@ const UniversalPOS = () => {
+   const qtyTimeoutRef = useRef(null);
+   const justSelectedCustomerRef = useRef(false);
+   const isRestoringCustomerRef = useRef(false);
++  const activeScanControllerRef = useRef(null);
+   const [theme, setTheme] = useState(() => localStorage.getItem('pos_theme') || 'light');
+   const [optionGroups, setOptionGroups] = useState(() => {
+     try {
+@@ -1769,7 +1796,13 @@ const UniversalPOS = () => {
+   const [showPassword, setShowPassword] = useState(false);
+   const [masterIp, setMasterIp] = useState(() => localStorage.getItem('pos_master_ip') || '');
+   const [isTestingConnection, setIsTestingConnection] = useState(false);
+-  const [connectionStatus, setConnectionStatus] = useState(null); // 'success', 'error', or null
++  const [connectionStatus, setConnectionStatus] = useState(() => isTerminalMode ? 'scanning' : null); // 'success', 'error', 'scanning', or null
++  const [scanLogs, setScanLogs] = useState([]);
++  const [manualIp, setManualIp] = useState('');
++  const [showDebugTool, setShowDebugTool] = useState(false);
++  const addScanLog = (msg) => {
++    setScanLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${msg}`]);
++  };
+   const [isAccessLevelModalOpen, setIsAccessLevelModalOpen] = useState(false);
+   const [logoutModalStep, setLogoutModalStep] = useState(null);
+   const [clearLocalDataChecked, setClearLocalDataChecked] = useState(false);
+@@ -3533,7 +3566,7 @@ const UniversalPOS = () => {
+     totalTaxOnline: 0,
+     totalDiscountOnline: 0,
+     avgSalePerPerson: '0.00',
+-    serverIp: '127.0.0.1',
++    serverIp: localIpAddress,
+     weeklyHeatmap: [],
+     paymentBreakdown: []
+   });
+@@ -5296,6 +5329,8 @@ const UniversalPOS = () => {
+ 
+     // 3. Complete standard logout
+     localStorage.removeItem('pos_token');
++    localStorage.removeItem('pos_profile');
++    setBusiness(null);
+     setIsAuthenticated(false);
+     setUsername('');
+     setPassword('');
+@@ -8020,6 +8055,8 @@ const UniversalPOS = () => {
+       setIsTransitioningToDashboard(true);
+       await new Promise(resolve => setTimeout(resolve, 2000));
+       localStorage.setItem('pos_token', res.data.token);
++      localStorage.setItem('pos_profile', JSON.stringify(profile));
++      setBusiness(profile);
+       setIsAuthenticated(true);
+       setIsTransitioningToDashboard(false);
+     } catch (err) {
+@@ -8036,23 +8073,26 @@ const UniversalPOS = () => {
+       return;
+     }
+     setIsTestingConnection(true);
+-    setConnectionStatus(null);
++    setConnectionStatus('scanning');
++    addScanLog(`Manually testing connection to ${ipToTest}...`);
+     try {
+       const response = await fetch(`http://${ipToTest}:5000/api/auth/profile`, {
+         method: 'GET',
+         headers: { 'Content-Type': 'application/json' },
+         signal: AbortSignal.timeout(3000) // 3 seconds timeout
+       });
+-      // A 401, 403, 404 or 200 all mean the server is reachable and running!
+       if (response.status === 200 || response.status === 401 || response.status === 403 || response.status === 404) {
++        addScanLog(`Successfully connected to Master POS at ${ipToTest} (Status: ${response.status})`);
+         setConnectionStatus('success');
+         updateApiBaseUrl(ipToTest);
+         toast.success("Successfully connected to Master POS server!");
+       } else {
++        addScanLog(`Failed to connect to ${ipToTest}: Server responded with status ${response.status}`);
+         setConnectionStatus('error');
+         toast.error("Failed to connect: Server responded with status " + response.status);
+       }
+     } catch (e) {
++      addScanLog(`Connection test to ${ipToTest} failed: ${e.message || 'Timeout'}`);
+       console.warn("Connection test failed:", e);
+       setConnectionStatus('error');
+       toast.error("Connection failed: Make sure the Master POS is running and on the same Wi-Fi network.");
+@@ -8064,65 +8104,183 @@ const UniversalPOS = () => {
+   const autoDetectMasterServer = async () => {
+     setIsTestingConnection(true);
+     setConnectionStatus('scanning');
+-    toast.info("Scanning local network for Master POS server...");
++    setScanLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Starting subnet scan for Master POS...`]);
++    addScanLog(`Terminal local IP: ${localIpAddress}`);
++    toast.info("Scanning for Master POS server...", { toastId: 'pos-scan-info', autoClose: 2000 });
++
++    // 1. Try localhost first (very fast check)
++    addScanLog(`Checking localhost (127.0.0.1:5000)...`);
++    try {
++      const localhostRes = await fetch(`http://127.0.0.1:5000/api/auth/profile`, {
++        method: 'GET',
++        signal: AbortSignal.timeout(400)
++      });
++      if (localhostRes.status === 200 || localhostRes.status === 401 || localhostRes.status === 403 || localhostRes.status === 404) {
++        addScanLog(`Found Master POS server at localhost (127.0.0.1)`);
++        setMasterIp('127.0.0.1');
++        setConnectionStatus('success');
++        updateApiBaseUrl('127.0.0.1');
++        toast.success("Found Master POS server at localhost!");
++        setIsTestingConnection(false);
++        return;
++      }
++    } catch (e) {
++      addScanLog(`Localhost check bypassed: ${e.message || 'Not running locally'}`);
++    }
+     
+     // Get the subnet base, e.g. "192.168.1."
+     const ipParts = localIpAddress.split('.');
+     if (ipParts.length !== 4) {
++      addScanLog(`Error: Could not parse local network subnet from IP: ${localIpAddress}`);
+       toast.error("Could not determine local subnet range.");
+       setIsTestingConnection(false);
+-      setConnectionStatus(null);
++      setConnectionStatus('error');
+       return;
+     }
+     const subnetBase = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.`;
++    addScanLog(`Subnet determined: ${subnetBase}x`);
+     
+-    // Create an array of promises to check all 254 possible IPs concurrently!
+-    const promises = [];
+-    const controller = new AbortController();
+-    const timeoutId = setTimeout(() => controller.abort(), 2500); // 2.5 seconds timeout for fast scanning
+-    
+-    for (let i = 1; i <= 254; i++) {
+-      const targetIp = `${subnetBase}${i}`;
+-      // Skip scanning the terminal's own IP
+-      if (targetIp === localIpAddress) continue;
+-      
+-      promises.push(
+-        fetch(`http://${targetIp}:5000/api/auth/profile`, { 
+-          method: 'GET',
+-          signal: controller.signal 
+-        })
+-        .then(res => {
+-          if (res.status === 200 || res.status === 401 || res.status === 403 || res.status === 404) {
+-            return targetIp;
+-          }
+-          throw new Error();
+-        })
+-        .catch(() => null)
+-      );
++    // Cancel any ongoing scan first
++    if (activeScanControllerRef.current) {
++      activeScanControllerRef.current.abort();
+     }
+     
++    const overallController = new AbortController();
++    activeScanControllerRef.current = overallController;
++    
++    const CHUNK_SIZE = 48;
++    const requestTimeout = 4500; // 4.5 seconds timeout
++    let foundIp = null;
++    
++    addScanLog(`Initiating chunked subnet scan (batches of ${CHUNK_SIZE}, timeout: ${requestTimeout}ms)...`);
++    
+     try {
+-      const results = await Promise.all(promises);
+-      const foundIp = results.find(ip => ip !== null);
++      for (let start = 1; start <= 254 && !foundIp; start += CHUNK_SIZE) {
++        if (overallController.signal.aborted) {
++          addScanLog("Subnet scan cancelled.");
++          break;
++        }
++        
++        const end = Math.min(start + CHUNK_SIZE - 1, 254);
++        addScanLog(`Scanning IPs ${subnetBase}${start} to ${subnetBase}${end}...`);
++        
++        const chunkPromises = [];
++        const chunkController = new AbortController();
++        
++        // Link the chunk controller abort to overall controller
++        overallController.signal.addEventListener('abort', () => {
++          chunkController.abort();
++        });
++        
++        const chunkTimeoutId = setTimeout(() => {
++          chunkController.abort();
++        }, requestTimeout);
++        
++        for (let i = start; i <= end; i++) {
++          const targetIp = `${subnetBase}${i}`;
++          if (targetIp === localIpAddress) continue;
++          
++          chunkPromises.push(
++            fetch(`http://${targetIp}:5000/api/auth/profile`, { 
++              method: 'GET',
++              signal: chunkController.signal 
++            })
++            .then(res => {
++              if (res.status === 200 || res.status === 401 || res.status === 403 || res.status === 404) {
++                addScanLog(`Discovered responsive endpoint at ${targetIp} (Status: ${res.status})`);
++                foundIp = targetIp;
++                chunkController.abort(); // Cancel the rest of the requests in this chunk
++                overallController.abort(); // Cancel the overall scan since we found it
++                return targetIp;
++              }
++              throw new Error();
++            })
++            .catch(() => null)
++          );
++        }
++        
++        await Promise.all(chunkPromises);
++        clearTimeout(chunkTimeoutId);
++      }
++      
+       if (foundIp) {
++        addScanLog(`Success: Selected Master POS Server at ${foundIp}`);
+         setMasterIp(foundIp);
+         setConnectionStatus('success');
+         updateApiBaseUrl(foundIp);
+         toast.success(`Found Master POS server at ${foundIp}!`);
+       } else {
+-        setConnectionStatus('error');
+-        toast.error("Master POS server not found on local network. Please enter the IP manually.");
++        if (overallController.signal.aborted && !foundIp) {
++          addScanLog("Scan terminated: Search was cancelled by the user.");
++        } else {
++          addScanLog(`Scan complete: No Master POS servers found on subnet ${subnetBase}0/24.`);
++          setConnectionStatus('error');
++          toast.error("Master POS server not found on local network.");
++        }
+       }
+     } catch (e) {
++      addScanLog(`Scan interrupted or failed: ${e.message || e}`);
+       console.warn("Auto-detect failed:", e);
+       setConnectionStatus('error');
+-      toast.error("Auto-detect failed. Please type the IP manually.");
++      toast.error("Auto-detect failed.");
+     } finally {
+-      clearTimeout(timeoutId);
+       setIsTestingConnection(false);
++      if (activeScanControllerRef.current === overallController) {
++        activeScanControllerRef.current = null;
++      }
+     }
+   };
+ 
++  // Automatically discover/test Master POS on load in Terminal Mode
++  useEffect(() => {
++    if (isTerminalMode) {
++      const savedIp = localStorage.getItem('pos_master_ip');
++      if (savedIp) {
++        const verifyConnection = async () => {
++          setIsTestingConnection(true);
++          setConnectionStatus('scanning');
++          setScanLogs([]); // Reset logs on fresh startup check
++          addScanLog(`Initializing terminal startup...`);
++          addScanLog(`Found saved Master IP: ${savedIp}`);
++          addScanLog(`Testing connection to ${savedIp}...`);
++          try {
++            let testUrl;
++            if (savedIp.startsWith('http://') || savedIp.startsWith('https://')) {
++              testUrl = `${savedIp}/api/auth/profile`;
++            } else {
++              const isRawIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(savedIp);
++              testUrl = isRawIp ? `http://${savedIp}:5000/api/auth/profile` : `https://${savedIp}/api/auth/profile`;
++            }
++            
++            const response = await fetch(testUrl, {
++              method: 'GET',
++              headers: { 'Content-Type': 'application/json' },
++              signal: AbortSignal.timeout(1500)
++            });
++            if (response.status === 200 || response.status === 401 || response.status === 403 || response.status === 404) {
++              addScanLog(`Successfully connected to Master POS at ${savedIp} (Status: ${response.status})`);
++              setConnectionStatus('success');
++              updateApiBaseUrl(savedIp);
++            } else {
++              addScanLog(`Connection to saved IP failed with status ${response.status}. Triggering network scan...`);
++              autoDetectMasterServer();
++            }
++          } catch (e) {
++            addScanLog(`Connection to saved IP failed: ${e.message || 'Timeout'}. Triggering network scan...`);
++            autoDetectMasterServer();
++          } finally {
++            setIsTestingConnection(false);
++          }
++        };
++        verifyConnection();
++      } else {
++        setScanLogs([]);
++        addScanLog(`No saved Master IP found in storage. Triggering network scan...`);
++        autoDetectMasterServer();
++      }
++    }
++  }, [isTerminalMode]);
++
+   const handleShowBillPreview = () => {
+     const activeCart = getActiveCart();
+     if (activeCart.length === 0) {
+@@ -10554,7 +10712,7 @@ const UniversalPOS = () => {
+         >
+           <div className="text-[13px] font-bold tracking-wide flex items-center gap-1 select-none" style={{ WebkitAppRegion: 'no-drag' }}>
+             <span className="text-white">SaSLoop</span>
+-            <span className="text-[#18ba60]">Master POS</span>
++            <span className="text-[#18ba60]">{isTerminalMode ? "POS Terminal" : "Master POS"}</span>
+           </div>
+           <div className="absolute left-1/2 -translate-x-1/2 text-[10.5px] text-slate-400 font-semibold tracking-wide hidden md:block" style={{ WebkitAppRegion: 'no-drag' }}>
+             Need support? Call now: <span className="text-[#18ba60] font-bold">+919469697216</span>, <span className="text-[#18ba60] font-bold">+918494089744</span>
+@@ -10665,111 +10823,260 @@ const UniversalPOS = () => {
+               </h2>
+             </div>
+ 
+-            <form onSubmit={handleLogin} className="space-y-4">
+-              {/* Username Input */}
+-              <div className="relative group">
+-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+-                  <User className="w-5 h-5" />
+-                </div>
+-                <input
+-                  className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+-                  placeholder="Email or Username"
+-                  value={username}
+-                  onChange={e => setUsername(e.target.value)}
+-                  autoComplete="off"
+-                  required
+-                />
+-              </div>
++            {isTerminalMode ? (
++              connectionStatus === 'success' ? (
++                <form onSubmit={handleLogin} className="space-y-4">
++                  {/* Master IP Display Banner */}
++                  <div className="flex items-center justify-between p-3.5 bg-emerald-50 border border-emerald-100 rounded-2xl text-emerald-800 mb-2">
++                    <div className="flex items-center gap-2">
++                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
++                      <div className="text-left">
++                        <p className="text-[10px] font-black uppercase tracking-wider text-emerald-600">Master POS Connected</p>
++                        <p className="text-xs font-bold text-slate-700">{masterIp}</p>
++                      </div>
++                    </div>
++                    <button 
++                      type="button" 
++                      onClick={autoDetectMasterServer}
++                      className="text-[9px] font-black uppercase text-emerald-700 hover:text-emerald-900 underline cursor-pointer"
++                    >
++                      Rescan
++                    </button>
++                  </div>
+ 
+-              {/* Password Input */}
+-              <div className="relative group">
+-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+-                  <Lock className="w-5 h-5" />
+-                </div>
+-                <input
+-                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+-                  type={showPassword ? "text" : "password"}
+-                  placeholder="Password"
+-                  value={password}
+-                  autoComplete="new-password"
+-                  required
+-                  onChange={e => setPassword(e.target.value)}
+-                />
+-                <button
+-                  onClick={() => setShowPassword(!showPassword)}
+-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+-                  type="button"
+-                >
+-                  {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+-                </button>
+-              </div>
++                  {/* Username Input */}
++                  <div className="relative group">
++                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
++                      <User className="w-5 h-5" />
++                    </div>
++                    <input
++                      className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
++                      placeholder="Email or Username"
++                      value={username}
++                      onChange={e => setUsername(e.target.value)}
++                      autoComplete="off"
++                      required
++                    />
++                  </div>
+ 
+-              {/* Master POS IP Input for Terminals */}
+-              {isTerminalMode && (
+-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-left">
+-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Master POS Connection Settings</label>
+-                  <div className="flex gap-2">
+-                    <div className="relative flex-1 group">
+-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
+-                        <Globe className="w-4 h-4" />
+-                      </div>
+-                      <input
+-                        className="w-full py-2.5 pl-10 pr-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none text-xs font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400"
+-                        placeholder="Master PC IP (e.g. 192.168.1.50)"
+-                        value={masterIp}
+-                        onChange={e => setMasterIp(e.target.value)}
+-                        autoComplete="off"
+-                      />
++                  {/* Password Input */}
++                  <div className="relative group">
++                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
++                      <Lock className="w-5 h-5" />
+                     </div>
++                    <input
++                      className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
++                      type={showPassword ? "text" : "password"}
++                      placeholder="Password"
++                      value={password}
++                      autoComplete="new-password"
++                      required
++                      onChange={e => setPassword(e.target.value)}
++                    />
+                     <button
++                      onClick={() => setShowPassword(!showPassword)}
++                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                       type="button"
+-                      onClick={() => testMasterConnection(masterIp)}
+-                      disabled={isTestingConnection || !masterIp}
+-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-950 disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                     >
+-                      {isTestingConnection && connectionStatus === 'scanning' ? '...' : 'Connect'}
++                      {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                     </button>
++                  </div>
++
++                  {/* Connectivity Status Banner */}
++                  {typeof window !== 'undefined' && !window.navigator.onLine && (
++                    <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
++                      <WifiOff size={14} className="shrink-0 text-amber-600" />
++                      <div>
++                        <p className="text-[10px] font-black uppercase tracking-wider">No Internet Connection</p>
++                        <p className="text-[9px] font-medium text-amber-600 mt-0.5">Internet is required to login. Please connect first.</p>
++                      </div>
++                    </div>
++                  )}
++
++                  {/* Form Actions */}
++                  <div className="pt-2">
++                    <button
++                      type="submit"
++                      disabled={isLoggingIn}
++                      className="w-full bg-[#18ba60] hover:bg-[#15a353] text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl transition-all shadow-lg shadow-[#18ba60]/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
++                    >
++                      {isLoggingIn ? <RefreshCcw className="animate-spin w-5 h-5" /> : 'SIGN IN'}
++                    </button>
++                  </div>
++
++                  {/* Diagnostic Console */}
++                  <div className="w-full mt-4 text-left border-t border-slate-100/80 pt-4">
++                    <button 
++                      type="button" 
++                      onClick={() => setShowDebugTool(!showDebugTool)}
++                      className="text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 mx-auto cursor-pointer"
++                    >
++                      {showDebugTool ? "Hide Diagnostic Logs" : "Show Diagnostic Logs"}
++                    </button>
++                    {showDebugTool && <DiagnosticConsole logs={scanLogs} />}
++                  </div>
++                </form>
++              ) : connectionStatus === 'error' ? (
++                <div className="p-4 text-center space-y-6 flex flex-col items-center">
++                  <div className="w-14 h-14 bg-rose-50 border border-rose-100 rounded-2xl flex items-center justify-center text-rose-500 shadow-sm">
++                    <WifiOff className="w-7 h-7" />
++                  </div>
++                  <div className="space-y-2">
++                    <h3 className="text-base font-black uppercase tracking-tight text-slate-800">Master POS Not Found</h3>
++                    <p className="text-xs font-medium text-slate-500 max-w-[280px] mx-auto leading-relaxed">
++                      We couldn't detect the Master POS server on your Wi-Fi network. Please make sure the Master PC is running SaSLoop and connected to the same network.
++                    </p>
++                  </div>
++                  
++                  <div className="w-full space-y-3">
+                     <button
+                       type="button"
+-                      onClick={autoDetectMasterServer}
+                       disabled={isTestingConnection}
+-                      className="px-3 py-2 bg-[#18ba60] hover:bg-[#15a353] disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+-                      title="Auto Detect Master POS Server on local subnet"
++                      onClick={autoDetectMasterServer}
++                      className="w-full bg-slate-900 hover:bg-black text-white font-black uppercase tracking-widest text-xs py-3.5 rounded-2xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                     >
+-                      {isTestingConnection && connectionStatus === 'scanning' ? 'Scanning...' : 'Auto Detect'}
++                      <RefreshCcw className="w-4 h-4" /> Retry Search
+                     </button>
++
++                    <div className="w-full border-t border-slate-100/80 pt-3 space-y-2">
++                      <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">
++                        Or Connect Manually
++                      </div>
++                      <div className="flex gap-2">
++                        <input
++                          type="text"
++                          placeholder="e.g. 192.168.0.100"
++                          value={manualIp}
++                          onChange={(e) => setManualIp(e.target.value)}
++                          className="flex-1 text-xs px-3 py-2.5 border border-slate-200 rounded-xl focus:outline-none focus:border-[#18ba60] text-center font-mono placeholder:text-slate-400 placeholder:font-sans"
++                        />
++                        <button
++                          type="button"
++                          onClick={() => testMasterConnection(manualIp)}
++                          disabled={isTestingConnection || !manualIp}
++                          className="bg-[#18ba60] hover:bg-[#15a353] text-white text-xs px-4 py-2.5 rounded-xl font-bold transition-all cursor-pointer disabled:opacity-50"
++                        >
++                          Connect
++                        </button>
++                      </div>
++                    </div>
++                  </div>
++
++                  {/* Diagnostic Console */}
++                  <div className="w-full mt-4 text-left border-t border-slate-100/80 pt-4">
++                    <button 
++                      type="button" 
++                      onClick={() => setShowDebugTool(!showDebugTool)}
++                      className="text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 mx-auto cursor-pointer"
++                    >
++                      {showDebugTool ? "Hide Diagnostic Logs" : "Show Diagnostic Logs"}
++                    </button>
++                    {showDebugTool && <DiagnosticConsole logs={scanLogs} />}
+                   </div>
+-                  {connectionStatus === 'success' && (
+-                    <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">Γ£ö Connection Active</p>
+-                  )}
+-                  {connectionStatus === 'error' && (
+-                    <p className="text-[9px] text-rose-600 font-bold flex items-center gap-1">Γ¥î Connection Failed</p>
+-                  )}
+                 </div>
+-              )}
++              ) : (
++                /* Scanning or loading/waiting state */
++                <div className="p-4 text-center space-y-6 flex flex-col items-center">
++                  <div className="relative flex items-center justify-center w-20 h-20">
++                    <div className="absolute inset-0 bg-[#18ba60]/10 rounded-full animate-ping" />
++                    <div className="absolute inset-2 bg-[#18ba60]/20 rounded-full animate-pulse" />
++                    <div className="w-14 h-14 bg-[#18ba60] rounded-full flex items-center justify-center text-white z-10 shadow-lg shadow-[#18ba60]/20">
++                      <Globe className="w-7 h-7 animate-pulse" />
++                    </div>
++                  </div>
++                  <div className="space-y-2">
++                    <h3 className="text-base font-black uppercase tracking-tight text-slate-800">Searching for Master POS</h3>
++                    <p className="text-xs font-medium text-slate-500 max-w-[280px] mx-auto leading-relaxed">
++                      Scanning your local network to automatically connect to the Master POS server...
++                    </p>
++                  </div>
++                  <div className="flex flex-col items-center gap-3 w-full">
++                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 rounded-full text-[10px] font-bold text-slate-600 font-mono">
++                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
++                      Subnet scan active
++                    </div>
++                    
++                    <button
++                      type="button"
++                      onClick={() => {
++                        if (activeScanControllerRef.current) {
++                          activeScanControllerRef.current.abort();
++                        }
++                        setConnectionStatus('error');
++                        setIsTestingConnection(false);
++                      }}
++                      className="text-[10px] font-black uppercase tracking-wider text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
++                    >
++                      Cancel Scan & Enter IP Manually
++                    </button>
++                  </div>
++
++                  {/* Diagnostic Console */}
++                  <div className="w-full mt-4 text-left border-t border-slate-100/80 pt-4">
++                    <button 
++                      type="button" 
++                      onClick={() => setShowDebugTool(!showDebugTool)}
++                      className="text-[10px] font-black uppercase tracking-wider text-slate-500 hover:text-slate-800 flex items-center justify-center gap-1 mx-auto cursor-pointer"
++                    >
++                      {showDebugTool ? "Hide Diagnostic Logs" : "Show Diagnostic Logs"}
++                    </button>
++                    {showDebugTool && <DiagnosticConsole logs={scanLogs} />}
++                  </div>
++                </div>
++              )
++            ) : (
++              /* Master POS login (non-terminal) */
++              <form onSubmit={handleLogin} className="space-y-4">
++                {/* Username Input */}
++                <div className="relative group">
++                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
++                    <User className="w-5 h-5" />
++                  </div>
++                  <input
++                    className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
++                    placeholder="Email or Username"
++                    value={username}
++                    onChange={e => setUsername(e.target.value)}
++                    autoComplete="off"
++                    required
++                  />
++                </div>
+ 
+-              {/* Connectivity Status Banner */}
+-              {typeof window !== 'undefined' && !window.navigator.onLine && (
+-                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800">
+-                  <WifiOff size={14} className="shrink-0 text-amber-600" />
+-                  <div>
+-                    <p className="text-[10px] font-black uppercase tracking-wider">No Internet Connection</p>
+-                    <p className="text-[9px] font-medium text-amber-600 mt-0.5">Internet is required to login. Please connect first.</p>
++                {/* Password Input */}
++                <div className="relative group">
++                  <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
++                    <Lock className="w-5 h-5" />
+                   </div>
++                  <input
++                    className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
++                    type={showPassword ? "text" : "password"}
++                    placeholder="Password"
++                    value={password}
++                    autoComplete="new-password"
++                    required
++                    onChange={e => setPassword(e.target.value)}
++                  />
++                  <button
++                    onClick={() => setShowPassword(!showPassword)}
++                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
++                    type="button"
++                  >
++                    {showPassword ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
++                  </button>
+                 </div>
+-              )}
+ 
+-              {/* Form Actions */}
+-              <div className="pt-2">
+-                <button
+-                  type="submit"
+-                  disabled={isLoggingIn}
+-                  className="w-full bg-[#18ba60] hover:bg-[#15a353] text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl transition-all shadow-lg shadow-[#18ba60]/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2"
+-                >
+-                  {isLoggingIn ? <RefreshCcw className="animate-spin w-5 h-5" /> : 'SIGN IN'}
+-                </button>
+-              </div>
+-            </form>
++                {/* Form Actions */}
++                <div className="pt-2">
++                  <button
++                    type="submit"
++                    disabled={isLoggingIn}
++                    className="w-full bg-[#18ba60] hover:bg-[#15a353] text-white font-black uppercase tracking-widest text-xs py-4 rounded-2xl transition-all shadow-lg shadow-[#18ba60]/20 hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2 cursor-pointer"
++                  >
++                    {isLoggingIn ? <RefreshCcw className="animate-spin w-5 h-5" /> : 'SIGN IN'}
++                  </button>
++                </div>
++              </form>
++            )}
+           </div>
+ 
+           {/* Footer */}
+@@ -11015,7 +11322,7 @@ const UniversalPOS = () => {
+         >
+           <div className="text-[13px] font-bold tracking-wide flex items-center gap-1 select-none" style={{ WebkitAppRegion: 'no-drag' }}>
+             <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+-            <span className="text-[#18ba60]">Master POS</span>
++            <span className="text-[#18ba60]">{isTerminalMode ? "POS Terminal" : "Master POS"}</span>
+           </div>
+           <div className={`absolute left-1/2 -translate-x-1/2 text-[10.5px] font-semibold tracking-wide hidden md:flex items-center gap-4 select-none ${
+             isDark ? 'text-slate-400' : 'text-slate-600'

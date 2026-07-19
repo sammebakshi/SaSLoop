@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add default printDetailedBalance to tableCustomers template in App.jsx\"",
+  "EndLine": "9678",
+  "Instruction": "\"Add default printDetailedBalance.\"",
+  "ReplacementContent": "\"      couponCode: '',\\n      printDetailedBalance: true\"",
+  "StartLine": "9677",
+  "TargetContent": "\"      couponCode: ''\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding printDetailedBalance default to template\"",
+  "toolSummary": "\"Add printDetailedBalance default to template\""
+}

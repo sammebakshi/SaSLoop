@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Look up and set selectedCustomer from pre_order_data when selecting pre-order table.\"",
+  "EndLine": "9885",
+  "Instruction": "\"Add customerDb lookup in table.pre_order_data block of selectPosTable.\"",
+  "ReplacementContent": "\"        if (table.pre_order_data) {\\n          setEditingPreOrder(table.pre_order_data);\\n          setCustomerName(table.pre_order_data.customer_name || '');\\n          setCustomerPhone(table.pre_order_data.customer_number || '');\\n          setCustomerAddress(table.pre_order_data.customer_address || '');\\n          const pNo = table.pre_order_data.customer_number || '';\\n          const fullPhone = pNo ? (pNo.startsWith('+') ? pNo : (restoredCustomer.customerCountryCode || '+91') + pNo) : '';\\n          const foundCustomer = customerDb[fullPhone] || null;\\n          setSelectedCustomer(foundCustomer);\\n          setPreOrderScheduledDate(table.pre_order_data.scheduled_date || getCurrentDateString());\\n          setPreOrderScheduledTime(table.pre_order_data.scheduled_time || getCurrentTimeString());\\n          setPreOrderAdvanceAmount(String(table.pre_order_data.advance_paid || ''));\\n          setPreOrderNotes(table.pre_order_data.notes || '');\"",
+  "StartLine": "9877",
+  "TargetContent": "\"        if (table.pre_order_data) {\\n          setEditingPreOrder(table.pre_order_data);\\n          setCustomerName(table.pre_order_data.customer_name || '');\\n          setCustomerPhone(table.pre_order_data.customer_number || '');\\n          setCustomerAddress(table.pre_order_data.customer_address || '');\\n          setPreOrderScheduledDate(table.pre_order_data.scheduled_date || getCurrentDateString());\\n          setPreOrderScheduledTime(table.pre_order_data.scheduled_time || getCurrentTimeString());\\n          setPreOrderAdvanceAmount(String(table.pre_order_data.advance_paid || ''));\\n          setPreOrderNotes(table.pre_order_data.notes || '');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting selectedCustomer from pre-order table data\"",
+  "toolSummary": "\"File edit\""
+}

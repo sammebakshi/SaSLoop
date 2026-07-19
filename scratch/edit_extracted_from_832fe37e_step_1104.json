@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset coupon and loyalty state on settlement\"",
+  "EndLine": "6820",
+  "Instruction": "\"Clear coupon and loyalty states inside the SETTLE cleanup block of handleCheckout\"",
+  "ReplacementContent": "\"    if (type === 'SETTLE') {\\n      setActiveTrayTab('KOT');\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n      setSelectedWaiter(null);\\n      setAppliedCoupon(null);\\n      setCouponCode('');\\n      setShowLoyaltyPopup(false);\\n    }\"",
+  "StartLine": "6798",
+  "TargetContent": "\"    if (type === 'SETTLE') {\\n      setActiveTrayTab('KOT');\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n      setSelectedWaiter(null);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resetting coupon states on bill settlement in App.jsx\"",
+  "toolSummary": "\"Edit settlement block in App.jsx\""
+}

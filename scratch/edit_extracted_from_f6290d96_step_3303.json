@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Modify handlePrintKOT signature and add printerConfig logic\"",
+  "EndLine": "8445",
+  "Instruction": "\"Add targetOrderType parameter, resolve printerConfig and activeType at the start of handlePrintKOT\"",
+  "ReplacementContent": "\"  const handlePrintKOT = (items, tableName, bNo, type = 'NEW', targetOrderType = null) => {\\n    let activeType = 'DINE_IN';\\n    if (targetOrderType) {\\n      const t = String(targetOrderType).toUpperCase();\\n      if (t.includes('PRE_ORDER') || t.includes('PREORDER')) activeType = 'PRE_ORDER';\\n      else if (t.includes('DELIVERY')) activeType = 'DELIVERY';\\n      else if (t.includes('PICKUP')) activeType = 'PICKUP';\\n      else if (t.includes('QUICK')) activeType = 'QUICK';\\n      else activeType = 'DINE_IN';\\n    } else {\\n      if (activeTrayTab === 'PreOrder') activeType = 'PRE_ORDER';\\n      else activeType = orderType || 'DINE_IN';\\n    }\\n\\n    const printConfig = resolvePrinterConfig(activeType, 'kot');\\n    if (!printConfig.enabled) {\\n      toast.info(`KOT printing is disabled for ${activeType} orders.`);\\n      return;\\n    }\\n\\n    const resolvedWidth = printConfig.paperSize === 'THERMAL_58MM' ? 48 : (posSettings.printWidth || 72);\\n\\n    const receiptHtml = `\"",
+  "StartLine": "8443",
+  "TargetContent": "\"  const handlePrintKOT = (items, tableName, bNo, type = 'NEW') => {\\n    const receiptHtml = `\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handlePrintKOT signature and routing logic\"",
+  "toolSummary": "\"Update handlePrintKOT signature\""
+}

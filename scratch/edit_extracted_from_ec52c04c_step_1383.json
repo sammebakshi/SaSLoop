@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Correct JSX syntax enclosures for printer and shortcuts tabs.\"",
+  "EndLine": "20268",
+  "Instruction": "\"Close the printer tab check block and insert the conditional check block for the shortcuts tab.\"",
+  "ReplacementContent": "\"                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\\n\\n                         {settingsActiveTab === 'shortcuts' && (\\n                            <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-4`}>\\n                               <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Keyboard Shortcuts</span>\"",
+  "StartLine": "20265",
+  "TargetContent": "\"                                  </div>\\n                               </div>\\n                               <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Keyboard Shortcuts</span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing printer tab block and opening shortcuts tab block\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

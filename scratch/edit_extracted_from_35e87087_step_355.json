@@ -1,0 +1,8 @@
+{
+  "Description": "\"Fix syntax issues from the previous edit: add missing closing brace/paren on line 3542 and separate merged closing divs on line 3611.\"",
+  "Instruction": "\"Fix the broken JSX syntax on lines 3542 and 3611.\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":3543,\"ReplacementContent\":\"                              )}\\n                            </div>\\n\\n                            {/* Card Set Toggled Rows - in scrollable container */}\\n                            <div className={`flex-1 rounded-2xl border p-3 overflow-y-auto transition-colors flex gap-3 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\",\"StartLine\":3542,\"TargetContent\":\"                              )                            {/* Card Set Toggled Rows - in scrollable container */}\\n                            <div className={`flex-1 rounded-2xl border p-3 overflow-y-auto transition-colors flex gap-3 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\"},{\"AllowMultiple\":false,\"EndLine\":3611,\"ReplacementContent\":\"                      </div>\\n\\n                    </div>\",\"StartLine\":3611,\"TargetContent\":\"                      </div>          </div>\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing syntax issues\"",
+  "toolSummary": "\"Fix broken JSX syntax\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up stray syntax characters and duplicate closing tags at the end of Separate Printers UI\"",
+  "EndLine": "19768",
+  "Instruction": "\"Replace the duplicated closing tags and stray characters with the correct closing div and braces structure\"",
+  "ReplacementContent": "\"                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\"",
+  "StartLine": "19746",
+  "TargetContent": "\"                                                          </button>\\n                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>                                              >\\n                                                             58mm\\n                                                          </button>\\n                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Clean up stray characters and duplication\"",
+  "toolSummary": "\"Clean up stray characters and duplication\""
+}

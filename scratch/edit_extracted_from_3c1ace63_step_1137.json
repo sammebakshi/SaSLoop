@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Save customer details to tableCustomers on DINE_IN table KOT save\"",
+  "EndLine": "4576",
+  "Instruction": "\"Update DINE_IN save branch in handleNewOrder to save customer details and reset states\"",
+  "ReplacementContent": "\"          setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));\\n          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\\n          setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\\n\\n          setTableCustomers(prev => ({\\n            ...prev,\\n            [selectedTable.id]: {\\n              customerCountryCode,\\n              customerPhone,\\n              customerName,\\n              customerAddress,\\n              selectedCustomer,\\n              redeemedPoints,\\n              appliedCoupon,\\n              couponCode\\n            }\\n          }));\\n\\n          setCart([]);\\n          setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));\\n          setSelectedTable(null);\\n          setCustomerPhone('');\\n          setCustomerName('');\\n          setCustomerAddress('');\\n          setRedeemedPoints(0);\\n          setAppliedCoupon(null);\\n          setCouponCode('');\\n          setSelectedCustomer(null);\\n          setEditingOrder(null);\\n          setEditingPreOrder(null);\"",
+  "StartLine": "4566",
+  "TargetContent": "\"          setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));\\n          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\\n          setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\\n          setCart([]);\\n          setTableCarts(prev => ({ ...prev, [selectedTable.id]: [] }));\\n          setSelectedTable(null);\\n          setCustomerPhone('');\\n          setCustomerName('');\\n          setCustomerAddress('');\\n          setEditingOrder(null);\\n          setEditingPreOrder(null);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating DINE_IN save branch in handleNewOrder in App.jsx\"",
+  "toolSummary": "\"Update DINE_IN save branch\""
+}

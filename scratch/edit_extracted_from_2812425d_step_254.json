@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset printDetailedBalance when clearing customer details in customer tray\"",
+  "EndLine": "12271",
+  "Instruction": "\"Reset printDetailedBalance to true.\"",
+  "ReplacementContent": "\"                            setSelectedCustomer(null);\\n                            setPrintDetailedBalance(true);\\n                            setKOTNote('');\"",
+  "StartLine": "12269",
+  "TargetContent": "\"                            setSelectedCustomer(null);\\n                            setKOTNote('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resetting printDetailedBalance in customer tray trash button\"",
+  "toolSummary": "\"Reset printDetailedBalance in customer tray trash button\""
+}

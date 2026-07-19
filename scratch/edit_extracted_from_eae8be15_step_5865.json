@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Updated walkthrough.md to document the promotion of Preorder to the top-level mode tab row.\"",
+  "EndLine": "48",
+  "Instruction": "\"Change tab button description in walkthrough.md to describe the top-level Preorder mode tab.\"",
+  "ReplacementContent": "\"1. **Mode Tabs** — Promoted \\\"Preorder\\\" to the top-level mode line alongside \\\"Dine In | Pickup/Delivery | Quick Bill\\\". Selecting \\\"Preorder\\\" opens the pre-order booking view.\\n   - When in \\\"Preorder\\\" mode, the sub-tabs row is hidden for a cleaner UI layout.\\n   - Clicking a catalog item while in Preorder mode keeps the operator on the Preorder booking form, preventing accidental tab switching.\"",
+  "StartLine": "47",
+  "TargetContent": "\"1. **Tab Button** — \\\"Pre-Order\\\" tab positioned directly after \\\"Order/KOT\\\" (\\\"tmbill\\\") in the sub-tabs row, before the \\\"Billing\\\" tab. Now visible in all order types including Quick Bill.\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating walkthrough.md with top-level tab description\"",
+  "toolSummary": "\"Replace file content in walkthrough.md\""
+}

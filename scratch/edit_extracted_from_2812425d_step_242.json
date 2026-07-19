@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore printDetailedBalance state when selecting a table in App.jsx\"",
+  "EndLine": "9695",
+  "Instruction": "\"Restore printDetailedBalance state.\"",
+  "ReplacementContent": "\"    setAppliedCoupon(restoredCustomer.appliedCoupon || null);\\n    setCouponCode(restoredCustomer.couponCode || '');\\n    setPrintDetailedBalance(restoredCustomer.printDetailedBalance !== undefined ? restoredCustomer.printDetailedBalance : true);\"",
+  "StartLine": "9691",
+  "TargetContent": "\"    setAppliedCoupon(restoredCustomer.appliedCoupon || null);\\n    setCouponCode(restoredCustomer.couponCode || '');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring printDetailedBalance state from restored customer data\"",
+  "toolSummary": "\"Restore printDetailedBalance state from restored customer data\""
+}

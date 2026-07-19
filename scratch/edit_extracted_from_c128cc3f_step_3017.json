@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up duplicate closing tags at the end of ChatAnimationBackground.\"",
+  "EndLine": "536",
+  "Instruction": "\"Remove duplicate lines 531 to 535 to fix component structure.\"",
+  "ReplacementContent": "\"  );\\n};\"",
+  "StartLine": "529",
+  "TargetContent": "\"  );\\n};\\n        </div>\\n      </div>\\n    </div>\\n  );\\n};\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing duplicate closing braces in App.jsx\"",
+  "toolSummary": "\"Remove duplicate braces\""
+}

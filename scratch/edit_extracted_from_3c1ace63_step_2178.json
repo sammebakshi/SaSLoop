@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare showWaiterPopup state in App.jsx\"",
+  "EndLine": "3692",
+  "Instruction": "\"Declare showWaiterPopup state\"",
+  "ReplacementContent": "\"  const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);\\n  const [customerHistoryActiveTab, setCustomerHistoryActiveTab] = useState('orders');\\n  const [showCustomerPopup, setShowCustomerPopup] = useState(false);\\n  const [showWaiterPopup, setShowWaiterPopup] = useState(false);\\n  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);\\n  const [waitersList, setWaitersList] = useState([]);\\n  const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);\"",
+  "StartLine": "3685",
+  "TargetContent": "\"  const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);\\n  const [customerHistoryActiveTab, setCustomerHistoryActiveTab] = useState('orders');\\n  const [showCustomerPopup, setShowCustomerPopup] = useState(false);\\n  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);\\n  const [waitersList, setWaitersList] = useState([]);\\n  const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring showWaiterPopup state\"",
+  "toolSummary": "\"Replace file content App.jsx\""
+}

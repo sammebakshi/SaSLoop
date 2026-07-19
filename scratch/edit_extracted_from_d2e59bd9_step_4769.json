@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add handleOpenRejectionModal helper function.\"",
+  "EndLine": "5507",
+  "Instruction": "\"Insert handleOpenRejectionModal before handleUpdateOrderStatus.\"",
+  "ReplacementContent": "\"  const handleOpenRejectionModal = (orderId) => {\\n    setRejectionOrderId(orderId);\\n    setSelectedRejectionReason(\\\"\\\");\\n    setCustomRejectionReason(\\\"\\\");\\n    setIsRejectionModalOpen(true);\\n  };\\n\\n  const handleUpdateOrderStatus = async (orderId, newStatus, rejectionReason) => {\"",
+  "StartLine": "5507",
+  "TargetContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus, rejectionReason) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding handleOpenRejectionModal helper in App.jsx\"",
+  "toolSummary": "\"Replace file content\""
+}

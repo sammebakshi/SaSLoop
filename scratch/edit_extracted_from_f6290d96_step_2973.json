@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add default print settings for pre-order customer/restaurant copies in POS app\"",
+  "EndLine": "3935",
+  "Instruction": "\"Add printCustomerCopyPreorder and printRestaurantCopyPreorder to the defaults object\"",
+  "ReplacementContent": "\"      countAdvanceInSales: false,\\n      printCustomerCopy: true,\\n      printRestaurantCopy: true,\\n      printCustomerCopyPreorder: true,\\n      printRestaurantCopyPreorder: true,\\n      askPasswordForTableDelete: true,\"",
+  "StartLine": "3929",
+  "TargetContent": "\"      countAdvanceInSales: false,\\n      printCustomerCopy: true,\\n      printRestaurantCopy: true,\\n      askPasswordForTableDelete: true,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pre-order copy defaults to posSettings\"",
+  "toolSummary": "\"Update posSettings defaults\""
+}

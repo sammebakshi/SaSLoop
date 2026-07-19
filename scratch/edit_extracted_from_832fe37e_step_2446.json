@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add points_earned field to newOrder object.\"",
+  "EndLine": "6644",
+  "Instruction": "\"Insert points_earned property.\"",
+  "ReplacementContent": "\"      points_redeemed: redeemedPoints,\\n      points_discount: redeemedPoints * 1,\\n      points_earned: pointsEarned,\"",
+  "StartLine": "6640",
+  "TargetContent": "\"      points_redeemed: redeemedPoints,\\n      points_discount: redeemedPoints * 1,\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding points_earned field to checkout payload\"",
+  "toolSummary": "\"Add points_earned property\""
+}

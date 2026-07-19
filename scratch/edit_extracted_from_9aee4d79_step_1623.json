@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Extend transition splash screen display duration from 2200ms to 3200ms to allow the vault combination animation and statuses to play fully.\"",
+  "EndLine": "7375",
+  "Instruction": "\"Change the login transition timeout from 2200ms to 3200ms.\"",
+  "ReplacementContent": "\"      setIsTransitioningToDashboard(true);\\n      setTimeout(() => {\\n        setIsAuthenticated(true);\\n        setIsTransitioningToDashboard(false);\\n      }, 3200);\"",
+  "StartLine": "7365",
+  "TargetContent": "\"      setIsTransitioningToDashboard(true);\\n      setTimeout(() => {\\n        setIsAuthenticated(true);\\n        setIsTransitioningToDashboard(false);\\n      }, 2200);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating login transition timeout in App.jsx\"",
+  "toolSummary": "\"Update transition timeout\""
+}

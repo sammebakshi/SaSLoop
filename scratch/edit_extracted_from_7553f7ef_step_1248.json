@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add PasscodeModal to the main JSX in App.jsx\"",
+  "EndLine": "21646",
+  "Instruction": "\"Insert PasscodeModal JSX under VirtualKeyboard JSX with correct spacing.\"",
+  "ReplacementContent": "\"      <VirtualKeyboard target={keyboardTarget} onClose={() => setKeyboardTarget(null)} />\\n\\n      <PasscodeModal\\n        isOpen={passcodeModalState.isOpen}\\n        onClose={() => setPasscodeModalState(prev => ({ ...prev, isOpen: false }))}\\n        onSuccess={() => {\\n          if (passcodeModalState.onSuccess) passcodeModalState.onSuccess();\\n          setPasscodeModalState(prev => ({ ...prev, isOpen: false }));\\n        }}\\n        requiredModules={passcodeModalState.requiredModules}\\n        actionKey={passcodeModalState.actionKey}\\n        actionName={passcodeModalState.actionName}\\n      />\\n    </div>\"",
+  "StartLine": "21644",
+  "TargetContent": "\"      <VirtualKeyboard target={keyboardTarget} onClose={() => setKeyboardTarget(null)} />\\n    </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add PasscodeModal JSX with correct spacing in App.jsx\"",
+  "toolSummary": "\"Add PasscodeModal JSX with correct spacing\""
+}

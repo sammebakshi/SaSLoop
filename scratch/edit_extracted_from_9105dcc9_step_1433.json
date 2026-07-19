@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update busy checks in handleLogoutFlow to ignore all tables starting with temp-\"",
+  "EndLine": "4157",
+  "Instruction": "\"Update hasActiveCarts and hasBusyTables checks to ignore all temp- tables\"",
+  "ReplacementContent": "\"      const hasActiveCarts = \\n        (dineInCart && dineInCart.length > 0) ||\\n        (pickupCart && pickupCart.length > 0) ||\\n        (quickCart && quickCart.length > 0) ||\\n        (preOrderCart && preOrderCart.length > 0) ||\\n        Object.entries(tableCarts || {}).some(([tableId, c]) => {\\n          if (String(tableId).startsWith('temp-')) return false;\\n          return Array.isArray(c) && c.length > 0;\\n        });\\n\\n      const hasBusyTables = Object.entries(tableStatuses || {}).some(([tableId, status]) => {\\n        if (String(tableId).startsWith('temp-')) return false;\\n        return status === 'SAVED' || status === 'BILL_SAVED' || status === 'PRINTED';\\n      });\"",
+  "StartLine": "4143",
+  "TargetContent": "\"      const hasActiveCarts = \\n        (dineInCart && dineInCart.length > 0) ||\\n        (pickupCart && pickupCart.length > 0) ||\\n        (quickCart && quickCart.length > 0) ||\\n        (preOrderCart && preOrderCart.length > 0) ||\\n        Object.entries(tableCarts || {}).some(([tableId, c]) => {\\n          if (String(tableId).startsWith('temp-preorder-')) return false;\\n          return Array.isArray(c) && c.length > 0;\\n        });\\n\\n      const hasBusyTables = Object.entries(tableStatuses || {}).some(([tableId, status]) => {\\n        if (String(tableId).startsWith('temp-preorder-')) return false;\\n        return status === 'SAVED' || status === 'BILL_SAVED' || status === 'PRINTED';\\n      });\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating busy checks in handleLogoutFlow\"",
+  "toolSummary": "\"File edit App.jsx\""
+}

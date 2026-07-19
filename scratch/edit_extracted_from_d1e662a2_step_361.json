@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update settings tab onClick with checkPermissionAndExecute\"",
+  "EndLine": "19263",
+  "Instruction": "\"Integrate permission gating check on settings tabs onClick in App.jsx\"",
+  "ReplacementContent": "\"                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>\\n                        {getFilteredSettingsTabs().map((tab) => (\\n                           <button\\n                              key={tab.id}\\n                              onClick={() => {\\n                                 const mapping = {\\n                                    general: 'general',\\n                                    outlet: 'profile',\\n                                    printer: 'printers',\\n                                    shortcuts: 'shortcuts',\\n                                    formatting: 'formatting',\\n                                    profile: 'profile'\\n                                 };\\n                                 const permKey = mapping[tab.id];\\n                                 checkPermissionAndExecute('Settings', permKey, `${tab.label} Settings`, () => {\\n                                    setSettingsActiveTab(tab.id);\\n                                 });\\n                              }}\"",
+  "StartLine": "19256",
+  "TargetContent": "\"                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>\\n                        {getFilteredSettingsTabs().map((tab) => (\\n                           <button\\n                              key={tab.id}\\n                              onClick={() => {\\n                                 setSettingsActiveTab(tab.id);\\n                              }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating settings tabs click handler\"",
+  "toolSummary": "\"Updating settings tabs click handler\""
+}

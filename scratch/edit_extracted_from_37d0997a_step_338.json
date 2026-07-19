@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore missing opening <button tag for the pre-order action button.\"",
+  "EndLine": "12463",
+  "Instruction": "\"Add the opening <button tag back above onClick in App.jsx.\"",
+  "ReplacementContent": "\"                          <button\\n                            onClick={async () => {\"",
+  "StartLine": "12461",
+  "TargetContent": "\"                            onClick={async () => {\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring button tag\"",
+  "toolSummary": "\"Restore App.jsx button tag\""
+}

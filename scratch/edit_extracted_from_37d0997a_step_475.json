@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Revert top table selector check on line 10423 to only show Dine-In tables for Dine-In mode.\"",
+  "EndLine": "10425",
+  "Instruction": "\"Change {true && ( back to {orderType === 'DINE_IN' && ( on line 10423.\"",
+  "ReplacementContent": "\"                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}\\n                        {orderType === 'DINE_IN' && (\"",
+  "StartLine": "10421",
+  "TargetContent": "\"                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}\\n                        {true && (\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Reverting Dine-In tables selector grid condition\"",
+  "toolSummary": "\"Revert App.jsx tables selector condition\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change Combined View image object-fit to object-contain so it doesn't crop.\"",
+  "EndLine": "10612",
+  "Instruction": "\"Change object-cover to object-contain bg-black/20 for Combined View images.\"",
+  "ReplacementContent": "\"                                              className=\\\"absolute inset-0 w-full h-full object-contain bg-black/20\\\"\"",
+  "StartLine": "10610",
+  "TargetContent": "\"                                              className=\\\"absolute inset-0 w-full h-full object-cover\\\"\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Combined View image object-fit\"",
+  "toolSummary": "\"Updating Combined View image object-fit\""
+}

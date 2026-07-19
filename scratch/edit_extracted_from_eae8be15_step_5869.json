@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reverted the accidental edit to App.jsx.\"",
+  "EndLine": "605",
+  "Instruction": "\"Remove the accidental comment lines.\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "601",
+  "TargetContent": "\"\\n  // 1. **Mode Tabs** — Promoted \\\"Preorder\\\" to the top-level mode line alongside \\\"Dine In | Pickup/Delivery | Quick Bill\\\". Selecting \\\"Preorder\\\" opens the pre-order booking view.\\n  //    - When in \\\"Preorder\\\" mode, the sub-tabs row is hidden for a cleaner UI layout.\\n  //    - Clicking a catalog item while in Preorder mode keeps the operator on the Preorder booking form, preventing accidental tab switching.\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Reverting App.jsx comments\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

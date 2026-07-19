@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update app version placeholder in configuration\"",
+  "EndLine": "18193",
+  "Instruction": "\"Replace SaSLoop POS Version placeholder with SaSLoop Station Version\"",
+  "ReplacementContent": "\"                                           <input\\n                                              type=\\\"text\\\"\\n                                              value={posSettings.appVersion || ''}\\n                                              onChange={e => setPosSettings(prev => ({ ...prev, appVersion: e.target.value }))}\\n                                              className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}\\n                                              placeholder=\\\"e.g. SaSLoop Station Version: 1.0.1\\\"\\n                                           />\"",
+  "StartLine": "18186",
+  "TargetContent": "\"                                           <input\\n                                              type=\\\"text\\\"\\n                                              value={posSettings.appVersion || ''}\\n                                              onChange={e => setPosSettings(prev => ({ ...prev, appVersion: e.target.value }))}\\n                                              className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}\\n                                              placeholder=\\\"e.g. SaSLoop POS Version: 1.0.1\\\"\\n                                           />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying config input placeholder\"",
+  "toolSummary": "\"Edit App.jsx config placeholder\""
+}

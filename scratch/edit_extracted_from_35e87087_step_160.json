@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add third indicator dot back to the dashboard pagination pill\"",
+  "EndLine": "3612",
+  "Instruction": "\"Add third indicator dot back to pagination indicator pill.\"",
+  "ReplacementContent": "\"                            <div className={`w-1 rounded-full transition-all duration-300 ${cardSet === 2 ? 'h-7 bg-emerald-500' : 'h-2 bg-slate-400'}`}></div>\\n                            <div className={`w-1 rounded-full transition-all duration-300 ${cardSet === 3 ? 'h-7 bg-emerald-500' : 'h-2 bg-slate-400'}`}></div>\\n                          </div>\"",
+  "StartLine": "3609",
+  "TargetContent": "\"                            <div className={`w-1 rounded-full transition-all duration-300 ${cardSet === 2 ? 'h-7 bg-emerald-500' : 'h-2 bg-slate-400'}`}></div>\\n                          </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding third indicator dot to dashboard pagination in App.jsx\"",
+  "toolSummary": "\"Add pagination dot in App.jsx\""
+}

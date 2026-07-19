@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update permission check with 21 leading spaces in App.jsx.\"",
+  "EndLine": "8756",
+  "Instruction": "\"Change the getStaffPermissions check at 8756 to also allow brand owners/admins by fallback.\"",
+  "ReplacementContent": "\"                     {(!business?.staff_permissions || getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true) && (\"",
+  "StartLine": "8756",
+  "TargetContent": "\"                     {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replace permission check in App.jsx with correct spacing\"",
+  "toolSummary": "\"Update App.jsx source code\""
+}

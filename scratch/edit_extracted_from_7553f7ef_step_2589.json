@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add local date range filtering to filteredOrders memo\"",
+  "EndLine": "3145",
+  "Instruction": "\"Insert date filtering logic at the beginning of the filteredOrders memo\"",
+  "ReplacementContent": "\"  const filteredOrders = React.useMemo(() => {\\n    let list = recentOrders || [];\\n\\n    // Filter by date range locally since server-side fetch is disabled\\n    if (receiptsStartDate && receiptsEndDate) {\\n      const startDay = new Date(receiptsStartDate);\\n      startDay.setHours(0, 0, 0, 0);\\n      const endDay = new Date(receiptsEndDate);\\n      endDay.setHours(23, 59, 59, 999);\\n\\n      list = list.filter(o => {\\n        const dateStr = o.created_at || o.timestamp;\\n        if (!dateStr) return true;\\n        const orderTime = new Date(dateStr);\\n        return orderTime >= startDay && orderTime <= endDay;\\n      });\\n    }\\n\\n    if (receiptSearchQuery) {\\n      const q = receiptSearchQuery.toLowerCase().trim();\\n      list = list.filter(o => {\"",
+  "StartLine": "3141",
+  "TargetContent": "\"  const filteredOrders = React.useMemo(() => {\\n    let list = recentOrders;\\n    if (receiptSearchQuery) {\\n      const q = receiptSearchQuery.toLowerCase().trim();\\n      list = recentOrders.filter(o => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding local date filter to filteredOrders\"",
+  "toolSummary": "\"Modify filteredOrders in App.jsx\""
+}

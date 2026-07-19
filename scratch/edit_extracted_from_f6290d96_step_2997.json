@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Customer Name input placeholder check to support pre-orders\"",
+  "EndLine": "10825",
+  "Instruction": "\"Replace the placeholder condition with one that includes the pre-order mandatory check\"",
+  "ReplacementContent": "\"                            placeholder={\\n                              ((orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                              )) || (activeTrayTab === 'PreOrder' && business?.business_details?.settings?.preOrderDetailsMandatory === true)\\n                                ? \\\"Customer Name *\\\"\\n                                : \\\"Customer Name\\\"\\n                            }\"",
+  "StartLine": "10818",
+  "TargetContent": "\"                            placeholder={\\n                              (orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                              )\\n                                ? \\\"Customer Name *\\\"\\n                                : \\\"Customer Name\\\"\\n                            }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating customer name placeholder text and condition\"",
+  "toolSummary": "\"Update customer name placeholder\""
+}

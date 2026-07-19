@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset printDetailedBalance state in customer tray trash button in App.jsx\"",
+  "EndLine": "12347",
+  "Instruction": "\"Reset printDetailedBalance when clearing customer details.\"",
+  "ReplacementContent": "\"                            setSelectedCustomer(null);\\n                            setPrintDetailedBalance(true);\"",
+  "StartLine": "12345",
+  "TargetContent": "\"                            setSelectedCustomer(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding printDetailedBalance reset in customer tray trash button\"",
+  "toolSummary": "\"Add printDetailedBalance reset in customer tray trash button\""
+}

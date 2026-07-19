@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix button className syntax error in App.jsx\"",
+  "EndLine": "7413",
+  "StartLine": "7403",
+  "TargetContent": "\"                                    <button \\n                                      key={item.id} \\n                                      disabled={isOutOfStock} \\n                                      onClick={() => handleCatalogItemClick(item)} \\n                                      c                                        <div className=\\\"flex-1 flex flex-col justify-between w-full h-full p-0.5\\\">\\n                                          <div className=\\\"flex justify-between items-center gap-1.5 w-full\\\">\\n                                            <div className=\\\"flex flex-col min-w-0 flex-1\\\">\\n                                              <span className={`text-[10px] font-bold uppercase truncate ${isDark ? 'text-white' : 'text-slate-900'}`}>\\n                                                {item.product_name || item.name}\\n                                              </span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fix button className typo and restore structure\"",
+  "toolSummary": "\"Restore button className in App.jsx\""
+}

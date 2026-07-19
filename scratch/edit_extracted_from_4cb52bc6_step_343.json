@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added passcodeModalState declaration in App.jsx\"",
+  "EndLine": "2004",
+  "Instruction": "\"Add passcodeModalState in App.jsx\"",
+  "ReplacementContent": "\"  const [isOldKOTModalOpen, setIsOldKOTModalOpen] = useState(false);\\n  const [passcodeModalState, setPasscodeModalState] = useState({\\n     isOpen: false,\\n     actionKey: '',\\n     actionName: '',\\n     onSuccess: null\\n  });\\n  const [printKOT, setPrintKOT] = useState(true);\"",
+  "StartLine": "2002",
+  "TargetContent": "\"  const [isOldKOTModalOpen, setIsOldKOTModalOpen] = useState(false);\\n  const [printKOT, setPrintKOT] = useState(true);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding passcodeModalState to App.jsx\"",
+  "toolSummary": "\"Add passcodeModalState\""
+}

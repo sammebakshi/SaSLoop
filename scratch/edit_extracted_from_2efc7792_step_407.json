@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use mergeCartItems in handleSaveTemporaryKOT\"",
+  "EndLine": "4073",
+  "Instruction": "\"Modify setTableBills inside handleSaveTemporaryKOT to merge items\"",
+  "ReplacementContent": "\"    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeCartItems(isExistingTemp ? (prev[tempId] || []) : [], cartWithKotNo) }));\"",
+  "StartLine": "4068",
+  "TargetContent": "\"    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: [...cartWithKotNo] }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Patching handleSaveTemporaryKOT\"",
+  "toolSummary": "\"Patch handleSaveTemporaryKOT KOT merging\""
+}

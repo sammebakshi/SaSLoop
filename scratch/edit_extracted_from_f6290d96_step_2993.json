@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update customer name input placeholder to show asterisk for pre-orders\"",
+  "EndLine": "10826",
+  "Instruction": "\"Change customer name input placeholder check to support pre-order mandatory details check\"",
+  "ReplacementContent": "\"                           <input\\n                             type=\\\"text\\\"\\n                             id=\\\"customer-name-input\\\"\\n                             placeholder={\\n                               ((orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                 (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                 (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                               )) || (activeTrayTab === 'PreOrder' && business?.business_details?.settings?.preOrderDetailsMandatory === true)\\n                                 ? \\\"Customer Name *\\\"\\n                                 : \\\"Customer Name\\\"\\n                             }\"",
+  "StartLine": "10815",
+  "TargetContent": "\"                           <input\\n                             type=\\\"text\\\"\\n                             id=\\\"customer-name-input\\\"\\n                             placeholder={\\n                               (orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                 (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                 (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                               )\\n                                 ? \\\"Customer Name *\\\"\\n                                 : \\\"Customer Name\\\"\\n                             }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating customer name input placeholder in App.jsx\"",
+  "toolSummary": "\"Update customer name placeholder\""
+}

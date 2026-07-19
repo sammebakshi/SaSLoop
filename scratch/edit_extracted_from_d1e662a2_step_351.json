@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update onClick of settings tabs buttons to check passcode override permissions\"",
+  "EndLine": "19273",
+  "Instruction": "\"Integrate checkPermissionAndExecute inside onClick in the getFilteredSettingsTabs loop in App.jsx\"",
+  "ReplacementContent": "\"                              onClick={() => {\\n                                 const mapping = {\\n                                    general: 'general',\\n                                    outlet: 'profile',\\n                                    printer: 'printers',\\n                                    shortcuts: 'shortcuts',\\n                                    formatting: 'formatting',\\n                                    profile: 'profile'\\n                                 };\\n                                 const permKey = mapping[tab.id];\\n                                 checkPermissionAndExecute('Settings', permKey, `${tab.label} Settings`, () => {\\n                                    setSettingsActiveTab(tab.id);\\n                                 });\\n                              }}\"",
+  "StartLine": "19260",
+  "TargetContent": "\"                              onClick={() => {\\n                                 setSettingsActiveTab(tab.id);\\n                              }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating settings tabs click handler\"",
+  "toolSummary": "\"Updating settings tabs click handler\""
+}

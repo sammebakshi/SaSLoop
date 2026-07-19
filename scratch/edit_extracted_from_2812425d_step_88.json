@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added printDetailedBalance state to track user preference for printing detailed customer balances.\"",
+  "EndLine": "1760",
+  "Instruction": "\"Add printDetailedBalance state variable initialized to true.\"",
+  "ReplacementContent": "\"  const [selectedCustomer, setSelectedCustomer] = useState(null);\\n  const [printDetailedBalance, setPrintDetailedBalance] = useState(true);\\n  const [kotNote, setKOTNote] = useState('');\\n  const [coversCount, setCoversCount] = useState('');\\n  const [ebillEnabled, setEbillEnabled] = useState(false);\"",
+  "StartLine": "1757",
+  "TargetContent": "\"  const [selectedCustomer, setSelectedCustomer] = useState(null);\\n  const [kotNote, setKOTNote] = useState('');\\n  const [coversCount, setCoversCount] = useState('');\\n  const [ebillEnabled, setEbillEnabled] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding printDetailedBalance state to App.jsx\"",
+  "toolSummary": "\"Add printDetailedBalance state variable\""
+}

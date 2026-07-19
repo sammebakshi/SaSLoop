@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add cached riders load to initApp in App.jsx\"",
+  "EndLine": "5212",
+  "Instruction": "\"Insert code to retrieve cached pos_riders.\"",
+  "ReplacementContent": "\"      const cachedWaiters = localStorage.getItem('pos_waiters');\\n      if (cachedWaiters) {\\n        setWaitersList(JSON.parse(cachedWaiters));\\n      }\\n\\n      const cachedRiders = localStorage.getItem('pos_riders');\\n      if (cachedRiders) {\\n        setRiders(JSON.parse(cachedRiders));\\n      }\"",
+  "StartLine": "5208",
+  "TargetContent": "\"      const cachedWaiters = localStorage.getItem('pos_waiters');\\n      if (cachedWaiters) {\\n        setWaitersList(JSON.parse(cachedWaiters));\\n      }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pos_riders cache retrieval to App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

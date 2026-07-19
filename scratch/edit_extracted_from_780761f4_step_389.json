@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replacing legacy version string in layout footer in App.jsx.\"",
+  "EndLine": "17030",
+  "Instruction": "\"Update fallback appVersion string in settings preview in App.jsx.\"",
+  "ReplacementContent": "\"                                  <div className=\\\"text-center text-[7px] text-[#8b949e] mb-1\\\">\\n                                     {posSettings.appVersion || \\\"SaSLoop POS Version: 19.02\\\"}\\n                                  </div>\"",
+  "StartLine": "17026",
+  "TargetContent": "\"                                  <div className=\\\"text-center text-[7px] text-[#8b949e] mb-1\\\">\\n                                     {posSettings.appVersion || \\\"TMBill Pacific Version: 19.02\\\"}\\n                                  </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing version in preview panel in App.jsx\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

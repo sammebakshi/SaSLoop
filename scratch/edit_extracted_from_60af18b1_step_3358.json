@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Expose additional state setters on window to facilitate Puppeteer E2E testing and state seeding.\"",
+  "EndLine": "3473",
+  "Instruction": "\"Expose setSelectedTable, setPreOrders, setTables, setPosSettings, and setPreOrderAdvanceAmount on window in the useEffect hook.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    window.setCart = setCart;\\n    window.setEditingPreOrder = setEditingPreOrder;\\n    window.setCustomerName = setCustomerName;\\n    window.setCustomerPhone = setCustomerPhone;\\n    window.setCustomerAddress = setCustomerAddress;\\n    window.setOrderType = setOrderType;\\n    window.setActiveTrayTab = setActiveTrayTab;\\n    window.setPreOrderSubTab = setPreOrderSubTab;\\n    window.setIsPaymentModalOpen = setIsPaymentModalOpen;\\n    window.setCustomerPaidAmount = setCustomerPaidAmount;\\n    window.handleCheckout = handleCheckout;\\n    window.setSelectedTable = setSelectedTable;\\n    window.setPreOrders = setPreOrders;\\n    window.setTables = setTables;\\n    window.setPosSettings = setPosSettings;\\n    window.setPreOrderAdvanceAmount = setPreOrderAdvanceAmount;\\n  }, [setCart, setEditingPreOrder, setCustomerName, setCustomerPhone, setCustomerAddress, setOrderType, setActiveTrayTab, setPreOrderSubTab, setIsPaymentModalOpen, setCustomerPaidAmount, handleCheckout, setSelectedTable, setPreOrders, setTables, setPosSettings, setPreOrderAdvanceAmount]);\"",
+  "StartLine": "3460",
+  "TargetContent": "\"  useEffect(() => {\\n    window.setCart = setCart;\\n    window.setEditingPreOrder = setEditingPreOrder;\\n    window.setCustomerName = setCustomerName;\\n    window.setCustomerPhone = setCustomerPhone;\\n    window.setCustomerAddress = setCustomerAddress;\\n    window.setOrderType = setOrderType;\\n    window.setActiveTrayTab = setActiveTrayTab;\\n    window.setPreOrderSubTab = setPreOrderSubTab;\\n    window.setIsPaymentModalOpen = setIsPaymentModalOpen;\\n    window.setCustomerPaidAmount = setCustomerPaidAmount;\\n    window.handleCheckout = handleCheckout;\\n  }, [setCart, setEditingPreOrder, setCustomerName, setCustomerPhone, setCustomerAddress, setOrderType, setActiveTrayTab, setPreOrderSubTab, setIsPaymentModalOpen, setCustomerPaidAmount, handleCheckout]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Expose more window setters\"",
+  "toolSummary": "\"Add window setters in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update activeTab check in checkNewOnlineOrders to use activeTabRef.current.\"",
+  "EndLine": "3597",
+  "Instruction": "\"Change activeTab to activeTabRef.current in checkNewOnlineOrders.\"",
+  "ReplacementContent": "\"        if (currentNewOrders.length > 0 && activeTabRef.current !== 'digital') {\\n          startLoopingSound();\\n        } else {\\n          stopLoopingSound();\\n        }\"",
+  "StartLine": "3593",
+  "TargetContent": "\"        if (currentNewOrders.length > 0 && activeTab !== 'digital') {\\n          startLoopingSound();\\n        } else {\\n          stopLoopingSound();\\n        }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating activeTab check in App.jsx\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

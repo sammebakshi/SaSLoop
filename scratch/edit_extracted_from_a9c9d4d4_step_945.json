@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Format split payment details for receipt printing.\"",
+  "EndLine": "6532",
+  "Instruction": "\"Format paymentMethod display string when the payment method is SPLIT.\"",
+  "ReplacementContent": "\"    const rawPayment = String(order.payment_method || (isPreOrder && advancePaid > 0 ? 'Advance' : 'Cash')).toUpperCase();\\n    let paymentMethod = rawPayment;\\n    if (rawPayment === 'SPLIT') {\\n      const p = parseFloat(order.paid_amount) || 0;\\n      const c = parseFloat(order.credit_amount) || 0;\\n      const cur = posSettings.currency || 'Rs';\\n      paymentMethod = `SPLIT (${cur} ${p.toFixed(0)} / Due: ${cur} ${c.toFixed(0)})`;\\n    }\"",
+  "StartLine": "6532",
+  "TargetContent": "\"    const paymentMethod = order.payment_method || (isPreOrder && advancePaid > 0 ? 'Advance' : 'Cash');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

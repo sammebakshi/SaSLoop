@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove debug file writing block from handlePrint\"",
+  "EndLine": "7874",
+  "Instruction": "\"Remove handle_print_debug writing block\"",
+  "ReplacementContent": "\"  const handlePrint = async (order) => {\\n    // Normalize fields to support both a POS Order and a Pre-Order DB object\"",
+  "StartLine": "7857",
+  "TargetContent": "\"  const handlePrint = async (order) => {\\n    try {\\n      const fs = window.require('fs');\\n      fs.writeFileSync('c:/Users/Sajad/Desktop/SaSLoop/scratch/handle_print_debug.json', JSON.stringify({\\n        order,\\n        posSettings,\\n        business,\\n        customerPhone: order.customer_phone || order.customer_number || '',\\n        pointsRedeemed: order.points_redeemed !== undefined ? order.points_redeemed : order.redeemed_points,\\n        pointsEarnedOnBill: order.points_earned,\\n        loyalty_enabled: getLoyaltySetting('loyalty_enabled', true),\\n        loyalty_bill_amount_threshold: getLoyaltySetting('loyalty_bill_amount_threshold', 1000),\\n        loyalty_points_earned: getLoyaltySetting('loyalty_points_earned', 100),\\n      }, null, 2));\\n    } catch (e) {\\n      console.error(\\\"Failed to write print debug log:\\\", e);\\n    }\\n\\n    // Normalize fields to support both a POS Order and a Pre-Order DB object\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing debug logging code in App.jsx\"",
+  "toolSummary": "\"Remove debug logging in App.jsx\""
+}

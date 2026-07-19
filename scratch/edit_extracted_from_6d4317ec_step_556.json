@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove the card container from TransitionSplashScreen so the locker dial floats on the transparent dark background with no card border, no card shadow, no card gradient — just the dial and text centered on screen.\"",
+  "EndLine": "316",
+  "Instruction": "\"Replace the card wrapper div and the radial glow div with a transparent container that has no background, border, or shadow.\"",
+  "ReplacementContent": "\"    <div className=\\\"text-white text-center select-none mx-4\\\">\\n      {/* Subtle radial glow behind dial */}\\n      <div className=\\\"fixed w-[400px] h-[400px] rounded-full bg-[#18ba60]/5 blur-[120px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0\\\" />\"",
+  "StartLine": "314",
+  "TargetContent": "\"    <div className=\\\"w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden select-none mx-4\\\">\\n      {/* Subtle radial glow */}\\n      <div className=\\\"absolute w-[350px] h-[350px] rounded-full bg-[#18ba60]/5 blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0\\\" />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing card wrapper for transparent background\"",
+  "toolSummary": "\"Making dial background transparent\""
+}

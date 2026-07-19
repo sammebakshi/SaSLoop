@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove solid-screen dashboard transition splash redirect\"",
+  "EndLine": "8649",
+  "Instruction": "\"Delete solid-screen transitioning-to-dashboard check and return block\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "8641",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Remove solid-screen transition redirect\"",
+  "toolSummary": "\"Remove solid-screen transition redirect\""
+}

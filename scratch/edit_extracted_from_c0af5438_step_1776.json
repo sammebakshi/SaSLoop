@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added an \\\"Edit Items\\\" button on the Billing subtab that navigates to KOT mode and ensures the cart is populated with the existing pre-order items, allowing users to add/remove/modify items.\"",
+  "EndLine": "11842",
+  "Instruction": "\"Add an \\\"Edit Items\\\" button next to the \\\"Items Review\\\" header on the Billing subtab to allow switching to KOT mode for editing pre-order items.\"",
+  "ReplacementContent": "\"                              <div>\\n                                <div className=\\\"flex items-center justify-between px-1 pb-1\\\">\\n                                  <h3 className=\\\"font-extrabold uppercase text-[10px] tracking-wider opacity-80\\\">Items Review</h3>\\n                                  <button\\n                                    onClick={() => {\\n                                      // Ensure cart is populated with current items before switching to KOT\\n                                      const currentItems = getActiveCart();\\n                                      if (currentItems.length > 0 && cart.length === 0) {\\n                                        setCart(currentItems);\\n                                      }\\n                                      setPreOrderSubTab('KOT');\\n                                    }}\\n                                    className={`flex items-center gap-1 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider transition-all ${isDark ? 'bg-blue-500/20 text-blue-400 hover:bg-blue-500/30 border border-blue-500/30' : 'bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200'}`}\\n                                  >\\n                                    ✏️ Edit Items\\n                                  </button>\\n                                </div>\"",
+  "StartLine": "11841",
+  "TargetContent": "\"                              <div>\\n                                <h3 className=\\\"font-extrabold uppercase text-[10px] tracking-wider px-1 pb-1 opacity-80\\\">Items Review</h3>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding Edit Items button to Billing subtab\"",
+  "toolSummary": "\"File edit\""
+}

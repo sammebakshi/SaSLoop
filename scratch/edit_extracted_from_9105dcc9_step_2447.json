@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Disable Pre-Order tab in POS when disabled in backend settings\"",
+  "EndLine": "10312",
+  "Instruction": "\"Update key: 'PRE_ORDER' in tab rendering list to check business.business_details.settings.custEnablePreOrder\"",
+  "ReplacementContent": "\"                      { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill },\\n                      { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder || business?.business_details?.settings?.custEnablePreOrder === false }\"",
+  "StartLine": "10307",
+  "TargetContent": "\"                      { key: 'QUICK', label: 'Quick Bill', disabled: !!posSettings.disableTabs?.quickbill },\\n                      { key: 'PRE_ORDER', label: 'Pre Order', disabled: !!posSettings.disableTabs?.preorder }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing pos-app App.jsx\"",
+  "toolSummary": "\"Disable Pre-Order tab in POS when disabled globally\""
+}

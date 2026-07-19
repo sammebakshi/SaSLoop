@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use the business object (available from profile fetch) to derive the outletId, matching how other API calls in initApp work.\"",
+  "EndLine": "9382",
+  "Instruction": "\"Replace config?.outletId with business-derived outletId that matches the pattern used elsewhere in the app.\"",
+  "ReplacementContent": "\"                                      const outletId = business?.user_id || business?.parent_user_id || business?.id;\"",
+  "StartLine": "9380",
+  "TargetContent": "\"                                      const outletId = config?.outletId || localStorage.getItem('pos_outlet_id');\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fixing outletId derivation\"",
+  "toolSummary": "\"Using business object for outletId\""
+}

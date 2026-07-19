@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add tableStatusFilter state to keep track of the selected filter (All, Available, Occupied).\"",
+  "EndLine": "1676",
+  "Instruction": "\"Add tableStatusFilter state declaration in UniversalPOS.\"",
+  "ReplacementContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [tableStatusFilter, setTableStatusFilter] = useState('ALL'); // 'ALL', 'AVAILABLE', 'OCCUPIED'\"",
+  "StartLine": "1673",
+  "TargetContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding tableStatusFilter state to App.jsx\"",
+  "toolSummary": "\"Adding tableStatusFilter state to App.jsx\""
+}

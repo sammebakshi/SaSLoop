@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added getStatusStepIndex helper function to calculate the numeric index for progress timeline steps based on order status.\"",
+  "EndLine": "5480",
+  "Instruction": "\"Add getStatusStepIndex function in App.jsx\"",
+  "ReplacementContent": "\"  const getPrepTimeLabel = (createdAt) => {\\n    if (!createdAt) return \\\"Prep. Time: 30:00\\\";\\n    const elapsedMs = Date.now() - new Date(createdAt).getTime();\\n    const totalPrepMs = 30 * 60 * 1000; // 30 minutes prep time\\n    const remainingMs = totalPrepMs - elapsedMs;\\n    if (remainingMs <= 0) return \\\"Prep. Time: Overdue\\\";\\n    const mins = Math.floor(remainingMs / 60000);\\n    const secs = Math.floor((remainingMs % 60000) / 1000);\\n    return `Prep. Time: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;\\n  };\\n\\n  const getStatusStepIndex = (status) => {\\n    const s = String(status || 'PENDING').toUpperCase();\\n    if (s === 'COMPLETED') return 3;\\n    if (['DISPATCHED', 'READY', 'FOOD READY'].includes(s)) return 2;\\n    if (['PROCESSING', 'PREPARING'].includes(s)) return 1;\\n    return 0;\\n  };\"",
+  "StartLine": "5470",
+  "TargetContent": "\"  const getPrepTimeLabel = (createdAt) => {\\n    if (!createdAt) return \\\"Prep. Time: 30:00\\\";\\n    const elapsedMs = Date.now() - new Date(createdAt).getTime();\\n    const totalPrepMs = 30 * 60 * 1000; // 30 minutes prep time\\n    const remainingMs = totalPrepMs - elapsedMs;\\n    if (remainingMs <= 0) return \\\"Prep. Time: Overdue\\\";\\n    const mins = Math.floor(remainingMs / 60000);\\n    const secs = Math.floor((remainingMs % 60000) / 1000);\\n    return `Prep. Time: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;\\n  };\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding getStatusStepIndex helper\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

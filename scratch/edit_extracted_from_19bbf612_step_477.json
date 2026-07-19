@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update getYAxisTicks call to use step of 1000 on Bar Chart.\"",
+  "EndLine": "8320",
+  "Instruction": "\"Change getYAxisTicks(maxVal) to getYAxisTicks(maxVal, 1000) on bar chart.\"",
+  "ReplacementContent": "\"                                  const maxVal = Math.max(1, ...barData.map(d => d.total));\\n                                  const ticks = getYAxisTicks(maxVal, 1000);\"",
+  "StartLine": "8314",
+  "TargetContent": "\"                                  const maxVal = Math.max(1, ...barData.map(d => d.total));\\n                                  const ticks = getYAxisTicks(maxVal);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing Bar Chart ticks call with 1000 step\"",
+  "toolSummary": "\"Replace File Content App.jsx for Bar Chart 1000 step\""
+}

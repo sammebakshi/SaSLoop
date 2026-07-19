@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleUpdateOrderStatus in App.jsx to query all orders if activeTab is digital, preventing orders from disappearing from list view when updated\"",
+  "EndLine": "5468",
+  "Instruction": "\"Change fetchOrdersForMode(receiptsDateMode) to fetchOrdersForMode(activeTab === 'digital' ? 'all' : receiptsDateMode).\"",
+  "ReplacementContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\\n      fetchOrdersForMode(activeTab === 'digital' ? 'all' : receiptsDateMode);\\n      setSelectedDigitalOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);\\n    } catch (err) {\"",
+  "StartLine": "5458",
+  "TargetContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\\n      fetchOrdersForMode(receiptsDateMode);\\n      setSelectedDigitalOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);\\n    } catch (err) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating order status update handler in App.jsx\"",
+  "toolSummary": "\"Update status handler order fetch in App.jsx\""
+}

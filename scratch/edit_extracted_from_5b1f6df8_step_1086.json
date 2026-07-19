@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fixed the cart matching to use findIndex instead of object reference comparison, since React state immutability means direct object comparison won't work after re-renders.\"",
+  "EndLine": "3822",
+  "Instruction": "\"Replace object reference comparison with index-based comparison for reliable matching.\"",
+  "ReplacementContent": "\"        // Check if this item already exists in the cart with modifiers configured\\n        const existingIdx = cart.findIndex(c => c.id === item.id && c.priceLabel === label && c.modifiers && c.modifiers.length > 0);\\n        if (existingIdx !== -1) {\\n          // Item already configured with modifiers - just increment quantity\\n          setLastAddedItemId(item.id);\\n          setCart(prev => prev.map((c, i) => \\n            i === existingIdx ? { ...c, quantity: c.quantity + 1 } : c\\n          ));\"",
+  "StartLine": "3809",
+  "TargetContent": "\"        // Check if this item already exists in the cart with modifiers configured\\n        const existingInCart = cart.find(c => c.id === item.id && c.priceLabel === label && c.modifiers && c.modifiers.length > 0);\\n        if (existingInCart) {\\n          // Item already configured with modifiers - just increment quantity\\n          setLastAddedItemId(item.id);\\n          setCart(prev => prev.map(c => \\n            (c.id === item.id && c.priceLabel === label && c.modifiers && c.modifiers.length > 0 && c === existingInCart)\\n              ? { ...c, quantity: c.quantity + 1 } \\n              : c\\n          ));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing cart matching\"",
+  "toolSummary": "\"Fix index-based matching\""
+}

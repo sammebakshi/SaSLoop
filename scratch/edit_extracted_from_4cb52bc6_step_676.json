@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Closed customer_management check in configuration page in App.jsx\"",
+  "EndLine": "14617",
+  "Instruction": "\"Insert closing tags for customer_management check in App.jsx\"",
+  "ReplacementContent": "\"                     </button>\\n                  </div>\\n                        </>\\n                     )}\\n               </motion.div>\\n             )}\\n\\n             {activeTab === 'config' && configSubView === 'items' && (\"",
+  "StartLine": "14609",
+  "TargetContent": "\"                     </button>\\n                  </div>\\n               </motion.div>\\n             )}\\n\\n             {activeTab === 'config' && configSubView === 'items' && (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing customer management permission check in App.jsx\"",
+  "toolSummary": "\"Close customer management permission check\""
+}

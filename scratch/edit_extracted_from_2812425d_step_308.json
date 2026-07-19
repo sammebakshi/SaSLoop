@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update selected customer setter in live search dropdown to set printDetailedBalance to true in App.jsx\"",
+  "EndLine": "12087",
+  "Instruction": "\"Insert setPrintDetailedBalance(true) after setSelectedCustomer(res).\"",
+  "ReplacementContent": "\"                                       setSelectedCustomer(res);\\n                                       setPrintDetailedBalance(true);\\n                                       setShowSearchResults(false);\"",
+  "StartLine": "12083",
+  "TargetContent": "\"                                       setSelectedCustomer(res);\\n                                       setShowSearchResults(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating customer select in search dropdown\"",
+  "toolSummary": "\"Update customer select in search dropdown\""
+}

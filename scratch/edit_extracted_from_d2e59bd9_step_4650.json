@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleUpdateOrderStatus to fetch using digital date filters when activeTab is 'digital'.\"",
+  "EndLine": "5507",
+  "Instruction": "\"Replace fetchOrdersForMode('all' : receiptsDateMode) with range parameters in handleUpdateOrderStatus.\"",
+  "ReplacementContent": "\"      fetchOrdersForMode(\\n        activeTab === 'digital' ? digitalDateMode : receiptsDateMode, \\n        activeTab === 'digital' ? digitalStartDate : receiptsStartDate, \\n        activeTab === 'digital' ? digitalEndDate : receiptsEndDate\\n      );\"",
+  "StartLine": "5507",
+  "TargetContent": "\"      fetchOrdersForMode(activeTab === 'digital' ? 'all' : receiptsDateMode);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleUpdateOrderStatus fetches\"",
+  "toolSummary": "\"Replace file content\""
+}

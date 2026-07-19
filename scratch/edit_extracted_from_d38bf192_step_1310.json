@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use getItemDisplayPrice in handleCatalogItemClick\"",
+  "EndLine": "3403",
+  "Instruction": "\"Use the getItemDisplayPrice helper inside handleCatalogItemClick\"",
+  "ReplacementContent": "\"          const existing = prev.find(c => c.id === item.id);\\n          if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);\\n          const tierPrice = getItemDisplayPrice(item);\\n          return [...prev, { ...item, price: tierPrice, original_price: item.price, quantity: 1 }];\"",
+  "StartLine": "3398",
+  "TargetContent": "\"          const existing = prev.find(c => c.id === item.id);\\n          if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);\\n          const tierPrice = selectedPriceTier === 2 && item.sale_price_2 ? parseFloat(item.sale_price_2) : (selectedPriceTier === 3 && item.sale_price_3 ? parseFloat(item.sale_price_3) : parseFloat(item.price));\\n          return [...prev, { ...item, price: tierPrice, original_price: item.price, quantity: 1 }];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing price resolution in App.jsx click handler\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

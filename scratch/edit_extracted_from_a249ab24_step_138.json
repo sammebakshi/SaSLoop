@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove leftover loyalty hub tags in App.jsx\"",
+  "EndLine": "10476",
+  "Instruction": "\"Delete the leftover loyalty hub tags between whatsapp tab block and digital tab block.\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "10470",
+  "TargetContent": "\"                           <p className=\\\"text-[10px] font-black uppercase tracking-widest italic\\\">No customer records found</p>\\n                        </div>\\n                     )}\\n                  </div>\\n               </motion.div>\\n            )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Deleting leftover tags in App.jsx\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

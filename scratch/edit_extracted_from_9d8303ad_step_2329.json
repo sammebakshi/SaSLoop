@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update payCustomerDue success handler to instantly refresh history.\"",
+  "EndLine": "11245",
+  "Instruction": "\"Update payCustomerDue success handler to instantly refresh history.\"",
+  "ReplacementContent": "\"                                   toast.success(`Payment of ${config.currency} ${amt.toFixed(2)} recorded!`);\\n                                   if (historyCustomerPhone === trayFullPhone) {\\n                                      refreshCustomerHistory(trayFullPhone);\\n                                   }\\n                                   setIsPayDueModalOpen(false);\"",
+  "StartLine": "11238",
+  "TargetContent": "\"                                   toast.success(`Payment of ${config.currency} ${amt.toFixed(2)} recorded!`);\\n                                   setIsPayDueModalOpen(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add history refresh to due payment handler\"",
+  "toolSummary": "\"Add history refresh to due payment handler\""
+}

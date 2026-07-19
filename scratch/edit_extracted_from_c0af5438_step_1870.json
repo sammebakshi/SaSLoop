@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Close conditional expression before AnimatePresence within specific line range.\"",
+  "EndLine": "18285",
+  "Instruction": "\"Restore conditional brackets by replacing AnimatePresence within lines 18285-18285.\"",
+  "ReplacementContent": "\"            )}\\n         </AnimatePresence>\"",
+  "StartLine": "18285",
+  "TargetContent": "\"          </AnimatePresence>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring closing brackets within specific range\"",
+  "toolSummary": "\"File edit\""
+}

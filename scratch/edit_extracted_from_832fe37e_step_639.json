@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Safely format modifier names in KOT print HTML.\"",
+  "EndLine": "7604",
+  "Instruction": "\"Change m.name.toUpperCase() to (m.name || '').toUpperCase() in handlePrintKOT HTML\"",
+  "ReplacementContent": "\"                    <span>${(m.name || '').toUpperCase()}</span>\"",
+  "StartLine": "7604",
+  "TargetContent": "\"                    <span>${m.name.toUpperCase()}</span>\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fix toUpperCase in KOT printing modifier row\"",
+  "toolSummary": "\"Edit App.jsx to handle modifier names in KOT printing\""
+}

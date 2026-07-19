@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore deleted closing tags for invoice sidebar and clean up loyalty leftover tags\"",
+  "EndLine": "10465",
+  "Instruction": "\"Restore the closing tags of the invoice sidebar and properly render the whatsapp tab.\"",
+  "ReplacementContent": "\"                              </>\\n                            ) : (\\n                              <span className=\\\"text-[9px] uppercase font-bold tracking-widest opacity-80\\\">\\n                                No Bill Selected\\n                              </span>\\n                            )}\\n                          </div>\\n                        </div>\\n                      </div>\\n                    );\\n                  })()}\\n                </div>\\n              </motion.div>\\n            )}\\n            {activeTab === 'whatsapp' && (\\n              <motion.div key=\\\"whatsapp\\\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className=\\\"h-full overflow-hidden\\\">\\n                <WhatsAppMarketing isDark={isDark} t={t} customerDb={customerDb} config={config} />\\n              </motion.div>\\n            )}\"",
+  "StartLine": "10451",
+  "TargetContent": "\"                                       {activeTab === 'whatsapp' && (\\n               <motion.div key=\\\"whatsapp\\\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className=\\\"h-full overflow-hidden\\\">\\n                 <WhatsAppMarketing isDark={isDark} t={t} customerDb={customerDb} config={config} />\\n               </motion.div>\\n             )}\\n                     </table>\\n                     {Object.keys(customerDb).length === 0 && (\\n                        <div className=\\\"py-20 text-center opacity-20\\\">\\n                           <User size={48} className=\\\"mx-auto mb-4\\\"/>\\n                           <p className=\\\"text-[10px] font-black uppercase tracking-widest italic\\\">No customer records found</p>\\n                        </div>\\n                     )}\\n                  </div>\\n               </motion.div>\\n            )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing App.jsx tab layout tags\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Pre-fill username and password fields in App.jsx.\"",
+  "EndLine": "826",
+  "Instruction": "\"Pre-fill username with 'admin' and password with '1234' in states.\"",
+  "ReplacementContent": "\"  const [username, setUsername] = useState('admin');\\n  const [password, setPassword] = useState('1234');\"",
+  "StartLine": "821",
+  "TargetContent": "\"  const [username, setUsername] = useState('');\\n  const [password, setPassword] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Pre-filling login states in App.jsx\"",
+  "toolSummary": "\"Pre-fill login credentials\""
+}

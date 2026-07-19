@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Map weeklyHeatmap from server response to stats state.\"",
+  "EndLine": "5106",
+  "Instruction": "\"Add weeklyHeatmap: Array.isArray(res.data.weeklyHeatmap) ? res.data.weeklyHeatmap : [] to stats update.\"",
+  "ReplacementContent": "\"          todayCreditSales: parseFloat(res.data.todayCreditSales || 0),\\n          totalCreditSales: parseFloat(res.data.totalCreditSales || 0),\\n          serverIp: res.data.serverIp || prev.serverIp || '127.0.0.1',\\n          weeklyHeatmap: Array.isArray(res.data.weeklyHeatmap) ? res.data.weeklyHeatmap : []\\n        }));\"",
+  "StartLine": "5103",
+  "TargetContent": "\"          todayCreditSales: parseFloat(res.data.todayCreditSales || 0),\\n          totalCreditSales: parseFloat(res.data.totalCreditSales || 0),\\n          serverIp: res.data.serverIp || prev.serverIp || '127.0.0.1'\\n        }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Mapping weeklyHeatmap in fetchDashboardStatsFromServer\"",
+  "toolSummary": "\"Edit file\""
+}

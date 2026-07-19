@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert the Pre-Order temporary tables tray below the combined view table grid.\"",
+  "EndLine": "3648",
+  "Instruction": "\"Insert {renderPreOrderTempTables()} between the table grid inner container closing and the outer container closing in the first (combined) view.\"",
+  "ReplacementContent": "\"                                 })}\\\\\\n                                </div>\\n                              </div>\\n                              {renderPreOrderTempTables()}\\n                           </div>\\n                        )}\\n\\n                        {/* Action Bar (in between tables and menu) */}\"",
+  "StartLine": "3641",
+  "TargetContent": "\"                                 })}\\\\\\n                                </div>\\n                              </div>\\n                           </div>\\n                        )}\\n\\n                        {/* Action Bar (in between tables and menu) */}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Inserting tray in combined view\"",
+  "toolSummary": "\"Insert tray below combined grid\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error by removing semicolon inside object literal in App.jsx\"",
+  "EndLine": "6263",
+  "Instruction": "\"Remove the semicolon inside setTableStatuses' object return value.\"",
+  "ReplacementContent": "\"      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\"",
+  "StartLine": "6261",
+  "TargetContent": "\"      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED'; }));\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fixing syntax error in App.jsx\"",
+  "toolSummary": "\"Replace semicolon in App.jsx\""
+}

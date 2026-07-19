@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the correct closing tags and brackets for the expenses map in App.jsx.\"",
+  "EndLine": "14491",
+  "Instruction": "\"Fix the syntax of the expenses map closing structure in App.jsx.\"",
+  "ReplacementContent": "\"                                       <div className=\\\"flex items-center gap-4\\\">\\n                                          <p className=\\\"text-sm font-black italic text-slate-900\\\">{config.currency}{parseFloat(e.amount).toFixed(0)}</p>\\n                                          <button onClick={() => setExpenses(prev => prev.filter(ex => ex.id !== e.id))} className=\\\"text-slate-200 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100\\\"><Trash2 size={14}/></button>\\n                                       </div>\\n                                    </div>\\n                                 ))}\"",
+  "StartLine": "14485",
+  "TargetContent": "\"                                       <div className=\\\"flex items-center gap-4\\\">\\n                                          <p className=\\\"text-sm font-black italic text-slate-900\\\">{config.currency}{parseFloat(e.amount).toFixed(0)}</p>\\n                                          <button onClick={() => setExpenses(prev => prev.filter(ex => ex.id !== e.id))} className=\\\"text-slate-200 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100\\\"><Trash2 size={14}/></button>\\n </div>\\n                                 </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing App.jsx syntax error\"",
+  "toolSummary": "\"Fix App.jsx syntax\""
+}

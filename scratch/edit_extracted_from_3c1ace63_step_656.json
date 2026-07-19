@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Show table/waiter or order-type/rider information conditionally on printed receipt.\"",
+  "EndLine": "7730",
+  "Instruction": "\"Render waiter/rider/table details conditionally.\"",
+  "ReplacementContent": "\"            <div class=\\\"grid-col\\\">\\n              ${(order.order_type === 'Delivery') ? `\\n                <div>Order: DELIVERY</div>\\n                <div>Rider: ${riderName || 'None'}</div>\\n              ` : (order.order_type === 'Pickup') ? `\\n                <div>Order: PICKUP</div>\\n              ` : `\\n                <div>Table: ${tableName}</div>\\n                <div>Waiter: ${order.waiter_name || 'Default'}</div>\\n              `}\\n            </div>\"",
+  "StartLine": "7726",
+  "TargetContent": "\"            <div class=\\\"grid-col\\\">\\n              <div>Table: ${tableName}</div>\\n              <div>Order: ${order.order_type || 'Offline'}</div>\\n              <div>Waiter: ${order.waiter_name || 'Default'}</div>\\n            </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing file\"",
+  "toolSummary": "\"Update waiter/rider printed metadata\""
+}

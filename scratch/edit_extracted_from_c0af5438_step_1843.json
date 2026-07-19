@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Always show balance and loyalty on pre-order Billing subtab by using a fallback object.\"",
+  "EndLine": "11812",
+  "Instruction": "\"Make customer loyalty/balance display render with fallbacks if not registered.\"",
+  "ReplacementContent": "\"                                     {(() => {\\n                                       const activePhone = customerPhone || '';\\n                                       const fullPhone = activePhone ? (activePhone.startsWith('+') ? activePhone : customerCountryCode + activePhone) : '';\\n                                       const cust = customerDb[fullPhone] || { points: 0, balance: 0 };\\n                                       return (\"",
+  "StartLine": "11805",
+  "TargetContent": "\"                                     {(() => {\\n                                       const activePhone = customerPhone || '';\\n                                       const fullPhone = activePhone ? (activePhone.startsWith('+') ? activePhone : customerCountryCode + activePhone) : '';\\n                                       const cust = customerDb[fullPhone];\\n                                       if (!cust) return null;\\n                                       return (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating loyalty points / balance display logic in pre-order Billing subtab\"",
+  "toolSummary": "\"File edit\""
+}

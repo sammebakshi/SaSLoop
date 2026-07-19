@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error in App.jsx header bar by adding the missing closing parenthesis and brace for the editingPreOrder ternary block.\"",
+  "EndLine": "4019",
+  "Instruction": "\"Add missing closing parenthesis and brace to end editingPreOrder ternary expression.\"",
+  "ReplacementContent": "\"                      </>\\n                    )}\"",
+  "StartLine": "4018",
+  "TargetContent": "\"                      </>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing syntax error in App.jsx header bar\"",
+  "toolSummary": "\"Fix App.jsx header bar syntax\""
+}

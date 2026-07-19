@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isCustomerDetailsMandatory check to handleCheckout\"",
+  "EndLine": "7756",
+  "Instruction": "\"Add customer_details_mandatory check to handleCheckout.\"",
+  "ReplacementContent": "\"  const handleCheckout = async (type = 'SETTLE', method = 'CASH', referenceNo = '', tip = 0, isDue = false) => {\\n    if (isCustomerDetailsMandatory()) {\\n      if (!customerPhone.trim() || !customerName.trim()) {\\n        toast.error(\\\"Customer Name and Phone Number are mandatory for this order type.\\\");\\n        return;\\n      }\\n    }\\n    if (type === 'PRINT' && !checkBillingPermission('allow_draft_bill_printing')) {\"",
+  "StartLine": "7753",
+  "TargetContent": "\"  const handleCheckout = async (type = 'SETTLE', method = 'CASH', referenceNo = '', tip = 0, isDue = false) => {\\n    if (type === 'PRINT' && !checkBillingPermission('allow_draft_bill_printing')) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

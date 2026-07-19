@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Inject tab closing blocks and open shortcuts tab check wrapper using exact indentation.\"",
+  "EndLine": "20268",
+  "Instruction": "\"Match exact indentation spacing of 36, 33, 30, and 30 spaces.\"",
+  "ReplacementContent": "\"                                    })}\\n                                 </div>\\n                              </div>\\n                           </div>\\n                        )}\\n\\n                        {settingsActiveTab === 'shortcuts' && (\\n                           <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-4`}>\\n                              <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Keyboard Shortcuts</span>\"",
+  "StartLine": "20264",
+  "TargetContent": "\"                                    })}\\n                                 </div>\\n                              </div>\\n                              <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Keyboard Shortcuts</span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing printer tab and opening shortcuts tab with exact spacing\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

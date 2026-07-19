@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Hide Tray Bottom Section in Quick Bill mode.\"",
+  "EndLine": "10686",
+  "Instruction": "\"Change condition on line 10684 to activeTrayTab === 'Billing' && orderType !== 'QUICK'.\"",
+  "ReplacementContent": "\"                      )}\\n                      {(activeTrayTab === 'Billing' && orderType !== 'QUICK') && (\\n                        <div className=\\\"relative\\\">\"",
+  "StartLine": "10682",
+  "TargetContent": "\"                      )}\\n                      {(activeTrayTab === 'Billing' || (orderType === 'QUICK' && activeTrayTab !== 'PreOrder')) && (\\n                        <div className=\\\"relative\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Hide Tray Bottom Section in QUICK mode\"",
+  "toolSummary": "\"Replace activeTrayTab condition in App.jsx\""
+}

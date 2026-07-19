@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare tableCustomers state and its localStorage sync effect in App.jsx\"",
+  "EndLine": "3711",
+  "Instruction": "\"Add tableCustomers state and sync effect\"",
+  "ReplacementContent": "\"  const [tableAdditionalCharges, setTableAdditionalCharges] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_additional_charges');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  const [tableCustomers, setTableCustomers] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_customers');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomers));\\n  }, [tableCustomers]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_waiters', JSON.stringify(tableWaiters));\\n  }, [tableWaiters]);\"",
+  "StartLine": "3702",
+  "TargetContent": "\"  const [tableAdditionalCharges, setTableAdditionalCharges] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_additional_charges');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_waiters', JSON.stringify(tableWaiters));\\n  }, [tableWaiters]);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding tableCustomers state definition in App.jsx\"",
+  "toolSummary": "\"Add tableCustomers state\""
+}

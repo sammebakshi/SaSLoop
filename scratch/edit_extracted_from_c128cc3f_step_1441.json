@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace conditional items assignment with mergeCartItems in main tables grid\"",
+  "EndLine": "7710",
+  "Instruction": "\"Replace the items conditional assignment with mergeCartItems for exact spacing\"",
+  "ReplacementContent": "\"                                     const billItems = tableBills[table.id] || [];\\n                                     const cartItems = tableCarts[table.id] || [];\\n                                     const items = mergeCartItems(billItems, cartItems);\"",
+  "StartLine": "7706",
+  "TargetContent": "\"                                     const billItems = tableBills[table.id] || [];\\n                                     const cartItems = tableCarts[table.id] || [];\\n                                     const items = billItems.length > 0 ? billItems : cartItems;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update items assignment in main tables grid\"",
+  "toolSummary": "\"Update items in main tables grid\""
+}

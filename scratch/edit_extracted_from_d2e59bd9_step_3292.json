@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix updateItemModifier closing brace syntax in App.jsx\"",
+  "EndLine": "5427",
+  "Instruction": "\"Fix missing closing brace for updateItemModifier function\"",
+  "ReplacementContent": "\"  const updateItemModifier = (itemId, note) => {\\n    setCart(prev => prev.map(item => item.id === itemId ? { ...item, modifier: note } : item));\\n  };\\n  const handleUpdateOrderStatus = async (orderId, newStatus) => {\"",
+  "StartLine": "5423",
+  "TargetContent": "\"  const updateItemModifier = (itemId, note) => {\\n    setCart(prev => prev.map(item => item.id === itemId ? { ...item, modifier: note } : item));\\n  const handleUpdateOrderStatus = async (orderId, newStatus) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fix updateItemModifier syntax\"",
+  "toolSummary": "\"File edit\""
+}

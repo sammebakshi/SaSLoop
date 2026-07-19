@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore table layout and ternary else branch using a unique target chunk.\"",
+  "EndLine": "10535",
+  "ReplacementContent": "\"                                  </button>\\n                                );\\n                              })}\\n                            </div>\\n                            )}\\n                            {renderPreOrderTempTables()}\\n                          </div>\\n                        </>\\n                      ) : (\\n                        <>\"",
+  "StartLine": "10530",
+  "TargetContent": "\"                                  </button>\\n                                );\\n                              })}\\n                            </div>\\n                            )}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Restoring table layout and ternary else branch using unique target\"",
+  "toolSummary": "\"Replacing file content in App.jsx\""
+}

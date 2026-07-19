@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add getTableFilterDepartments helper function right after getAllowedDepartments\"",
+  "EndLine": "1658",
+  "Instruction": "\"Add getTableFilterDepartments helper function right after getAllowedDepartments.\"",
+  "ReplacementContent": "\"  const getAllowedDepartments = () => {\\n    if (!business) return departments;\\n    const userRole = String(business?.role || '').toLowerCase();\\n    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');\\n    if (isSupervisor) return departments;\\n\\n    const posAccess = business?.staff_permissions?.pos_access;\\n    if (!posAccess) return departments;\\n\\n    const allowed = posAccess.OrderWindow?.table_departments;\\n    if (allowed === true || !allowed) return departments;\\n\\n    return departments.filter(d => d === 'All' || allowed.includes(d));\\n  };\\n\\n  const getTableFilterDepartments = () => {\\n    const coreDepts = ['All', 'Dining', 'Pickup/Delivery', 'Pre Order'];\\n    const allowed = getAllowedDepartments().filter(d => \\n      !['all', 'dining', 'pickup', 'delivery', 'preorder', 'pre order', 'pickup/delivery'].includes(d.toLowerCase())\\n    );\\n    return [...coreDepts, ...allowed];\\n  };\"",
+  "StartLine": "1644",
+  "TargetContent": "\"  const getAllowedDepartments = () => {\\n    if (!business) return departments;\\n    const userRole = String(business?.role || '').toLowerCase();\\n    const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');\\n    if (isSupervisor) return departments;\\n\\n    const posAccess = business?.staff_permissions?.pos_access;\\n    if (!posAccess) return departments;\\n\\n    const allowed = posAccess.OrderWindow?.table_departments;\\n    if (allowed === true || !allowed) return departments;\\n\\n    return departments.filter(d => d === 'All' || allowed.includes(d));\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding getTableFilterDepartments function\"",
+  "toolSummary": "\"Replace file content\""
+}

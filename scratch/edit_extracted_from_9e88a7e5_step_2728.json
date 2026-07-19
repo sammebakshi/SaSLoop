@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"When adding a new item to cart, use the selected price tier to determine the price. If tier 2 or 3 is selected and that price exists, use it; otherwise fallback to base price.\"",
+  "EndLine": "3365",
+  "Instruction": "\"Replace the cart addition line to use price tier\"",
+  "ReplacementContent": "\"           if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);\\n           const tierPrice = selectedPriceTier === 2 && item.sale_price_2 ? parseFloat(item.sale_price_2) : (selectedPriceTier === 3 && item.sale_price_3 ? parseFloat(item.sale_price_3) : parseFloat(item.price));\\n           return [...prev, { ...item, price: tierPrice, original_price: item.price, quantity: 1 }];\"",
+  "StartLine": "3364",
+  "TargetContent": "\"           if (existing) return prev.map(c => c.id === item.id ? { ...c, quantity: c.quantity + 1 } : c);\\n           return [...prev, { ...item, quantity: 1 }];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding price tier to cart\"",
+  "toolSummary": "\"Cart price tier logic\""
+}

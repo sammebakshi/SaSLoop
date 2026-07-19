@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Store editingOrder reference after saving a draft bill to prevent immediate settlement duplicates.\"",
+  "EndLine": "8441",
+  "Instruction": "\"Set editingOrder state upon successful checkout save in App.jsx.\"",
+  "ReplacementContent": "\"          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? serverOrder : o));\\n          if (type === 'SAVE') {\\n            setEditingOrder(serverOrder);\\n          }\\n          toast.success(`${type === 'SAVE' ? \\\"Saved\\\" : \\\"Settled\\\"} & Synced!`);\\n        } else {\\n          const syncedOrder = { ...newOrder, synced: true };\\n          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? syncedOrder : o));\\n          if (type === 'SAVE') {\\n            setEditingOrder(syncedOrder);\\n          }\\n          toast.success(`${type === 'SAVE' ? \\\"Saved\\\" : \\\"Settled\\\"} & Synced!`);\\n        }\\n      }\"",
+  "StartLine": "8435",
+  "TargetContent": "\"          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? serverOrder : o));\\n          toast.success(`${type === 'SAVE' ? \\\"Saved\\\" : \\\"Settled\\\"} & Synced!`);\\n        } else {\\n          setRecentOrders(prev => prev.map(o => o.id === newOrder.id ? { ...o, synced: true } : o));\\n          toast.success(`${type === 'SAVE' ? \\\"Saved\\\" : \\\"Settled\\\"} & Synced!`);\\n        }\\n      }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating editingOrder state on save\"",
+  "toolSummary": "\"Update editingOrder on save\""
+}

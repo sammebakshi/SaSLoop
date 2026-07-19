@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Default pre-order scheduled date and time to current local date and time\"",
+  "EndLine": "1731",
+  "Instruction": "\"Set preOrderScheduledDate and preOrderScheduledTime state default values to getCurrentDateString() and getCurrentTimeString()\"",
+  "ReplacementContent": "\"  const [preOrderScheduledDate, setPreOrderScheduledDate] = useState(getCurrentDateString());\\n  const [preOrderScheduledTime, setPreOrderScheduledTime] = useState(getCurrentTimeString());\"",
+  "StartLine": "1727",
+  "TargetContent": "\"  const [preOrderScheduledDate, setPreOrderScheduledDate] = useState('');\\n  const [preOrderScheduledTime, setPreOrderScheduledTime] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

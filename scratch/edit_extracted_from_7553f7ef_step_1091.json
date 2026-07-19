@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Load cached staff list during localRefresh.\"",
+  "EndLine": "6067",
+  "Instruction": "\"Load pos_full_staff from localStorage before loading pos_waiters in localRefresh in App.jsx.\"",
+  "ReplacementContent": "\"      const cachedStaff = localStorage.getItem('pos_full_staff');\\n      if (cachedStaff) setStaffList(JSON.parse(cachedStaff));\\n\\n      const cachedWaiters = localStorage.getItem('pos_waiters');\"",
+  "StartLine": "6064",
+  "TargetContent": "\"      const cachedWaiters = localStorage.getItem('pos_waiters');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Load staff cache in localRefresh in App.jsx\"",
+  "toolSummary": "\"Load staff cache in localRefresh\""
+}

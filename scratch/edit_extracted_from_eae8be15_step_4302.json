@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import Pencil icon from lucide-react in App.jsx\"",
+  "EndLine": "11",
+  "Instruction": "\"Add Pencil to the lucide-react imports\"",
+  "ReplacementContent": "\"import { \\n  ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Pencil, Upload, MessageSquare,\\n  LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar, \\n  RefreshCcw, Package, Truck, ShoppingBag, Zap as QuickIcon,\\n  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key,\\n  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText,\\n  Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight,\\n  Users, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,\\n  Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck, Coins\\n} from 'lucide-react';\"",
+  "StartLine": "2",
+  "TargetContent": "\"import { \\n  ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Upload, MessageSquare,\\n  LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar, \\n  RefreshCcw, Package, Truck, ShoppingBag, Zap as QuickIcon,\\n  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key,\\n  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText,\\n  Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight,\\n  Users, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,\\n  Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck, Coins\\n} from 'lucide-react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add Pencil import\"",
+  "toolSummary": "\"Importing Pencil from lucide-react in App.jsx\""
+}

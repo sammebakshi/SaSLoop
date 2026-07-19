@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore tableCustomers from active state fetched from DB in initApp.\"",
+  "EndLine": "6787",
+  "Instruction": "\"Add check and set for stateData.tableCustomers inside activeStateRes.data check in initApp.\"",
+  "ReplacementContent": "\"          if (stateData.tableActiveTimestamps) {\\n            setTableActiveTimestamps(stateData.tableActiveTimestamps);\\n            localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps));\\n          }\\n          if (stateData.tableCustomers) {\\n            setTableCustomers(stateData.tableCustomers);\\n            localStorage.setItem('pos_table_customers', JSON.stringify(stateData.tableCustomers));\\n          }\\n          if (stateData.tables && stateData.tables.length > 0) {\"",
+  "StartLine": "6778",
+  "TargetContent": "\"          if (stateData.tableActiveTimestamps) {\\n            setTableActiveTimestamps(stateData.tableActiveTimestamps);\\n            localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps));\\n          }\\n          if (stateData.tables && stateData.tables.length > 0) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring tableCustomers in initApp activeState block\"",
+  "toolSummary": "\"Restoring tableCustomers in initApp activeState block\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set printDetailedBalance to true when selecting a customer in search input in App.jsx\"",
+  "EndLine": "12053",
+  "Instruction": "\"Set printDetailedBalance to true.\"",
+  "ReplacementContent": "\"                                    setCustomerCountryCode(parsed.dialCode);\\n                                    setCustomerPhone(parsed.localNumber);\\n                                    setCustomerName(res.name || '');\\n                                    setCustomerAddress(res.address || '');\\n                                    setSelectedCustomer(res);\\n                                    setPrintDetailedBalance(true);\\n                                    setShowSearchResults(false);\"",
+  "StartLine": "12046",
+  "TargetContent": "\"                                    setCustomerCountryCode(parsed.dialCode);\\n                                    setCustomerPhone(parsed.localNumber);\\n                                    setCustomerName(res.name || '');\\n                                    setCustomerAddress(res.address || '');\\n                                    setSelectedCustomer(res);\\n                                    setShowSearchResults(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting printDetailedBalance to true on search selection\"",
+  "toolSummary": "\"Set printDetailedBalance to true on search selection\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define states for customer history modal, waiter modal, and table-specific waiters, discounts, and additional charges. Apply localStorage sync hooks.\"",
+  "EndLine": "2806",
+  "Instruction": "\"Add isCustomerHistoryModalOpen, selectedHistoryOrder, waitersList, isWaiterModalOpen, selectedWaiter, tableWaiters, tableDiscounts, tableAdditionalCharges states and their useEffect blocks after kotHistory useEffect.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_kot_history', JSON.stringify(kotHistory));\\n  }, [kotHistory]);\\n\\n  const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);\\n  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);\\n  const [waitersList, setWaitersList] = useState([]);\\n  const [isWaiterModalOpen, setIsWaiterModalOpen] = useState(false);\\n  const [selectedWaiter, setSelectedWaiter] = useState(null);\\n  const [tableWaiters, setTableWaiters] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_waiters');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n  const [tableDiscounts, setTableDiscounts] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_discounts');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n  const [tableAdditionalCharges, setTableAdditionalCharges] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_additional_charges');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_waiters', JSON.stringify(tableWaiters));\\n  }, [tableWaiters]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_discounts', JSON.stringify(tableDiscounts));\\n  }, [tableDiscounts]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_additional_charges', JSON.stringify(tableAdditionalCharges));\\n  }, [tableAdditionalCharges]);\"",
+  "StartLine": "2802",
+  "TargetContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_kot_history', JSON.stringify(kotHistory));\\n  }, [kotHistory]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding waiter and table states in App.jsx\"",
+  "toolSummary": "\"Adding waiter and table states\""
+}

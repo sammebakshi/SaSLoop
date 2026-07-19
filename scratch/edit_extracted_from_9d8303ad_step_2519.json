@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix extra brace syntax error in App.jsx\"",
+  "EndLine": "9462",
+  "Instruction": "\"Fix line 9460 by replacing double closing braces with a single brace and parenthesis for conditional rendering\"",
+  "ReplacementContent": "\"                           )}\"",
+  "StartLine": "9459",
+  "TargetContent": "\"                           )}}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fix extra brace\"",
+  "toolSummary": "\"Fixing syntax in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Exclude all temporary tables from the second Dine-In tables grid at line 9660.\"",
+  "EndLine": "9661",
+  "Instruction": "\"Filter out temporary tables from Dine-In physical tables grid.\"",
+  "ReplacementContent": "\"                              {tables.filter(t => !t.is_temporary && (activeDepartment === 'All' || t.department_name === activeDepartment) && (tableSearchQuery ? t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase()) : true)).map(table => {\"",
+  "StartLine": "9659",
+  "TargetContent": "\"                              {tables.filter(t => !(t.is_temporary && t.original_order_type === 'PRE_ORDER') && (activeDepartment === 'All' || t.department_name === activeDepartment) && (tableSearchQuery ? t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase()) : true)).map(table => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Dine-In grid table filter at 9660\"",
+  "toolSummary": "\"Update table filter\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Increase visual styling of DashboardCard: height to h-[105px], icon size, padding, and font sizes.\"",
+  "EndLine": "7390",
+  "Instruction": "\"Increase visual parameters of the DashboardCard component.\"",
+  "ReplacementContent": "\"const DashboardCard = ({ title, val, icon, isDark }) => {\\n  return (\\n    <div className={`rounded-xl p-4.5 h-[105px] border flex items-center gap-3 transition-colors ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>\\n      <div className=\\\"w-9 h-9 rounded-full border border-emerald-500/25 flex items-center justify-center shrink-0 bg-emerald-500/5\\\">\\n        {icon}\\n      </div>\\n      <div className=\\\"min-w-0\\\">\\n        <div className={`text-[10.5px] font-bold transition-colors truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{title}</div>\\n        <div className=\\\"text-sm font-bold text-[#18ba60] truncate\\\">{val}</div>\\n      </div>\\n    </div>\\n  );\\n};\"",
+  "StartLine": "7378",
+  "TargetContent": "\"const DashboardCard = ({ title, val, icon, isDark }) => {\\n  return (\\n    <div className={`rounded-xl p-4 h-[95px] border flex items-center gap-2.5 transition-colors ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>\\n      <div className=\\\"w-8 h-8 rounded-full border border-emerald-500/25 flex items-center justify-center shrink-0 bg-emerald-500/5\\\">\\n        {icon}\\n      </div>\\n      <div className=\\\"min-w-0\\\">\\n        <div className={`text-[9px] font-bold transition-colors truncate ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{title}</div>\\n        <div className=\\\"text-xs font-bold text-[#18ba60] truncate\\\">{val}</div>\\n      </div>\\n    </div>\\n  );\\n};\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Increasing DashboardCard size in App.jsx\"",
+  "toolSummary": "\"Increase DashboardCard size\""
+}

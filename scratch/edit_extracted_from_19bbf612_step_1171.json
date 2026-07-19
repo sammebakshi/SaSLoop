@@ -1,0 +1,8 @@
+{
+  "Description": "\"Remove fixed height constraints from the dashboard top section so all stat cards are visible without scrolling. The outer page container already has overflow-y-auto for the whole dashboard, so the cards grid doesn't need its own scroll area.\"",
+  "Instruction": "\"1. Remove the fixed lg:h-[480px] from the parent container. 2. Remove overflow-y-auto from the cards grid container so it grows naturally.\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":8140,\"ReplacementContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-2.5 shrink-0\\\">\",\"StartLine\":8140,\"TargetContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-2.5 lg:h-[480px] shrink-0\\\">\"},{\"AllowMultiple\":false,\"EndLine\":8177,\"ReplacementContent\":\"                          <div className={`rounded-2xl border p-2.5 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\",\"StartLine\":8177,\"TargetContent\":\"                          <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing height constraints from dashboard stats\"",
+  "toolSummary": "\"Fix dashboard card grid overflow\""
+}

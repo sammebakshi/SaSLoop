@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add missing closing brace to shortcuts map expression.\"",
+  "EndLine": "20289",
+  "Instruction": "\"Change the closing characters of the shortcuts map from )) to })).\"",
+  "ReplacementContent": "\"                                     </div>\\n                                  }))\"",
+  "StartLine": "20287",
+  "TargetContent": "\"                                     </div>\\n                                  ))\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing shortcuts map close characters\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

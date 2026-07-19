@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import missing icons Receipt and Database from lucide-react in App.jsx to fix runtime load error.\"",
+  "EndLine": "583",
+  "Instruction": "\"Add Receipt and Database to the imports from lucide-react on line 582.\"",
+  "ReplacementContent": "\"import { Headphones, Hourglass, UserCheck, Receipt, Database } from 'lucide-react';\"",
+  "StartLine": "581",
+  "TargetContent": "\"import { Headphones, Hourglass, UserCheck } from 'lucide-react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing lucide-react imports in App.jsx\"",
+  "toolSummary": "\"Editing App.jsx\""
+}

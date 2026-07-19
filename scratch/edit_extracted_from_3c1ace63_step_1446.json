@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add commit-phase useEffect to reset isRestoringCustomerRef dynamically on render commit\"",
+  "EndLine": "1519",
+  "Instruction": "\"Add commit-phase useEffect to automatically clear isRestoringCustomerRef after render completes\"",
+  "ReplacementContent": "\"  const isRestoringCustomerRef = useRef(false);\\n\\n  useEffect(() => {\\n    if (isRestoringCustomerRef.current) {\\n      isRestoringCustomerRef.current = false;\\n    }\\n  });\"",
+  "StartLine": "1518",
+  "TargetContent": "\"  const isRestoringCustomerRef = useRef(false);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding commit-phase useEffect for isRestoringCustomerRef in App.jsx\"",
+  "toolSummary": "\"Add commit-phase useEffect\""
+}

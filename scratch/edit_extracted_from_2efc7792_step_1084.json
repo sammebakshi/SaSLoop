@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fixed waiter filtering: now excludes admin/manager/brand_owner roles explicitly, and no longer falls back to showing all users when no waiters are found. Only users with waiter-related designations (waiter, captain, server, staff, delivery boy, billing user) are shown.\"",
+  "EndLine": "5017",
+  "Instruction": "\"Fix the waiter filtering logic to exclude managers and admins, and not fallback to showing all staff when no waiters are found.\"",
+  "ReplacementContent": "\"      const staffList = staffRes.data || [];\\n      const excludedRoles = ['brand_owner', 'admin', 'manager', 'master_admin', 'user'];\\n      const waitersOnly = staffList.filter(s => {\\n        const des = String(s.designation_name || '').toLowerCase();\\n        const role = String(s.role || '').toLowerCase();\\n        // Exclude managers/admins by role\\n        if (excludedRoles.includes(role) && !des) return false;\\n        if (des.includes('manager') || des.includes('admin') || des.includes('owner')) return false;\\n        // Include waiter-related designations\\n        return des.includes('waiter') || des.includes('captain') || des.includes('server') || des.includes('staff') || des.includes('delivery') || des.includes('billing') || role.includes('staff') || role.includes('waiter');\\n      });\\n      setWaitersList(waitersOnly);\\n      localStorage.setItem('pos_waiters', JSON.stringify(waitersOnly));\"",
+  "StartLine": "5009",
+  "TargetContent": "\"      const staffList = staffRes.data || [];\\n      const waitersOnly = staffList.filter(s => {\\n        const des = String(s.designation_name || '').toLowerCase();\\n        const role = String(s.role || '').toLowerCase();\\n        return des.includes('waiter') || des.includes('captain') || des.includes('server') || des.includes('staff') || role.includes('staff') || role.includes('waiter');\\n      });\\n      const finalWaiters = waitersOnly.length > 0 ? waitersOnly : staffList;\\n      setWaitersList(finalWaiters);\\n      localStorage.setItem('pos_waiters', JSON.stringify(finalWaiters));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing waiter filter\"",
+  "toolSummary": "\"Waiter filter fix\""
+}

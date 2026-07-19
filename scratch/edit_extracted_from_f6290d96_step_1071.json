@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Increased splash screen timeout in App.jsx to 7500ms to allow the step-by-step connection animations to complete fully before transition.\"",
+  "EndLine": "5270",
+  "Instruction": "\"Increase the fallback timer for the splash screen in App.jsx to 7500ms\"",
+  "ReplacementContent": "\"    // Timer for initial loading splash screen (acts as fallback; splashWindow itself triggers app-ready upon animation end)\\n    const timer = setTimeout(() => {\\n      setShowInitialSplash(false);\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        ipcRenderer.send('app-ready');\\n      } catch (e) {\\n        // Safe fallback if not running inside Electron\\n      }\\n    }, 7500);\"",
+  "StartLine": "5259",
+  "TargetContent": "\"    // Timer for initial loading splash screen (acts as fallback; splashWindow itself triggers app-ready upon animation end)\\n    const timer = setTimeout(() => {\\n      setShowInitialSplash(false);\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        ipcRenderer.send('app-ready');\\n      } catch (e) {\\n        // Safe fallback if not running inside Electron\\n      }\\n    }, 4200);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update App.jsx timer\"",
+  "toolSummary": "\"Update App.jsx fallback timer\""
+}

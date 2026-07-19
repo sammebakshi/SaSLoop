@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Rename the Next button in the pre-order KOT subtab to Checkout, aligning the terminology with standard e-commerce website flow.\"",
+  "EndLine": "12582",
+  "Instruction": "\"Rename the Next button to Checkout in pre-order KOT subtab.\"",
+  "ReplacementContent": "\"                          <button\\n                            onClick={() => setPreOrderSubTab('PAYMENTS')}\\n                            className={`flex-1 py-2.5 rounded text-[11px] font-extrabold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-[#1a2530] border-slate-800 text-white hover:bg-[#2c3e50]'}`}\\n                          >\\n                            Checkout\\n                          </button>\"",
+  "StartLine": "12570",
+  "TargetContent": "\"                          <button\\n                            onClick={() => setPreOrderSubTab('PAYMENTS')}\\n                            className={`flex-1 py-2.5 rounded text-[11px] font-extrabold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-[#1a2530] border-slate-800 text-white hover:bg-[#2c3e50]'}`}\\n                          >\\n                            Next\\n                          </button>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Renaming Next button to Checkout\"",
+  "toolSummary": "\"File edit\""
+}

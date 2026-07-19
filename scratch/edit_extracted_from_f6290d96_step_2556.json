@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customer details validation in handleSaveTemporaryKOT for pickup and delivery orders when custDetailsMandatoryForPickupDelivery is enabled.\"",
+  "EndLine": "4699",
+  "Instruction": "\"Add customer details validation in handleSaveTemporaryKOT\"",
+  "ReplacementContent": "\"  const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {\\n    if (cart.length === 0) {\\n      toast.error(\\\"KOT is empty!\\\");\\n      return;\\n    }\\n\\n    // Check if customer details are mandatory for PickUp & Delivery\\n    const isPickupDeliveryMandatory = !!business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery;\\n    const isPickupOrDelivery = activeTrayTab !== 'PreOrder' && (orderType === 'PICKUP' || orderType === 'DELIVERY');\\n    if (isPickupDeliveryMandatory && isPickupOrDelivery) {\\n      if (!customerName || !customerName.trim() || customerName.trim() === \\\"POS Guest\\\") {\\n        toast.warning(\\\"Customer Name is mandatory for PickUp & Delivery orders!\\\");\\n        return;\\n      }\\n      if (!customerPhone || !customerPhone.trim()) {\\n        toast.warning(\\\"Customer Phone is mandatory for PickUp & Delivery orders!\\\");\\n        return;\\n      }\\n    }\"",
+  "StartLine": "4694",
+  "TargetContent": "\"  const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {\\n    if (cart.length === 0) {\\n      toast.error(\\\"KOT is empty!\\\");\\n      return;\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding validation to KOT flow\"",
+  "toolSummary": "\"Edit file\""
+}

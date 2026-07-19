@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Imported BookOpen icon from lucide-react.\"",
+  "EndLine": "11",
+  "Instruction": "\"Add BookOpen to the lucide-react import list.\"",
+  "ReplacementContent": "\"  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key, BookOpen,\"",
+  "StartLine": "6",
+  "TargetContent": "\"  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding BookOpen icon import\"",
+  "toolSummary": "\"Import BookOpen icon in App.jsx\""
+}

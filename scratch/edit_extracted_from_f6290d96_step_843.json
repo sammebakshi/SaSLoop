@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add shift start time filtering to today's orders list in App.jsx.\"",
+  "EndLine": "2895",
+  "Instruction": "\"Filter merged orders by shift start time if mode is today in fetchOrdersForMode.\"",
+  "ReplacementContent": "\"        const merged = [...filteredUnsynced, ...mappedOrders];\\n        merged.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));\\n\\n        let shiftFiltered = merged;\\n        if (mode === 'today') {\\n          if (shift && shift.status === 'STARTED' && shift.startTime) {\\n            const shiftStart = new Date(shift.startTime).getTime();\\n            shiftFiltered = merged.filter(o => new Date(o.created_at || o.timestamp || o.date).getTime() >= shiftStart);\\n          } else if (!shift || shift.status === 'NOT_STARTED') {\\n            shiftFiltered = [];\\n          }\\n        }\\n\\n        setRecentOrders(shiftFiltered);\\n        calculateStats(shiftFiltered);\"",
+  "StartLine": "2891",
+  "TargetContent": "\"        const merged = [...filteredUnsynced, ...mappedOrders];\\n        merged.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));\\n\\n        setRecentOrders(merged);\\n        calculateStats(merged);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Filter today's orders by shift start time in App.jsx\"",
+  "toolSummary": "\"Update App.jsx source code\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Merge fetched server tables with local temporary tables to prevent temporary tables from being lost.\"",
+  "EndLine": "2028",
+  "Instruction": "\"Change setTables to merge server tables with local temporary tables.\"",
+  "ReplacementContent": "\"      const tableRes = await posService.getTables();\\n      setTables(prev => {\\n        const localTempTables = prev.filter(t => t.is_temporary);\\n        const serverTables = tableRes.data || [];\\n        return [...serverTables, ...localTempTables];\\n      });\"",
+  "StartLine": "2027",
+  "TargetContent": "\"      const tableRes = await posService.getTables();\\n      setTables(tableRes.data || []);\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Update tables setter in initApp\"",
+  "toolSummary": "\"Edit file\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wrap handleOpenCouponModal with requestPasscodeAuthorization.\"",
+  "EndLine": "4295",
+  "Instruction": "\"Replace checks inside handleOpenCouponModal with passcode request wrapper.\"",
+  "ReplacementContent": "\"  const handleOpenCouponModal = async () => {\\n    requestPasscodeAuthorization('add_coupon', async () => {\\n      setIsCouponModalOpen(true);\\n      try {\\n        const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');\\n        const res = await posService.getCoupons(outletId);\\n        setAvailableCoupons(res.data || []);\\n      } catch (err) {\\n        console.error(\\\"Failed to fetch coupons:\\\", err);\\n        setAvailableCoupons([]);\\n      }\\n    });\\n  };\"",
+  "StartLine": "4281",
+  "TargetContent": "\"  const handleOpenCouponModal = async () => {\\n    if (!checkBillingPermission('add_coupon')) {\\n      toast.error(\\\"You do not have permission to add a coupon.\\\");\\n      return;\\n    }\\n    setIsCouponModalOpen(true);\\n    try {\\n      const outletId = business?.user_id || business?.parent_user_id || business?.id || localStorage.getItem('pos_outlet_id');\\n      const res = await posService.getCoupons(outletId);\\n      setAvailableCoupons(res.data || []);\\n    } catch (err) {\\n      console.error(\\\"Failed to fetch coupons:\\\", err);\\n      setAvailableCoupons([]);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wrapping coupon modal logic\"",
+  "toolSummary": "\"Wrap coupon modal logic\""
+}

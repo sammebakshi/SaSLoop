@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Render the 'Send eBill (WhatsApp)' checkbox right above pre-order action buttons when in the billing sub-tab.\"",
+  "EndLine": "13058",
+  "Instruction": "\"Render preorder eBill checkbox in App.jsx\"",
+  "ReplacementContent": "\"                  {activeTrayTab === 'PreOrder' && preOrderSubTab === 'BILLING' && (\\n                    <div className={`px-3 py-1.5 flex items-center justify-between shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800/60' : 'bg-white border-slate-200'}`}>\\n                      <label className=\\\"flex items-center gap-2 cursor-pointer select-none\\\">\\n                        <input\\n                          type=\\\"checkbox\\\"\\n                          checked={ebillEnabled}\\n                          onChange={e => setEbillEnabled(e.target.checked)}\\n                          className=\\\"w-4 h-4 accent-[#388e67] cursor-pointer shrink-0\\\"\\n                        />\\n                        <span className=\\\"text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400\\\">\\n                          Send eBill (WhatsApp)\\n                        </span>\\n                      </label>\\n                    </div>\\n                  )}\\n\\n                  {/* Action Buttons */}\\n                  {activeTrayTab === 'PreOrder' ? (\\n                    <div className={`flex gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800' : 'bg-white border-slate-200'}`}>\"",
+  "StartLine": "13056",
+  "TargetContent": "\"                  {/* Action Buttons */}\\n                  {activeTrayTab === 'PreOrder' ? (\\n                    <div className={`flex gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800' : 'bg-white border-slate-200'}`}>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding Pre-Order eBill checkbox to App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

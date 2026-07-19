@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace Store icon/label in App.jsx sidebar with WhatsApp icon/label\"",
+  "EndLine": "6860",
+  "Instruction": "\"Update the store SidebarIcon entry to a WhatsApp logo, label, and tab action.\"",
+  "ReplacementContent": "\"          <SidebarIcon id=\\\"whatsappIcon\\\" isDark={isDark} icon={<svg viewBox=\\\"0 0 24 24\\\" fill=\\\"currentColor\\\" className=\\\"w-5.5 h-5.5\\\"><path d=\\\"M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z\\\"/></svg>} active={activeTab === 'whatsapp'} onClick={() => setActiveTab('whatsapp')} label=\\\"WhatsApp\\\" />\"",
+  "StartLine": "6856",
+  "TargetContent": "\"          <SidebarIcon id=\\\"storeIcon\\\" isDark={isDark} icon={<svg viewBox=\\\"0 0 24 24\\\" fill=\\\"currentColor\\\" className=\\\"w-6 h-6\\\"><path d=\\\"M20 4H4v2h16V4zm1 10v-2l-1-5H4l-1 5v2h1v6h10v-6h4v6h2v-6h1zm-9 4H6v-4h6v4z\\\"/></svg>} active={activeTab === 'store'} onClick={() => setActiveTab('store')} label=\\\"Store\\\" />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing Store sidebar item with WhatsApp\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

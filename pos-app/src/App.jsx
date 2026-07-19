@@ -20240,36 +20240,32 @@ const UniversalPOS = () => {
          {/* Customer History Modal */}
          {isCustomerHistoryModalOpen && (
             <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-               <div className={`border rounded-[2rem] w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden h-[85vh] transition-all ${
+               <div className={`border rounded-3xl w-full max-w-5xl flex flex-col shadow-2xl overflow-hidden h-[85vh] transition-all ${
                   isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
                }`}>
-                  {/* Header */}
-                  <div className={`p-6 border-b flex justify-between items-center ${
-                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                     <div className="flex items-center gap-6">
-                        <div>
-                           <h3 className="text-lg font-black uppercase italic tracking-tighter flex items-center gap-2">
-                              <History className="text-emerald-500" size={22} />
-                              Customer Profile & History
-                           </h3>
-                           {(() => {
-                              const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;
-                              const cust = customerDb[fullPhone] || { name: customerName || 'POS Guest', phone: fullPhone };
-                              return (
-                                 <p className="text-[10px] font-bold uppercase tracking-wider text-gray-500 mt-1">
-                                    {cust.name} • {cust.phone} {cust.address ? `• ${cust.address}` : ''}
-                                 </p>
-                              );
-                           })()}
-                        </div>
-
+                  {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <History className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Customer Profile & History</span>
+                     </div>
+                     {(() => {
+                        const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;
+                        const cust = customerDb[fullPhone] || { name: customerName || 'POS Guest', phone: fullPhone };
+                        return (
+                           <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden lg:block">
+                              {cust.name} • {cust.phone} {cust.address ? `• ${cust.address}` : ''}
+                           </div>
+                        );
+                     })()}
+                     <div className="flex items-center h-full gap-4">
                         {/* Tabs */}
-                        <div className={`flex items-center rounded-xl p-1 ${isDark ? 'bg-[#0d1117] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
+                        <div className={`flex items-center rounded-xl p-0.5 ${isDark ? 'bg-[#161b22] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
                            <button
                               type="button"
                               onClick={() => setCustomerHistoryActiveTab('orders')}
-                              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase italic transition-all ${
+                              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase italic transition-all ${
                                  customerHistoryActiveTab === 'orders'
                                     ? 'bg-[#10ac84] text-white shadow-sm'
                                     : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')
@@ -20280,7 +20276,7 @@ const UniversalPOS = () => {
                            <button
                               type="button"
                               onClick={() => setCustomerHistoryActiveTab('points')}
-                              className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase italic transition-all ${
+                              className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase italic transition-all ${
                                  customerHistoryActiveTab === 'points'
                                     ? 'bg-[#10ac84] text-white shadow-sm'
                                     : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')
@@ -20289,16 +20285,22 @@ const UniversalPOS = () => {
                               Points Ledger
                            </button>
                         </div>
+
+                        {/* Close Button */}
+                        <button
+                           type="button"
+                           onClick={() => {
+                              setIsCustomerHistoryModalOpen(false);
+                              setSelectedHistoryOrder(null);
+                           }}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                              isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
                      </div>
-                     <button
-                        onClick={() => {
-                           setIsCustomerHistoryModalOpen(false);
-                           setSelectedHistoryOrder(null);
-                        }}
-                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                     >
-                        ✕
-                     </button>
                   </div>
 
                   {/* Stats Cards */}
@@ -23985,92 +23987,123 @@ const UniversalPOS = () => {
                   initial={{ scale: 0.95, y: 20 }}
                   animate={{ scale: 1, y: 0 }}
                   exit={{ scale: 0.95, y: 20 }}
-                  className={`w-full max-w-lg rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
+                  className={`w-full max-w-lg rounded-3xl overflow-hidden shadow-2xl border flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}
                >
-                  <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                     <div>
-                        <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><UserPlus className="text-[#10ac84]" size={22}/> Adding Customers</h3>
-                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Create a new customer profile</p>
+                  {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <UserPlus className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Add Customer</span>
                      </div>
-                     <button onClick={() => setIsAddCustomerModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                     <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
+                        Create a new customer profile
+                     </div>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => setIsAddCustomerModalOpen(false)}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'}`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
 
-                  <div className={`p-8 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
-                     <div className="space-y-1">
-                        <label className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Customer Name</label>
-                        <input
-                           type="text"
-                           value={newCustomerForm.name}
-                           onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
-                           placeholder="e.g. John Doe"
-                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
-                        />
-                     </div>
-
-                     <div className="space-y-1">
-                        <label className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Phone Number *</label>
-                        <div className="flex gap-2">
-                           <select
-                              value={newCustomerCountryCode}
-                              onChange={(e) => setNewCustomerCountryCode(e.target.value)}
-                              className={`px-3 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] max-w-[90px] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
-                           >
-                              {COUNTRY_CODES.map(c => (
-                                 <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
-                                    {c.flag} {c.dialCode}
-                                 </option>
-                              ))}
-                           </select>
+                  {/* Form Body */}
+                  <div className={`p-6 space-y-4 ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                     {/* Row 1: Customer Name */}
+                     <div className="flex flex-col gap-1.5 text-left">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Customer Name</label>
+                        <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                            <input
                               type="text"
-                              value={newCustomerForm.phone}
-                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
-                              placeholder="e.g. 9876543210"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                              value={newCustomerForm.name}
+                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, name: e.target.value }))}
+                              placeholder="e.g. John Doe"
+                              className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
                            />
                         </div>
                      </div>
 
-                     <div className="space-y-1">
-                        <label className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Address</label>
-                        <input
-                           type="text"
-                           value={newCustomerForm.address}
-                           onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
-                           placeholder="e.g. 123 Street Name"
-                           className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
-                        />
+                     {/* Row 2: Country Code + Phone */}
+                     <div className="flex flex-col gap-1.5 text-left">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Phone Number *</label>
+                        <div className="flex gap-2">
+                           <div className={`h-9 rounded-lg px-2 flex items-center border ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <select
+                                 value={newCustomerCountryCode}
+                                 onChange={(e) => setNewCustomerCountryCode(e.target.value)}
+                                 className={`bg-transparent text-[11px] font-bold outline-none cursor-pointer ${isDark ? 'text-gray-300' : 'text-slate-800'}`}
+                              >
+                                 {COUNTRY_CODES.map(c => (
+                                    <option key={c.code} value={c.dialCode} className={isDark ? 'bg-gray-900 text-white' : 'bg-white text-slate-800'}>
+                                       {c.flag} {c.dialCode}
+                                    </option>
+                                 ))}
+                              </select>
+                           </div>
+                           <div className={`flex-1 h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <input
+                                 type="text"
+                                 value={newCustomerForm.phone}
+                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, phone: e.target.value }))}
+                                 placeholder="e.g. 9876543210"
+                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
+                              />
+                           </div>
+                        </div>
                      </div>
 
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="space-y-1">
-                           <label className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Balance</label>
+                     {/* Row 3: Address */}
+                     <div className="flex flex-col gap-1.5 text-left">
+                        <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Address</label>
+                        <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
                            <input
-                              type="number"
-                              value={newCustomerForm.balance}
-                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, balance: e.target.value }))}
-                              placeholder="0"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
+                              type="text"
+                              value={newCustomerForm.address}
+                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, address: e.target.value }))}
+                              placeholder="e.g. 123 Street Name"
+                              className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
                            />
                         </div>
+                     </div>
 
-                        <div className="space-y-1">
-                           <label className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Points</label>
-                           <input
-                              type="number"
-                              value={newCustomerForm.points}
-                              onChange={(e) => setNewCustomerForm(prev => ({ ...prev, points: e.target.value }))}
-                              placeholder="0"
-                              className={`w-full px-4 py-3 rounded-xl text-xs focus:outline-none focus:border-[#18ba60] border ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder-[#8b949e]' : 'bg-white border-slate-200 text-slate-900 placeholder-slate-400'}`}
-                           />
+                     {/* Row 4: Balance & Points in grid */}
+                     <div className="grid grid-cols-2 gap-4 text-left">
+                        <div className="flex flex-col gap-1.5">
+                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Balance</label>
+                           <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <input
+                                 type="number"
+                                 value={newCustomerForm.balance}
+                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, balance: e.target.value }))}
+                                 placeholder="0"
+                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
+                              />
+                           </div>
+                        </div>
+
+                        <div className="flex flex-col gap-1.5">
+                           <label className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Initial Points</label>
+                           <div className={`h-9 rounded-lg px-3 flex items-center transition-colors border focus-within:border-[#10ac84] ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f1f3f4] border-slate-200'}`}>
+                              <input
+                                 type="number"
+                                 value={newCustomerForm.points}
+                                 onChange={(e) => setNewCustomerForm(prev => ({ ...prev, points: e.target.value }))}
+                                 placeholder="0"
+                                 className={`w-full bg-transparent text-[11px] font-bold outline-none ${isDark ? 'text-gray-300 placeholder-gray-600' : 'text-slate-800 placeholder-slate-400'}`}
+                              />
+                           </div>
                         </div>
                      </div>
                   </div>
 
-                  <div className={`p-8 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f8f9fa] border-slate-200'}`}>
+                  <div className={`p-6 border-t flex justify-end gap-3 shrink-0 ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
                      <button
                         onClick={() => setIsAddCustomerModalOpen(false)}
-                        className={`px-6 py-2.5 rounded-xl text-[10px] font-bold uppercase transition-all bg-transparent border ${isDark ? 'text-[#8b949e] border-[#30363d] hover:bg-white/5' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                        className={`px-6 py-2.5 rounded-lg text-[10px] font-bold uppercase transition-all bg-transparent border ${isDark ? 'text-[#8b949e] border-[#30363d] hover:bg-white/5' : 'text-slate-600 border-slate-200 hover:bg-slate-50'}`}
                      >
                         Cancel
                      </button>

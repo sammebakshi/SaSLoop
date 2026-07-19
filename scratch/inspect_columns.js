@@ -1,24 +1,27 @@
-const pool = require('../db');
+const { Pool } = require('pg');
+const pool = new Pool({
+  user: 'postgres',
+  host: 'localhost',
+  database: 'sasloop_db',
+  password: 'Admin@123',
+  port: 5432,
+});
 
-async function run() {
-    try {
-        const biCols = await pool.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'business_items' AND column_name IN ('sale_price_2', 'sale_price_3')
-        `);
-        console.log("business_items pricing columns:", biCols.rows.map(r => r.column_name));
+async function main() {
+  try {
+    const tableDeptCols = await pool.query(
+      "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'table_departments'"
+    );
+    console.log("table_departments columns:", tableDeptCols.rows);
 
-        const omiCols = await pool.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'outlet_menu_items' AND column_name IN ('sale_price_2', 'sale_price_3')
-        `);
-        console.log("outlet_menu_items pricing columns:", omiCols.rows.map(r => r.column_name));
-    } catch (e) {
-        console.error(e);
-    } finally {
-        pool.end();
-    }
+    const tablesListCols = await pool.query(
+      "SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'tables_list'"
+    );
+    console.log("\ntables_list columns:", tablesListCols.rows);
+  } catch (err) {
+    console.error(err);
+  } finally {
+    await pool.end();
+  }
 }
-run();
+main();

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use mergeCartItems for activeTableBill in payment modal\"",
+  "EndLine": "15184",
+  "Instruction": "\"Replace activeTableBill array concat with mergeCartItems in the payment modal helper\"",
+  "ReplacementContent": "\"             const activeTableBill = selectedTable ? mergeCartItems(tableBills[selectedTable.id] || [], tableCarts[selectedTable.id] || []) : [];\"",
+  "StartLine": "15181",
+  "TargetContent": "\"             const activeTableBill = selectedTable ? [...(tableBills[selectedTable.id] || []), \\n             ...(tableCarts[selectedTable.id] || [])] : [];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Patching activeTableBill in payment modal\"",
+  "toolSummary": "\"Patch activeTableBill merging\""
+}

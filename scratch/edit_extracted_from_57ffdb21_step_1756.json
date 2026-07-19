@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set selectedCustomer state on credit customer click selection\"",
+  "EndLine": "15953",
+  "Instruction": "\"Store res in selectedCustomer on credit search result selection.\"",
+  "ReplacementContent": "\"                                                          setCustomerCountryCode(parsed.dialCode);\\n                                                          setCustomerPhone(parsed.localNumber);\\n                                                          setCustomerName(res.name || '');\\n                                                          setCustomerAddress(res.address || '');\\n                                                          setSelectedCustomer(res);\\n                                                          setCreditSearchQuery('');\\n                                                          setCreditSearchResults([]);\"",
+  "StartLine": "15947",
+  "TargetContent": "\"                                                          setCustomerCountryCode(parsed.dialCode);\\n                                                          setCustomerPhone(parsed.localNumber);\\n                                                          setCustomerName(res.name || '');\\n                                                          setCustomerAddress(res.address || '');\\n                                                          setCreditSearchQuery('');\\n                                                          setCreditSearchResults([]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating credit customer click handler with selectedCustomer\"",
+  "toolSummary": "\"Update credit customer click handler with selectedCustomer\""
+}

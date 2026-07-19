@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declaring isSettleEnabled condition tracking in the React desktop POS component body after state variables are instantiated.\"",
+  "EndLine": "3105",
+  "Instruction": "\"Add isSettleEnabled computation after pos_terminal_settings useEffect.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\\n\\n  const selectedTableStatus = selectedTable ? tableStatuses[selectedTable.id] : null;\\n  const isSettleEnabled = orderType !== 'DINE_IN' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED';\"",
+  "StartLine": "3101",
+  "TargetContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding isSettleEnabled declaration to App.jsx\"",
+  "toolSummary": "\"Replace code in App.jsx\""
+}

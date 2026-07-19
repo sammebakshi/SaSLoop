@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add tableContextMenu state and close-on-click-outside hook to UniversalPOS component\"",
+  "EndLine": "668",
+  "Instruction": "\"Add tableContextMenu state and click handler to close it when user clicks anywhere on the document.\"",
+  "ReplacementContent": "\"  const [qrModalTable, setQrModalTable] = useState(null);\\n  const [tableContextMenu, setTableContextMenu] = useState(null);\\n\\n  useEffect(() => {\\n    const handleDocumentClick = () => {\\n      setTableContextMenu(null);\\n    };\\n    document.addEventListener('click', handleDocumentClick);\\n    return () => {\\n      document.removeEventListener('click', handleDocumentClick);\\n    };\\n  }, []);\"",
+  "StartLine": "665",
+  "TargetContent": "\"  const [qrModalTable, setQrModalTable] = useState(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding context menu state and hook\"",
+  "toolSummary": "\"Adding context menu state and hook\""
+}

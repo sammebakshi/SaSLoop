@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set printDetailedBalance to true on customer search input select in App.jsx\"",
+  "EndLine": "12050",
+  "Instruction": "\"Update selected customer setter in search input callback.\"",
+  "ReplacementContent": "\"setSelectedCustomer(res); setPrintDetailedBalance(true);\"",
+  "StartLine": "12050",
+  "TargetContent": "\"setSelectedCustomer(res);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting printDetailedBalance to true on search selection\"",
+  "toolSummary": "\"Set printDetailedBalance to true on search selection\""
+}

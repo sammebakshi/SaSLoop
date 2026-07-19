@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added getPrepTimeLabel helper function to calculate real-time preparation countdown for preparing orders.\"",
+  "EndLine": "5438",
+  "Instruction": "\"Add getPrepTimeLabel function below handleUpdateOrderStatus in App.jsx\"",
+  "ReplacementContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\\n      fetchOrdersForMode(receiptsDateMode);\\n      setSelectedDigitalOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);\\n    } catch (err) {\\n      console.error(\\\"Failed to update status:\\\", err);\\n      toast.error(err.response?.data?.error || \\\"Failed to update status\\\");\\n    }\\n  };\\n\\n  const getPrepTimeLabel = (createdAt) => {\\n    if (!createdAt) return \\\"Prep. Time: 30:00\\\";\\n    const elapsedMs = Date.now() - new Date(createdAt).getTime();\\n    const totalPrepMs = 30 * 60 * 1000; // 30 minutes prep time\\n    const remainingMs = totalPrepMs - elapsedMs;\\n    if (remainingMs <= 0) return \\\"Prep. Time: Overdue\\\";\\n    const mins = Math.floor(remainingMs / 60000);\\n    const secs = Math.floor((remainingMs % 60000) / 1000);\\n    return `Prep. Time: ${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;\\n  };\"",
+  "StartLine": "5427",
+  "TargetContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\\n      fetchOrdersForMode(receiptsDateMode);\\n      setSelectedDigitalOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);\\n    } catch (err) {\\n      console.error(\\\"Failed to update status:\\\", err);\\n      toast.error(err.response?.data?.error || \\\"Failed to update status\\\");\\n    }\\n  };\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding getPrepTimeLabel helper\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

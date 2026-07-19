@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove early return for isTransitioningToDashboard to allow overlay rendering.\"",
+  "EndLine": "8719",
+  "Instruction": "\"Delete the transition early return statement.\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "8711",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing early return\"",
+  "toolSummary": "\"Removing early return for isTransitioningToDashboard in App.jsx.\""
+}

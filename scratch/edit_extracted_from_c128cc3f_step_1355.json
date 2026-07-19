@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert mergeCartItems helper function inside UniversalPOS component\"",
+  "EndLine": "3197",
+  "Instruction": "\"Insert the mergeCartItems helper function below customChargeValue state declaration\"",
+  "ReplacementContent": "\"  const [customChargeValue, setCustomChargeValue] = useState('');\\n\\n  const mergeCartItems = (existingItems, newItems) => {\\n    if (!existingItems || existingItems.length === 0) return [...newItems];\\n    const merged = [...existingItems];\\n    newItems.forEach(newItem => {\\n      const existingIndex = merged.findIndex(item => {\\n        const idMatch = item.id === newItem.id;\\n        const priceMatch = parseFloat(item.price || 0) === parseFloat(newItem.price || 0);\\n        const labelMatch = item.priceLabel === newItem.priceLabel;\\n        const compMatch = !!item.isComplementary === !!newItem.isComplementary;\\n        const cancelMatch = !!item.isCancelled === !!newItem.isCancelled;\\n        \\n        const itemMods = item.modifiers || [];\\n        const newMods = newItem.modifiers || [];\\n        const modsMatch = itemMods.length === newMods.length && \\n          itemMods.every(m => newMods.some(nm => nm.name === m.name && parseFloat(nm.price || 0) === parseFloat(m.price || 0)));\\n        \\n        return idMatch && priceMatch && labelMatch && compMatch && cancelMatch && modsMatch;\\n      });\\n\\n      if (existingIndex > -1) {\\n        merged[existingIndex] = {\\n          ...merged[existingIndex],\\n          quantity: (merged[existingIndex].quantity || 0) + (newItem.quantity || 0)\\n        };\\n      } else {\\n        merged.push({ ...newItem });\\n      }\\n    });\\n    return merged;\\n  };\"",
+  "StartLine": "3194",
+  "TargetContent": "\"  const [customChargeValue, setCustomChargeValue] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Insert mergeCartItems helper function\"",
+  "toolSummary": "\"Insert mergeCartItems function in App.jsx\""
+}

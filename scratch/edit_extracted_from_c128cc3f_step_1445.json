@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace items conditional assignment in main tables grid with mergeCartItems\"",
+  "EndLine": "7710",
+  "Instruction": "\"Replace line 7709 with mergeCartItems call\"",
+  "ReplacementContent": "\"                                    const items = mergeCartItems(billItems, cartItems);\"",
+  "StartLine": "7708",
+  "TargetContent": "\"                                    const items = billItems.length > 0 ? billItems : cartItems;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update items assignment in main tables grid\"",
+  "toolSummary": "\"Update items in main tables grid\""
+}

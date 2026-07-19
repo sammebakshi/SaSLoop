@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the correct closing tags for the mapped expenses list in App.jsx.\"",
+  "EndLine": "14489",
+  "Instruction": "\"Replace line 14488-14489 to restore expenses map closing tags.\"",
+  "ReplacementContent": "\"                                       </div>\\n                                    </div>\\n                                 ))}\"",
+  "StartLine": "14488",
+  "TargetContent": "\"                                 </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing mapped expenses closing brackets\"",
+  "toolSummary": "\"Fix App.jsx syntax\""
+}

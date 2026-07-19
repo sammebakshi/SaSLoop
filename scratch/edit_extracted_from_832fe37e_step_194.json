@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define formatDateOnly helper at module level in App.jsx\"",
+  "EndLine": "895",
+  "Instruction": "\"Add formatDateOnly helper below formatDateTime\"",
+  "ReplacementContent": "\"};\\n\\nconst formatDateOnly = (dateStr) => {\\n  if (!dateStr) return '';\\n  try {\\n    const d = new Date(dateStr);\\n    if (isNaN(d.getTime())) return dateStr;\\n    const day = String(d.getDate()).padStart(2, '0');\\n    const month = String(d.getMonth() + 1).padStart(2, '0');\\n    const year = d.getFullYear();\\n    return `${day}-${month}-${year}`;\\n  } catch (e) {\\n    return dateStr;\\n  }\\n};\\n\"",
+  "StartLine": "892",
+  "TargetContent": "\"};\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Defining formatDateOnly helper in App.jsx\"",
+  "toolSummary": "\"Define formatDateOnly helper\""
+}

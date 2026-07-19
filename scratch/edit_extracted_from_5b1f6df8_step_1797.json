@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add showPassword state to UniversalPOS to control password visibility reactively, matching the backoffice login page behavior.\"",
+  "EndLine": "751",
+  "Instruction": "\"Add showPassword state after isLoggingIn state declaration.\"",
+  "ReplacementContent": "\"  const [username, setUsername] = useState('');\\n  const [password, setPassword] = useState('');\\n  const [isLoggingIn, setIsLoggingIn] = useState(false);\\n  const [showPassword, setShowPassword] = useState(false);\"",
+  "StartLine": "747",
+  "TargetContent": "\"  const [username, setUsername] = useState('');\\n  const [password, setPassword] = useState('');\\n  const [isLoggingIn, setIsLoggingIn] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding showPassword state to App.jsx\"",
+  "toolSummary": "\"Adding showPassword state to App.jsx\""
+}

@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add state variables for split payment amounts to App.jsx.\"",
+  "EndLine": "813",
+  "Instruction": "\"Declare splitPaidAmount and splitCreditAmount states in App.jsx.\"",
+  "ReplacementContent": "\"  const [customerPaidAmount, setCustomerPaidAmount] = useState('');\\n  const [splitPaidAmount, setSplitPaidAmount] = useState('');\\n  const [splitCreditAmount, setSplitCreditAmount] = useState('');\"",
+  "StartLine": "811",
+  "TargetContent": "\"  const [customerPaidAmount, setCustomerPaidAmount] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

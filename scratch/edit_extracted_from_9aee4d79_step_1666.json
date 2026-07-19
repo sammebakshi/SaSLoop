@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add state variable promptDialog to hold the configurations for our custom React prompt modal.\"",
+  "EndLine": "1601",
+  "Instruction": "\"Add the promptDialog state variable.\"",
+  "ReplacementContent": "\"  const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);\\n  const [promptDialog, setPromptDialog] = useState(null); // { title, message, placeholder, defaultValue, onSubmit }\\n  const [activeTab, setActiveTab] = useState('home');\"",
+  "StartLine": "1597",
+  "TargetContent": "\"  const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);\\n  const [activeTab, setActiveTab] = useState('home');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding promptDialog state to App.jsx\"",
+  "toolSummary": "\"Add state promptDialog\""
+}

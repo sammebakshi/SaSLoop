@@ -1,28 +1,22 @@
-const { execSync } = require('child_process');
 const fs = require('fs');
+const path = require('path');
 
-console.log("Analyzing changes to temporary tables between 83e6cc5 and e217906...");
-
-try {
-  const diff = execSync('git diff 83e6cc5 e217906 -- pos-app/src/App.jsx', {
-    maxBuffer: 20 * 1024 * 1024,
-    encoding: 'utf8'
-  });
+const filePath = path.join(__dirname, 'yesterday_edits.txt');
+if (fs.existsSync(filePath)) {
+  const buf = fs.readFileSync(filePath);
+  const content = buf.toString('utf16le');
   
-  const lines = diff.split('\n');
-  const matchedLines = [];
-  
-  lines.forEach((line, idx) => {
-    if (line.toLowerCase().includes('temp') || line.toLowerCase().includes('temporary')) {
-      // Print context of 5 lines before and after
-      matchedLines.push(`--- MATCH AT LINE ${idx} ---`);
-      matchedLines.push(lines.slice(Math.max(0, idx - 5), Math.min(lines.length, idx + 6)).join('\n'));
-      matchedLines.push('\n');
-    }
-  });
-  
-  fs.writeFileSync('scratch/diff_details.txt', matchedLines.join('\n'), 'utf8');
-  console.log("Wrote matching segments to scratch/diff_details.txt");
-} catch (e) {
-  console.error("Error executing diff:", e);
+  const targetEdit = 'Edit #78';
+  const startIdx = content.indexOf(targetEdit);
+  if (startIdx !== -1) {
+    // Find the end of this edit block (next edit block or end of file)
+    let endIdx = content.indexOf('Edit #', startIdx + targetEdit.length);
+    if (endIdx === -1) endIdx = content.length;
+    
+    console.log(content.substring(startIdx, endIdx));
+  } else {
+    console.log(`${targetEdit} not found`);
+  }
+} else {
+  console.log('yesterday_edits.txt not found');
 }

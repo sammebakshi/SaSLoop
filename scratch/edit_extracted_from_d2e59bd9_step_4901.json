@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Optimize silentSync background helper to only fetch customer records and avoid duplicate/unnecessary order polling conflicts.\"",
+  "EndLine": "3445",
+  "Instruction": "\"Remove order fetching from silentSync and simplify its dependency array.\"",
+  "ReplacementContent": "\"    };\\n\\n    const syncInterval = setInterval(silentSync, 10000); // Poll every 10 seconds\\n    return () => clearInterval(syncInterval);\\n  }, [isAuthenticated]);\"",
+  "StartLine": "3432",
+  "TargetContent": "\"\\n      // 2. Fetch Orders silently in background\\n      try {\\n        if (activeTab !== 'digital') {\\n          await fetchOrdersForMode(receiptsDateMode);\\n        }\\n      } catch (err) {\\n        console.warn(\\\"Background sync - Failed to load orders:\\\", err);\\n      }\\n    };\\n\\n    const syncInterval = setInterval(silentSync, 10000); // Poll every 10 seconds\\n    return () => clearInterval(syncInterval);\\n  }, [isAuthenticated, receiptsDateMode, activeTab]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing background order fetching from silentSync in App.jsx\"",
+  "toolSummary": "\"Replace file content\""
+}

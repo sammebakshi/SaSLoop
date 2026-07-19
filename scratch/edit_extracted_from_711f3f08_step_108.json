@@ -1,0 +1,8 @@
+{
+  "Description": "\"Check ebillEnabled state in triggerEbill and triggerSettlementNotification to only send e-bills and payment confirmations when the ebill checkbox is checked by the cashier.\"",
+  "Instruction": "\"Check ebillEnabled state in triggerEbill and triggerSettlementNotification\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":9651,\"ReplacementContent\":\"  const triggerEbill = async (order, targetPhone) => {\\n    if (!posSettings.enableEbill) return;\\n    if (!ebillEnabled) return; // Only send when ebill checkbox is checked\\n    \\n    let phone = targetPhone;\",\"StartLine\":9647,\"TargetContent\":\"  const triggerEbill = async (order, targetPhone) => {\\n    if (!posSettings.enableEbill) return;\\n    \\n    let phone = targetPhone;\"},{\"AllowMultiple\":false,\"EndLine\":9742,\"ReplacementContent\":\"  const triggerSettlementNotification = async (order, targetPhone) => {\\n    if (!posSettings.enableEbill) return;\\n    if (!ebillEnabled) return; // Only send when ebill checkbox is checked\\n\\n    let phone = targetPhone;\",\"StartLine\":9738,\"TargetContent\":\"  const triggerSettlementNotification = async (order, targetPhone) => {\\n    if (!posSettings.enableEbill) return;\\n\\n    let phone = targetPhone;\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding ebillEnabled check in App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

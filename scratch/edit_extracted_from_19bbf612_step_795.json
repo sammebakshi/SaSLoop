@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare lastAddedItemId state and qty refs for holding continuous changes.\"",
+  "EndLine": "684",
+  "Instruction": "\"Insert states and refs at the start of UniversalPOS.\"",
+  "ReplacementContent": "\"const UniversalPOS = () => {\\n  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const qtyIntervalRef = useRef(null);\\n  const qtyTimeoutRef = useRef(null);\\n  const [theme, setTheme] = useState(() => localStorage.getItem('pos_theme') || 'light');\"",
+  "StartLine": "681",
+  "TargetContent": "\"const UniversalPOS = () => {\\n  const [theme, setTheme] = useState(() => localStorage.getItem('pos_theme') || 'light');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding state and refs inside UniversalPOS\"",
+  "toolSummary": "\"Replace File Content App.jsx for continuous qty states/refs\""
+}

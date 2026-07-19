@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added state variables for the Pay Previous Balance modal and credit-specific customer search in the payment modal.\"",
+  "EndLine": "814",
+  "Instruction": "\"Add isPayDueModalOpen, payDueAmount, payDueMethod, payDueNotes, and creditSearchQuery state variables after the existing payment modal states.\"",
+  "ReplacementContent": "\"  const [customerPaidAmount, setCustomerPaidAmount] = useState('');\\n  const [isPayDueModalOpen, setIsPayDueModalOpen] = useState(false);\\n  const [payDueAmount, setPayDueAmount] = useState('');\\n  const [payDueMethod, setPayDueMethod] = useState('Cash');\\n  const [payDueNotes, setPayDueNotes] = useState('');\\n  const [creditSearchQuery, setCreditSearchQuery] = useState('');\\n  const [creditSearchResults, setCreditSearchResults] = useState([]);\\n  const [qrModalTable, setQrModalTable] = useState(null);\"",
+  "StartLine": "811",
+  "TargetContent": "\"  const [customerPaidAmount, setCustomerPaidAmount] = useState('');\\n  const [qrModalTable, setQrModalTable] = useState(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding state variables\"",
+  "toolSummary": "\"New state vars for pay due modal\""
+}

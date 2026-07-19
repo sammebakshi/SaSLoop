@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Initialize passcodeModalState in UniversalPOS component in App.jsx\"",
+  "EndLine": "1575",
+  "Instruction": "\"Insert passcodeModalState declaration at the beginning of UniversalPOS component in App.jsx\"",
+  "ReplacementContent": "\"const UniversalPOS = () => {\\n  const [passcodeModalState, setPasscodeModalState] = useState({\\n    isOpen: false,\\n    requiredModules: [],\\n    actionKey: '',\\n    onSuccess: null,\\n    actionName: ''\\n  });\\n  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [isSyncing, setIsSyncing] = useState(false);\"",
+  "StartLine": "1569",
+  "TargetContent": "\"const UniversalPOS = () => {\\n  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [isSyncing, setIsSyncing] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Initializing passcode state in App.jsx\"",
+  "toolSummary": "\"Replace App.jsx state hook\""
+}

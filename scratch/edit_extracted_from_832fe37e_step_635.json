@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Safely format modifier names during receipt printing.\"",
+  "EndLine": "7381",
+  "Instruction": "\"Change m.name.toUpperCase() to (m.name || '').toUpperCase() in handlePrint receipt HTML\"",
+  "ReplacementContent": "\"                      <span>${(m.name || '').toUpperCase()} ${(!isComp && parseFloat(m.price || 0) > 0) ? `(Rs ${parseFloat(m.price).toFixed(2)})` : ''}</span>\"",
+  "StartLine": "7381",
+  "TargetContent": "\"                      <span>${m.name.toUpperCase()} ${(!isComp && parseFloat(m.price || 0) > 0) ? `(Rs ${parseFloat(m.price).toFixed(2)})` : ''}</span>\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fix toUpperCase in receipt printing modifier row\"",
+  "toolSummary": "\"Edit App.jsx to handle modifier names in receipt printing\""
+}

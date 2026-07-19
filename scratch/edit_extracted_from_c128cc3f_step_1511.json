@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Go to KOT tab on new order in handleSaveTemporaryKOT\"",
+  "EndLine": "3814",
+  "Instruction": "\"Set activeTrayTab to KOT on isNewOrder if not in PreOrder mode\"",
+  "ReplacementContent": "\"      if (activeTrayTab === 'PreOrder') {\\n        setPreOrderScheduledDate(getCurrentDateString());\\n        setPreOrderScheduledTime(getCurrentTimeString());\\n        setPreOrderAdvanceAmount('');\\n        setPreOrderOrderType('PICKUP');\\n        setPreOrderTableNumber('');\\n        setPreOrderNotes('');\\n        setPreOrderSubTab('KOT');\\n      } else {\\n        setActiveTrayTab('KOT');\\n      }\\n      toast.success(\\\"Old order saved as temporary table. New Order started!\\\");\"",
+  "StartLine": "3803",
+  "TargetContent": "\"      if (activeTrayTab === 'PreOrder') {\\n        setPreOrderScheduledDate(getCurrentDateString());\\n        setPreOrderScheduledTime(getCurrentTimeString());\\n        setPreOrderAdvanceAmount('');\\n        setPreOrderOrderType('PICKUP');\\n        setPreOrderTableNumber('');\\n        setPreOrderNotes('');\\n        setPreOrderSubTab('KOT');\\n      }\\n      toast.success(\\\"Old order saved as temporary table. New Order started!\\\");\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Switch to KOT tab in handleSaveTemporaryKOT\"",
+  "toolSummary": "\"Update handleSaveTemporaryKOT in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Include printDetailedBalance in setTableCustomers and reset customer state on new order in App.jsx\"",
+  "EndLine": "5672",
+  "Instruction": "\"Update setTableCustomers structure and new order reset logic to include printDetailedBalance.\"",
+  "ReplacementContent": "\"    setTableCustomers(prev => ({\\n      ...prev,\\n      [tempId]: {\\n        customerCountryCode,\\n        customerPhone,\\n        customerName,\\n        customerAddress,\\n        selectedCustomer,\\n        redeemedPoints,\\n        appliedCoupon,\\n        couponCode,\\n        printDetailedBalance\\n      }\\n    }));\\n\\n    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo);\\n    }\\n\\n    setCart([]);\\n    setTableCarts(prev => ({ ...prev, [tempId]: [] }));\\n\\n    if (isNewOrder) {\\n      setSelectedTable(null);\\n      setCustomerPhone('');\\n      setCustomerName('');\\n      setCustomerAddress('');\\n      setRedeemedPoints(0);\\n      setAppliedCoupon(null);\\n      setCouponCode('');\\n      setSelectedCustomer(null);\\n      setPrintDetailedBalance(true);\\n      setEditingOrder(null);\"",
+  "StartLine": "5641",
+  "TargetContent": "\"    setTableCustomers(prev => ({\\n      ...prev,\\n      [tempId]: {\\n        customerCountryCode,\\n        customerPhone,\\n        customerName,\\n        customerAddress,\\n        selectedCustomer,\\n        redeemedPoints,\\n        appliedCoupon,\\n        couponCode\\n      }\\n    }));\\n\\n    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo);\\n    }\\n\\n    setCart([]);\\n    setTableCarts(prev => ({ ...prev, [tempId]: [] }));\\n\\n    if (isNewOrder) {\\n      setSelectedTable(null);\\n      setCustomerPhone('');\\n      setCustomerName('');\\n      setCustomerAddress('');\\n      setRedeemedPoints(0);\\n      setAppliedCoupon(null);\\n      setCouponCode('');\\n      setSelectedCustomer(null);\\n      setEditingOrder(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Saving and resetting printDetailedBalance on new order creation\"",
+  "toolSummary": "\"Save and reset printDetailedBalance on new order creation\""
+}

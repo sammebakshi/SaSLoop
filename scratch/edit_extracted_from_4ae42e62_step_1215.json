@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Display dining tables also in pickup/delivery mode by modifying getFilteredTablesForCurrentView filter condition.\"",
+  "EndLine": "5143",
+  "Instruction": "\"Allow permanent (dine-in) tables to be displayed in PICKUP view by modifying the filter logic.\"",
+  "ReplacementContent": "\"      } else if (orderType === 'PICKUP') {\\n        if (t.is_temporary && t.original_order_type !== 'PICKUP') return false;\\n      } else {\"",
+  "StartLine": "5139",
+  "TargetContent": "\"      } else if (orderType === 'PICKUP') {\\n        if (!t.is_temporary || t.original_order_type !== 'PICKUP') return false;\\n      } else {\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Modifying tables filter logic in App.jsx\"",
+  "toolSummary": "\"Replacing files contents in App.jsx\""
+}

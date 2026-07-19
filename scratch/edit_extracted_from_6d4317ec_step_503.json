@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import Unlock icon from lucide-react in App.jsx.\"",
+  "EndLine": "12",
+  "Instruction": "\"Add Unlock to the lucide-react icon imports.\"",
+  "ReplacementContent": "\"  Users, UserPlus, Percent, Tag, Calculator, Mail, Lock, Unlock, EyeOff, AlertCircle, Gift, Award, Heart,\"",
+  "StartLine": "9",
+  "TargetContent": "\"  Users, UserPlus, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Importing Unlock icon from lucide-react\"",
+  "toolSummary": "\"Importing Unlock in App.jsx\""
+}

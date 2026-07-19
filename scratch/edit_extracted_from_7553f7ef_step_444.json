@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove single printerName lookup in handlePrint to prepare for multiple target printers\"",
+  "EndLine": "7847",
+  "Instruction": "\"Remove printerName definition, keep paperSize and printWidth in handlePrint\"",
+  "ReplacementContent": "\"    const billPrinterConfig = getPrinterConfig(normalizedOrderType, 'bill');\\n    if (billPrinterConfig.enabled === false) {\\n      toast.info(`Bill printing is disabled for ${normalizedOrderType}`);\\n      return;\\n    }\\n    const paperSize = billPrinterConfig.paperSize || posSettings.printerType;\\n    const printWidth = paperSize === 'THERMAL_58MM' ? 54 : (posSettings.printWidth || 72);\"",
+  "StartLine": "7839",
+  "TargetContent": "\"    const billPrinterConfig = getPrinterConfig(normalizedOrderType, 'bill');\\n    if (billPrinterConfig.enabled === false) {\\n      toast.info(`Bill printing is disabled for ${normalizedOrderType}`);\\n      return;\\n    }\\n    const printerName = billPrinterConfig.name || posSettings.printerName;\\n    const paperSize = billPrinterConfig.paperSize || posSettings.printerType;\\n    const printWidth = paperSize === 'THERMAL_58MM' ? 54 : (posSettings.printWidth || 72);\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Update printer name lookup\"",
+  "toolSummary": "\"Update printer name lookup\""
+}

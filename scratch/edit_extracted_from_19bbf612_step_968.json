@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add showSyncPopup and syncPopupStep states for advanced animated overlay modal.\"",
+  "EndLine": "686",
+  "Instruction": "\"Declare showSyncPopup and syncPopupStep hooks inside UniversalPOS.\"",
+  "ReplacementContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [isSyncing, setIsSyncing] = useState(false);\\n  const [showSyncPopup, setShowSyncPopup] = useState(false);\\n  const [syncPopupStep, setSyncPopupStep] = useState('loading'); // 'loading' | 'success' | 'error'\\n  const qtyIntervalRef = useRef(null);\"",
+  "StartLine": "683",
+  "TargetContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [isSyncing, setIsSyncing] = useState(false);\\n  const qtyIntervalRef = useRef(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding animated overlay sync states in App.jsx\"",
+  "toolSummary": "\"Replace File Content App.jsx for popup states\""
+}

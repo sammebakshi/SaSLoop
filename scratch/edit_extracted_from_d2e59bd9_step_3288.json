@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add handleUpdateOrderStatus handler to App.jsx\"",
+  "EndLine": "5424",
+  "Instruction": "\"Insert handleUpdateOrderStatus function in App.jsx above handlePrint\"",
+  "ReplacementContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\\n      fetchOrdersForMode(receiptsDateMode);\\n      setSelectedDigitalOrder(prev => prev && prev.id === orderId ? { ...prev, status: newStatus } : prev);\\n    } catch (err) {\\n      console.error(\\\"Failed to update status:\\\", err);\\n      toast.error(err.response?.data?.error || \\\"Failed to update status\\\");\\n    }\\n  };\\n\\n  const handlePrint = async (order) => {\"",
+  "StartLine": "5421",
+  "TargetContent": "\"  };\\n\\n  const handlePrint = async (order) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add update status handler in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gated phone field customer history icon button with checkCustomerHistoryPermission in App.jsx\"",
+  "EndLine": "11199",
+  "Instruction": "\"Wrap phone customer history button callback in checkCustomerHistoryPermission\"",
+  "ReplacementContent": "\"                        <button\\n                          onClick={() => {\\n                            if (customerPhone) {\\n                              const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                              checkCustomerHistoryPermission(() => {\\n                                refreshCustomerHistory(fullPhone);\\n                                setCustomerHistoryActiveTab('orders');\\n                                setIsCustomerHistoryModalOpen(true);\\n                              });\\n                            } else {\\n                              toast.error(\\\"Please enter a customer mobile number to view history.\\\");\\n                            }\\n                          }}\"",
+  "StartLine": "11188",
+  "TargetContent": "\"                        <button\\n                          onClick={() => {\\n                            if (customerPhone) {\\n                              const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                              refreshCustomerHistory(fullPhone);\\n                              setCustomerHistoryActiveTab('orders');\\n                              setIsCustomerHistoryModalOpen(true);\\n                            } else {\\n                              toast.error(\\\"Please enter a customer mobile number to view history.\\\");\\n                            }\\n                          }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating phone field customer history button in App.jsx\"",
+  "toolSummary": "\"Gate customer history icon button\""
+}

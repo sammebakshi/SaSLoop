@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use mergeCartItems helper in handlePreOrderKOTAction\"",
+  "EndLine": "4003",
+  "Instruction": "\"Change setTableBills inside handlePreOrderKOTAction to merge items\"",
+  "ReplacementContent": "\"    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeCartItems(isExistingTemp ? (prev[tempId] || []) : [], cartWithKotNo) }));\"",
+  "StartLine": "3998",
+  "TargetContent": "\"    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: [...cartWithKotNo] }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Patching handlePreOrderKOTAction\"",
+  "toolSummary": "\"Patch handlePreOrderKOTAction KOT merging\""
+}

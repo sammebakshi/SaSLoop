@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add Add Customer button to tables view bottom action bar\"",
+  "EndLine": "9140",
+  "Instruction": "\"Add Add Customer button to bottom action bar array\"",
+  "ReplacementContent": "\"                            <div className=\\\"flex-1 flex justify-center gap-1.5\\\">\\n                              {[\\n                                { label: 'Filter tables', icon: <Filter size={12}/>, onClick: handleFilterTables },\\n                                { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable },\\n                                { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh },\\n                                { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh },\\n                                { label: 'Add Customer', icon: <UserPlus size={12}/>, onClick: () => setIsAddCustomerModalOpen(true) }\\n                              ].map(btn => (\"",
+  "StartLine": "9128",
+  "TargetContent": "\"                            <div className=\\\"flex-1 flex justify-center gap-1.5\\\">\\n                              {[\\n                                { label: 'Filter tables', icon: <Filter size={12}/>, onClick: handleFilterTables },\\n                                { label: 'Change Table', icon: <Monitor size={12}/>, onClick: handleChangeTable },\\n                                { label: 'Refresh', icon: <RefreshCcw size={12} className={isLocallyRefreshing ? 'animate-spin' : ''} />, onClick: localRefresh },\\n                                { label: 'Load Menu', icon: <Package size={12} className={isSyncing ? 'animate-spin' : ''} />, onClick: handleSyncRefresh }\\n                              ].map(btn => (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding Add Customer button to bottom bar\"",
+  "toolSummary": "\"Replace file content App.jsx\""
+}

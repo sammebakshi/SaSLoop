@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset printDetailedBalance in resetCustomerState helper in App.jsx\"",
+  "EndLine": "6349",
+  "Instruction": "\"Reset printDetailedBalance to true in resetCustomerState.\"",
+  "ReplacementContent": "\"    setSelectedCustomer(null);\\n    setPrintDetailedBalance(true);\\n  };\"",
+  "StartLine": "6346",
+  "TargetContent": "\"    setSelectedCustomer(null);\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resetting printDetailedBalance in resetCustomerState helper\"",
+  "toolSummary": "\"Reset printDetailedBalance in resetCustomerState helper\""
+}

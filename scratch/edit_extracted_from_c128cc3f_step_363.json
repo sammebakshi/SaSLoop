@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add useEffect to auto-select allowed sub-tab in settings modal.\"",
+  "EndLine": "1031",
+  "Instruction": "\"Add useEffect for settings tab auto-selection.\"",
+  "ReplacementContent": "\"  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);\\n  const [settingsActiveTab, setSettingsActiveTab] = useState('general');\\n\\n  useEffect(() => {\\n    if (isSettingsModalOpen) {\\n      const allowedSubTabs = [\\n         { id: 'general', key: 'general' },\\n         { id: 'outlet', key: 'general' },\\n         { id: 'printer', key: 'printers' },\\n         { id: 'shortcuts', key: 'shortcuts' },\\n         { id: 'formatting', key: 'formatting' },\\n         { id: 'profile', key: 'profile' }\\n      ].filter(tab => {\\n         const posAccess = business?.staff_permissions?.pos_access;\\n         if (!posAccess) return true;\\n         const userRole = String(business?.role || '').toLowerCase();\\n         const isSupervisor = ['brand_owner', 'master_admin', 'admin', 'manager'].includes(userRole) || userRole.includes('admin') || userRole.includes('manager');\\n         if (isSupervisor) return true;\\n         return posAccess?.Settings?.[tab.key] !== false;\\n      });\\n      if (allowedSubTabs.length > 0) {\\n        if (!allowedSubTabs.find(t => t.id === settingsActiveTab)) {\\n          setSettingsActiveTab(allowedSubTabs[0].id);\\n        }\\n      }\\n    }\\n  }, [isSettingsModalOpen, business, settingsActiveTab]);\"",
+  "StartLine": "1030",
+  "TargetContent": "\"  const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);\\n  const [settingsActiveTab, setSettingsActiveTab] = useState('general');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding settings tab auto-selection useEffect in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate block at the end of Printers tab wrapper\"",
+  "EndLine": "19909",
+  "Instruction": "\"Clean up the duplicate JSX elements at the end of the printers settings tab container\"",
+  "ReplacementContent": "\"                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                         })()}\"",
+  "StartLine": "19896",
+  "TargetContent": "\"                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                         })()}                         className={`w-9 h-5 rounded-full transition-all relative shrink-0 ${posSettings.showLogoOnReceipt ? 'bg-[#238636]' : 'bg-gray-400'}`}\\n                                        >\\n                                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.showLogoOnReceipt ? 'right-0.5' : 'left-0.5'}`} />\\n                                        </button>\\n                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                         })()}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing trailing duplicate elements\"",
+  "toolSummary": "\"Clean trailing duplicate layout\""
+}

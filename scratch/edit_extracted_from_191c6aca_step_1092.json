@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isAlertsModalOpen state declaration for system alerts and notifications modal.\"",
+  "EndLine": "2126",
+  "Instruction": "\"Add isAlertsModalOpen state hook.\"",
+  "ReplacementContent": "\"  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);\\n  const [selectedReport, setSelectedReport] = useState('Sales Report');\\n  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);\"",
+  "StartLine": "2122",
+  "TargetContent": "\"  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);\\n  const [selectedReport, setSelectedReport] = useState('Sales Report');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding alerts modal state hook\"",
+  "toolSummary": "\"Adding alerts modal state hook\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleSyncBills to accept bypassPasscode parameter\"",
+  "EndLine": "3130",
+  "Instruction": "\"Modify handleSyncBills to take bypassPasscode parameter and use it to skip passcode check.\"",
+  "ReplacementContent": "\"  const handleSyncBills = async (bypassPasscode = false) => {\\n    if (!bypassPasscode && !checkReceiptsPasscode('resync_bills', \\\"Enter Manager PIN to sync offline bills:\\\")) {\\n      return;\\n    }\"",
+  "StartLine": "3127",
+  "TargetContent": "\"  const handleSyncBills = async () => {\\n    if (!checkReceiptsPasscode('resync_bills', \\\"Enter Manager PIN to sync offline bills:\\\")) {\\n      return;\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding bypassPasscode parameter to handleSyncBills in App.jsx\"",
+  "toolSummary": "\"Adding bypassPasscode parameter to handleSyncBills in App.jsx\""
+}

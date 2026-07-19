@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Changed transition screen duration in handleLogin to 3000ms to allow the combination dial animation to complete\"",
+  "EndLine": "6803",
+  "Instruction": "\"Set timeout of handleLogin login transition to 3000ms\"",
+  "ReplacementContent": "\"      setIsTransitioningToDashboard(true);\\n      setTimeout(() => {\\n        setIsAuthenticated(true);\\n        setIsTransitioningToDashboard(false);\\n      }, 3000);\"",
+  "StartLine": "6796",
+  "TargetContent": "\"      setIsTransitioningToDashboard(true);\\n      setTimeout(() => {\\n        setIsAuthenticated(true);\\n        setIsTransitioningToDashboard(false);\\n      }, 2200);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating login timeout\"",
+  "toolSummary": "\"File edit\""
+}

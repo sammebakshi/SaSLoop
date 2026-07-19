@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error introduced in charts grid container div closure\"",
+  "EndLine": "3615",
+  "Instruction": "\"Fix closing tag and div structure around pagination indicator and bottom charts section.\"",
+  "ReplacementContent": "\"                          </div>\\n\\n                        </div>\\n\\n                        {/* Bottom Charts Section: Donut (left), Line (middle), Bar (right) */}\\n                        <div className=\\\"grid grid-cols-1 lg:grid-cols-12 gap-4 mt-1\\\">\"",
+  "StartLine": "3610",
+  "TargetContent": "\"                            <div className={`w-1 rounded-full transition-all duration-300 ${cardSet === 3 ? 'h-7 bg-emerald-500' : 'h-2 bg-slate-400'}`}></div>\\n                          </                        {/* Bottom Charts Section: Donut (left), Line (middle), Bar (right) */}\\n                        <div className=\\\"grid grid-cols-1 lg:grid-cols-12 gap-4 mt-1\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing syntax error in App.jsx charts section transition\"",
+  "toolSummary": "\"Fix syntax error in App.jsx\""
+}

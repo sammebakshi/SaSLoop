@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Hide tax and GST details on the Pre-Order Booking Receipt (they will still print on the final settled invoice).\"",
+  "EndLine": "9484",
+  "Instruction": "\"Add !isBookingReceipt check to the tax printing condition in the bill template.\"",
+  "ReplacementContent": "\"            ${!posSettings.hideTaxOnBill && !isBookingReceipt ? `\\n            <div class=\\\"summary-row\\\">\\n              <span>${posSettings.taxName || 'GST'}:</span>\\n              <span>(${(posSettings.taxRate || 0).toFixed(1)}%)</span>\\n            </div>\\n            <div class=\\\"summary-row\\\">\\n              <span>CGST(${(posSettings.taxRate/2 || 0).toFixed(1)}%):</span>\\n              <span>${posSettings.currency || 'Rs'} ${parseFloat(tax_cgst || 0).toFixed(posSettings.decimalPlaces || 2)}</span>\\n            </div>\\n            <div class=\\\"summary-row\\\">\\n              <span>SGST(${(posSettings.taxRate/2 || 0).toFixed(1)}%):</span>\\n              <span>${posSettings.currency || 'Rs'} ${parseFloat(tax_sgst || 0).toFixed(posSettings.decimalPlaces || 2)}</span>\\n            </div>\\n            ` : ''}\"",
+  "StartLine": "9471",
+  "TargetContent": "\"            ${!posSettings.hideTaxOnBill ? `\\n            <div class=\\\"summary-row\\\">\\n              <span>${posSettings.taxName || 'GST'}:</span>\\n              <span>(${(posSettings.taxRate || 0).toFixed(1)}%)</span>\\n            </div>\\n            <div class=\\\"summary-row\\\">\\n              <span>CGST(${(posSettings.taxRate/2 || 0).toFixed(1)}%):</span>\\n              <span>${posSettings.currency || 'Rs'} ${parseFloat(tax_cgst || 0).toFixed(posSettings.decimalPlaces || 2)}</span>\\n            </div>\\n            <div class=\\\"summary-row\\\">\\n              <span>SGST(${(posSettings.taxRate/2 || 0).toFixed(1)}%):</span>\\n              <span>${posSettings.currency || 'Rs'} ${parseFloat(tax_sgst || 0).toFixed(posSettings.decimalPlaces || 2)}</span>\\n            </div>\\n            ` : ''}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Hiding tax details on pre-order booking receipt\"",
+  "toolSummary": "\"File edit\""
+}

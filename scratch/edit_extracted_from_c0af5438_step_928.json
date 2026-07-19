@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Make pre-order temp tables behave like pickup/delivery: after saving KOT, clear the cart and keep the temp table active instead of auto-jumping to PAYMENTS. The temp table persists until the user explicitly fulfills the order. Customer details are also stored on the temp table.\"",
+  "EndLine": "5582",
+  "Instruction": "\"After saving the pre-order KOT to a temp table, clear the cart and stay on the KOT tab (like pickup/delivery does) instead of jumping to PAYMENTS. Also save customer details to the temp table so they persist when clicking back on the table.\"",
+  "ReplacementContent": "\"    // Save customer details on the temp table (like pickup/delivery)\\n    setTableCustomers(prev => ({\\n      ...prev,\\n      [tempId]: {\\n        customerCountryCode,\\n        customerPhone,\\n        customerName,\\n        customerAddress,\\n        selectedCustomer,\\n        redeemedPoints,\\n        appliedCoupon,\\n        couponCode\\n      }\\n    }));\\n\\n    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo);\\n    }\\n\\n    // Clear the cart and stay on KOT tab (like pickup/delivery temp tables)\\n    setCart([]);\\n    setTableCarts(prev => ({ ...prev, [tempId]: [] }));\\n    setSelectedTable(newTempTable);\\n    toast.success(isPrint ? \\\"KOT Printed & Saved!\\\" : \\\"KOT Saved!\\\");\\n  };\"",
+  "StartLine": "5575",
+  "TargetContent": "\"    if (isPrint) {\\n      handlePrintKOT(cart, tableName, bNo);\\n    }\\n\\n    setSelectedTable(newTempTable);\\n    setPreOrderSubTab('PAYMENTS');\\n    toast.success(isPrint ? \\\"KOT Printed & Saved!\\\" : \\\"KOT Saved!\\\");\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating pre-order KOT handler\"",
+  "toolSummary": "\"Pre-order temp table fix\""
+}

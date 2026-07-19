@@ -190,18 +190,25 @@ ipcMain.on('window-close', (event) => {
   if (win) win.close();
 });
 
+ipcMain.handle('is-terminal-mode', () => {
+  return isTerminalMode;
+});
+
 let mainWindow = null;
 let splashWindow = null;
 
 function createWindow() {
-  // Create Splash Screen Window (Fullscreen, Frameless, Transparent for cinematic animation)
+  // Create Splash Screen Window (Frameless, Transparent, Centered with custom dimensions)
   splashWindow = new BrowserWindow({
-    fullscreen: true,
+    width: 640,
+    height: 740,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
     show: false,
+    center: true,
+    hasShadow: true,
     skipTaskbar: true,
     webPreferences: {
       nodeIntegration: true,
@@ -225,7 +232,7 @@ function createWindow() {
   const win = new BrowserWindow({
     width: 1200,
     height: 800,
-    title: "SaSLoop Master POS",
+    title: isTerminalMode ? "SaSLoop POS Terminal" : "SaSLoop Master POS",
     icon: path.join(__dirname, isDev ? '../public/logo.png' : '../dist/logo.png'),
     frame: false, // Frameless window to allow custom HTML top bar titlebar
     show: false, // Keep hidden until React app sends 'app-ready'
@@ -234,6 +241,7 @@ function createWindow() {
       nodeIntegration: true,
       contextIsolation: false,
       webSecurity: false, // Allow ES module loading from file:// protocol
+      additionalArguments: [isTerminalMode ? '--is-terminal-mode' : '--is-master-mode']
     },
     autoHideMenuBar: true, // Professional look
   });
@@ -255,6 +263,7 @@ function createWindow() {
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'));
+    win.webContents.openDevTools();
   }
   
   win.on('maximize', () => {

@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate receiptSearchQuery state declaration in App.jsx.\"",
+  "EndLine": "680",
+  "ReplacementContent": "\"\"",
+  "StartLine": "676",
+  "TargetContent": "\"  const [receiptSearchQuery, setReceiptSearchQuery] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing duplicate state declaration\"",
+  "toolSummary": "\"Replace file content\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update print width style to use resolvedWidth in handlePrint.\"",
+  "EndLine": "8410",
+  "Instruction": "\"Change the width property from posSettings.printWidth || 72 to resolvedWidth.\"",
+  "ReplacementContent": "\"              width: ${resolvedWidth}mm;\"",
+  "StartLine": "8406",
+  "TargetContent": "\"              width: ${posSettings.printWidth || 72}mm;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting bill stylesheet width to resolvedWidth\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Ensure session-specific local storage keys (like pos_profile, active carts, and active bills) are cleared when the app is loaded, aligned with the force-login startup policy.\"",
+  "EndLine": "5575",
+  "Instruction": "\"Update startup useEffect to clear session-specific localStorage keys.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    // Force login screen every time the app reopens by removing saved token on startup\\n    const sessionKeys = [\\n      'pos_token',\\n      'pos_profile',\\n      'pos_current_shift',\\n      'pos_expenses',\\n      'pos_recent_orders',\\n      'pos_dinein_cart',\\n      'pos_pickup_cart',\\n      'pos_quick_cart',\\n      'pos_preorder_cart',\\n      'pos_table_carts',\\n      'pos_table_statuses',\\n      'pos_table_bills',\\n      'pos_table_bill_numbers',\\n      'pos_table_active_timestamps',\\n      'pos_kot_history',\\n      'pos_table_waiters',\\n      'pos_table_discounts',\\n      'pos_table_additional_charges',\\n      'pos_table_customers'\\n    ];\\n    sessionKeys.forEach(k => localStorage.removeItem(k));\\n\\n    setIsAuthenticated(false);\\n    setUsername('');\\n    setPassword('');\\n\\n    // Timer for initial loading splash screen\\n    const timer = setTimeout(() => {\\n      setShowInitialSplash(false);\\n    }, 2200);\\n    return () => clearTimeout(timer);\\n  }, []);\"",
+  "StartLine": "5561",
+  "TargetContent": "\"  useEffect(() => {\\n    // Force login screen every time the app reopens by removing saved token on startup\\n    localStorage.removeItem('pos_token');\\n    setIsAuthenticated(false);\\n    setUsername('');\\n    setPassword('');\\n\\n    // Timer for initial loading splash screen\\n    const timer = setTimeout(() => {\\n      setShowInitialSplash(false);\\n    }, 2200);\\n    return () => clearTimeout(timer);\\n  }, []);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating startup useEffect to clear session keys\"",
+  "toolSummary": "\"Fix startup useEffect\""
+}

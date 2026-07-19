@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use business points_to_amount_ratio setting for points value calculation in calculateTotals.\"",
+  "EndLine": "4306",
+  "Instruction": "\"Implement points_to_amount_ratio multiplication.\"",
+  "ReplacementContent": "\"    const pointsRatio = business && business.points_to_amount_ratio !== undefined ? parseFloat(business.points_to_amount_ratio) : 1.00;\\n    const pointsDiscountAmt = (redeemedPoints || 0) * pointsRatio;\\n    const totalDiscountAmt = discountAmt + pointsDiscountAmt;\"",
+  "StartLine": "4304",
+  "TargetContent": "\"    const pointsDiscountAmt = (redeemedPoints || 0) * 1;\\n    const totalDiscountAmt = discountAmt + pointsDiscountAmt;\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating pointsDiscountAmt calculation in calculateTotals\"",
+  "toolSummary": "\"Update pointsDiscountAmt calculation\""
+}

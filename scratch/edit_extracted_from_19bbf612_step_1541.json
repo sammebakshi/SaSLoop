@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add order_reference field to newOrder object using the unique orderId.\"",
+  "EndLine": "4948",
+  "Instruction": "\"Add order_reference: orderId right after reference_no inside newOrder object.\"",
+  "ReplacementContent": "\"      payment_method: isDue ? 'DUE' : method, \\n      reference_no: referenceNo,\\n      order_reference: orderId,\\n      tip_amount: isFreeCheckout ? 0 : (parseFloat(tip) || 0),\"",
+  "StartLine": "4940",
+  "TargetContent": "\"      payment_method: isDue ? 'DUE' : method, \\n      reference_no: referenceNo,\\n      tip_amount: isFreeCheckout ? 0 : (parseFloat(tip) || 0),\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding order_reference to newOrder in handleCheckout\"",
+  "toolSummary": "\"Replace file content\""
+}

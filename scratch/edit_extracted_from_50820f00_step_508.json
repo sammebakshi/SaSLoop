@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update user display to dynamic values in the Live Receipt Preview.\"",
+  "EndLine": "16409",
+  "Instruction": "\"Replace the static user span with dynamic bill, payment and user spans.\"",
+  "ReplacementContent": "\"<span><strong>Bill:</strong> {selectedTable ? (tableBillNumbers[selectedTable.id] || 'NEW') : 'NEW'}</span>\\n                                       <span><strong>Payment:</strong> {paymentMethod || 'Cash'}</span>\\n                                       <span><strong>User:</strong> {username || 'admin'}</span>\"",
+  "StartLine": "16407",
+  "TargetContent": "\"<span><strong>User:</strong> admin</span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing static user span\"",
+  "toolSummary": "\"Replacing static user span\""
+}

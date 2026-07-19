@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set selectedCustomer state on customer click selection\"",
+  "EndLine": "9956",
+  "Instruction": "\"Store res in selectedCustomer on click selection\"",
+  "ReplacementContent": "\"                                      setCustomerCountryCode(parsed.dialCode);\\n                                      setCustomerPhone(parsed.localNumber);\\n                                      setCustomerName(res.name || '');\\n                                      setCustomerAddress(res.address || '');\\n                                      setSelectedCustomer(res);\\n                                      setShowSearchResults(false);\"",
+  "StartLine": "9950",
+  "TargetContent": "\"                                      setCustomerCountryCode(parsed.dialCode);\\n                                      setCustomerPhone(parsed.localNumber);\\n                                      setCustomerName(res.name || '');\\n                                      setCustomerAddress(res.address || '');\\n                                      setShowSearchResults(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating click handler with selectedCustomer\"",
+  "toolSummary": "\"Update click handler with selectedCustomer\""
+}

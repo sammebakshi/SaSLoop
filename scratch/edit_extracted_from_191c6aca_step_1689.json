@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add table departments and table customers to the cache loading block on initApp startup.\"",
+  "EndLine": "6611",
+  "Instruction": "\"Load cached table departments and table customers from localStorage inside initApp's cache loading block.\"",
+  "ReplacementContent": "\"      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) {\\n        setCustomerDb(JSON.parse(cachedCustomerDb));\\n      }\\n\\n      const cachedTableDepts = localStorage.getItem('pos_table_departments');\\n      if (cachedTableDepts) {\\n        setTableDepartments(JSON.parse(cachedTableDepts));\\n      }\\n\\n      const cachedTableCustomers = localStorage.getItem('pos_table_customers');\\n      if (cachedTableCustomers) {\\n        setTableCustomers(JSON.parse(cachedTableCustomers));\\n      }\"",
+  "StartLine": "6605",
+  "TargetContent": "\"      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) {\\n        setCustomerDb(JSON.parse(cachedCustomerDb));\\n      }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding table cache load to initApp cache-loading block\"",
+  "toolSummary": "\"Adding table cache load to initApp cache-loading block\""
+}

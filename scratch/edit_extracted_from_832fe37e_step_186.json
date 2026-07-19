@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up tablePreOrders state when a pre-order is settled in App.jsx\"",
+  "EndLine": "6683",
+  "Instruction": "\"Add cleanup for setTablePreOrders when table is settled\"",
+  "ReplacementContent": "\"        setTableBillNumbers(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTablePreOrders(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        releaseTableExtraState(selectedTable.id);\\n\\n        if (selectedTable.is_temporary) {\\n          setTables(prev => prev.filter(t => t.id !== selectedTable.id));\\n        }\\n\"",
+  "StartLine": "6675",
+  "TargetContent": "\"        setTableBillNumbers(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        releaseTableExtraState(selectedTable.id);\\n\\n        if (selectedTable.is_temporary) {\\n          setTables(prev => prev.filter(t => t.id !== selectedTable.id));\\n        }\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Cleaning up pre-order state on settlement\"",
+  "toolSummary": "\"Clean up pre-order state on settle\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add printDetailedBalance to useEffect dependency array in App.jsx\"",
+  "EndLine": "4740",
+  "Instruction": "\"Add printDetailedBalance to the dependency array.\"",
+  "ReplacementContent": "\"    couponCode,\\n    printDetailedBalance\"",
+  "StartLine": "4735",
+  "TargetContent": "\"    couponCode\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding printDetailedBalance to dependency array\"",
+  "toolSummary": "\"Add printDetailedBalance to dependency array\""
+}

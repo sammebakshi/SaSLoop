@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add pos_table_departments cache reading to localRefresh in App.jsx.\"",
+  "EndLine": "6995",
+  "Instruction": "\"Insert cachedTableDepts loading inside localRefresh.\"",
+  "ReplacementContent": "\"        setTables(prev => {\\n          const localTempTables = prev.filter(t => t.is_temporary);\\n          return [...serverTables, ...localTempTables];\\n        });\\n      }\\n\\n      const cachedTableDepts = localStorage.getItem('pos_table_departments');\\n      if (cachedTableDepts) {\\n        setTableDepartments(JSON.parse(cachedTableDepts));\\n      }\\n\\n      const cachedTaxes = localStorage.getItem('pos_taxes');\"",
+  "StartLine": "6988",
+  "TargetContent": "\"        setTables(prev => {\\n          const localTempTables = prev.filter(t => t.is_temporary);\\n          return [...serverTables, ...localTempTables];\\n        });\\n      }\\n\\n      const cachedTaxes = localStorage.getItem('pos_taxes');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding table departments cache check to localRefresh\"",
+  "toolSummary": "\"Adding table departments cache check to localRefresh\""
+}

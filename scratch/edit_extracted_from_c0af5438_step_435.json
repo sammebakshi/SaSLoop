@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleSaveTemporaryKOT to merge new KOT items with existing ones\"",
+  "EndLine": "5671",
+  "Instruction": "\"Update KOT merging in handleSaveTemporaryKOT.\"",
+  "ReplacementContent": "\"    setTableBillNumbers(prev => ({ ...prev, [tempId]: bNo }));\\n    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeBillItems([...(prev[tempId] || []), ...cartWithKotNo]) }));\\n    setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));\\n    setTableStatuses(prev => ({ ...prev, [tempId]: isPrint ? 'PRINTED' : 'SAVED' }));\"",
+  "StartLine": "5665",
+  "TargetContent": "\"    setTableBillNumbers(prev => ({ ...prev, [tempId]: bNo }));\\n    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeBillItems([...cartWithKotNo]) }));\\n    setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));\\n    setTableStatuses(prev => ({ ...prev, [tempId]: isPrint ? 'PRINTED' : 'SAVED' }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleSaveTemporaryKOT KOT merging\"",
+  "toolSummary": "\"Replace file content\""
+}

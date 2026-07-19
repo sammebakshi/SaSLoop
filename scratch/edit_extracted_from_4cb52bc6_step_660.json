@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restored accidentally deleted code in customer save callback in App.jsx\"",
+  "EndLine": "21996",
+  "Instruction": "\"Restore the missing lines in the setCustomerDb callback and toast updates\"",
+  "ReplacementContent": "\"                                     balance: Number(newCustomerForm.balance) || 0\\n                                  }\\n                               };\\n                               localStorage.setItem('pos_customer_db', JSON.stringify(nextDb));\\n                               return nextDb;\\n                            });\\n\\n                           if (isOnlineSaveSuccess) {\\n                              toast.success(\\\"Customer saved and synced successfully!\\\");\\n                           } else {\\n                              toast.warning(\\\"Offline Mode: Saved Locally Only\\\");\\n                           }\\n\\n                           setIsAddCustomerModalOpen(false);\\n                           setNewCustomerForm({ name: '', phone: '', address: '', points: 0, balance: 0 });\\n                        }}\"",
+  "StartLine": "21993",
+  "TargetContent": "\"                                     balance: Number(newCustomerForm.balance) || 0\\n                                  }\\n                               };\\n                        }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring accidentally deleted code block in App.jsx\"",
+  "toolSummary": "\"Restore deleted customer save code\""
+}

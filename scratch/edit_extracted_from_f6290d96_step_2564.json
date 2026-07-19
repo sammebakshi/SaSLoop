@@ -1,0 +1,8 @@
+{
+  "Description": "\"Add conditional asterisk indicator to Customer Mobile and Customer Name placeholders based on custDetailsMandatoryForPickupDelivery setting.\"",
+  "Instruction": "\"Update input placeholders for customer details with conditional asterisks\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":10690,\"ReplacementContent\":\"                            <input\\n                              type=\\\"text\\\"\\n                              placeholder={business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery && (orderType === 'PICKUP' || orderType === 'DELIVERY') ? \\\"Customer Mobile *\\\" : \\\"Customer Mobile\\\"}\",\"StartLine\":10680,\"TargetContent\":\"                            <input\\n                              type=\\\"text\\\"\\n                              placeholder=\\\"Customer Mobile\\\"\"},{\"AllowMultiple\":false,\"EndLine\":10795,\"ReplacementContent\":\"                          <input\\n                            type=\\\"text\\\"\\n                            id=\\\"customer-name-input\\\"\\n                            placeholder={business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery && (orderType === 'PICKUP' || orderType === 'DELIVERY') ? \\\"Customer Name *\\\" : \\\"Customer Name\\\"}\",\"StartLine\":10790,\"TargetContent\":\"                          <input\\n                            type=\\\"text\\\"\\n                            id=\\\"customer-name-input\\\"\\n                            placeholder=\\\"Customer Name\\\"\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding asterisks to input placeholders\"",
+  "toolSummary": "\"Edit file\""
+}

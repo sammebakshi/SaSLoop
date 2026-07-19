@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change print fallback phone to 9906123989.\"",
+  "EndLine": "6460",
+  "Instruction": "\"Update displayPhone fallback to 9906123989 in App.jsx.\"",
+  "ReplacementContent": "\"    const displayAddress = posSettings.address || 'Ist Floor Rather Plaza Kangan\\\\nJ&K-191202';\\n    const displayPhone = posSettings.phone || '9906123989';\\n    const displayGstin = posSettings.gstin || '01BNIPB3099J1Z4';\"",
+  "StartLine": "6457",
+  "TargetContent": "\"    const displayAddress = posSettings.address || 'Ist Floor Rather Plaza Kangan\\\\nJ&K-191202';\\n    const displayPhone = posSettings.phone || '9906495133/7006089744';\\n    const displayGstin = posSettings.gstin || '01BNIPB3099J1Z4';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating fallback phone in print generation function\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

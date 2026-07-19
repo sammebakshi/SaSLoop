@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Persist address field locally in customerDb state when saving a customer.\"",
+  "EndLine": "3476",
+  "Instruction": "\"Add address to the customer object in setCustomerDb.\"",
+  "ReplacementContent": "\"        setCustomerDb(prev => ({\\n          ...prev,\\n          [fullPhone]: {\\n            name: customerName,\\n            phone: fullPhone,\\n            address: customerAddress,\\n            points: prev[fullPhone]?.points || 0,\\n            orders: prev[fullPhone]?.orders || 0,\\n            totalSpent: prev[fullPhone]?.totalSpent || 0,\\n            balance: prev[fullPhone]?.balance || 0\\n          }\\n        }));\"",
+  "StartLine": "3466",
+  "TargetContent": "\"        setCustomerDb(prev => ({\\n          ...prev,\\n          [fullPhone]: {\\n            name: customerName,\\n            phone: fullPhone,\\n            points: prev[fullPhone]?.points || 0,\\n            orders: prev[fullPhone]?.orders || 0,\\n            totalSpent: prev[fullPhone]?.totalSpent || 0,\\n            balance: prev[fullPhone]?.balance || 0\\n          }\\n        }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying customer save in App.jsx\"",
+  "toolSummary": "\"Add address to local state update\""
+}

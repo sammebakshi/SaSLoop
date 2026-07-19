@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Closed customer_management permission gate block in App.jsx\"",
+  "EndLine": "14614",
+  "Instruction": "\"Close customer_management permission check and Fragment before motion.div closes\"",
+  "ReplacementContent": "\"                     </button>\\n                  </div>\\n                       </>\\n                    )}\\n               </motion.div>\\n             )}\"",
+  "StartLine": "14610",
+  "TargetContent": "\"                     </button>\\n                  </div>\\n               </motion.div>\\n             )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing customer management permission check block in App.jsx\"",
+  "toolSummary": "\"Close customer management permission check\""
+}

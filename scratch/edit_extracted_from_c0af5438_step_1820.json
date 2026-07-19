@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add preOrderOptionsModalOpen state in App.jsx.\"",
+  "EndLine": "2771",
+  "Instruction": "\"Insert const [preOrderOptionsModalOpen, setPreOrderOptionsModalOpen] = useState(false); below editingPreOrder.\"",
+  "ReplacementContent": "\"  const [editingPreOrder, setEditingPreOrder] = useState(null);\\n  const [preOrderOptionsModalOpen, setPreOrderOptionsModalOpen] = useState(false);\\n  const [preOrderSubTab, setPreOrderSubTab] = useState('KOT');\\n  const [preOrderTableNumber, setPreOrderTableNumber] = useState('');\"",
+  "StartLine": "2768",
+  "TargetContent": "\"  const [editingPreOrder, setEditingPreOrder] = useState(null);\\n  const [preOrderSubTab, setPreOrderSubTab] = useState('KOT');\\n  const [preOrderTableNumber, setPreOrderTableNumber] = useState('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring preOrderOptionsModalOpen state\"",
+  "toolSummary": "\"File edit\""
+}

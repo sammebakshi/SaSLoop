@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Load tableCarts instead of tableBills for temporary tables in selectPosTable\"",
+  "EndLine": "7296",
+  "Instruction": "\"Replace conditional loading of tableBills with simple loading of tableCarts in selectPosTable\"",
+  "ReplacementContent": "\"    setCart(tableCarts[table.id] || []);\"",
+  "StartLine": "7290",
+  "TargetContent": "\"    if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modify selectPosTable cart loading logic\"",
+  "toolSummary": "\"Update selectPosTable in App.jsx\""
+}

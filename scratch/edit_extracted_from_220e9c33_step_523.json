@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Integrated bill number display toggle for quick bills in handlePrint.\"",
+  "EndLine": "8143",
+  "Instruction": "\"Toggle bill number display on receipts\"",
+  "ReplacementContent": "\"    const tableName = order.table_name || (order.table_number ? `Table ${order.table_number}` : (order.table_id ? `Table ${order.table_id}` : 'Takeaway Order'));\\n    const isQuick = activeType === 'QUICK';\\n    const billNoDisplay = (isQuick && !quickBillNumberPrint)\\n      ? 'Quick Bill'\\n      : (order.bill_no || (isPreOrder ? `PO-${order.id}` : order.id));\"",
+  "StartLine": "8141",
+  "TargetContent": "\"    const tableName = order.table_name || (order.table_number ? `Table ${order.table_number}` : (order.table_id ? `Table ${order.table_id}` : 'Takeaway Order'));\\n    const billNoDisplay = order.bill_no || (isPreOrder ? `PO-${order.id}` : order.id);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing billNoDisplay calculation\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

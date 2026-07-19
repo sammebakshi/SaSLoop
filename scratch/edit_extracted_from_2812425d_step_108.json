@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add printDetailedBalance default to restoredCustomer template in App.jsx\"",
+  "EndLine": "9755",
+  "Instruction": "\"Add printDetailedBalance default.\"",
+  "ReplacementContent": "\"    const restoredCustomer = tableCustomers[table.id] || {\\n      customerCountryCode: '+91',\\n      customerPhone: '',\\n      customerName: '',\\n      customerAddress: '',\\n      selectedCustomer: null,\\n      redeemedPoints: 0,\\n      appliedCoupon: null,\\n      couponCode: '',\\n      printDetailedBalance: true\\n    };\"",
+  "StartLine": "9746",
+  "TargetContent": "\"    const restoredCustomer = tableCustomers[table.id] || {\\n      customerCountryCode: '+91',\\n      customerPhone: '',\\n      customerName: '',\\n      customerAddress: '',\\n      selectedCustomer: null,\\n      redeemedPoints: 0,\\n      appliedCoupon: null,\\n      couponCode: ''\\n    };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding default printDetailedBalance in restoredCustomer\"",
+  "toolSummary": "\"Add printDetailedBalance default to restoredCustomer\""
+}

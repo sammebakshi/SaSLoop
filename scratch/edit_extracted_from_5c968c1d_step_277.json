@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove leftover tags in App.jsx formatting tab\"",
+  "EndLine": "17467",
+  "Instruction": "\"Remove leftover closing tags in formatting tab\"",
+  "ReplacementContent": "\"                               </div>\"",
+  "StartLine": "17463",
+  "TargetContent": "\"                                           </div>\\n                                        </>\\n                                     )}\\n                                  </div>\\n                               </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing leftover tags\"",
+  "toolSummary": "\"Replacing code in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update ProductCard component stock check to support trackInventory flag.\"",
+  "EndLine": "184",
+  "Instruction": "\"Modify ProductCard component signature and isOutOfStock calculation to support trackInventory flag.\"",
+  "ReplacementContent": "\"const ProductCard = ({ item, currency, isDark, onAdd, trackInventory }) => {\\n  const isOutOfStock = trackInventory && item.stock !== undefined && item.stock <= 0;\"",
+  "StartLine": "181",
+  "TargetContent": "\"const ProductCard = ({ item, currency, isDark, onAdd }) => {\\n  const isOutOfStock = item.stock !== undefined && item.stock <= 0;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating ProductCard component signature\"",
+  "toolSummary": "\"Edit App.jsx line 181\""
+}

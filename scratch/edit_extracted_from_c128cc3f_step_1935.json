@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gate Search Table input in Combined View by permissions.\"",
+  "EndLine": "7570",
+  "Instruction": "\"Gate Search Table input in Combined View.\"",
+  "ReplacementContent": "\"                            {checkPosAccess('OrderWindow', 'search_table') && (\\n                              <input \\n                                 type=\\\"text\\\" \\n                                 placeholder=\\\"Search Table\\\" \\n                                 value={tableSearchQuery}\\n                                 onChange={e => setTableSearchQuery(e.target.value)}\\n                                 onFocus={() => {\\n                                   if (posSettings.showVirtualKeyboard) {\\n                                     setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });\\n                                   }\\n                                 }}\\n                                 className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`} \\n                              />\\n                            )}\"",
+  "StartLine": "7557",
+  "TargetContent": "\"                            <input \\n                               type=\\\"text\\\" \\n                               placeholder=\\\"Search Table\\\" \\n                               value={tableSearchQuery}\\n                               onChange={e => setTableSearchQuery(e.target.value)}\\n                               onFocus={() => {\\n                                 if (posSettings.showVirtualKeyboard) {\\n                                   setKeyboardTarget({ value: tableSearchQuery, setValue: setTableSearchQuery, type: 'text' });\\n                                 }\\n                               }}\\n                               className={`h-7 w-28 border rounded-full text-[11px] px-3 outline-none focus:border-[#238636] transition-colors ${isDark ? 'bg-gray-900 border-gray-800 text-white placeholder-gray-500' : 'bg-white border-slate-300 text-slate-900'}`} \\n                            />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating Search Table input\"",
+  "toolSummary": "\"Edit App.jsx (Search Table)\""
+}

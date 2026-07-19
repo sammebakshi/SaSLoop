@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change absolute path of logo.png to relative path to fix the broken image icon inside Electron.\"",
+  "EndLine": "7176",
+  "Instruction": "\"Change /logo.png to logo.png in the login card logo image tag.\"",
+  "ReplacementContent": "\"                 <img src=\\\"logo.png\\\" alt=\\\"SaSLoop Logo\\\" className=\\\"w-9 h-9 object-contain mr-1 bg-white rounded-full p-1\\\" />\\n                 SaSLoop <span className=\\\"text-[#18ba60]\\\">POS</span>\"",
+  "StartLine": "7173",
+  "TargetContent": "\"                 <img src=\\\"/logo.png\\\" alt=\\\"SaSLoop Logo\\\" className=\\\"w-9 h-9 object-contain mr-1 bg-white rounded-full p-1\\\" />\\n                 SaSLoop <span className=\\\"text-[#18ba60]\\\">POS</span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing logo image path\"",
+  "toolSummary": "\"Edit source code\""
+}

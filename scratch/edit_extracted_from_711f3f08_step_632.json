@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Improve direct WhatsApp flow to automatically open the saved PDF's folder and highlight the file, allowing instant drag-and-drop into WhatsApp Web.\"",
+  "EndLine": "9742",
+  "Instruction": "\"Automatically open the folder and highlight the saved PDF file for drag-and-drop in direct WhatsApp flow in App.jsx\"",
+  "ReplacementContent": "\"        } else {\\n          // Direct mode — PDF saved locally, open WhatsApp with text message\\n          const text = generateEbillText(order);\\n          const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;\\n          window.open(directUrl, '_blank');\\n          if (pdfResult.savedFilePath) {\\n            toast.success(`PDF saved! Drag and drop the highlighted file into the WhatsApp chat.`);\\n            if (window.require) {\\n              try {\\n                const { shell } = window.require('electron');\\n                shell.showItemInFolder(pdfResult.savedFilePath);\\n              } catch (shellErr) {\\n                console.error(\\\"Failed to open file in folder:\\\", shellErr);\\n              }\\n            }\\n          } else {\\n            toast.success(\\\"Opening WhatsApp E-Bill link...\\\");\\n          }\\n        }\"",
+  "StartLine": "9732",
+  "TargetContent": "\"        } else {\\n          // Direct mode — PDF saved locally, open WhatsApp with text message\\n          const text = generateEbillText(order);\\n          const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;\\n          window.open(directUrl, '_blank');\\n          if (pdfResult.savedFilePath) {\\n            toast.success(`PDF saved to: ${pdfResult.savedFilePath}. Drag and drop it into the WhatsApp chat!`);\\n          } else {\\n            toast.success(\\\"Opening WhatsApp E-Bill link...\\\");\\n          }\\n        }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding folder opening logic for direct wapa in App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Integrated Quick Bill printing logic and KOT print order check in handleCheckout.\"",
+  "EndLine": "7650",
+  "Instruction": "\"Update print logic and settlement for Quick Bills in handleCheckout\"",
+  "ReplacementContent": "\"    } else {\\n      const isQuickBill = orderType === 'QUICK';\\n      if (isQuickBill) {\\n        if (type === 'PRINT' || type === 'SETTLE') {\\n          if (quickBillKotPrint) {\\n            handlePrintKOT(newOrder.items, 'Quick Bill', newOrder.bill_no, 'NEW', 'QUICK');\\n          }\\n          handlePrint(newOrder);\\n        }\\n      } else {\\n        if (type === 'PRINT' || (type === 'SETTLE' && editingPreOrder)) {\\n          handlePrint(newOrder);\\n        }\\n      }\\n\\n      if (type === 'SETTLE' && (editingPreOrder || isQuickBill)) {\\n        const shiftSalesDiff = finalTotalPrice;\\n        setShift(prev => ({ ...prev, sales: prev.sales + shiftSalesDiff }));\\n        setCatalog(prev => prev.map(item => {\\n           const cartItem = activeCart.find(c => c.id === item.id);\\n           if (cartItem && item.stock !== undefined) {\\n              return { ...item, stock: Math.max(0, item.stock - cartItem.quantity) };\\n           }\\n           return item;\\n        }));\\n      }\\n    }\"",
+  "StartLine": "7634",
+  "TargetContent": "\"    } else {\\n      if (type === 'PRINT' || (type === 'SETTLE' && editingPreOrder)) {\\n        handlePrint(newOrder);\\n      }\\n      if (type === 'SETTLE' && editingPreOrder) {\\n        const shiftSalesDiff = finalTotalPrice;\\n        setShift(prev => ({ ...prev, sales: prev.sales + shiftSalesDiff }));\\n        setCatalog(prev => prev.map(item => {\\n           const cartItem = activeCart.find(c => c.id === item.id);\\n           if (cartItem && item.stock !== undefined) {\\n              return { ...item, stock: Math.max(0, item.stock - cartItem.quantity) };\\n           }\\n           return item;\\n        }));\\n      }\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Quick Bill settlement logic\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

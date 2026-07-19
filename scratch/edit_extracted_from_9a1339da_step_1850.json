@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update contact number input placeholder to 9906123989 in Web Settings.\"",
+  "EndLine": "16868",
+  "Instruction": "\"Update placeholder to 9906123989 in App.jsx.\"",
+  "ReplacementContent": "\"                                                 placeholder=\\\"e.g. 9906123989\\\"\"",
+  "StartLine": "16865",
+  "TargetContent": "\"                                                 placeholder=\\\"e.g. 9906495133\\\"\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating placeholder value in Settings tab input\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

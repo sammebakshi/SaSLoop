@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Support multiple target printers in handlePrint.\"",
+  "EndLine": "8487",
+  "Instruction": "\"Loop over printConfig.names in handlePrint to send print-silent to all printers.\"",
+  "ReplacementContent": "\"    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        for (const printerName of printConfig.names) {\\n          for (const label of copies) {\\n            const labelHtml = label ? `<div class=\\\"center bold\\\" style=\\\"font-size: 11px; margin-top: 1mm;\\\">(${label})</div>` : '';\\n            const copyHtml = receiptHtml\\n              .replace('__COPY_LABEL_PLACEHOLDER__', labelHtml)\\n              .replace('<script>window.onload = () => { window.print(); window.close(); }</script>', '');\\n            ipcRenderer.send('print-silent', {\\n              html: copyHtml,\\n              printerName: printerName\\n            });\\n          }\\n        }\\n        return;\\n      } catch (err) {\\n        console.error(\\\"Silent print failed:\\\", err);\\n      }\\n    }\"",
+  "StartLine": "8469",
+  "TargetContent": "\"    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        for (const label of copies) {\\n          const labelHtml = label ? `<div class=\\\"center bold\\\" style=\\\"font-size: 11px; margin-top: 1mm;\\\">(${label})</div>` : '';\\n          const copyHtml = receiptHtml\\n            .replace('__COPY_LABEL_PLACEHOLDER__', labelHtml)\\n            .replace('<script>window.onload = () => { window.print(); window.close(); }</script>', '');\\n          ipcRenderer.send('print-silent', {\\n            html: copyHtml,\\n            printerName: printConfig.name\\n          });\\n        }\\n        return;\\n      } catch (err) {\\n        console.error(\\\"Silent print failed:\\\", err);\\n      }\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update handlePrint multiple printers loop\"",
+  "toolSummary": "\"Modify print execution loop in handlePrint in App.jsx\""
+}

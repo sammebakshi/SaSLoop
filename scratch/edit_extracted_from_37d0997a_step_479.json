@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Revert tables selector check to orderType === 'DINE_IN' on line 10423.\"",
+  "EndLine": "10425",
+  "Instruction": "\"Change {true && ( back to {orderType === 'DINE_IN' && ( for the top section tables selector.\"",
+  "ReplacementContent": "\"                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}\\n                        {orderType === 'DINE_IN' && (\\n<div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>\"",
+  "StartLine": "10421",
+  "TargetContent": "\"                        {/* Top Section: Tables Selector (Visible in Dine In mode) */}\\n                        {true && (\\n<div className={`flex-1 min-h-[160px] flex flex-col border-b ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-slate-50'}`}>\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring Dine-In tables selector check\"",
+  "toolSummary": "\"Revert tables selector condition to Dine-In\""
+}

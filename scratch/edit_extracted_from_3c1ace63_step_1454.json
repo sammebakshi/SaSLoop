@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate isRestoringCustomerRef cleanup useEffect from top of App.jsx\"",
+  "EndLine": "1525",
+  "Instruction": "\"Remove isRestoringCustomerRef cleanup useEffect from top of component body\"",
+  "ReplacementContent": "\"  const isRestoringCustomerRef = useRef(false);\\n  const [theme, setTheme] = useState(() => localStorage.getItem('pos_theme') || 'light');\"",
+  "StartLine": "1518",
+  "TargetContent": "\"  const isRestoringCustomerRef = useRef(false);\\n\\n  useEffect(() => {\\n    if (isRestoringCustomerRef.current) {\\n      isRestoringCustomerRef.current = false;\\n    }\\n  });\\n  const [theme, setTheme] = useState(() => localStorage.getItem('pos_theme') || 'light');\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Removing top level ref cleanup useEffect in App.jsx\"",
+  "toolSummary": "\"Remove top level ref cleanup useEffect\""
+}

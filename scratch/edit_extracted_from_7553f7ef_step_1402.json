@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wrap standard cart item delete onClick with verifyPasscodeAction\"",
+  "EndLine": "10283",
+  "Instruction": "\"Wrap onClick of standard cart item delete button in App.jsx.\"",
+  "ReplacementContent": "\"                            <button\\n                              onClick={() => {\\n                                verifyPasscodeAction(['KOT'], 'void_cart_item', () => {\\n                                  setCart(prev => prev.filter(c => !(c.id === item.id && c.price === item.price && c.priceLabel === item.priceLabel)));\\n                                }, `Remove ${item.product_name} from Cart`);\\n                              }}\\n                              className=\\\"w-5 h-5 rounded-full bg-[#d63031] text-white flex items-center justify-center font-bold text-[9px] hover:bg-[#d63031]/90 transition-colors\\\"\\n                            >\\n                              ✕\\n                            </button>\"",
+  "StartLine": "10278",
+  "TargetContent": "\"                            <button\\n                              onClick={() => setCart(prev => prev.filter(c => !(c.id === item.id && c.price === item.price && c.priceLabel === item.priceLabel)))}\\n                              className=\\\"w-5 h-5 rounded-full bg-[#d63031] text-white flex items-center justify-center font-bold text-[9px] hover:bg-red-700 transition-colors\\\"\\n                            >\\n                              ✕\\n                            </button>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wrap standard cart item delete onClick\"",
+  "toolSummary": "\"Wrap standard cart item delete onClick\""
+}

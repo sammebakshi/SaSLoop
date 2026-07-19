@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Adds a helper that matches a points transaction's reason text against order bill_no/order_reference/id to find the associated order.\"",
+  "EndLine": "2156",
+  "Instruction": "\"Add findAssociatedOrder helper function after refreshCustomerHistory\"",
+  "ReplacementContent": "\"  };\\n\\n  const findAssociatedOrder = (tx) => {\\n    if (!tx || !tx.reason) return null;\\n    if (!Array.isArray(customerHistoryData?.orders)) return null;\\n    const reasonLower = tx.reason.toLowerCase();\\n    for (const order of customerHistoryData.orders) {\\n      const billNo = String(order.bill_no || '').toLowerCase();\\n      const orderRef = String(order.order_reference || '').toLowerCase();\\n      const id = String(order.id || '').toLowerCase();\\n      if (\\n        (billNo && reasonLower.includes(billNo)) ||\\n        (orderRef && reasonLower.includes(orderRef)) ||\\n        (id && reasonLower.includes(id))\\n      ) {\\n        return order;\\n      }\\n    }\\n    return null;\\n  };\\n\\n  const updateOrderPrinterSetting\"",
+  "StartLine": "2154",
+  "TargetContent": "\"  };\\n\\n  const updateOrderPrinterSetting\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding findAssociatedOrder helper\"",
+  "toolSummary": "\"Add helper function\""
+}

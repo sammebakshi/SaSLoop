@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Filter out cancelled, deleted, and free orders from payment breakdown, and match payment methods strictly.\"",
+  "EndLine": "8853",
+  "Instruction": "\"Add status exclusion checks for cancelled/deleted/free orders and update the payment method matches.\"",
+  "ReplacementContent": "\"                // Calculate payment breakdown totals\\n                const pmTotals = recentOrders.reduce((acc, o) => {\\n                  if (o.status === 'CANCELLED' || o.status === 'DELETED') return acc;\\n                  if (o.status === 'FREE' || String(o.payment_method || '').toUpperCase() === 'FREE' || String(o.payment_method || '').toUpperCase() === 'COMPLIMENTARY') return acc;\\n\\n                  const method = String(o.payment_method || 'CASH').toUpperCase();\\n                  const amt = parseFloat(o.total_price || 0);\\n\\n                  if (method.includes('CARD')) acc.Card += amt;\\n                  else if (method.includes('CASH')) acc.Cash += amt;\\n                  else if (method.includes('GOOGLEPAY') || method.includes('GPAY')) acc.GooglePay += amt;\\n                  else if (method.includes('PAYTM')) acc.Paytm += amt;\\n                  else if (method.includes('UPI')) acc.UPI += amt;\\n                  return acc;\\n                }, { Card: 0, Cash: 0, GooglePay: 0, Paytm: 0, UPI: 0 });\"",
+  "StartLine": "8843",
+  "TargetContent": "\"                // Calculate payment breakdown totals\\n                const pmTotals = recentOrders.reduce((acc, o) => {\\n                  const method = o.payment_method || 'CASH';\\n                  const amt = o.total_price || 0;\\n                  if (method.toUpperCase().includes('CARD')) acc.Card += amt;\\n                  else if (method.toUpperCase().includes('CASH')) acc.Cash += amt;\\n                  else if (method.toUpperCase().includes('GOOGLEPAY') || method.toUpperCase().includes('GPAY')) acc.GooglePay += amt;\\n                  else if (method.toUpperCase().includes('PAYTM')) acc.Paytm += amt;\\n                  else acc.UPI += amt;\\n                  return acc;\\n                }, { Card: 0, Cash: 0, GooglePay: 0, Paytm: 0, UPI: 0 });\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Refining payment breakdown calculation in App.jsx\"",
+  "toolSummary": "\"Edit file\""
+}

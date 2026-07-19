@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Include SAVED in active order dine-in status validation.\"",
+  "EndLine": "10940",
+  "Instruction": "\"Change activeOrderToView's status check on line 10936 to include SAVED.\"",
+  "ReplacementContent": "\"                                                if (activeOrderToView.type === 'DINE_IN' && !['BILL_SAVED', 'SAVED', 'PRINTED'].includes(tableStatuses[activeOrderToView.table_id])) {\"",
+  "StartLine": "10935",
+  "TargetContent": "\"                                                if (activeOrderToView.type === 'DINE_IN' && !['BILL_SAVED', 'PRINTED'].includes(tableStatuses[activeOrderToView.table_id])) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing target line with exact spaces\"",
+  "toolSummary": "\"Update status check\""
+}

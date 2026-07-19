@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add useEffect listener to default saveChangeToBalance state.\"",
+  "EndLine": "2135",
+  "Instruction": "\"Insert useEffect listener below the click listener.\"",
+  "ReplacementContent": "\"  }, []);\\n\\n  useEffect(() => {\\n    if (isPaymentModalOpen) {\\n      if (selectedCustomer && parseFloat(selectedCustomer.balance || 0) < 0) {\\n        setSaveChangeToBalance(true);\\n      } else {\\n        setSaveChangeToBalance(false);\\n      }\\n    }\\n  }, [isPaymentModalOpen, selectedCustomer]);\"",
+  "StartLine": "2135",
+  "TargetContent": "\"  }, []);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding useEffect hook for saveChangeToBalance defaulting\"",
+  "toolSummary": "\"File edit\""
+}

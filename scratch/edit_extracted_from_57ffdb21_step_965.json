@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Syncing POS Terminal to Syncing Station\"",
+  "EndLine": "19762",
+  "Instruction": "\"Change Syncing POS Terminal title to Syncing Station.\"",
+  "ReplacementContent": "\"                           <h3 className=\\\"font-bold text-[14px]\\\">Syncing Station</h3>\"",
+  "StartLine": "19758",
+  "TargetContent": "\"                           <h3 className=\\\"font-bold text-[14px]\\\">Syncing POS Terminal</h3>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating sync title in App.jsx\"",
+  "toolSummary": "\"Edit sync title\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isSyncing state variable to track refresh sync state.\"",
+  "EndLine": "686",
+  "Instruction": "\"Add const [isSyncing, setIsSyncing] = useState(false); inside UniversalPOS.\"",
+  "ReplacementContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const [isSyncing, setIsSyncing] = useState(false);\\n  const qtyIntervalRef = useRef(null);\\n  const qtyTimeoutRef = useRef(null);\"",
+  "StartLine": "683",
+  "TargetContent": "\"  const [lastAddedItemId, setLastAddedItemId] = useState(null);\\n  const qtyIntervalRef = useRef(null);\\n  const qtyTimeoutRef = useRef(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding isSyncing state inside UniversalPOS\"",
+  "toolSummary": "\"Replace File Content App.jsx for isSyncing state\""
+}

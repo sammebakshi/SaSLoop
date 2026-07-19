@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Resolve printer config and update KOT document width inside handlePrintKOT.\"",
+  "EndLine": "8781",
+  "Instruction": "\"Inject printer config lookup and set stylesheet width to resolvedWidth in handlePrintKOT.\"",
+  "ReplacementContent": "\"  const handlePrintKOT = (items, tableName, bNo, type = 'NEW') => {\\n    let activeType = orderType || 'DINE_IN';\\n    // If table name indicates Delivery or Pickup, adjust it\\n    if (tableName) {\\n      const nameStr = String(tableName).toLowerCase();\\n      if (nameStr.includes('delivery')) {\\n        activeType = 'DELIVERY';\\n      } else if (nameStr.includes('pickup')) {\\n        activeType = 'PICKUP';\\n      }\\n    }\\n    // Also support pre-order KOT printing\\n    if (activeType === 'PRE_ORDER' || activeType === 'PREORDER') {\\n      activeType = 'PRE_ORDER';\\n    }\\n\\n    const printConfig = resolvePrinterConfig(activeType, 'kot');\\n    if (!printConfig.enabled) {\\n      toast.info(`KOT printing is disabled for ${activeType} orders.`);\\n      return;\\n    }\\n\\n    const resolvedWidth = printConfig.paperSize === 'THERMAL_58MM' ? 48 : (posSettings.printWidth || 72);\\n\\n    const receiptHtml = `\\n      <html>\\n        <head>\\n          <style>\\n            @page { margin: 0; }\\n            * { box-sizing: border-box; }\\n            body {\\n              font-family: Arial, Helvetica, sans-serif;\\n              width: ${resolvedWidth}mm;\"",
+  "StartLine": "8772",
+  "TargetContent": "\"  const handlePrintKOT = (items, tableName, bNo, type = 'NEW') => {\\n    const receiptHtml = `\\n      <html>\\n        <head>\\n          <style>\\n            @page { margin: 0; }\\n            * { box-sizing: border-box; }\\n            body {\\n              font-family: Arial, Helvetica, sans-serif;\\n              width: ${posSettings.printWidth || 72}mm;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating KOT start and stylesheet width\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

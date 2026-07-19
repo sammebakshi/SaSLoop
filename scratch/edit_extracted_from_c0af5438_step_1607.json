@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace inline date formatting at line 11571 with formatScheduledDate.\"",
+  "EndLine": "11574",
+  "Instruction": "\"Change new Date(preOrderScheduledDate...) to formatScheduledDate(preOrderScheduledDate).\"",
+  "ReplacementContent": "\"                               {formatScheduledDate(preOrderScheduledDate)}\\n                               {preOrderScheduledTime ? ` at ${preOrderScheduledTime}` : ''}\\n                             </span>\"",
+  "StartLine": "11570",
+  "TargetContent": "\"                             <span className={`text-[9px] font-bold uppercase tracking-widest opacity-80`}>\\n                               {preOrderScheduledDate ? new Date(preOrderScheduledDate + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Schedule TBD'}\\n                               {preOrderScheduledTime ? ` at ${preOrderScheduledTime}` : ''}\\n                             </span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating first pre-order date display\"",
+  "toolSummary": "\"File edit\""
+}

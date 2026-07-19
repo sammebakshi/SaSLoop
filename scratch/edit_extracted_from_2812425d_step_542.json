@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix checkbox layout stretching in Customer Balance / Due row in App.jsx\"",
+  "EndLine": "12389",
+  "Instruction": "\"Use native checkbox with shrink-0 to prevent layout stretching.\"",
+  "ReplacementContent": "\"                              <label className=\\\"flex items-center gap-1.5 cursor-pointer select-none shrink-0\\\">\\n                                <input\\n                                  type=\\\"checkbox\\\"\\n                                  checked={printDetailedBalance}\\n                                  onChange={e => setPrintDetailedBalance(e.target.checked)}\\n                                  className=\\\"w-3.5 h-3.5 accent-[#388e67] cursor-pointer shrink-0\\\"\\n                                />\\n                                <span className=\\\"text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400\\\">\\n                                  Print Balance Details\\n                                </span>\\n                              </label>\"",
+  "StartLine": "12376",
+  "TargetContent": "\"                              <label className=\\\"flex items-center gap-1.5 cursor-pointer select-none\\\">\\n                                <input\\n                                  type=\\\"checkbox\\\"\\n                                  checked={printDetailedBalance}\\n                                  onChange={e => setPrintDetailedBalance(e.target.checked)}\\n                                  className={`appearance-none w-3.5 h-3.5 border rounded transition-colors flex items-center justify-center outline-none checked:bg-[#388e67] checked:border-transparent checked:after:content-['✓'] checked:after:text-white checked:after:text-[8px] checked:after:font-black ${\\n                                    isDark ? 'border-gray-700 bg-[#0d1117]' : 'border-slate-300 bg-white'\\n                                  }`}\\n                                />\\n                                <span className=\\\"text-[8px] font-black uppercase tracking-wider text-slate-500 dark:text-gray-400\\\">\\n                                  Print Balance Details\\n                                </span>\\n                              </label>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing checkbox stretching in customer balance row\"",
+  "toolSummary": "\"Fix checkbox stretching in customer balance row\""
+}

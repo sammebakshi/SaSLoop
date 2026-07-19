@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Increased opacity of the honeycomb background grid to make it clearly visible while keeping it premium.\"",
+  "EndLine": "7892",
+  "Instruction": "\"Increase the opacity and stroke properties of the honeycomb background overlay pattern.\"",
+  "ReplacementContent": "\"            {/* Subtle Honeycomb Pattern Overlay */}\\n            <div \\n              className=\\\"absolute inset-0 opacity-80 mix-blend-multiply pointer-events-none z-0\\\" \\n              style={{ \\n                backgroundImage: `url(\\\"data:image/svg+xml,%3Csvg width='56' height='100' viewBox='0 0 56 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 28L0 44v32l28 16 28-16V44L28 28zM28 0L0 16v32l28 16 28-16V16L28 0zM0 76v24h56V76L28 92 0 76z' fill='%2318ba60' fill-opacity='0.03' fill-rule='evenodd' stroke='%2318ba60' stroke-opacity='0.22' stroke-width='1.2'/%3E%3C/svg%3E\\\")`,\\n                backgroundSize: '48px 86px'\\n              }} \\n            />\"",
+  "StartLine": "7885",
+  "TargetContent": "\"            {/* Subtle Honeycomb Pattern Overlay */}\\n            <div \\n              className=\\\"absolute inset-0 opacity-40 mix-blend-multiply pointer-events-none z-0\\\" \\n              style={{ \\n                backgroundImage: `url(\\\"data:image/svg+xml,%3Csvg width='56' height='100' viewBox='0 0 56 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M28 28L0 44v32l28 16 28-16V44L28 28zM28 0L0 16v32l28 16 28-16V16L28 0zM0 76v24h56V76L28 92 0 76z' fill='%2318ba60' fill-opacity='0.02' fill-rule='evenodd' stroke='%2318ba60' stroke-opacity='0.06' stroke-width='1.2'/%3E%3C/svg%3E\\\")`,\\n                backgroundSize: '48px 86px'\\n              }} \\n            />\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Increasing honeycomb overlay opacity in App.jsx\"",
+  "toolSummary": "\"Replacing honeycomb overlay code in App.jsx\""
+}

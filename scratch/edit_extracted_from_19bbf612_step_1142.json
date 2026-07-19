@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update grand total green banner to show 0.00 when no bill is selected in Receipts section.\"",
+  "EndLine": "9516",
+  "ReplacementContent": "\"                        <div className=\\\"bg-[#10b981] h-12 flex items-center justify-between px-4 text-white font-bold select-none w-full shrink-0\\\">\\n                          <span className=\\\"text-[13px] tracking-tight uppercase\\\">\\n                            Grand Total: {activeReceipt ? getReceiptGrandTotal(activeReceipt, posSettings?.isTaxInclusive).toFixed(2) : '0.00'}\\n                          </span>\"",
+  "StartLine": "9512",
+  "TargetContent": "\"                        {/* Green Grand Total Banner */}\\n                        <div className=\\\"bg-[#10b981] h-12 flex items-center justify-between px-4 text-white font-bold select-none w-full shrink-0\\\">\\n                          <span className=\\\"text-[13px] tracking-tight uppercase\\\">\\n                            Grand Total: {activeReceipt ? getReceiptGrandTotal(activeReceipt, posSettings?.isTaxInclusive).toFixed(2) : parseFloat(filteredTotal).toFixed(2)}\\n                          </span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "TargetLintErrorIds": "[]",
+  "toolAction": "\"Setting Grand Total banner to 0.00 when no activeReceipt in App.jsx\"",
+  "toolSummary": "\"Replace File Content App.jsx for Grand Total banner 0.00 empty state\""
+}

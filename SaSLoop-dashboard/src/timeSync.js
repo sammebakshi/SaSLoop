@@ -1,55 +1,45 @@
 // ==========================================
-// 🕒 GLOBAL INTERNET TIME SYNC & OVERRIDE
+// 🕒 GLOBAL INTERNET TIME SYNC (Safe)
 // ==========================================
-(function() {
-  const OriginalDate = window.Date;
+// Instead of overriding window.Date (which breaks React/instanceof checks),
+// we store a time offset and export a helper for components that need internet time.
 
-  // Define proxy wrapper to override Date constructor and static methods
-  const InternetDateWrapper = new Proxy(OriginalDate, {
-    construct(target, args) {
-      if (args.length === 0) {
-        const offset = parseInt(localStorage.getItem("internet_time_offset") || "0");
-        return new OriginalDate(OriginalDate.now() + offset);
-      }
-      return new OriginalDate(...args);
-    },
-    apply(target, thisArg, args) {
-      if (args.length === 0) {
-        const offset = parseInt(localStorage.getItem("internet_time_offset") || "0");
-        return new OriginalDate(OriginalDate.now() + offset).toString();
-      }
-      return OriginalDate(...args);
-    }
-  });
+const _OriginalDateNow = Date.now.bind(Date);
 
-  Object.getOwnPropertyNames(OriginalDate).forEach(prop => {
-    if (prop !== 'length' && prop !== 'name' && prop !== 'prototype') {
-      InternetDateWrapper[prop] = OriginalDate[prop];
-    }
-  });
+let _internetTimeOffset = parseInt(localStorage.getItem("internet_time_offset") || "0");
 
-  InternetDateWrapper.now = function() {
-    const offset = parseInt(localStorage.getItem("internet_time_offset") || "0");
-    return OriginalDate.now() + offset;
-  };
+// Override only Date.now() — this is safe and doesn't break instanceof or constructors
+const _originalNow = Date.now;
+Date.now = function() {
+  return _originalNow.call(Date) + _internetTimeOffset;
+};
 
-  window.Date = InternetDateWrapper;
+// Export a helper to get a corrected Date object using internet time
+export function getInternetDate() {
+  return new Date(_OriginalDateNow() + _internetTimeOffset);
+}
 
-  // Perform background fetch to sync time offset
+export function getInternetTimeOffset() {
+  return _internetTimeOffset;
+}
+
+// Perform background fetch to sync time offset
+(function syncTime() {
   const apiBase = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:5000"
-      : "";
-      
-  const start = OriginalDate.now();
+    ? "http://localhost:5000"
+    : "";
+
+  const start = _OriginalDateNow();
   fetch(`${apiBase}/api/public/time`)
     .then(res => {
       if (res.ok) return res.json();
       throw new Error('fail');
     })
     .then(data => {
-      const serverTime = new OriginalDate(data.time).getTime();
-      const lat = (OriginalDate.now() - start) / 2;
-      const offset = serverTime + lat - OriginalDate.now();
+      const serverTime = new Date(data.time).getTime();
+      const lat = (_OriginalDateNow() - start) / 2;
+      const offset = serverTime + lat - _OriginalDateNow();
+      _internetTimeOffset = offset;
       localStorage.setItem("internet_time_offset", String(offset));
       console.log(`[TIME-SYNC] Server time synchronized. Offset: ${offset}ms`);
     })

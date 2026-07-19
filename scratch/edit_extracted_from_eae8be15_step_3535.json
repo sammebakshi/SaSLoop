@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare receiptsPage, fetchingOrders, and showOldestFirst state variables in App.jsx.\"",
+  "EndLine": "681",
+  "Instruction": "\"Add state variables for pagination, loading, and oldest-first sorting in Receipts tab.\"",
+  "ReplacementContent": "\"  // Receipts Action Bar & Date Range Picker States\\n  const [receiptsDateMode, setReceiptsDateMode] = useState('today'); // 'today', 'all', 'custom'\\n  const [receiptsStartDate, setReceiptsStartDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(0, 0, 0, 0);\\n    return d;\\n  });\\n  const [receiptsEndDate, setReceiptsEndDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(23, 59, 59, 999);\\n    return d;\\n  });\\n\\n  const [selectedReceiptIds, setSelectedReceiptIds] = useState([]);\\n  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);\\n  const [receiptsPage, setReceiptsPage] = useState(1);\\n  const [fetchingOrders, setFetchingOrders] = useState(false);\\n  const [showOldestFirst, setShowOldestFirst] = useState(false);\"",
+  "StartLine": "666",
+  "TargetContent": "\"  // Receipts Action Bar & Date Range Picker States\\n  const [receiptsDateMode, setReceiptsDateMode] = useState('today'); // 'today', 'all', 'custom'\\n  const [receiptsStartDate, setReceiptsStartDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(0, 0, 0, 0);\\n    return d;\\n  });\\n  const [receiptsEndDate, setReceiptsEndDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(23, 59, 59, 999);\\n    return d;\\n  });\\n\\n  const [selectedReceiptIds, setSelectedReceiptIds] = useState([]);\\n  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding state variables to App.jsx\"",
+  "toolSummary": "\"Replace file content\""
+}

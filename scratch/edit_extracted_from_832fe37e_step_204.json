@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add pre-order fulfillment details block to printed receipt HTML in App.jsx\"",
+  "EndLine": "7327",
+  "Instruction": "\"Add pre-order fulfillment block below customer details in receiptHtml\"",
+  "ReplacementContent": "\"          ${(customerPhone || (customerName && customerName !== 'POS Guest') || customerAddress) ? `\\n          <div class=\\\"dashed-line\\\"></div>\\n          <div class=\\\"grid-section\\\" style=\\\"flex-direction: column; gap: 0.5mm; font-size: 10px;\\\">\\n            <div>Cust Name: ${customerName}</div>\\n            ${customerPhone ? `<div>Cust Mobile: ${customerPhone}</div>` : ''}\\n            ${customerAddress ? `<div style=\\\"white-space: pre-line;\\\">Delivery Address: ${customerAddress}</div>` : ''}\\n          </div>\\n          ` : ''}\\n\\n          ${(scheduledDate || scheduledTime) ? `\\n          <div class=\\\"dashed-line\\\"></div>\\n          <div class=\\\"grid-section\\\" style=\\\"flex-direction: column; gap: 0.5mm; font-size: 11px; font-weight: bold; background-color: #eee; padding: 1.5mm 1mm; border-radius: 4px;\\\">\\n            <div class=\\\"center\\\" style=\\\"font-size: 11px; text-decoration: underline; margin-bottom: 0.5mm;\\\">PRE-ORDER FULFILLMENT DETAILS</div>\\n            ${scheduledDate ? `<div>Date: ${formatDateOnly(scheduledDate)}</div>` : ''}\\n            ${scheduledTime ? `<div>Time: ${scheduledTime}</div>` : ''}\\n          </div>\\n          ` : ''}\\n\"",
+  "StartLine": "7319",
+  "TargetContent": "\"          ${(customerPhone || (customerName && customerName !== 'POS Guest') || customerAddress) ? `\\n          <div class=\\\"dashed-line\\\"></div>\\n          <div class=\\\"grid-section\\\" style=\\\"flex-direction: column; gap: 0.5mm; font-size: 10px;\\\">\\n            <div>Cust Name: ${customerName}</div>\\n            ${customerPhone ? `<div>Cust Mobile: ${customerPhone}</div>` : ''}\\n            ${customerAddress ? `<div style=\\\"white-space: pre-line;\\\">Delivery Address: ${customerAddress}</div>` : ''}\\n          </div>\\n          ` : ''}\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pre-order fulfillment block to printed receipt HTML\"",
+  "toolSummary": "\"Add pre-order fulfillment to receipt HTML\""
+}

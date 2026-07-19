@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore tableCustomers from active POS state during initialization.\"",
+  "EndLine": "6775",
+  "Instruction": "\"Add tableCustomers check and restoration logic.\"",
+  "ReplacementContent": "\"          if (stateData.tableActiveTimestamps) {\\n            setTableActiveTimestamps(stateData.tableActiveTimestamps);\\n            localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps));\\n          }\\n          if (stateData.tableCustomers) {\\n            setTableCustomers(stateData.tableCustomers);\\n            localStorage.setItem('pos_table_customers', JSON.stringify(stateData.tableCustomers));\\n          }\\n          if (stateData.tables && stateData.tables.length > 0) {\\n            setTables(prev => {\\n              const serverTables = prev.filter(t => !t.is_temporary);\\n              const localTempTables = stateData.tables.filter(t => t.is_temporary);\\n              return [...serverTables, ...localTempTables];\\n            });\\n          }\"",
+  "StartLine": "6764",
+  "TargetContent": "\"          if (stateData.tableActiveTimestamps) {\\n            setTableActiveTimestamps(stateData.tableActiveTimestamps);\\n            localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps));\\n          }\\n          if (stateData.tables && stateData.tables.length > 0) {\\n            setTables(prev => {\\n              const serverTables = prev.filter(t => !t.is_temporary);\\n              const localTempTables = stateData.tables.filter(t => t.is_temporary);\\n              return [...serverTables, ...localTempTables];\\n            });\\n          }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring tableCustomers from active state in initApp\"",
+  "toolSummary": "\"Restoring tableCustomers from active state in initApp\""
+}

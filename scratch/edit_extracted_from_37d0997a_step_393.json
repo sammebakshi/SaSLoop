@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable action toolbar (discounts, coupons, charges, points) across all Pre-Order sub-tabs (KOT, Payments, and Billing).\"",
+  "EndLine": "11652",
+  "Instruction": "\"Update the conditional check for rendering the bottom action toolbar to include activeTrayTab === 'PreOrder' generally.\"",
+  "ReplacementContent": "\"                  {(activeTrayTab === 'Billing' || orderType === 'QUICK' || activeTrayTab === 'PreOrder') && (\"",
+  "StartLine": "11650",
+  "TargetContent": "\"                  {(activeTrayTab === 'Billing' || orderType === 'QUICK' || (activeTrayTab === 'PreOrder' && preOrderSubTab === 'KOT')) && (\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating tray toolbar condition for all pre-order tabs\"",
+  "toolSummary": "\"Update App.jsx toolbar condition\""
+}

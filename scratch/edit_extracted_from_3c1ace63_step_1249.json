@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customer state synchronizer useEffect to sync active customer details immediately to tableCustomers\"",
+  "EndLine": "3723",
+  "Instruction": "\"Add customer state sync useEffect and group with localStorage writer\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode\\n  ]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomers));\\n  }, [tableCustomers]);\"",
+  "StartLine": "3720",
+  "TargetContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomers));\\n  }, [tableCustomers]);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding customer state sync useEffect in App.jsx\"",
+  "toolSummary": "\"Add customer state sync useEffect\""
+}

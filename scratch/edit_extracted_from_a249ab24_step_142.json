@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Delete leftover tags from App.jsx\"",
+  "EndLine": "10476",
+  "Instruction": "\"Clean up leftover tags from the previous store view block.\"",
+  "ReplacementContent": "\"            )}\"",
+  "StartLine": "10468",
+  "TargetContent": "\"            )}\\n                          <p className=\\\"text-[10px] font-black uppercase tracking-widest italic\\\">No customer records found</p>\\n                       </div>\\n                    )}\\n                 </div>\\n              </motion.div>\\n           )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Deleting leftover tags with parent brace matching\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

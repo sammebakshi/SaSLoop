@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Strip the dark card background, border, and shadow from the TransitionSplashScreen wrapper. The locker dial now floats on a fully transparent background, letting the outer container show through.\"",
+  "EndLine": "316",
+  "Instruction": "\"Replace the dark card wrapper div with a transparent one — no bg, no border, no shadow.\"",
+  "ReplacementContent": "\"    <div className=\\\"text-white text-center relative select-none mx-4\\\">\\n      <div className=\\\"flex flex-col items-center\\\">\"",
+  "StartLine": "313",
+  "TargetContent": "\"    <div className=\\\"w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.6)] relative overflow-hidden select-none mx-4\\\">\\n      {/* Subtle radial glow */}\\n      <div className=\\\"absolute w-[350px] h-[350px] rounded-full bg-[#18ba60]/5 blur-[100px] top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0\\\" />\\n\\n      <div className=\\\"relative z-10 flex flex-col items-center\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Making locker dial background transparent\"",
+  "toolSummary": "\"Transparent background edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Modify pre-order KOT action to check preOrderDetailsMandatory setting\"",
+  "EndLine": "4648",
+  "Instruction": "\"Check business.business_details.settings.preOrderDetailsMandatory before blocking pre-order save due to missing customer details\"",
+  "ReplacementContent": "\"    const isPreOrderMandatory = business?.business_details?.settings?.preOrderDetailsMandatory === true;\\n    if (isPreOrderMandatory) {\\n      if (!customerName || !customerName.trim() || customerName.trim() === \\\"POS Guest\\\") {\\n        toast.error(\\\"Customer Name is mandatory for Pre-Order!\\\");\\n        return;\\n      }\\n      if (!customerPhone || !customerPhone.trim()) {\\n        toast.error(\\\"Customer Phone is mandatory for Pre-Order!\\\");\\n        return;\\n      }\\n    }\"",
+  "StartLine": "4640",
+  "TargetContent": "\"    if (!customerName || !customerName.trim()) {\\n      toast.error(\\\"Customer Name is mandatory for Pre-Order!\\\");\\n      return;\\n    }\\n    if (!customerPhone || !customerPhone.trim()) {\\n      toast.error(\\\"Customer Phone is mandatory for Pre-Order!\\\");\\n      return;\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating pre-order validation checks in handlePreOrderKOTAction\"",
+  "toolSummary": "\"Update pre-order validation in handlePreOrderKOTAction\""
+}

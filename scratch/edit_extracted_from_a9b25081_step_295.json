@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add activeTabRef to trace activeTab state in async callbacks without stale closures.\"",
+  "EndLine": "3437",
+  "Instruction": "\"Add activeTabRef declaration and update its current value on render.\"",
+  "ReplacementContent": "\"  const seenOrderIdsRef = useRef(new Set());\\n  const isFirstFetchRef = useRef(true);\\n  const activeTabRef = useRef(activeTab);\\n  activeTabRef.current = activeTab;\"",
+  "StartLine": "3434",
+  "TargetContent": "\"  const seenOrderIdsRef = useRef(new Set());\\n  const isFirstFetchRef = useRef(true);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding activeTabRef to App.jsx\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

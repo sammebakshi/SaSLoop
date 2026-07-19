@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Sync dashboard stats after offline bills are successfully uploaded\"",
+  "EndLine": "1941",
+  "Instruction": "\"Add fetchDashboardStatsFromServer inside the successCount block of handleSyncBills\"",
+  "ReplacementContent": "\"    setRecentOrders(updatedOrders);\\n    if (successCount > 0) {\\n      toast.success(`Successfully synced ${successCount} bills!`);\\n      if (navigator.onLine) {\\n        fetchDashboardStatsFromServer();\\n      }\\n    }\\n    if (successCount < unsyncedOrders.length) {\\n      toast.error(`Failed to sync ${unsyncedOrders.length - successCount} bills.`);\\n    }\\n  };\"",
+  "StartLine": "1933",
+  "TargetContent": "\"    setRecentOrders(updatedOrders);\\n    if (successCount > 0) {\\n      toast.success(`Successfully synced ${successCount} bills!`);\\n    }\\n    if (successCount < unsyncedOrders.length) {\\n      toast.error(`Failed to sync ${unsyncedOrders.length - successCount} bills.`);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleSyncBills callback\"",
+  "toolSummary": "\"App.jsx handleSyncBills edit\""
+}

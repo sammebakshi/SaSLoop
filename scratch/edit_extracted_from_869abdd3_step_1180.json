@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add KOT permissions and customer details mandatory checks to handleSaveTemporaryKOT\"",
+  "EndLine": "4816",
+  "Instruction": "\"Add KOT permissions and customer details mandatory checks.\"",
+  "ReplacementContent": "\"  const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {\\n    if (isCustomerDetailsMandatory()) {\\n      if (!customerPhone.trim() || !customerName.trim()) {\\n        toast.error(\\\"Customer Name and Phone Number are mandatory for this order type.\\\");\\n        return;\\n      }\\n    }\\n    if (isPrint) {\\n      if (!checkKOTPermission('save_and_print')) {\\n        toast.error(\\\"You do not have permission to Save and Print KOT.\\\");\\n        return;\\n      }\\n    } else {\\n      if (!checkKOTPermission('save')) {\\n        toast.error(\\\"You do not have permission to Save KOT.\\\");\\n        return;\\n      }\\n    }\\n    if (cart.length === 0) {\"",
+  "StartLine": "4814",
+  "TargetContent": "\"  const handleSaveTemporaryKOT = (isPrint = false, isNewOrder = false) => {\\n    if (cart.length === 0) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace catch-all else with explicit UPI check.\"",
+  "EndLine": "8856",
+  "Instruction": "\"Change else acc.UPI to else if (method.includes('UPI')).\"",
+  "ReplacementContent": "\"                  else if (method.includes('UPI')) acc.UPI += amt;\"",
+  "StartLine": "8856",
+  "TargetContent": "\"                  else acc.UPI += amt;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing line 8856 in App.jsx\"",
+  "toolSummary": "\"Edit file\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Safely convert table ID to string before calling startsWith to prevent crash in initApp\"",
+  "EndLine": "4542",
+  "Instruction": "\"Convert t.id to String(t.id) in startsWith check\"",
+  "ReplacementContent": "\"            const serverAndOtherTemp = prev.filter(t => !String(t.id).startsWith('preorder-'));\"",
+  "StartLine": "4535",
+  "TargetContent": "\"            const serverAndOtherTemp = prev.filter(t => !t.id.startsWith('preorder-'));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Applying replace to App.jsx\"",
+  "toolSummary": "\"Modify startsWith call in App.jsx\""
+}

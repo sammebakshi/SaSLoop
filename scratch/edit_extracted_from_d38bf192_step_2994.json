@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add helper functions to get current local date and time strings YYYY-MM-DD and HH:MM\"",
+  "EndLine": "93",
+  "Instruction": "\"Define getCurrentDateString and getCurrentTimeString helpers before parsePhoneNumber\"",
+  "ReplacementContent": "\"const getCurrentDateString = () => {\\n  const d = new Date();\\n  const year = d.getFullYear();\\n  const month = String(d.getMonth() + 1).padStart(2, '0');\\n  const day = String(d.getDate()).padStart(2, '0');\\n  return `${year}-${month}-${day}`;\\n};\\n\\nconst getCurrentTimeString = () => {\\n  const d = new Date();\\n  const hours = String(d.getHours()).padStart(2, '0');\\n  const minutes = String(d.getMinutes()).padStart(2, '0');\\n  return `${hours}:${minutes}`;\\n};\\n\\nconst parsePhoneNumber = (phone) => {\\n  if (!phone) return { dialCode: '+91', localNumber: '' };\"",
+  "StartLine": "91",
+  "TargetContent": "\"const parsePhoneNumber = (phone) => {\\n  if (!phone) return { dialCode: '+91', localNumber: '' };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

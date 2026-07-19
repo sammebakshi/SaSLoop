@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update getYAxisTicks call to use step of 200 explicitly on Line Graph.\"",
+  "EndLine": "8224",
+  "Instruction": "\"Update getYAxisTicks call for line chart to use baseStep 200.\"",
+  "ReplacementContent": "\"                                  const maxVal = Math.max(1, ...lineData.map(d => d.total));\\n                                  const ticks = getYAxisTicks(maxVal, 200);\\n                                  const points = lineData.map((d, i) => {\\n                                    const x = lineData.length > 1 ? (i / (lineData.length - 1)) * 100 : 50;\\n                                    const y = getYCoordinate(d.total, ticks);\\n                                    return { x, y, total: d.total, day: d.day, isMonth: d.isMonth };\\n                                  });\"",
+  "StartLine": "8213",
+  "TargetContent": "\"                                  const maxVal = Math.max(1, ...lineData.map(d => d.total));\\n                                  const ticks = getYAxisTicks(maxVal);\\n                                  const points = lineData.map((d, i) => {\\n                                    const x = lineData.length > 1 ? (i / (lineData.length - 1)) * 100 : 50;\\n                                    const y = getYCoordinate(d.total, ticks);\\n                                    return { x, y, total: d.total, day: d.day, isMonth: d.isMonth };\\n                                  });\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing Line Graph ticks call with 200 step\"",
+  "toolSummary": "\"Replace File Content App.jsx for Line Graph 200 step\""
+}

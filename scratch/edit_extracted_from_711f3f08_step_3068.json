@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restrict settings tabs to printers only in Terminal mode.\"",
+  "EndLine": "4427",
+  "ReplacementContent": "\"  const getFilteredSettingsTabs = () => {\\n    if (isTerminalMode) {\\n      return [\\n        { id: 'printer', label: 'Printers', icon: <Printer size={12} />, show: true }\\n      ];\\n    }\\n    const access = getStaffPermissions()?.pos_access?.Settings;\\n    const tabs = [\\n      { id: 'general', label: 'General', icon: <Settings size={12} />, show: access?.general !== false },\\n      { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} />, show: access?.profile !== false },\\n      { id: 'printer', label: 'Printers', icon: <Printer size={12} />, show: access?.printers !== false },\\n      { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} />, show: access?.shortcuts !== false },\\n      { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} />, show: access?.formatting !== false },\\n      { id: 'profile', label: 'Profile', icon: <User size={12} />, show: access?.profile !== false }\\n    ];\\n    return tabs.filter(t => t.show);\\n  };\"",
+  "StartLine": "4416",
+  "TargetContent": "\"  const getFilteredSettingsTabs = () => {\\n    const access = getStaffPermissions()?.pos_access?.Settings;\\n    const tabs = [\\n      { id: 'general', label: 'General', icon: <Settings size={12} />, show: access?.general !== false },\\n      { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} />, show: access?.profile !== false },\\n      { id: 'printer', label: 'Printers', icon: <Printer size={12} />, show: access?.printers !== false },\\n      { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} />, show: access?.shortcuts !== false },\\n      { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} />, show: access?.formatting !== false },\\n      { id: 'profile', label: 'Profile', icon: <User size={12} />, show: access?.profile !== false }\\n    ];\\n    return tabs.filter(t => t.show);\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restricting getFilteredSettingsTabs in Terminal mode\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

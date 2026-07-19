@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add default separate printer configurations to posSettings default initialization.\"",
+  "EndLine": "3938",
+  "Instruction": "\"Initialize posSettings.orderPrinters with default values.\"",
+  "ReplacementContent": "\"      printLoyaltyPoints: true,\\n      loyaltyPrintOption: 'all',\\n      orderPrinters: {\\n        DINE_IN: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        PICKUP: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        DELIVERY: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        QUICK: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        PRE_ORDER: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        }\\n      }\\n    };\"",
+  "StartLine": "3934",
+  "TargetContent": "\"      printLoyaltyPoints: true,\\n      loyaltyPrintOption: 'all'\\n    };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Initialize default orderPrinters in posSettings\"",
+  "toolSummary": "\"Initialize posSettings.orderPrinters with default values in App.jsx\""
+}

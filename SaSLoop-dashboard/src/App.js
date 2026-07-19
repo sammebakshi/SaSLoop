@@ -208,6 +208,19 @@ const ProtectedShell = ({ allowedRoles }) => {
 
     if (!hasRole) {
       const defaultPath = (role?.startsWith('admin') || role === 'brand_owner') ? '/admin-dashboard' : '/dashboard';
+      
+      // 🛡️ Ensure defaultPath is authorized for this role to prevent infinite redirect loops
+      const isAllowedOnDefault = 
+        (defaultPath === '/admin-dashboard' && (role?.startsWith('admin') || role === 'brand_owner' || role === 'master_admin')) ||
+        (defaultPath === '/dashboard' && (role === 'user' || role?.startsWith('admin') || role === 'brand_owner' || role === 'master_admin'));
+
+      if (!isAllowedOnDefault) {
+        console.error("🚨 Role unauthorized for all dashboard interfaces. Clearing session.");
+        localStorage.clear();
+        sessionStorage.clear();
+        return <Navigate to="/login?error=unauthorized_role" replace />;
+      }
+
       sessionStorage.setItem("redirect_count", (redirectCount + 1).toString());
       return <Navigate to={defaultPath} replace />;
     }

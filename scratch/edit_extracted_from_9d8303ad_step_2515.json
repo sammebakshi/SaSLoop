@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove redundant table footer tags in customer history view in App.jsx\"",
+  "EndLine": "9464",
+  "Instruction": "\"Clean up double tbody/table/div closing tags in App.jsx\"",
+  "ReplacementContent": "\"                                    </tbody>\\n                                 </table>\\n                              </div>\\n                           )}\"",
+  "StartLine": "9457",
+  "TargetContent": "\"                                    </tbody>\\n                                 </table>\\n                              </div>\\n                                    </tbody>\\n                                 </table>\\n                              </div>\\n                           )\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Remove redundant closing tags\"",
+  "toolSummary": "\"Cleaning up table closing tags in App.jsx\""
+}

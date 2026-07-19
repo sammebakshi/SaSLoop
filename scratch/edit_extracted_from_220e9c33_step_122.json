@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add updateOrderPrinterSetting helper function to App.jsx.\"",
+  "EndLine": "2044",
+  "Instruction": "\"Insert the updateOrderPrinterSetting function below refreshCustomerHistory in App.jsx.\"",
+  "ReplacementContent": "\"  };\\n\\n  const updateOrderPrinterSetting = (orderTypeKey, jobType, field, value) => {\\n    setPosSettings(prev => {\\n      const printers = { ...(prev.orderPrinters || {}) };\\n      if (!printers[orderTypeKey]) {\\n        printers[orderTypeKey] = {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        };\\n      }\\n      printers[orderTypeKey] = {\\n        ...printers[orderTypeKey],\\n        [jobType]: {\\n          ...(printers[orderTypeKey][jobType] || {}),\\n          [field]: value\\n        }\\n      };\\n      return {\\n        ...prev,\\n        orderPrinters: printers\\n      };\\n    });\\n  };\\n\\n  const compileLedgerData = () => {\"",
+  "StartLine": "2041",
+  "TargetContent": "\"  };\\n\\n  const compileLedgerData = () => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add updateOrderPrinterSetting helper\"",
+  "toolSummary": "\"Insert updateOrderPrinterSetting helper function in App.jsx\""
+}

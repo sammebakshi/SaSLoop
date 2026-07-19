@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Force active settings tab to printer in Terminal mode.\"",
+  "EndLine": "6599",
+  "ReplacementContent": "\"  useEffect(() => {\\n    if (isSettingsModalOpen && isAuthenticated) {\\n      if (isTerminalMode) {\\n        setSettingsActiveTab('printer');\\n      }\\n      const fetchFreshSettings = async () => {\"",
+  "StartLine": "6596",
+  "TargetContent": "\"  // Sync settings when the Settings modal is opened\\n  useEffect(() => {\\n    if (isSettingsModalOpen && isAuthenticated) {\\n      const fetchFreshSettings = async () => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Enforcing printers active tab in settings modal\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

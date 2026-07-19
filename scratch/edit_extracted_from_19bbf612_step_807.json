@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set lastAddedItemId when item is added from modifier options modal.\"",
+  "EndLine": "11352",
+  "Instruction": "\"Add setLastAddedItemId(selectedItemForModifiers.id) in modifiers select callback.\"",
+  "ReplacementContent": "\"                              if (!exist) {\\n                                 const hasOptions = itemOptionGroups.length > 0;\\n                                 setLastAddedItemId(selectedItemForModifiers.id);\\n                                 setCart(prev => [...prev, { ...selectedItemForModifiers, quantity: 1, price: hasOptions ? 0 : selectedItemForModifiers.price }]);\\n                              }\"",
+  "StartLine": "11347",
+  "TargetContent": "\"                              if (!exist) {\\n                                 const hasOptions = itemOptionGroups.length > 0;\\n                                 setCart(prev => [...prev, { ...selectedItemForModifiers, quantity: 1, price: hasOptions ? 0 : selectedItemForModifiers.price }]);\\n                              }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting lastAddedItemId in modifier modal click\"",
+  "toolSummary": "\"Replace File Content App.jsx for lastAddedItemId in modifier modal\""
+}

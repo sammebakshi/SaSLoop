@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add handleSyncRefresh function that handles animated sync state hook.\"",
+  "EndLine": "3576",
+  "Instruction": "\"Define handleSyncRefresh function right after initApp's close curly brace.\"",
+  "ReplacementContent": "\"    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load dashboard stats:\\\", e);\\n    }\\n  };\\n\\n  const handleSyncRefresh = async () => {\\n    if (isSyncing) return;\\n    setIsSyncing(true);\\n    try {\\n      await initApp();\\n      toast.success(\\\"Data synced from server!\\\");\\n    } catch (err) {\\n      console.error(err);\\n      toast.error(\\\"Failed to sync data from server.\\\");\\n    } finally {\\n      setIsSyncing(false);\\n    }\\n  };\"",
+  "StartLine": "3571",
+  "TargetContent": "\"    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load dashboard stats:\\\", e);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring handleSyncRefresh method in App.jsx\"",
+  "toolSummary": "\"Replace File Content App.jsx for handleSyncRefresh\""
+}

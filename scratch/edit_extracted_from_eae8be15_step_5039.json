@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add pre-order state variables for managing the scheduling form, advance payment, and the list of pre-orders.\"",
+  "EndLine": "601",
+  "Instruction": "\"Add pre-order states after the selectedReport state.\"",
+  "ReplacementContent": "\"  const [selectedReport, setSelectedReport] = useState('Sales Report');\\n\\n  // Pre-Order States\\n  const [preOrders, setPreOrders] = useState([]);\\n  const [preOrderScheduledDate, setPreOrderScheduledDate] = useState('');\\n  const [preOrderScheduledTime, setPreOrderScheduledTime] = useState('');\\n  const [preOrderAdvanceAmount, setPreOrderAdvanceAmount] = useState('');\\n  const [preOrderOrderType, setPreOrderOrderType] = useState('PICKUP');\\n  const [preOrderNotes, setPreOrderNotes] = useState('');\\n  const [showPreOrderList, setShowPreOrderList] = useState(false);\"",
+  "StartLine": "600",
+  "TargetContent": "\"  const [selectedReport, setSelectedReport] = useState('Sales Report');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pre-order states\"",
+  "toolSummary": "\"State additions\""
+}

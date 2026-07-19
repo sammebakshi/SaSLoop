@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update SaSLoopLogo image source to relative path.\"",
+  "EndLine": "271",
+  "Instruction": "\"Change src=\\\"/logo.png\\\" to src=\\\"logo.png\\\" in SaSLoopLogo component.\"",
+  "ReplacementContent": "\"const SaSLoopLogo = () => (\\n  <img src=\\\"logo.png\\\" className=\\\"w-[34px] h-[34px] object-contain mr-1.5 drop-shadow-[0_0_8px_rgba(24,186,96,0.3)] bg-white rounded-lg p-0.5\\\" alt=\\\"SaSLoop Logo\\\" />\\n);\"",
+  "StartLine": "267",
+  "TargetContent": "\"const SaSLoopLogo = () => (\\n  <img src=\\\"/logo.png\\\" className=\\\"w-[34px] h-[34px] object-contain mr-1.5 drop-shadow-[0_0_8px_rgba(24,186,96,0.3)] bg-white rounded-lg p-0.5\\\" alt=\\\"SaSLoop Logo\\\" />\\n);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating SaSLoopLogo image path in App.jsx\"",
+  "toolSummary": "\"Change logo path to relative\""
+}

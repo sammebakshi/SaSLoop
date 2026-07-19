@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Integrate updatePendingOrderWithNewKOTItems in handleNewOrder.\"",
+  "EndLine": "6024",
+  "ReplacementContent": "\"          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n          if (editingOrder) {\\n            await updatePendingOrderWithNewKOTItems(cartWithKotNo);\\n          } else {\\n            const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';\\n            setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));\\n            setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\\n            setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\\n          }\"",
+  "StartLine": "6019",
+  "TargetContent": "\"          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n          const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';\\n          setTableBills(prev => ({ ...prev, [selectedTable.id]: mergeBillItems([...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo]) }));\\n          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\\n          setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleNewOrder Dine-In block\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

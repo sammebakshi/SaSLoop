@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gated home tab access based on posAccess.Dashboard.visible check in App.jsx.\"",
+  "EndLine": "2954",
+  "Instruction": "\"Gate the home tab based on posAccess.Dashboard.visible check in isTabAllowed\"",
+  "ReplacementContent": "\"  const isTabAllowed = (tabName) => {\\n    const posAccess = business?.staff_permissions?.pos_access;\\n    \\n    switch (tabName) {\\n      case 'home':\\n        return isModuleAllowed(\\\"Revenue Dashboard\\\") && posAccess?.Dashboard?.visible !== false;\\n      case 'billing':\\n        return posAccess?.Billing?.visible !== false;\"",
+  "StartLine": "2947",
+  "TargetContent": "\"  const isTabAllowed = (tabName) => {\\n    const posAccess = business?.staff_permissions?.pos_access;\\n    \\n    switch (tabName) {\\n      case 'home':\\n        return isModuleAllowed(\\\"Revenue Dashboard\\\");\\n      case 'billing':\\n        return posAccess?.Billing?.visible !== false;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating dashboard tab access\"",
+  "toolSummary": "\"File edit\""
+}

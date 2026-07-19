@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added state variables for coupon modal (isCouponModalOpen, availableCoupons, couponCode, appliedCoupon) and loyalty points popup (showLoyaltyPopup) next to the discount-related states.\"",
+  "EndLine": "3649",
+  "Instruction": "\"Add coupon modal states and loyalty popup state after existing discount states\"",
+  "ReplacementContent": "\"  const [customChargeName, setCustomChargeName] = useState('');\\n  const [customChargeType, setCustomChargeType] = useState('fixed');\\n  const [customChargeValue, setCustomChargeValue] = useState('');\\n\\n  // Coupon & Loyalty States\\n  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);\\n  const [availableCoupons, setAvailableCoupons] = useState([]);\\n  const [couponCode, setCouponCode] = useState('');\\n  const [appliedCoupon, setAppliedCoupon] = useState(null);\\n  const [showLoyaltyPopup, setShowLoyaltyPopup] = useState(false);\"",
+  "StartLine": "3646",
+  "TargetContent": "\"  const [customChargeName, setCustomChargeName] = useState('');\\n  const [customChargeType, setCustomChargeType] = useState('fixed');\\n  const [customChargeValue, setCustomChargeValue] = useState('');\\n\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Add coupon and loyalty state variables\"",
+  "toolSummary": "\"Edit App.jsx add states\""
+}

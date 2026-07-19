@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update search debounce logic to merge searched customer details (balance and points) into local customerDb.\"",
+  "EndLine": "811",
+  "Instruction": "\"Modify searchCustomers response handling to merge fetched customer profile details (including balance) into customerDb.\"",
+  "ReplacementContent": "\"        const response = await posService.searchCustomers(customerPhone);\\n        if (response.data && Array.isArray(response.data)) {\\n          setSearchResults(response.data);\\n          setShowSearchResults(response.data.length > 0);\\n          setCustomerDb(prev => {\\n            const next = { ...prev };\\n            response.data.forEach(c => {\\n              if (c.number) {\\n                next[c.number] = {\\n                  name: c.name || '',\\n                  phone: c.number,\\n                  address: c.address || '',\\n                  points: Number(c.points) || 0,\\n                  balance: Number(c.balance) || 0,\\n                  orders: Number(c.orders) || prev[c.number]?.orders || 0,\\n                  totalSpent: Number(c.total_spent || c.totalSpent) || prev[c.number]?.totalSpent || 0\\n                };\\n              }\\n            });\\n            localStorage.setItem('pos_customer_db', JSON.stringify(next));\\n            return next;\\n          });\\n        }\"",
+  "StartLine": "803",
+  "TargetContent": "\"        const response = await posService.searchCustomers(customerPhone);\\n        if (response.data && Array.isArray(response.data)) {\\n          setSearchResults(response.data);\\n          setShowSearchResults(response.data.length > 0);\\n        }\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Modifying App.jsx customer search debounce\"",
+  "toolSummary": "\"Update customer search cache in App.jsx\""
+}

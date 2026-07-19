@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Render PasscodeModal in App.jsx when passcodeModalState.isOpen is true\"",
+  "EndLine": "17421",
+  "Instruction": "\"Add PasscodeModal rendering block in App.jsx.\"",
+  "ReplacementContent": "\"        {passcodeModalState.isOpen && (\\n           <PasscodeModal\\n              isOpen={passcodeModalState.isOpen}\\n              onClose={() => setPasscodeModalState(prev => ({ ...prev, isOpen: false }))}\\n              onSuccess={() => {\\n                 const cb = passcodeModalState.onSuccess;\\n                 setPasscodeModalState(prev => ({ ...prev, isOpen: false }));\\n                 if (cb) cb();\\n              }}\\n              actionName={passcodeModalState.actionName}\\n              requiredModules={passcodeModalState.requiredModules}\\n              actionKey={passcodeModalState.actionKey}\\n              isDark={isDark}\\n           />\\n        )}\\n\\n        {isTransferModalOpen && (\"",
+  "StartLine": "17419",
+  "TargetContent": "\"        {isTransferModalOpen && (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Render PasscodeModal in App.jsx\"",
+  "toolSummary": "\"Render PasscodeModal in App.jsx\""
+}

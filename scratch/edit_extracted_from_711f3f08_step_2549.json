@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare isChangeTableModalOpen state.\"",
+  "EndLine": "2182",
+  "ReplacementContent": "\"  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\\n  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false);\"",
+  "StartLine": "2181",
+  "TargetContent": "\"  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring isChangeTableModalOpen state\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

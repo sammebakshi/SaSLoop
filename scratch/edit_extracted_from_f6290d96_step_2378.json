@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Inserted TransitionSplashScreen as an absolute glassmorphic overlay over the login page when transitioning to the dashboard\"",
+  "EndLine": "8747",
+  "Instruction": "\"Insert the combination dial lock overlay right before the last closing div of the login page returned JSX\"",
+  "ReplacementContent": "\"          </div>\\n          </div>\\n        </div>\\n      </div>\\n      {/* Combination Lock Dial Overlay */}\\n      {isTransitioningToDashboard && (\\n        <div className=\\\"fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-md animate-fade-in\\\">\\n          <TransitionSplashScreen username={username} />\\n        </div>\\n      )}\\n    </div>\\n    );\\n  }\"",
+  "StartLine": "8741",
+  "TargetContent": "\"          </div>\\n          </div>\\n        </div>\\n      </div>\\n    </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Inserting TransitionSplashScreen overlay in login layout\"",
+  "toolSummary": "\"File edit\""
+}

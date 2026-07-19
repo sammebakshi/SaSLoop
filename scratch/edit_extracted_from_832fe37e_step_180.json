@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Copy pre-order scheduled date and time to POS Order on checkout in App.jsx\"",
+  "EndLine": "6530",
+  "Instruction": "\"Add pre_order_scheduled_date and pre_order_scheduled_time fields to newOrder inside handleCheckout\"",
+  "ReplacementContent": "\"      pre_order_id: editingPreOrder ? editingPreOrder.id : null,\\n      pre_order_advance: editingPreOrder ? advancePaid : 0,\\n      pre_order_balance: editingPreOrder ? remainingBalance : 0,\\n      pre_order_scheduled_date: editingPreOrder ? editingPreOrder.scheduled_date : null,\\n      pre_order_scheduled_time: editingPreOrder ? editingPreOrder.scheduled_time : null,\\n      paid_amount: method === 'SPLIT'\\n\"",
+  "StartLine": "6525",
+  "TargetContent": "\"      pre_order_id: editingPreOrder ? editingPreOrder.id : null,\\n      pre_order_advance: editingPreOrder ? advancePaid : 0,\\n      pre_order_balance: editingPreOrder ? remainingBalance : 0,\\n      paid_amount: method === 'SPLIT'\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding pre-order scheduled columns to checkout newOrder\"",
+  "toolSummary": "\"Add pre-order metadata in checkout\""
+}

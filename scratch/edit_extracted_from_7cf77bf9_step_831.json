@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fetch dashboard stats after successful order checkout/settlement\"",
+  "EndLine": "4763",
+  "Instruction": "\"Add call to fetchDashboardStatsFromServer right after checkout block ends\"",
+  "ReplacementContent": "\"    if (type === 'SETTLE') {\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n    }\\n\\n    if (navigator.onLine && (type === 'SETTLE' || type === 'SAVE')) {\\n      fetchDashboardStatsFromServer();\\n    }\\n\\n    return newOrder;\"",
+  "StartLine": "4740",
+  "TargetContent": "\"    if (type === 'SETTLE') {\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n    }\\n    return newOrder;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding stats sync on order checkout\"",
+  "toolSummary": "\"App.jsx checkout stats edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update TransitionSplashScreen container styling to glassmorphism in App.jsx.\"",
+  "EndLine": "332",
+  "Instruction": "\"Replace the gradient solid background with transparent glassmorphic backgrounds.\"",
+  "ReplacementContent": "\"  return (\\n    <div className=\\\"w-[430px] bg-[#0d1117]/40 border border-slate-700/50 backdrop-blur-xl text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden select-none mx-4\\\">\"",
+  "StartLine": "328",
+  "TargetContent": "\"  return (\\n    <div className=\\\"w-[430px] bg-gradient-to-b from-[#0d1117] to-[#161b22] border border-slate-800 text-white rounded-[2.5rem] p-8 pb-10 text-center shadow-[0_25px_60px_rgba(0,0,0,0.8)] relative overflow-hidden select-none mx-4\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating container style\"",
+  "toolSummary": "\"Modifying card style to semi-transparent glassmorphic background in App.jsx.\""
+}

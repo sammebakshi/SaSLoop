@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Implement session isolation in handleNewOrder so that a vacant table starts with a fresh bill instead of carrying over old cancelled items.\"",
+  "EndLine": "1970",
+  "Instruction": "\"Add vacant table check and clear previous bill if vacant in handleNewOrder.\"",
+  "ReplacementContent": "\"          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n          const isTableVacant = !tableStatuses[selectedTable.id] || tableStatuses[selectedTable.id] === 'AVAILABLE';\\n          setTableBills(prev => ({ ...prev, [selectedTable.id]: [...(isTableVacant ? [] : (prev[selectedTable.id] || [])), ...cartWithKotNo] }));\\n          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\"",
+  "StartLine": "1966",
+  "TargetContent": "\"          const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n          setTableBills(prev => ({ ...prev, [selectedTable.id]: [...(prev[selectedTable.id] || []), ...cartWithKotNo] }));\\n          setTableActiveTimestamps(prev => prev[selectedTable.id] ? prev : ({ ...prev, [selectedTable.id]: Date.now() }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleNewOrder session isolation\"",
+  "toolSummary": "\"Edit App.jsx for session isolation\""
+}

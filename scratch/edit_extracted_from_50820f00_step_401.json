@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Call releaseTableExtraState(selectedTable.id) when an order is settled.\"",
+  "EndLine": "5861",
+  "Instruction": "\"Add releaseTableExtraState(selectedTable.id) call inside type === 'SETTLE' checkout block.\"",
+  "ReplacementContent": "\"      else if (type === 'SETTLE') {\\n        setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'AVAILABLE' }));\\n        setTableCarts(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableBills(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableBillNumbers(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        releaseTableExtraState(selectedTable.id);\\n        \\n        if (selectedTable.is_temporary) {\\n          setTables(prev => prev.filter(t => t.id !== selectedTable.id));\\n        }\"",
+  "StartLine": "5851",
+  "TargetContent": "\"      else if (type === 'SETTLE') {\\n        setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'AVAILABLE' }));\\n        setTableCarts(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableBills(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableBillNumbers(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });\\n        \\n        if (selectedTable.is_temporary) {\\n          setTables(prev => prev.filter(t => t.id !== selectedTable.id));\\n        }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding releaseTableExtraState call on checkout settle\"",
+  "toolSummary": "\"Adding releaseTableExtraState call\""
+}

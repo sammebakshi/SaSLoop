@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customer validation in handleCheckout for pickup and delivery orders when custDetailsMandatoryForPickupDelivery setting is active.\"",
+  "EndLine": "7185",
+  "Instruction": "\"Add customer details validation in handleCheckout\"",
+  "ReplacementContent": "\"    // Block credit checkout if no customer is selected\\n    const isCreditCheckout = method.toLowerCase() === 'credit' || (method.toLowerCase() === 'split' && parseFloat(splitCreditAmount) > 0);\\n    const tempFullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';\\n    if (isCreditCheckout && !tempFullPhone) {\\n      return toast.error(\\\"Customer must be selected for Credit payment!\\\");\\n    }\\n\\n    // Check if customer details are mandatory for PickUp & Delivery\\n    const isPickupDeliveryMandatory = !!business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery;\\n    const isPickupOrDelivery = orderType === 'PICKUP' || orderType === 'DELIVERY';\\n    if (isPickupDeliveryMandatory && isPickupOrDelivery) {\\n      if (!customerName || !customerName.trim() || customerName.trim() === \\\"POS Guest\\\") {\\n        return toast.warning(\\\"Customer Name is mandatory for PickUp & Delivery orders!\\\");\\n      }\\n      if (!customerPhone || !customerPhone.trim()) {\\n        return toast.warning(\\\"Customer Phone is mandatory for PickUp & Delivery orders!\\\");\\n      }\\n    }\"",
+  "StartLine": "7179",
+  "TargetContent": "\"    // Block credit checkout if no customer is selected\\n    const isCreditCheckout = method.toLowerCase() === 'credit' || (method.toLowerCase() === 'split' && parseFloat(splitCreditAmount) > 0);\\n    const tempFullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';\\n    if (isCreditCheckout && !tempFullPhone) {\\n      return toast.error(\\\"Customer must be selected for Credit payment!\\\");\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding validation to checkout flow\"",
+  "toolSummary": "\"Edit file\""
+}

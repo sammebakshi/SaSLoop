@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Use getLoyaltySetting helper for receipt loyalty calculations in App.jsx.\"",
+  "EndLine": "7232",
+  "Instruction": "\"Use getLoyaltySetting.\"",
+  "ReplacementContent": "\"    if (customerPhone) {\\n      if (order.points_earned !== undefined) {\\n        pointsEarnedOnBill = order.points_earned;\\n      } else {\\n        if (getLoyaltySetting('loyalty_enabled', true)) {\\n          const threshold = parseFloat(getLoyaltySetting('loyalty_bill_amount_threshold', 1000));\\n          const pointsAwarded = parseFloat(getLoyaltySetting('loyalty_points_earned', 100));\\n          const ratio = pointsAwarded / threshold;\\n          pointsEarnedOnBill = Math.floor(subtotal * ratio);\\n        } else {\\n          pointsEarnedOnBill = Math.floor(subtotal / 100);\\n        }\\n      }\\n    }\"",
+  "StartLine": "7218",
+  "TargetContent": "\"    if (customerPhone) {\\n      if (order.points_earned !== undefined) {\\n        pointsEarnedOnBill = order.points_earned;\\n      } else {\\n        if (business && (business.loyalty_enabled ?? true)) {\\n          const threshold = parseFloat(business.loyalty_bill_amount_threshold) || 1000;\\n          const pointsAwarded = parseFloat(business.loyalty_points_earned) || 100;\\n          const ratio = pointsAwarded / threshold;\\n          pointsEarnedOnBill = Math.floor(subtotal * ratio);\\n        } else {\\n          pointsEarnedOnBill = Math.floor(subtotal / 100);\\n        }\\n      }\\n    }\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating printed receipt loyalty calculations in App.jsx\"",
+  "toolSummary": "\"Update printed receipt loyalty calculations\""
+}

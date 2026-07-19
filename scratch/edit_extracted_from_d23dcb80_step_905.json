@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Redirect settings tab's Items Management button to the new inline sub-view inside the config tab.\"",
+  "EndLine": "7180",
+  "Instruction": "\"Replace setIsItemManagementModalOpen(true) with setActiveTab('config') and setConfigSubView('items').\"",
+  "ReplacementContent": "\"                     <button \\n                         onClick={async () => {\\n                            setActiveTab('config');\\n                            setConfigSubView('items');\\n                            if (itemMgmtItems.length === 0) {\"",
+  "StartLine": "7174",
+  "TargetContent": "\"                     <button \\n                         onClick={async () => {\\n                            setIsItemManagementModalOpen(true);\\n                            if (itemMgmtItems.length === 0) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying settings click handler in App.jsx\"",
+  "toolSummary": "\"Modifying settings click handler\""
+}

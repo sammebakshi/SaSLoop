@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reverted incorrect fuzzy match at the end of the file in App.jsx\"",
+  "EndLine": "22020",
+  "Instruction": "\"Restore the original ending tags of the Save Customer modal\"",
+  "ReplacementContent": "\"                        Save Customer\\n                     </button>\\n                  </div>\\n               </motion.div>\"",
+  "StartLine": "22005",
+  "TargetContent": "\"                        Save Customer\\n                     </button>\\n                  </div>\\n                        </>\\n                     )}\\n               </motion.div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Reverting incorrect fuzzy match in App.jsx\"",
+  "toolSummary": "\"Revert incorrect fuzzy match\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Display specific backend authentication errors on POS login failure.\"",
+  "EndLine": "1493",
+  "Instruction": "\"Update handleLogin catch block to display server-side error messages if available\"",
+  "ReplacementContent": "\"  const handleLogin = async (e) => {\\n    e.preventDefault();\\n    setIsLoggingIn(true);\\n    try {\\n      const res = await authService.posLogin(username, password);\\n      localStorage.setItem('pos_token', res.data.token);\\n      setIsAuthenticated(true);\\n    } catch (err) { \\n      const errMsg = err.response?.data?.error || \\\"Invalid Credentials\\\";\\n      toast.error(errMsg); \\n    }\\n    finally { setIsLoggingIn(false); }\\n  };\"",
+  "StartLine": "1481",
+  "TargetContent": "\"  const handleLogin = async (e) => {\\n    e.preventDefault();\\n    setIsLoggingIn(true);\\n    try {\\n      const res = await authService.posLogin(username, password);\\n      localStorage.setItem('pos_token', res.data.token);\\n      setIsAuthenticated(true);\\n    } catch (err) { toast.error(\\\"Invalid Credentials\\\"); }\\n    finally { setIsLoggingIn(false); }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying App.jsx to display specific login errors\"",
+  "toolSummary": "\"Update App.jsx to show specific login error messages\""
+}

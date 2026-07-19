@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix label in bill print template header for pre-order booking receipts.\"",
+  "EndLine": "9356",
+  "Instruction": "\"Update label in print template header.\"",
+  "ReplacementContent": "\"              <div>${isBookingReceipt ? 'Pre-Order No' : 'Bill'}: ${billNoDisplay}</div>\"",
+  "StartLine": "9353",
+  "TargetContent": "\"              <div>Bill: ${billNoDisplay}</div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying print template label\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the map closing parenthesis and brackets for recent transactions section in App.jsx.\"",
+  "EndLine": "14490",
+  "Instruction": "\"Restore closing tags for mapped expenses list.\"",
+  "ReplacementContent": "\"                                       <div className=\\\"flex items-center gap-4\\\">\\n                                          <p className=\\\"text-sm font-black italic text-slate-900\\\">{config.currency}{parseFloat(e.amount).toFixed(0)}</p>\\n                                          <button onClick={() => setExpenses(prev => prev.filter(ex => ex.id !== e.id))} className=\\\"text-slate-200 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100\\\"><Trash2 size={14}/></button>\\n                                       </div>\\n                                    </div>\\n                                 ))}\\n                                 {expenses.length === 0 && (\"",
+  "StartLine": "14485",
+  "TargetContent": "\"                                       <div className=\\\"flex items-center gap-4\\\">\\n                                          <p className=\\\"text-sm font-black italic text-slate-900\\\">{config.currency}{parseFloat(e.amount).toFixed(0)}</p>\\n                                          <button onClick={() => setExpenses(prev => prev.filter(ex => ex.id !== e.id))} className=\\\"text-slate-200 hover:text-rose-500 transition-all opacity-0 group-hover:opacity-100\\\"><Trash2 size={14}/></button>\\n                                 </div>\\n                                 {expenses.length === 0 && (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing expenses map brackets in App.jsx\"",
+  "toolSummary": "\"Fix App.jsx syntax\""
+}

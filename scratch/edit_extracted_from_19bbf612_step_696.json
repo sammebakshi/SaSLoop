@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset activeTrayTab to KOT tab after successful bill settlement.\"",
+  "EndLine": "4997",
+  "Instruction": "\"Add setActiveTrayTab('KOT') after settlement inside handleCheckout.\"",
+  "ReplacementContent": "\"    if (type === 'SETTLE') {\\n      setActiveTrayTab('KOT');\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n    }\"",
+  "StartLine": "4976",
+  "TargetContent": "\"    if (type === 'SETTLE') {\\n      setEditingPreOrder(null);\\n      setCart([]);\\n      setCustomerName('');\\n      setCustomerPhone('');\\n      setCustomerAddress('');\\n      setKOTNote('');\\n      setCoversCount('');\\n      setDiscount({ type: 'NONE', value: 0 });\\n      setExtraCharges({ packing: 0, delivery: 0, service: 0 });\\n      setAppliedAdditionalCharges([]);\\n      setCustomDiscountType('percent');\\n      setCustomDiscountValue('');\\n      setSelectedDiscountId(null);\\n      setCustomChargeName('');\\n      setCustomChargeType('fixed');\\n      setCustomChargeValue('');\\n      setSelectedTable(null);\\n      setBillingView('tables');\\n      setEditingOrder(null);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resetting activeTrayTab to KOT after settlement\"",
+  "toolSummary": "\"Replace File Content App.jsx for activeTrayTab reset\""
+}

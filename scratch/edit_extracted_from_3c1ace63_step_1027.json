@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update ptsRedeemed in thermal simulator to support redeemed_points fallback\"",
+  "EndLine": "19801",
+  "Instruction": "\"Change ptsRedeemed initialization in thermal simulator\"",
+  "ReplacementContent": "\"                               const ptsRedeemed = previewReceipt.points_redeemed !== undefined \\n                                 ? parseInt(previewReceipt.points_redeemed) \\n                                 : (previewReceipt.redeemed_points !== undefined ? parseInt(previewReceipt.redeemed_points) : 0);\"",
+  "StartLine": "19801",
+  "TargetContent": "\"                               const ptsRedeemed = previewReceipt.points_redeemed !== undefined ? parseInt(previewReceipt.points_redeemed) : 0;\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating single line 19801 in App.jsx\"",
+  "toolSummary": "\"Update line 19801\""
+}

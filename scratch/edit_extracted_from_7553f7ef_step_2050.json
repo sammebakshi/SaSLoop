@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clear active cart, selected table, and active UI states in the startup useEffect.\"",
+  "EndLine": "5440",
+  "Instruction": "\"Add cart, selectedTable, KOT note, covers, and query resets to startup useEffect.\"",
+  "ReplacementContent": "\"    setBusiness(null);\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setSelectedCustomer(null);\\n    setCustomerPhone('');\\n    setCustomerName('');\\n    setCustomerAddress('');\\n    setRedeemedPoints(0);\\n    setCart([]);\\n    setSelectedTable(null);\\n    setKOTNote('');\\n    setCoversCount('');\\n    setTableSearchQuery('');\\n    setCodeSearchQuery('');\\n    setReceiptSearchQuery('');\\n    setDeleteItemQuery('');\\n    setKeyboardTarget(null);\"",
+  "StartLine": "5415",
+  "TargetContent": "\"    setBusiness(null);\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setSelectedCustomer(null);\\n    setCustomerPhone('');\\n    setCustomerName('');\\n    setCustomerAddress('');\\n    setRedeemedPoints(0);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating startup useEffect state resets\"",
+  "toolSummary": "\"Edit App.jsx to reset active states on startup\""
+}

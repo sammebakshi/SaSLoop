@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fallback to redeemed_points in handlePrint if points_redeemed is undefined\"",
+  "EndLine": "7489",
+  "Instruction": "\"Update pointsRedeemed variable initialization to fall back to order.redeemed_points\"",
+  "ReplacementContent": "\"    const pointsRedeemed = order.points_redeemed !== undefined \\n      ? parseFloat(order.points_redeemed) \\n      : (order.redeemed_points !== undefined ? parseFloat(order.redeemed_points) : 0);\\n    const pointsDiscountAmt = order.points_discount !== undefined \\n      ? parseFloat(order.points_discount) \\n      : (pointsRedeemed * getPointsValueRate());\"",
+  "StartLine": "7485",
+  "TargetContent": "\"    const pointsRedeemed = order.points_redeemed !== undefined ? parseFloat(order.points_redeemed) : 0;\\n    const pointsDiscountAmt = order.points_discount !== undefined \\n      ? parseFloat(order.points_discount) \\n      : (pointsRedeemed * getPointsValueRate());\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating handlePrint points logic in App.jsx\"",
+  "toolSummary": "\"Update handlePrint points logic\""
+}

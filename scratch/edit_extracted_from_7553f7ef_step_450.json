@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Determine duplicate pre-order copies in handlePrint\"",
+  "EndLine": "7835",
+  "Instruction": "\"Insert copiesToPrint resolution logic after isPreOrder definition in handlePrint\"",
+  "ReplacementContent": "\"    // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid and status != 'COMPLETED')\\n    const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));\\n\\n    // Determine copies to print\\n    const copiesToPrint = [];\\n    if (isPreOrder) {\\n      if (posSettings.printCustomerCopyPreorder !== false) {\\n        copiesToPrint.push('CUSTOMER COPY');\\n      }\\n      if (posSettings.printRestaurantCopyPreorder !== false) {\\n        copiesToPrint.push('RESTAURANT COPY');\\n      }\\n      if (copiesToPrint.length === 0) {\\n        copiesToPrint.push(''); // Default fallback if both toggles are turned off\\n      }\\n    } else {\\n      copiesToPrint.push('');\\n    }\"",
+  "StartLine": "7831",
+  "TargetContent": "\"    // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid and status != 'COMPLETED')\\n    const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Add pre-order copies determination\"",
+  "toolSummary": "\"Add pre-order copies determination\""
+}

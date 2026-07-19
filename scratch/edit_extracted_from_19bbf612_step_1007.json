@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore finally block and closing brackets of handleSyncRefresh.\"",
+  "EndLine": "3604",
+  "Instruction": "\"Fix brackets and restore finally block for handleSyncRefresh around line 3600-3604.\"",
+  "ReplacementContent": "\"      setSyncPopupStep('error');\\n      toast.error(\\\"Failed to sync data from server.\\\");\\n      await new Promise(resolve => setTimeout(resolve, 1500));\\n    } finally {\\n      setIsSyncing(false);\\n      setShowSyncPopup(false);\\n    }\\n  };\"",
+  "StartLine": "3600",
+  "TargetContent": "\"      setSyncPopupStep('error');\\n      toast.error(\\\"Failed to sync data from server.\\\");\\n      await new Promise(resolve => setTimeout(resolve, 1500));\\n   };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing handleSyncRefresh syntax in App.jsx\"",
+  "toolSummary": "\"Replace File Content App.jsx to fix handleSyncRefresh brackets\""
+}

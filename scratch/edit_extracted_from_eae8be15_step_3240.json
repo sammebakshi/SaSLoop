@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customer_number to tempOrder in handleShowBillPreview\"",
+  "EndLine": "1582",
+  "Instruction": "\"Add customer_number: customerPhone to tempOrder.\"",
+  "ReplacementContent": "\"    const tempOrder = {\\n      id: `PREVIEW-${Date.now()}`,\\n      customer_name: customerName || \\\"POS Guest\\\",\\n      customer_phone: customerPhone,\\n      customer_number: customerPhone,\"",
+  "StartLine": "1576",
+  "TargetContent": "\"    const tempOrder = {\\n      id: `PREVIEW-${Date.now()}`,\\n      customer_name: customerName || \\\"POS Guest\\\",\\n      customer_phone: customerPhone,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

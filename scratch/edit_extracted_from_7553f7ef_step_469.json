@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate closing tags and stray characters\"",
+  "EndLine": "19767",
+  "Instruction": "\"Remove duplicate closing tags and stray characters from lines 19747-19767\"",
+  "ReplacementContent": "\"                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\"",
+  "StartLine": "19747",
+  "TargetContent": "\"                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>                                              >\\n                                                             58mm\\n                                                          </button>\\n                                                       </div>\\n                                                    </div>\\n                                                 </div>\\n                                              </div>\\n                                           </div>\\n                                        );\\n                                     })}\\n                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Clean up duplicate closing tags\"",
+  "toolSummary": "\"Clean up duplicate closing tags\""
+}

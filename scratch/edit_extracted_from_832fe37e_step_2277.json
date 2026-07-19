@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add redeemedPoints state variable.\"",
+  "EndLine": "3410",
+  "Instruction": "\"Add redeemedPoints state variable.\"",
+  "ReplacementContent": "\"  const [selectedRiderId, setSelectedRiderId] = useState('');\\n  const [redeemedPoints, setRedeemedPoints] = useState(0);\\n  const [tableWaiters, setTableWaiters] = useState(() => {\"",
+  "StartLine": "3408",
+  "TargetContent": "\"  const [selectedRiderId, setSelectedRiderId] = useState('');\\n  const [tableWaiters, setTableWaiters] = useState(() => {\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding redeemedPoints state\"",
+  "toolSummary": "\"Add redeemedPoints state\""
+}

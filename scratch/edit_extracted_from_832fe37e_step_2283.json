@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset points redemption on cart/mode reset.\"",
+  "EndLine": "2319",
+  "Instruction": "\"Add setRedeemedPoints(0) to resetCurrentModeCart.\"",
+  "ReplacementContent": "\"    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setShowLoyaltyPopup(false);\\n    setSelectedRiderId('');\\n    setSelectedWaiter(null);\\n    setRedeemedPoints(0);\\n  };\"",
+  "StartLine": "2314",
+  "TargetContent": "\"    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setShowLoyaltyPopup(false);\\n    setSelectedRiderId('');\\n    setSelectedWaiter(null);\\n  };\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding redeemedPoints reset\"",
+  "toolSummary": "\"Add redeemedPoints reset\""
+}

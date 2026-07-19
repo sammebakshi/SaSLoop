@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add pos_table_departments cache reading to initApp offline loader in App.jsx.\"",
+  "EndLine": "6626",
+  "Instruction": "\"Insert reading pos_table_departments from localStorage.\"",
+  "ReplacementContent": "\"      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) {\\n        setCustomerDb(JSON.parse(cachedCustomerDb));\\n      }\\n      const cachedTableDepts = localStorage.getItem('pos_table_departments');\\n      if (cachedTableDepts) {\\n        setTableDepartments(JSON.parse(cachedTableDepts));\\n      }\\n    } catch (e) {\"",
+  "StartLine": "6619",
+  "TargetContent": "\"      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) {\\n        setCustomerDb(JSON.parse(cachedCustomerDb));\\n      }\\n    } catch (e) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding table departments cache check to offline initialization\"",
+  "toolSummary": "\"Adding table departments cache check to offline initialization\""
+}

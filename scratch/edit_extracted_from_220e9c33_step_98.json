@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable customer info toolbar in Quick Bill mode.\"",
+  "EndLine": "10742",
+  "Instruction": "\"Change orderType !== 'QUICK' && ( to true && ( on line 10742 in App.jsx.\"",
+  "ReplacementContent": "\"                       {true && (\"",
+  "StartLine": "10742",
+  "TargetContent": "\"                       {orderType !== 'QUICK' && (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update toolbar condition in App.jsx\"",
+  "toolSummary": "\"Change orderType !== 'QUICK' to true in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update isTableSaved check to include BILL_SAVED state so customer details are locked when the bill is saved.\"",
+  "EndLine": "4081",
+  "Instruction": "\"Add BILL_SAVED check to isTableSaved definition.\"",
+  "ReplacementContent": "\"  const isTableSaved = selectedTableStatus && (selectedTableStatus === 'SAVED' || selectedTableStatus === 'BILL_SAVED' || selectedTableStatus === 'PRINTED');\"",
+  "StartLine": "4080",
+  "TargetContent": "\"  const isTableSaved = selectedTableStatus && (selectedTableStatus === 'SAVED' || selectedTableStatus === 'PRINTED');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating isTableSaved definition\"",
+  "toolSummary": "\"Modify isTableSaved check\""
+}

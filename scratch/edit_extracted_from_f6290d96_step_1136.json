@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Disabled the duplicate React splash screen card when running in Electron. It is now only enabled as a fallback when running in a normal web browser.\"",
+  "EndLine": "1534",
+  "Instruction": "\"Change the initialization of showInitialSplash to check if running in Electron\"",
+  "ReplacementContent": "\"  const [isAuthenticated, setIsAuthenticated] = useState(false);\\n  const [showInitialSplash, setShowInitialSplash] = useState(() => {\\n    try {\\n      return !(window && window.process && window.process.versions && window.process.versions.electron);\\n    } catch (e) {\\n      return true;\\n    }\\n  });\\n  const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);\"",
+  "StartLine": "1532",
+  "TargetContent": "\"  const [isAuthenticated, setIsAuthenticated] = useState(false);\\n  const [showInitialSplash, setShowInitialSplash] = useState(true);\\n  const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Disable duplicate splash in Electron\"",
+  "toolSummary": "\"Update App.jsx showInitialSplash default state\""
+}

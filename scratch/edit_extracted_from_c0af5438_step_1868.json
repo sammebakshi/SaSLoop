@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore conditional closing braces to repair JSX syntax in App.jsx.\"",
+  "EndLine": "18286",
+  "Instruction": "\"Restore the missing JSX closing brace.\"",
+  "ReplacementContent": "\"                      </div>\\n                   </motion.div>\\n                </motion.div>\\n            )}\\n         </AnimatePresence>\"",
+  "StartLine": "18282",
+  "TargetContent": "\"                      </div>\\n                   </motion.div>\\n                </motion.div>\\n          </AnimatePresence>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring JSX conditional closing braces\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace legacy version branding in layout view.\"",
+  "EndLine": "17032",
+  "Instruction": "\"Update fallback appVersion string in preview panel in App.jsx\"",
+  "ReplacementContent": "\"                                     {posSettings.appVersion || \\\"SaSLoop POS Version: 19.02\\\"}\"",
+  "StartLine": "17025",
+  "TargetContent": "\"                                     {posSettings.appVersion || \\\"TMBill Pacific Version: 19.02\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing version in settings preview in App.jsx\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

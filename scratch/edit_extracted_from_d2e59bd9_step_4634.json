@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define digital orders date range states, replacing the single digitalSearchDate state.\"",
+  "EndLine": "1742",
+  "Instruction": "\"Replace digitalSearchDate with digitalDateMode, digitalStartDate, digitalEndDate, and temporary input states.\"",
+  "ReplacementContent": "\"  const [digitalSelectedStateFilter, setDigitalSelectedStateFilter] = useState('NEW');\\n  const [digitalSelectedPlatforms, setDigitalSelectedPlatforms] = useState(['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ZOMATO', 'SWIGGY', 'ONDC']);\\n  const [digitalSearchQuery, setDigitalSearchQuery] = useState('');\\n  const [digitalDateMode, setDigitalDateMode] = useState('all');\\n  const [digitalStartDate, setDigitalStartDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(0, 0, 0, 0);\\n    return d;\\n  });\\n  const [digitalEndDate, setDigitalEndDate] = useState(() => {\\n    const d = new Date();\\n    d.setHours(23, 59, 59, 999);\\n    return d;\\n  });\\n  const [isDigitalDatePickerOpen, setIsDigitalDatePickerOpen] = useState(false);\\n  const [digitalTempStartDate, setDigitalTempStartDate] = useState(() => new Date().toISOString().split('T')[0]);\\n  const [digitalTempStartTime, setDigitalTempStartTime] = useState(\\\"00:00\\\");\\n  const [digitalTempEndDate, setDigitalTempEndDate] = useState(() => new Date().toISOString().split('T')[0]);\\n  const [digitalTempEndTime, setDigitalTempEndTime] = useState(\\\"23:59\\\");\\n  const [selectedDigitalOrder, setSelectedDigitalOrder] = useState(null);\"",
+  "StartLine": "1738",
+  "TargetContent": "\"  const [digitalSelectedStateFilter, setDigitalSelectedStateFilter] = useState('NEW');\\n  const [digitalSelectedPlatforms, setDigitalSelectedPlatforms] = useState(['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ZOMATO', 'SWIGGY', 'ONDC']);\\n  const [digitalSearchQuery, setDigitalSearchQuery] = useState('');\\n  const [digitalSearchDate, setDigitalSearchDate] = useState('');\\n  const [selectedDigitalOrder, setSelectedDigitalOrder] = useState(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Defining date picker states for digital orders\"",
+  "toolSummary": "\"Replace file content\""
+}

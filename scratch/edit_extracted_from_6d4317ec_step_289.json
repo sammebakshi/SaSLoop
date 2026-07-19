@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Render ChatAnimationBackground inside the initial loading splash screen container.\"",
+  "EndLine": "8835",
+  "Instruction": "\"Add relative and overflow-hidden classes to the container, and render <ChatAnimationBackground /> before <InitialSplashScreen />.\"",
+  "ReplacementContent": "\"  if (showInitialSplash) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden\\\">\\n        <ChatAnimationBackground />\\n        <InitialSplashScreen />\\n      </div>\\n    );\\n  }\"",
+  "StartLine": "8829",
+  "TargetContent": "\"  if (showInitialSplash) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none\\\">\\n        <InitialSplashScreen />\\n      </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Rendering ChatAnimationBackground inside initial splash screen\"",
+  "toolSummary": "\"Rendering ChatAnimationBackground in splash\""
+}

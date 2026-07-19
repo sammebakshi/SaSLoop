@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wrap handleChangeTable with passcode verification by splitting it into the inner _executeChangeTable async function and a gated handleChangeTable wrapper that checks KOT/change_table permission before executing.\"",
+  "EndLine": "7239",
+  "Instruction": "\"Rename the async function to _executeChangeTable and create a gated wrapper handleChangeTable\"",
+  "ReplacementContent": "\"  const handleChangeTable = () => {\\n    verifyPasscodeAction(['KOT'], 'change_table', () => {\\n      _executeChangeTable();\\n    }, 'Change Table');\\n  };\\n\\n  const _executeChangeTable = async () => {\"",
+  "StartLine": "7239",
+  "TargetContent": "\"  const handleChangeTable = async () => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating handleChangeTable\"",
+  "toolSummary": "\"Gate handleChangeTable\""
+}

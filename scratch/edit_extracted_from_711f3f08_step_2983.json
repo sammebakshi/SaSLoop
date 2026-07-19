@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove left spacer column from Billing rows.\"",
+  "EndLine": "12910",
+  "ReplacementContent": "\"\"",
+  "StartLine": "12908",
+  "TargetContent": "\"                          {/* Empty spacer column on the left */}\\n                          <div className={`w-8 border-r shrink-0 ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}></div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing billing list row spacer column\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

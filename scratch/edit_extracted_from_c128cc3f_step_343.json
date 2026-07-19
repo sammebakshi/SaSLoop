@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the settings header layout that was partially cut off.\"",
+  "EndLine": "12307",
+  "Instruction": "\"Restore settings header layout.\"",
+  "ReplacementContent": "\"            {activeTab === 'settings' && (\\n              <motion.div key=\\\"settings\\\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className=\\\"h-full p-8 overflow-y-auto no-scrollbar bg-[#0d1117] space-y-8\\\">\\n                 <div>\\n                    <h3 className=\\\"text-xl font-black uppercase italic text-[#c9d1d9] flex items-center gap-3\\\"><Settings className=\\\"text-[#10ac84]\\\"/> Configuration & Settings</h3>\\n                    <p className=\\\"text-[10px] font-black uppercase tracking-[0.2em] text-[#8b949e] mt-1\\\">Manage terminal preferences and access levels</p>\\n                 </div>\\n\\n                 <div className=\\\"grid grid-cols-3 gap-4\\\">\"",
+  "StartLine": "12305",
+  "TargetContent": "\"            {activeTab === 'settings' && (\\n              <motion.                  <div className=\\\"grid grid-cols-3 gap-4\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring settings header in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

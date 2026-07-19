@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Expose catalog on window for E2E tests\"",
+  "EndLine": "2120",
+  "Instruction": "\"Expose catalog on window by setting window.catalog = catalogData\"",
+  "ReplacementContent": "\"      setCatalog(catalogData);\\n      window.catalog = catalogData;\\n      setCategories(['All', ...new Set(catalogData.map(i => i.category).filter(Boolean))]);\"",
+  "StartLine": "2117",
+  "TargetContent": "\"      setCatalog(catalogData);\\n      setCategories(['All', ...new Set(catalogData.map(i => i.category).filter(Boolean))]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Exposing catalog on window\"",
+  "toolSummary": "\"Exposing catalog on window\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Make the animated network hub visible on all screens by removing the hidden class and applying responsive scaling.\"",
+  "EndLine": "914",
+  "Instruction": "\"Change hidden lg:block to block and add responsive scaling classes to prevent overflow on small screens.\"",
+  "ReplacementContent": "\"      <div className=\\\"absolute inset-0 flex items-center justify-center\\\">\\n        <div className=\\\"relative origin-center scale-[0.6] sm:scale-[0.75] md:scale-[0.88] lg:scale-100 block\\\" style={{ width: 600, height: 600 }}>\"",
+  "StartLine": "911",
+  "TargetContent": "\"      {/* Hub diagram container */}\\n      <div className=\\\"absolute inset-0 flex items-center justify-center\\\">\\n        <div className=\\\"relative hidden lg:block\\\" style={{ width: 600, height: 600 }}>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Enabling splash hub visibility and responsive scaling\"",
+  "toolSummary": "\"Adjusting hidden lg:block in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix JSX syntax parse error in formatting tab preview block by closing the outer flex layout div tag properly before ending the expression.\"",
+  "EndLine": "10683",
+  "Instruction": "\"Close the flex container div tag before ending the formatting settings active tab expression.\"",
+  "ReplacementContent": "\"                                  <div className=\\\"text-center font-black text-[10px] tracking-wide uppercase text-inherit\\\">\\n                                     {posSettings.greetingMessage || \\\"THANK YOU! VISIT AGAIN\\\"}\\n                                  </div>\\n                               </div>\\n                            </div>\\n                         )}\"",
+  "StartLine": "10678",
+  "TargetContent": "\"                                  <div className=\\\"text-center font-black text-[10px] tracking-wide uppercase text-inherit\\\">\\n                                     {posSettings.greetingMessage || \\\"THANK YOU! VISIT AGAIN\\\"}\\n                                       </div>         </div>\\n                              )}\\n                           </div>\\n                        )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing JSX syntax error\"",
+  "toolSummary": "\"Fixing JSX syntax error\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Call generateThermalReceiptHtml instead of generateReceiptPdfHtml.\"",
+  "EndLine": "9673",
+  "Instruction": "\"Change the pdfHtml assignment to await generateThermalReceiptHtml.\"",
+  "ReplacementContent": "\"        const pdfHtml = await generateThermalReceiptHtml(order);\"",
+  "StartLine": "9671",
+  "TargetContent": "\"        const pdfHtml = generateReceiptPdfHtml(order);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating triggerEbill HTML call\"",
+  "toolSummary": "\"Update triggerEbill HTML call\""
+}

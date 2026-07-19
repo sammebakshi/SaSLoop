@@ -1,10 +1,43 @@
 import axios from 'axios';
 
-// ✅ Dynamic Connection (Local vs Production)
+// Detect if running in Terminal Mode
+const isTerminalMode = (() => {
+  if (typeof window !== 'undefined' && window.process && window.process.argv) {
+    if (window.process.argv.includes('--is-terminal-mode')) return true;
+    if (window.process.argv.includes('--is-master-mode')) return false;
+  }
+  const hasTerminalExec = typeof window !== 'undefined' && window.process && window.process.execPath &&
+    String(window.process.execPath).toLowerCase().includes('terminal');
+  const hasTerminalEnv = typeof window !== 'undefined' && window.process && window.process.env &&
+    window.process.env.IS_TERMINAL === 'true';
+  const hasTerminalStorage = typeof localStorage !== 'undefined' &&
+    localStorage.getItem('pos_is_terminal_mode') === 'true';
+  return !!(hasTerminalExec || hasTerminalEnv || hasTerminalStorage);
+})();
+
 const storedMasterIp = typeof localStorage !== 'undefined' ? localStorage.getItem('pos_master_ip') : null;
-export const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? (storedMasterIp ? `http://${storedMasterIp}:5000` : "http://localhost:5000")
-    : 'https://backend.sasloop.in';
+
+const resolveInitialBaseUrl = () => {
+    if (storedMasterIp) {
+        if (storedMasterIp.startsWith('http://') || storedMasterIp.startsWith('https://')) {
+            return storedMasterIp;
+        }
+        const isRawIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(storedMasterIp);
+        return isRawIp ? `http://${storedMasterIp}:5000` : `https://${storedMasterIp}`;
+    }
+    
+    // In Terminal Mode, we must not automatically default to localhost since that would connect to the local PC's Master
+    if (isTerminalMode) {
+        return "http://127.0.0.1:0"; 
+    }
+    
+    // Default fallback for Master POS
+    return (typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
+        ? "http://localhost:5000"
+        : "https://backend.sasloop.in";
+};
+
+export const API_BASE = resolveInitialBaseUrl();
 
 // Initialize device ID for isolation
 let deviceId = localStorage.getItem('pos_device_id');
@@ -18,14 +51,23 @@ const api = axios.create({
     timeout: 10000,
 });
 
-// Helper to update the base URL dynamically when Master IP changes
+// Helper to update the base URL dynamically when Master IP/Domain changes
 export const updateApiBaseUrl = (ip) => {
     if (!ip) {
         localStorage.removeItem('pos_master_ip');
         api.defaults.baseURL = "http://localhost:5000";
     } else {
         localStorage.setItem('pos_master_ip', ip);
-        api.defaults.baseURL = `http://${ip}:5000`;
+        
+        let newUrl;
+        if (ip.startsWith('http://') || ip.startsWith('https://')) {
+            newUrl = ip;
+        } else {
+            const isRawIp = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(ip);
+            newUrl = isRawIp ? `http://${ip}:5000` : `https://${ip}`;
+        }
+        api.defaults.baseURL = newUrl;
+        console.log(`[API] Base URL dynamically updated to: ${newUrl}`);
     }
 };
 

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handlePreOrderKOTAction to merge new KOT items with existing ones\"",
+  "EndLine": "5575",
+  "Instruction": "\"Update KOT merging in handlePreOrderKOTAction.\"",
+  "ReplacementContent": "\"    setTableBillNumbers(prev => ({ ...prev, [tempId]: bNo }));\\n    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeBillItems([...(prev[tempId] || []), ...cartWithKotNo]) }));\\n    setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));\"",
+  "StartLine": "5567",
+  "TargetContent": "\"    setTableBillNumbers(prev => ({ ...prev, [tempId]: bNo }));\\n    const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));\\n    setTableBills(prev => ({ ...prev, [tempId]: mergeBillItems([...cartWithKotNo]) }));\\n    setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handlePreOrderKOTAction KOT merging\"",
+  "toolSummary": "\"Replace file content\""
+}

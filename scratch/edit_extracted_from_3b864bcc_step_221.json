@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable background polling for receipts/live orders when activeTab is live\"",
+  "EndLine": "2008",
+  "Instruction": "\"Update useEffect hook to include activeTab === 'live'\"",
+  "ReplacementContent": "\"  // Auto-fetch hook for Receipts filtering changes & background polling\\n  useEffect(() => {\\n    let pollInterval;\\n    if (isAuthenticated && (activeTab === 'receipts' || activeTab === 'live')) {\\n      fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n\\n      // Poll every 10 seconds for new receipts/live orders\\n      pollInterval = setInterval(() => {\\n        fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n      }, 10000);\\n    }\\n    return () => {\\n      if (pollInterval) clearInterval(pollInterval);\\n    };\\n  }, [receiptsDateMode, receiptsStartDate, receiptsEndDate, activeTab, isAuthenticated]);\"",
+  "StartLine": "1993",
+  "TargetContent": "\"  // Auto-fetch hook for Receipts filtering changes & background polling\\n  useEffect(() => {\\n    let pollInterval;\\n    if (isAuthenticated && activeTab === 'receipts') {\\n      fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n\\n      // Poll every 10 seconds for new receipts\\n      pollInterval = setInterval(() => {\\n        fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);\\n      }, 10000);\\n    }\\n    return () => {\\n      if (pollInterval) clearInterval(pollInterval);\\n    };\\n  }, [receiptsDateMode, receiptsStartDate, receiptsEndDate, activeTab, isAuthenticated]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Enable polling on live tab\"",
+  "toolSummary": "\"Enable polling on live tab\""
+}

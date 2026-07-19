@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Changed the outer motion.div from overflow-y-auto to overflow-hidden so the only scrollbar visible is the one inside the card set container, not on the whole page.\"",
+  "EndLine": "3503",
+  "Instruction": "\"Remove overflow-y-auto from the outer motion.div and use overflow-hidden instead, so scrolling only happens inside the card container.\"",
+  "ReplacementContent": "\"                  <motion.div key=\\\"home\\\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`h-full p-4 flex flex-col overflow-hidden transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>\"",
+  "StartLine": "3503",
+  "TargetContent": "\"                  <motion.div key=\\\"home\\\" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`h-full p-4 flex flex-col lg:overflow-hidden overflow-y-auto no-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Moving scrollbar inside container only\"",
+  "toolSummary": "\"Fix scrollbar position\""
+}

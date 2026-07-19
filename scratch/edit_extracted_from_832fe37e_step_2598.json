@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define helper function getLoyaltySetting to retrieve values from business.business_details or business fallback.\"",
+  "EndLine": "3388",
+  "Instruction": "\"Add getLoyaltySetting helper function.\"",
+  "ReplacementContent": "\"  const [business, setBusiness] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_profile');\\n      return saved ? JSON.parse(saved) : null;\\n    } catch (e) { return null; }\\n  });\\n\\n  const getLoyaltySetting = (key, defaultValue) => {\\n    if (!business) return defaultValue;\\n    if (business.business_details && business.business_details[key] !== undefined) {\\n      return business.business_details[key];\\n    }\\n    if (business[key] !== undefined) {\\n      return business[key];\\n    }\\n    return defaultValue;\\n  };\"",
+  "StartLine": "3382",
+  "TargetContent": "\"  const [business, setBusiness] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_profile');\\n      return saved ? JSON.parse(saved) : null;\\n    } catch (e) { return null; }\\n  });\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Defining getLoyaltySetting helper in App.jsx\"",
+  "toolSummary": "\"Define getLoyaltySetting helper\""
+}

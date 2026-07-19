@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Do not load already saved table bills into the active ordering cart when selecting a table\"",
+  "EndLine": "9792",
+  "Instruction": "\"Update selectPosTable cart loading logic.\"",
+  "ReplacementContent": "\"      setEditingOrder(null);\\n      setCart(tableCarts[table.id] || []);\"",
+  "StartLine": "9784",
+  "TargetContent": "\"      setEditingOrder(null);\\n      const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;\\n      if (hasSavedBills) {\\n        setCart([...tableBills[table.id]]);\\n      } else {\\n        setCart(tableCarts[table.id] || []);\\n      }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating selectPosTable cart load logic\"",
+  "toolSummary": "\"Replace file content\""
+}

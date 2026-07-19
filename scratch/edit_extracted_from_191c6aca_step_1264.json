@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isAlertsModalOpen and alertsActiveTab state variables to App.jsx.\"",
+  "EndLine": "2124",
+  "Instruction": "\"Add state variables.\"",
+  "ReplacementContent": "\"  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);\\n  const [selectedReport, setSelectedReport] = useState('Sales Report');\\n  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);\\n  const [alertsActiveTab, setAlertsActiveTab] = useState('products');\"",
+  "StartLine": "2122",
+  "TargetContent": "\"  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);\\n  const [selectedReport, setSelectedReport] = useState('Sales Report');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding Alerts modal states\"",
+  "toolSummary": "\"Adding Alerts modal states\""
+}

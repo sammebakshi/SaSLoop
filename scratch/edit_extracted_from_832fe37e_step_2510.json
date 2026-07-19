@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Apply dynamic pointsRatio to points_discount field inside newOrder payload creation.\"",
+  "EndLine": "6645",
+  "Instruction": "\"Replace points_discount calculation.\"",
+  "ReplacementContent": "\"      points_redeemed: redeemedPoints,\\n      points_discount: redeemedPoints * pointsRatio,\\n      points_earned: pointsEarned,\"",
+  "StartLine": "6642",
+  "TargetContent": "\"      points_redeemed: redeemedPoints,\\n      points_discount: redeemedPoints * 1,\\n      points_earned: pointsEarned,\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating points_discount in newOrder object\"",
+  "toolSummary": "\"Update points_discount payload value\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the outermost closing div tag in ChatAnimationBackground.\"",
+  "EndLine": "1238",
+  "Instruction": "\"Add a third closing div before the return parentheses closing statement in ChatAnimationBackground.\"",
+  "ReplacementContent": "\"        </div>\\n      </div>\\n    </div>\\n  );\\n};\"",
+  "StartLine": "1234",
+  "TargetContent": "\"        </div>\\n      </div>\\n  );\\n};\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding missing closing div tag\"",
+  "toolSummary": "\"Fixing closing div in App.jsx\""
+}

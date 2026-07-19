@@ -1,0 +1,13 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Mark Step 1 and 2 as complete in task.md\"",
+  "EndLine": "10",
+  "Instruction": "\"Check off Steps 1 and 2 in the task checklist.\"",
+  "ReplacementContent": "\"# Execution Checklist\\n\\n- `[x]` Step 1: Database Initialization\\n  - `[x]` Add `coupon_codes` table schema to `dbInit.js`\\n  - `[x]` Execute the table creation in the database\\n- `[x]` Step 2: Backend API Endpoints\\n  - `[x]` Update `routes/brandRoutes.js` to replace mock endpoint with DB query\\n  - `[x]` Add POST /analytics/coupon-codes endpoint to create coupons\\n  - `[x]` Add DELETE /analytics/coupon-codes/:id endpoint to delete coupons\"",
+  "StartLine": "1",
+  "TargetContent": "\"# Execution Checklist\\n\\n- `[ ]` Step 1: Database Initialization\\n  - `[ ]` Add `coupon_codes` table schema to `dbInit.js`\\n  - `[ ]` Execute the table creation in the database\\n- `[ ]` Step 2: Backend API Endpoints\\n  - `[ ]` Update `routes/brandRoutes.js` to replace mock endpoint with DB query\\n  - `[ ]` Add POST /analytics/coupon-codes endpoint to create coupons\\n  - `[ ]` Add DELETE /analytics/coupon-codes/:id endpoint to delete coupons\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "TargetLintErrorIds": "[]",
+  "toolAction": "\"Updating task checklist for completed backend steps\"",
+  "toolSummary": "\"Modify task.md\""
+}

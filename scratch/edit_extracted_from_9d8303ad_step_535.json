@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore truncated JSX tags with precise indentation in App.jsx.\"",
+  "EndLine": "8523",
+  "Instruction": "\"Restore the table, body, and division wraps for the manage-balances component.\"",
+  "ReplacementContent": "\"                                        <tr>\\n                                           <td colSpan=\\\"4\\\" className={`p-12 text-center ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>\\n                                              No matching customers found.\\n                                           </td>\\n                                        </tr>\\n                                     )}\\n                                  </tbody>\\n                               </table>\\n                            </div>\\n                         </>\\n                      )}\\n                   </div>\\n                </motion.div>\\n             )}\"",
+  "StartLine": "8519",
+  "TargetContent": "\"                                     ).length === 0 && (\\n                                        <tr>\\n               </motion.div>\\n            )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring balance subview tags\"",
+  "toolSummary": "\"Restoring balance subview tags\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update point value rate calculation to use the points_to_amount_ratio directly as the point multiplier, rather than dividing by it.\"",
+  "EndLine": "3661",
+  "Instruction": "\"Change getPointsValueRate to return the points_to_amount_ratio setting directly.\"",
+  "ReplacementContent": "\"  const getPointsValueRate = () => {\\n    // Each point is worth points_to_amount_ratio directly in currency (e.g. 0.1 means 1 point = 0.1 currency units)\\n    const ratioSetting = getLoyaltySetting('points_to_amount_ratio', null);\\n    if (ratioSetting !== null && ratioSetting !== undefined) {\\n      return parseFloat(ratioSetting) || 0.1;\\n    }\\n    return 0.1; // Default: 1 point = 0.10\\n  };\"",
+  "StartLine": "3651",
+  "TargetContent": "\"  const getPointsValueRate = () => {\\n    // Server uses: discount = points / points_to_amount_ratio\\n    // So 1 point = 1/ratio in currency. E.g. ratio=10 means 1pt = 0.10\\n    const ratioSetting = getLoyaltySetting('points_to_amount_ratio', null);\\n    if (ratioSetting !== null && ratioSetting !== undefined) {\\n      const ratio = parseFloat(ratioSetting);\\n      if (ratio && ratio > 0) return 1 / ratio;\\n    }\\n    return 0.1; // Default: 1 point = 0.10\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying points rate calculation in App.jsx\"",
+  "toolSummary": "\"Updating getPointsValueRate in App.jsx\""
+}

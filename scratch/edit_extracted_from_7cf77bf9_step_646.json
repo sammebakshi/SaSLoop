@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore Bar Chart wrapper check and apply span 3 layout\"",
+  "EndLine": "7902",
+  "Instruction": "\"Restore accessLevels.barSalesChart check and set div class to lg:col-span-3\"",
+  "ReplacementContent": "\"                          </div>\\n                        )}\\n\\n                        {/* Bar Chart (Col 3) */}\\n                        {accessLevels.barSalesChart && (\\n                          <div className=\\\"lg:col-span-3 flex flex-col justify-between min-h-0\\\">\\n                            <div className=\\\"flex-1 flex flex-col justify-between\\\">\"",
+  "StartLine": "7895",
+  "TargetContent": "\"                          </div>\\n                        )}\\n\\n\\n                            \\n                            <div className=\\\"flex-1 flex flex-col justify-between\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring Bar Chart wrapper\"",
+  "toolSummary": "\"App.jsx Bar Chart span restore edit\""
+}

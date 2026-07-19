@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Make fetchLineData local-only\"",
+  "EndLine": "3484",
+  "Instruction": "\"Modify fetchLineData to only use recentOrders from local state and not query the server\"",
+  "ReplacementContent": "\"  const fetchLineData = async () => {\\n    if (!isAuthenticated) return;\\n    const start = lineStartDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];\\n    const end = lineEndDate || new Date().toISOString().split('T')[0];\\n\\n    // Local orders only\\n    const rangeOrders = recentOrders || [];\\n\\n    if (!rangeOrders || rangeOrders.length === 0) return;\"",
+  "StartLine": "3462",
+  "TargetContent": "\"  const fetchLineData = async () => {\\n    if (!isAuthenticated) return;\\n    const start = lineStartDate || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];\\n    const end = lineEndDate || new Date().toISOString().split('T')[0];\\n\\n    let rangeOrders = [];\\n    if (navigator.onLine) {\\n      try {\\n        const res = await posService.getAllOrders({\\n          startDate: start + ' 00:00:00',\\n          endDate: end + ' 23:59:59'\\n        });\\n        rangeOrders = res.data || [];\\n      } catch (err) {\\n        console.warn(\\\"Failed to fetch line chart data from server, falling back to local orders:\\\", err);\\n        rangeOrders = recentOrders || [];\\n      }\\n    } else {\\n      rangeOrders = recentOrders || [];\\n    }\\n\\n    if (!rangeOrders || rangeOrders.length === 0) return;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Making line chart local-only\"",
+  "toolSummary": "\"Modify fetchLineData in App.jsx\""
+}

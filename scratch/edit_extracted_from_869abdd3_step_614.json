@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Close renderPreOrderTempTables function correctly before renderPickupTempTables.\"",
+  "EndLine": "4774",
+  "Instruction": "\"Close the function block for renderPreOrderTempTables.\"",
+  "ReplacementContent": "\"            );\\n          })}\\n        </div>\\n      </div>\\n    );\\n  };\\n\\n  const renderPickupTempTables = () => {\"",
+  "StartLine": "4770",
+  "TargetContent": "\"            );\\n          })}\\n  const renderPickupTempTables = () => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing renderPreOrderTempTables function\"",
+  "toolSummary": "\"Close function block\""
+}

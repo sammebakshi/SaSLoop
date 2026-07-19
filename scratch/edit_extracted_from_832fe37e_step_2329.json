@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Render points discount row on printed receipt.\"",
+  "EndLine": "7500",
+  "Instruction": "\"Add points discount row conditional block.\"",
+  "ReplacementContent": "\"            ${discountAmt ? `\\n            <div class=\\\"summary-row\\\">\\n              <span>Discount:</span>\\n              <span>-${parseFloat(discountAmt).toFixed(2)}</span>\\n            </div>\\n            ` : ''}\\n            ${pointsDiscountAmt ? `\\n            <div class=\\\"summary-row\\\">\\n              <span>Points Discount:</span>\\n              <span>-${parseFloat(pointsDiscountAmt).toFixed(2)}</span>\\n            </div>\\n            ` : ''}\"",
+  "StartLine": "7495",
+  "TargetContent": "\"            ${discountAmt ? `\\n            <div class=\\\"summary-row\\\">\\n              <span>Discount:</span>\\n              <span>-${parseFloat(discountAmt).toFixed(2)}</span>\\n            </div>\\n            ` : ''}\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding points discount row to print template\"",
+  "toolSummary": "\"Add points discount print row\""
+}

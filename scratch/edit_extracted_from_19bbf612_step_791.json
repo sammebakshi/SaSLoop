@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import useRef from React to manage continuous qty timers.\"",
+  "EndLine": "2",
+  "Instruction": "\"Add useRef import to React at line 1.\"",
+  "ReplacementContent": "\"import React, { useState, useEffect, useRef } from 'react';\"",
+  "StartLine": "1",
+  "TargetContent": "\"import React, { useState, useEffect } from 'react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Importing useRef in App.jsx\"",
+  "toolSummary": "\"Replace File Content App.jsx for useRef import\""
+}

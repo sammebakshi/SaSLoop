@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Move FeatureShowcase to bottom left.\"",
+  "EndLine": "330",
+  "Instruction": "\"Replace class names on the container div at line 328 to position it at the bottom left.\"",
+  "ReplacementContent": "\"  return (\\n    <div className=\\\"absolute bottom-6 left-6 hidden lg:flex flex-col max-w-[440px] text-slate-800 z-10 space-y-4 select-none\\\">\"",
+  "StartLine": "326",
+  "TargetContent": "\"  return (\\n    <div className=\\\"hidden lg:flex flex-col max-w-[460px] text-slate-800 z-10 space-y-6 select-none ml-6\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Repositioning FeatureShowcase container to bottom-left\"",
+  "toolSummary": "\"Move FeatureShowcase bottom-left\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix ReferenceError where isDue is not defined inside the payment modal onClick settle handler by properly checking the selected payment mode and the isDuePayment state.\"",
+  "EndLine": "18761",
+  "Instruction": "\"Define isDue correctly in the settle onClick block and pass it to handleCheckout.\"",
+  "ReplacementContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              const isDue = selectedPaymentMode.toUpperCase() === 'DUE' || isDuePayment;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDue);\"",
+  "StartLine": "18757",
+  "TargetContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              const isDuePayment = selectedPaymentMode === 'DUE' || isDue;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing ReferenceError in settle handler\"",
+  "toolSummary": "\"Fix ReferenceError in settle handler\""
+}

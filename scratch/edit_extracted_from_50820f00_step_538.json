@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add the getRelativeTime function to calculate friendly relative time strings for customer last visited dates.\"",
+  "EndLine": "2847",
+  "Instruction": "\"Insert the getRelativeTime function declaration before handleSelectWaiter.\"",
+  "ReplacementContent": "\"  const getRelativeTime = (dateStr) => {\\n    if (!dateStr) return 'Never';\\n    const d = new Date(dateStr);\\n    const now = new Date();\\n    const diffMs = now - d;\\n    const diffSec = Math.floor(diffMs / 1000);\\n    const diffMin = Math.floor(diffSec / 60);\\n    const diffHrs = Math.floor(diffMin / 60);\\n    const diffDays = Math.floor(diffHrs / 24);\\n\\n    if (diffSec < 60) return 'Just now';\\n    if (diffMin < 60) return `${diffMin}m ago`;\\n    if (diffHrs < 24) return `${diffHrs}h ago`;\\n    if (diffDays === 1) return 'Yesterday';\\n    return `${diffDays} days ago`;\\n  };\\n\\n  const handleSelectWaiter = (waiter) => {\\n    setSelectedWaiter(waiter);\\n    if (selectedTable) {\\n      setTableWaiters(prev => ({ ...prev, [selectedTable.id]: waiter }));\\n    }\\n  };\"",
+  "StartLine": "2841",
+  "TargetContent": "\"  const handleSelectWaiter = (waiter) => {\\n    setSelectedWaiter(waiter);\\n    if (selectedTable) {\\n      setTableWaiters(prev => ({ ...prev, [selectedTable.id]: waiter }));\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Inserting getRelativeTime function\"",
+  "toolSummary": "\"Inserting getRelativeTime function\""
+}

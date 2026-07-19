@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Adding state variables for customer country code, adjustments reasons, and ledger history to App.jsx\"",
+  "EndLine": "869",
+  "Instruction": "\"Add new customer states in App.jsx near line 868.\"",
+  "ReplacementContent": "\"  const [adjustmentAmount, setAdjustmentAmount] = useState('');\\n  const [adjustmentType, setAdjustmentType] = useState('ADD'); // 'ADD' or 'DEDUCT'\\n  const [customerCountryCode, setCustomerCountryCode] = useState('+91');\\n  const [newCustomerCountryCode, setNewCustomerCountryCode] = useState('+91');\\n  const [adjustmentReason, setAdjustmentReason] = useState('');\\n  const [historyCustomerPhone, setHistoryCustomerPhone] = useState(null);\\n  const [customerHistoryData, setCustomerHistoryData] = useState({ orders: [], transactions: [] });\\n  const [isHistoryLoading, setIsHistoryLoading] = useState(false);\"",
+  "StartLine": "866",
+  "TargetContent": "\"  const [adjustmentAmount, setAdjustmentAmount] = useState('');\\n  const [adjustmentType, setAdjustmentType] = useState('ADD'); // 'ADD' or 'DEDUCT'\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding customer states\"",
+  "toolSummary": "\"Add customer states in App.jsx\""
+}

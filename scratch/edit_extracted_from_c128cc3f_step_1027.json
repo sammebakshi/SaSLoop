@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Closed the Receipts.date_filter check block parent container.\"",
+  "EndLine": "10826",
+  "Instruction": "\"Add the closing parenthesis and brace for the checkPosAccess wrapper around the relative container.\"",
+  "ReplacementContent": "\"                  </div>\\n                  )}\"",
+  "StartLine": "10825",
+  "TargetContent": "\"                  </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Closing date picker gate check\"",
+  "toolSummary": "\"Close date picker gate in App.jsx\""
+}

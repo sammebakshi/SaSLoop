@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fetch and cache staff/waiters list in initApp initialization block.\"",
+  "EndLine": "4227",
+  "Instruction": "\"Add getStaff api call and waitersList/localStorage caching inside initApp.\"",
+  "ReplacementContent": "\"    // 8. Fetch Additional Charges\\n    try {\\n      const chargesRes = await posService.getAdditionalCharges(outletIdToPass);\\n      setAvailableCharges((chargesRes.data || []).filter(c => c.is_active));\\n      localStorage.setItem('pos_additional_charges', JSON.stringify(chargesRes.data || []));\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to fetch additional charges:\\\", e);\\n    }\\n\\n    // 8b. Fetch Staff/Waiters\\n    try {\\n      const staffRes = await posService.getStaff();\\n      const staffList = staffRes.data || [];\\n      const waitersOnly = staffList.filter(s => {\\n        const des = String(s.designation_name || '').toLowerCase();\\n        const role = String(s.role || '').toLowerCase();\\n        return des.includes('waiter') || des.includes('captain') || des.includes('server') || des.includes('staff') || role.includes('staff') || role.includes('waiter');\\n      });\\n      const finalWaiters = waitersOnly.length > 0 ? waitersOnly : staffList;\\n      setWaitersList(finalWaiters);\\n      localStorage.setItem('pos_waiters', JSON.stringify(finalWaiters));\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to fetch staff/waiters:\\\", e);\\n    }\"",
+  "StartLine": "4219",
+  "TargetContent": "\"    // 8. Fetch Additional Charges\\n    try {\\n      const chargesRes = await posService.getAdditionalCharges(outletIdToPass);\\n      setAvailableCharges((chargesRes.data || []).filter(c => c.is_active));\\n      localStorage.setItem('pos_additional_charges', JSON.stringify(chargesRes.data || []));\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to fetch additional charges:\\\", e);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding staff/waiter fetching to initApp\"",
+  "toolSummary": "\"Adding staff fetching\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove remaining leftover closing tags from customer profile popup deletion in KOT toolbar.\"",
+  "EndLine": "10163",
+  "Instruction": "\"Clean up remaining closing tags.\"",
+  "ReplacementContent": "\"                      {/* Customer Info Header Toolbar */}\\n                      <div className=\\\"flex justify-end gap-3 px-1\\\">\"",
+  "StartLine": "10157",
+  "TargetContent": "\"                      {/* Customer Info Header Toolbar */}\\n                      <div className=\\\"flex justify-end gap-3 px-1\\\">\\n                              </div>\\n                            </div>\\n                          )}\\n                        </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Cleaning up remaining braces in KOT toolbar\"",
+  "toolSummary": "\"Clean up KOT toolbar braces\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset expandedOrderId on closing customer history view.\"",
+  "EndLine": "8504",
+  "Instruction": "\"Reset expandedOrderId on closing customer history view.\"",
+  "ReplacementContent": "\"                                     onClick={() => { setHistoryCustomerPhone(null); setExpandedOrderId(null); }}\"",
+  "StartLine": "8504",
+  "TargetContent": "\"                                     onClick={() => setHistoryCustomerPhone(null)}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing line 8504 in App.jsx\"",
+  "toolSummary": "\"Reset expandedOrderId on close\""
+}

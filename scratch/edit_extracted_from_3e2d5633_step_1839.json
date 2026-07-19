@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate closing div in Split Bill modal header\"",
+  "EndLine": "15100",
+  "Instruction": "\"Remove extra closing div tag in isSplitModalOpen block\"",
+  "ReplacementContent": "\"                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                     </div>\\n\\n                    <div className=\\\"flex-1 overflow-y-auto p-8 bg-slate-50 no-scrollbar\\\">\"",
+  "StartLine": "15090",
+  "TargetContent": "\"                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                     </div>\\n                    </div>\\n\\n                    <div className=\\\"flex-1 overflow-y-auto p-8 bg-slate-50 no-scrollbar\\\">\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Removing duplicate closing div\"",
+  "toolSummary": "\"Replace file content to remove duplicate div\""
+}

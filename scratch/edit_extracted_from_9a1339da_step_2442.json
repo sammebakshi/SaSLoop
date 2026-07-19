@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add getQRs fetch logic to initApp in App.jsx.\"",
+  "EndLine": "4338",
+  "Instruction": "\"Insert getQRs fetch logic after tables fetch block.\"",
+  "ReplacementContent": "\"    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load tables:\\\", e);\\n    }\\n\\n    // 4a. Fetch Backend QRs\\n    try {\\n      const qrRes = await posService.getQRs();\\n      setBackendQrs(qrRes.data || []);\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load QRs:\\\", e);\\n    }\"",
+  "StartLine": "4335",
+  "TargetContent": "\"    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load tables:\\\", e);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add QRs fetching to initApp\"",
+  "toolSummary": "\"Add QR fetching in initApp in App.jsx\""
+}

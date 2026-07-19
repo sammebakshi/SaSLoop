@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset redeemedPoints state on successful checkout settlement.\"",
+  "EndLine": "6857",
+  "Instruction": "\"Add setRedeemedPoints(0) to settle cleanups.\"",
+  "ReplacementContent": "\"      setSelectedWaiter(null);\\n      setAppliedCoupon(null);\\n      setCouponCode('');\\n      setShowLoyaltyPopup(false);\\n      setRedeemedPoints(0);\\n    }\"",
+  "StartLine": "6853",
+  "TargetContent": "\"      setSelectedWaiter(null);\\n      setAppliedCoupon(null);\\n      setCouponCode('');\\n      setShowLoyaltyPopup(false);\\n    }\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding redeemedPoints reset on checkout\"",
+  "toolSummary": "\"Add redeemedPoints reset\""
+}

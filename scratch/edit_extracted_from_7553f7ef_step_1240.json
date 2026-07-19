@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add verifyPasscodeAction function after getStaffPermissions in App.jsx\"",
+  "EndLine": "3671",
+  "Instruction": "\"Insert verifyPasscodeAction function.\"",
+  "ReplacementContent": "\"  };\\n  const verifyPasscodeAction = (modules, action, callback, name = 'Action') => {\\n    const permissions = getStaffPermissions();\\n    if (!permissions) {\\n      setPasscodeModalState({\\n        isOpen: true,\\n        requiredModules: modules,\\n        actionKey: action,\\n        onSuccess: callback,\\n        actionName: name\\n      });\\n      return;\\n    }\\n\\n    let hasDirectPermission = false;\\n    for (const mod of modules) {\\n      if (permissions.pos_access?.[mod]?.[action] === true) {\\n        hasDirectPermission = true;\\n        break;\\n      }\\n    }\\n\\n    if (hasDirectPermission) {\\n      callback();\\n      return;\\n    }\\n\\n    let passcodeAllowed = false;\\n    for (const mod of modules) {\\n      if (permissions.pos_access?.[mod]?.[action + '_passcode'] === true) {\\n        passcodeAllowed = true;\\n        break;\\n      }\\n    }\\n\\n    if (!passcodeAllowed) {\\n      toast.error(`Access Denied: You do not have permission to perform '${name}'`);\\n      return;\\n    }\\n\\n    setPasscodeModalState({\\n      isOpen: true,\\n      requiredModules: modules,\\n      actionKey: action,\\n      onSuccess: callback,\\n      actionName: name\\n    });\\n  };\\n  const getLoyaltySetting = (key, defaultValue) => {\"",
+  "StartLine": "3670",
+  "TargetContent": "\"  };\\n  const getLoyaltySetting = (key, defaultValue) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add verifyPasscodeAction function in App.jsx\"",
+  "toolSummary": "\"Add verifyPasscodeAction function\""
+}

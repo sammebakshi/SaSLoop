@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Normalize pre-order flags in handlePrint so that completed pre-orders are correctly identified as settled invoices.\"",
+  "EndLine": "9031",
+  "Instruction": "\"Update isPreOrder definition in handlePrint.\"",
+  "ReplacementContent": "\"    // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid)\\n    const isPreOrder = !!(order.pre_order_id || order.advance_paid !== undefined);\"",
+  "StartLine": "9029",
+  "TargetContent": "\"    // Check if it's a pre-order (POS Order has pre_order_id, DB object has advance_paid and status != 'COMPLETED')\\n    const isPreOrder = !!(order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED'));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating isPreOrder flag normalization\"",
+  "toolSummary": "\"File edit\""
+}

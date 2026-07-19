@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add passcodeModalState state at line 1515 in App.jsx\"",
+  "EndLine": "1516",
+  "Instruction": "\"Insert passcodeModalState right after isLocallyRefreshing state.\"",
+  "ReplacementContent": "\"  const [isLocallyRefreshing, setIsLocallyRefreshing] = useState(false);\\n  const [passcodeModalState, setPasscodeModalState] = useState({\\n    isOpen: false,\\n    requiredModules: [],\\n    actionKey: '',\\n    onSuccess: null,\\n    actionName: ''\\n  });\"",
+  "StartLine": "1515",
+  "TargetContent": "\"  const [isLocallyRefreshing, setIsLocallyRefreshing] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add passcode state in App.jsx\"",
+  "toolSummary": "\"Add passcode state\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert tableCustomers state and associated useEffects after couponCode and appliedCoupon are declared in App.jsx\"",
+  "EndLine": "3960",
+  "Instruction": "\"Insert tableCustomers state and synchronizers below the customerPhone dependency hook so that they are declared after couponCode and appliedCoupon\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    setShowLoyaltyPopup(false);\\n  }, [customerPhone]);\\n\\n  const [tableCustomers, setTableCustomers] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_customers');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode\\n  ]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomers));\\n  }, [tableCustomers]);\\n\\n  useEffect(() => {\\n    if (isRestoringCustomerRef.current) {\\n      isRestoringCustomerRef.current = false;\\n    }\\n  });\"",
+  "StartLine": "3956",
+  "TargetContent": "\"  useEffect(() => {\\n    setShowLoyaltyPopup(false);\\n  }, [customerPhone]);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Inserting tableCustomers block after line 3956 in App.jsx\"",
+  "toolSummary": "\"Insert tableCustomers block after line 3956\""
+}

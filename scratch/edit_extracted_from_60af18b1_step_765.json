@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Removed bottom Clear button from Pre-Order layout footer.\"",
+  "EndLine": "4801",
+  "Instruction": "\"Remove Clear button from Pre-Order actions footer\"",
+  "ReplacementContent": "\"                    <div className={`flex gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800' : 'bg-white border-slate-200'}`}>\"",
+  "StartLine": "4782",
+  "TargetContent": "\"                    <div className={`flex gap-1.5 p-1.5 shrink-0 transition-colors border-t ${isDark ? 'bg-[#161b22] border-gray-800' : 'bg-white border-slate-200'}`}>\\n                      <button \\n                        onClick={() => {\\n                          setPreOrderScheduledDate('');\\n                          setPreOrderScheduledTime('');\\n                          setPreOrderAdvanceAmount('');\\n                          setPreOrderOrderType('PICKUP');\\n                          setPreOrderTableNumber('');\\n                          setPreOrderNotes('');\\n                          setCart([]);\\n                          setCustomerName('');\\n                          setCustomerPhone('');\\n                          setCustomerAddress('');\\n                          setPreOrderSubTab('KOT');\\n                        }}\\n                        className={`flex-[0.6] py-2.5 rounded text-[10px] font-bold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 hover:bg-gray-800 border-gray-700 text-white' : 'bg-slate-100 hover:bg-slate-200 border-slate-300 text-slate-700'}`}\\n                      >\\n                        Clear\\n                      </button>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Remove Clear button from Pre-Order footer\"",
+  "toolSummary": "\"Remove Clear button\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update settings tab onClick handler to check passcode override permissions with exact spaces\"",
+  "EndLine": "19263",
+  "Instruction": "\"Add checkPermissionAndExecute on settings tabs click in App.jsx\"",
+  "ReplacementContent": "\"                             onClick={() => {\\n                                const mapping = {\\n                                   general: 'general',\\n                                   outlet: 'profile',\\n                                   printer: 'printers',\\n                                   shortcuts: 'shortcuts',\\n                                   formatting: 'formatting',\\n                                   profile: 'profile'\\n                                };\\n                                const permKey = mapping[tab.id];\\n                                checkPermissionAndExecute('Settings', permKey, `${tab.label} Settings`, () => {\\n                                   setSettingsActiveTab(tab.id);\\n                                });\\n                             }}\"",
+  "StartLine": "19259",
+  "TargetContent": "\"                             onClick={() => {\\n                                setSettingsActiveTab(tab.id);\\n                             }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating settings tabs click handler\"",
+  "toolSummary": "\"Updating settings tabs click handler\""
+}

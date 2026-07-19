@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Support backoffice preOrderDetailsMandatory validation in handlePreOrderKOTAction\"",
+  "EndLine": "4643",
+  "Instruction": "\"Check business?.business_details?.settings?.preOrderDetailsMandatory in isPreOrderMandatory check\"",
+  "ReplacementContent": "\"    const isPreOrderMandatory = (getStaffPermissions()?.pos_access?.PreOrder?.customer_details_mandatory === true) || (business?.business_details?.settings?.preOrderDetailsMandatory === true);\"",
+  "StartLine": "4642",
+  "TargetContent": "\"    const isPreOrderMandatory = getStaffPermissions()?.pos_access?.PreOrder?.customer_details_mandatory === true;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handlePreOrderKOTAction preorder details validation\"",
+  "toolSummary": "\"Update handlePreOrderKOTAction preorder details validation\""
+}

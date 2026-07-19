@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Load KOT items into the cart for physical tables as well when selected.\"",
+  "EndLine": "9670",
+  "Instruction": "\"Modify table selection cart loader to fetch tableBills for physical tables if active bills exist.\"",
+  "ReplacementContent": "\"    const hasSavedBills = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;\\n    if (hasSavedBills) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "StartLine": "9666",
+  "TargetContent": "\"    if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating KOT cart loading logic for physical tables\"",
+  "toolSummary": "\"Fix KOT loading\""
+}

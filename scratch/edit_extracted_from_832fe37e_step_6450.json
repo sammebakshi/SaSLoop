@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Correct getSharedAudioCtx end and place mergeBillItems correctly\"",
+  "EndLine": "1128",
+  "Instruction": "\"Restore return sharedAudioCtx; }; and place mergeBillItems outside getSharedAudioCtx\"",
+  "ReplacementContent": "\"  }\\n  return sharedAudioCtx;\\n};\\n\\nconst mergeBillItems = (items) => {\\n  const merged = [];\\n  items.forEach(item => {\\n    const existing = merged.find(m => \\n      m.id === item.id &&\\n      (m.priceLabel || '') === (item.priceLabel || '') &&\\n      !!m.isComplementary === !!item.isComplementary &&\\n      JSON.stringify(m.modifiers || []) === JSON.stringify(item.modifiers || [])\\n    );\\n    if (existing) {\\n      existing.quantity = (parseFloat(existing.quantity) || 0) + (parseFloat(item.quantity) || 0);\\n      if (existing.qty !== undefined) {\\n        existing.qty = existing.quantity;\\n      }\\n    } else {\\n      merged.push({ ...item });\\n    }\\n  });\\n  return merged;\\n};\\n\\nconst UniversalPOS = () => {\"",
+  "StartLine": "1104",
+  "TargetContent": "\"  }\\n  const mergeBillItems = (items) => {\\n  const merged = [];\\n  items.forEach(item => {\\n    const existing = merged.find(m => \\n      m.id === item.id &&\\n      (m.priceLabel || '') === (item.priceLabel || '') &&\\n      !!m.isComplementary === !!item.isComplementary &&\\n      JSON.stringify(m.modifiers || []) === JSON.stringify(item.modifiers || [])\\n    );\\n    if (existing) {\\n      existing.quantity = (parseFloat(existing.quantity) || 0) + (parseFloat(item.quantity) || 0);\\n      if (existing.qty !== undefined) {\\n        existing.qty = existing.quantity;\\n      }\\n    } else {\\n      merged.push({ ...item });\\n    }\\n  });\\n  return merged;\\n};\\n\\nconst UniversalPOS = () => {\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Correcting nested mergeBillItems syntax\"",
+  "toolSummary": "\"Correct nested mergeBillItems function\""
+}

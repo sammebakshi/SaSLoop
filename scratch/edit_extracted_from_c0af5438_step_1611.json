@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Format pre-order scheduled date safely using formatScheduledDate.\"",
+  "EndLine": "11573",
+  "Instruction": "\"Replace inline Date constructor with formatScheduledDate.\"",
+  "ReplacementContent": "\"                            <span className={`text-[9px] font-bold uppercase tracking-widest opacity-80`}>\\n                              {formatScheduledDate(preOrderScheduledDate)}\\n                              {preOrderScheduledTime ? ` at ${preOrderScheduledTime}` : ''}\\n                            </span>\"",
+  "StartLine": "11570",
+  "TargetContent": "\"                            <span className={`text-[9px] font-bold uppercase tracking-widest opacity-80`}>\\n                              {preOrderScheduledDate ? new Date(preOrderScheduledDate + 'T00:00').toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'Schedule TBD'}\\n                              {preOrderScheduledTime ? ` at ${preOrderScheduledTime}` : ''}\\n                            </span>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Formatting first date display with formatScheduledDate\"",
+  "toolSummary": "\"File edit\""
+}

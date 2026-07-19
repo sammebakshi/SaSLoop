@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update preview card appVersion text to Master POS in App.jsx\"",
+  "EndLine": "18552",
+  "Instruction": "\"Replace SaSLoop Station Version with SaSLoop Master POS Version on line 18550.\"",
+  "ReplacementContent": "\"                                    {posSettings.appVersion || \\\"SaSLoop Master POS Version: 1.0.1\\\"}\"",
+  "StartLine": "18548",
+  "TargetContent": "\"                                    {posSettings.appVersion || \\\"SaSLoop Station Version: 1.0.1\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating preview card appVersion text\"",
+  "toolSummary": "\"Edit preview card appVersion in App.jsx\""
+}

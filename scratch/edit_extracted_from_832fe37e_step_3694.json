@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error in KOTHistoryView in base App.jsx\"",
+  "EndLine": "265",
+  "Instruction": "\"Fix KOTHistoryView JSX footer by removing duplicate modifiers map and closing braces correctly.\"",
+  "ReplacementContent": "\"            <div className=\\\"mt-2 pt-2 border-t border-dashed border-white/5 text-[7px] font-bold text-slate-600 uppercase flex justify-between\\\">\\n               <span>{new Date(kot.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>\\n               <span>{kot.items.length} Items</span>\\n            </div>\\n         </div>\\n      ))}\\n      {!tableKots?.length && <div className=\\\"p-10 text-center opacity-20 text-[9px] font-black uppercase italic\\\">No active KOTs for this table</div>}\\n   </div>\\n);\"",
+  "StartLine": "256",
+  "TargetContent": "\"             </div>\\n             <div className=\\\"mt-2 pt-2 border-t border-dashed border-white/5 text-[7px] font-bold text-slate-600 uppercase flex justify-between\\\">\\n                <span>{new Date(kot.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>\\n                       {it.modifiers && it.modifiers.map((m, mIdx) => (\\n                          <span key={mIdx} className=\\\"text-[7.5px] text-slate-400 pl-3 leading-tight\\\">{(m.name || '').toUpperCase()}</span>\\n       ))}\\n       {!tableKots?.length && <div className=\\\"p-10 text-center opacity-20 text-[9px] font-black uppercase italic\\\">No active KOTs for this table</div>}\\n    </div>\\n);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Patching base App.jsx syntax\"",
+  "toolSummary": "\"Patch base App.jsx syntax\""
+}

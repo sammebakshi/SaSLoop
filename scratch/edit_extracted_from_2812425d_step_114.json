@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore printDetailedBalance state in App.jsx when switching tables\"",
+  "EndLine": "9772",
+  "Instruction": "\"Set printDetailedBalance state when restoring customer data.\"",
+  "ReplacementContent": "\"    setCouponCode(restoredCustomer.couponCode || '');\\n    setPrintDetailedBalance(restoredCustomer.printDetailedBalance !== undefined ? restoredCustomer.printDetailedBalance : true);\"",
+  "StartLine": "9770",
+  "TargetContent": "\"    setCouponCode(restoredCustomer.couponCode || '');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring printDetailedBalance state\"",
+  "toolSummary": "\"Restore printDetailedBalance state when switching tables\""
+}

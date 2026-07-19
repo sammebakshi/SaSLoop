@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Synchronize handleSort and showOldestFirst state\"",
+  "EndLine": "8602",
+  "Instruction": "\"Update handleSort function to keep showOldestFirst state synchronized\"",
+  "ReplacementContent": "\"  const handleSort = (field) => {\\n    if (receiptsSortField === field) {\\n      const nextDir = receiptsSortDirection === 'asc' ? 'desc' : 'asc';\\n      setReceiptsSortDirection(nextDir);\\n      if (field === 'date') {\\n        setShowOldestFirst(nextDir === 'asc');\\n      }\\n    } else {\\n      setReceiptsSortField(field);\\n      setReceiptsSortDirection('desc'); // Default to descending\\n      if (field === 'date') {\\n        setShowOldestFirst(false);\\n      }\\n    }\\n  };\"",
+  "StartLine": "2080",
+  "TargetContent": "\"  const handleSort = (field) => {\\n    if (receiptsSortField === field) {\\n      setReceiptsSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');\\n    } else {\\n      setReceiptsSortField(field);\\n      setReceiptsSortDirection('desc'); // Default to descending for numbers/dates\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleSort definition\"",
+  "toolSummary": "\"App.jsx handleSort sync edit\""
+}

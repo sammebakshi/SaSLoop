@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Changed the login parent container from min-h-screen to h-screen to resolve height collapse of the left panel slideshow in Chromium/Electron.\"",
+  "EndLine": "7250",
+  "Instruction": "\"Change min-h-screen to h-screen on line 7246 of App.jsx\"",
+  "ReplacementContent": "\"  if (!isAuthenticated) {\\n    return (\\n      <div className=\\\"h-screen flex flex-col font-sans bg-slate-50 relative select-none\\\">\"",
+  "StartLine": "7244",
+  "TargetContent": "\"  if (!isAuthenticated) {\\n    return (\\n      <div className=\\\"min-h-screen flex flex-col font-sans bg-slate-50 relative select-none\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing height collapse on login page in App.jsx\"",
+  "toolSummary": "\"Fix login page height collapse\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Inject printer configuration lookup and width resolution at the start of handlePrint.\"",
+  "EndLine": "8234",
+  "Instruction": "\"Add order type mapping and resolvePrinterConfig call at the start of handlePrint.\"",
+  "ReplacementContent": "\"  const handlePrint = async (order) => {\\n    let activeType = 'DINE_IN';\\n    if (order.pre_order_id || (order.advance_paid !== undefined && order.status !== 'COMPLETED')) {\\n      activeType = 'PRE_ORDER';\\n    } else {\\n      const typeStr = String(order.order_type || '').toUpperCase();\\n      if (typeStr.includes('DELIVERY')) {\\n        activeType = 'DELIVERY';\\n      } else if (typeStr.includes('PICKUP')) {\\n        activeType = 'PICKUP';\\n      } else if (typeStr.includes('QUICK')) {\\n        activeType = 'QUICK';\\n      } else {\\n        activeType = 'DINE_IN';\\n      }\\n    }\\n\\n    const printConfig = resolvePrinterConfig(activeType, 'bill');\\n    if (!printConfig.enabled) {\\n      toast.info(`Bill printing is disabled for ${activeType} orders.`);\\n      return;\\n    }\\n\\n    const resolvedWidth = printConfig.paperSize === 'THERMAL_58MM' ? 48 : (posSettings.printWidth || 72);\\n\\n    // Normalize fields to support both a POS Order and a Pre-Order DB object\\n    const orderItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');\"",
+  "StartLine": "8231",
+  "TargetContent": "\"  const handlePrint = async (order) => {\\n    // Normalize fields to support both a POS Order and a Pre-Order DB object\\n    const orderItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Injecting printer config resolution in handlePrint\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

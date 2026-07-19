@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define mergeCartItems helper function inside UniversalPOS component\"",
+  "EndLine": "1207",
+  "Instruction": "\"Add mergeCartItems helper function under activeOptionItem state\"",
+  "ReplacementContent": "\"  const [activeOptionItem, setActiveOptionItem] = useState(null);\\n\\n  const mergeCartItems = (existingItems, newItems) => {\\n    if (!existingItems || existingItems.length === 0) return [...newItems];\\n    const merged = [...existingItems];\\n    newItems.forEach(newItem => {\\n      const existingIndex = merged.findIndex(item => {\\n        const idMatch = item.id === newItem.id;\\n        const priceMatch = parseFloat(item.price || 0) === parseFloat(newItem.price || 0);\\n        const labelMatch = item.priceLabel === newItem.priceLabel;\\n        const compMatch = !!item.isComplementary === !!newItem.isComplementary;\\n        const cancelMatch = !!item.isCancelled === !!newItem.isCancelled;\\n        \\n        const itemMods = item.modifiers || [];\\n        const newMods = newItem.modifiers || [];\\n        const modsMatch = itemMods.length === newMods.length && \\n          itemMods.every(m => newMods.some(nm => nm.name === m.name && parseFloat(nm.price || 0) === parseFloat(m.price || 0)));\\n        \\n        return idMatch && priceMatch && labelMatch && compMatch && cancelMatch && modsMatch;\\n      });\\n\\n      if (existingIndex > -1) {\\n        merged[existingIndex] = {\\n          ...merged[existingIndex],\\n          quantity: (merged[existingIndex].quantity || 0) + (newItem.quantity || 0)\\n        };\\n      } else {\\n        merged.push({ ...newItem });\\n      }\\n    });\\n    return merged;\\n  };\\n\\n  const isDark = theme === 'dark';\"",
+  "StartLine": "1203",
+  "TargetContent": "\"  const [activeOptionItem, setActiveOptionItem] = useState(null);\\n  const isDark = theme === 'dark';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Defining mergeCartItems\"",
+  "toolSummary": "\"Define mergeCartItems helper\""
+}

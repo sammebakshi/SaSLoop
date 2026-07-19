@@ -1,0 +1,8 @@
+{
+  "Description": "\"Increased all top card heights to make the top section more prominent. Row 1 cards: 72px → 90px, DashboardCard (rows 2-3): 62px → 80px, sidebar Sales Analysis: 72px → 90px, Payment Breakdown: 136px → 170px, pagination pill: 72px → 90px.\"",
+  "Instruction": "\"Increase all card heights in the top section of the dashboard.\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":true,\"EndLine\":3542,\"ReplacementContent\":\"p-4 h-[90px] transition-colors\",\"StartLine\":3518,\"TargetContent\":\"p-3 h-[72px] transition-colors\"},{\"AllowMultiple\":false,\"EndLine\":3607,\"ReplacementContent\":\"style={{ height: '90px' }}\",\"StartLine\":3604,\"TargetContent\":\"style={{ height: '72px' }}\"},{\"AllowMultiple\":false,\"EndLine\":3624,\"ReplacementContent\":\"flex flex-col h-[90px] justify-between\",\"StartLine\":3624,\"TargetContent\":\"flex flex-col h-[72px] justify-between\"},{\"AllowMultiple\":false,\"EndLine\":3656,\"ReplacementContent\":\"style={{ height: '170px' }}\",\"StartLine\":3656,\"TargetContent\":\"style={{ height: '136px' }}\"},{\"AllowMultiple\":false,\"EndLine\":7418,\"ReplacementContent\":\"rounded-xl p-4 h-[80px] border\",\"StartLine\":7418,\"TargetContent\":\"rounded-xl p-3 h-[62px] border\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Increasing top card sizes\"",
+  "toolSummary": "\"Increase card sizes\""
+}

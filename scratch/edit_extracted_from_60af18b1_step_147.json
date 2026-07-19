@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error on line 4398 by removing the corrupt div closing and duplicate ternary operators.\"",
+  "EndLine": "4400",
+  "Instruction": "\"Fix ternary syntax transition from activeTrayTab === 'PreOrder' to the next condition.\"",
+  "ReplacementContent": "\"                      )\\n                    ) : activeTrayTab === 'KOT' || orderType === 'QUICK' ? (\"",
+  "StartLine": "4396",
+  "TargetContent": "\"                        </div>\\n                      )\\n                    ) :                      </div>\\n                    ) : activeTrayTab === 'KOT' || orderType === 'QUICK' ? (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing ternary syntax corrupted line in App.jsx\"",
+  "toolSummary": "\"Fix App.jsx line 4398 syntax\""
+}

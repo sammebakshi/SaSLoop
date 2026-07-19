@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add orderPrinters, printCustomerCopyPreorder, and printRestaurantCopyPreorder to defaultSettings initialization.\"",
+  "EndLine": "4140",
+  "Instruction": "\"Include the orderPrinters object mapping Dine-In, Pickup, Delivery, Quick Bill, and Pre-Order to their default values.\"",
+  "ReplacementContent": "\"      printCustomerCopy: true,\\n      printRestaurantCopy: true,\\n      printCustomerCopyPreorder: true,\\n      printRestaurantCopyPreorder: true,\\n      askPasswordForTableDelete: true,\\n      printLoyaltyPoints: true,\\n      loyaltyPrintOption: 'all',\\n      orderPrinters: {\\n        DINE_IN: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        PICKUP: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        DELIVERY: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        QUICK: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        },\\n        PRE_ORDER: {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        }\\n      }\\n    };\"",
+  "StartLine": "4134",
+  "TargetContent": "\"      printCustomerCopy: true,\\n      printRestaurantCopy: true,\\n      askPasswordForTableDelete: true,\\n      printLoyaltyPoints: true,\\n      loyaltyPrintOption: 'all'\\n    };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding orderPrinters to defaultSettings\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

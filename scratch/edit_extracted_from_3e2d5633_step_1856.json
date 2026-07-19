@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix syntax error and duplicate div in Inventory modal header\"",
+  "EndLine": "18292",
+  "Instruction": "\"Fix closing tags in isInventoryModalOpen block\"",
+  "ReplacementContent": "\"                           <button onClick={() => setIsInventoryModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                        </div>\\n                     </div>\\n\\n                     {/* Tab Headers */}\"",
+  "StartLine": "18280",
+  "TargetContent": "\"                           <button onClick={() => setIsInventoryModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                        </div>\\n                     </div>`}\\n                    </div>\\n\\n                     {/* Tab Headers */}\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fixing closing tags in inventory modal\"",
+  "toolSummary": "\"Replace file content to fix inventory modal tags\""
+}

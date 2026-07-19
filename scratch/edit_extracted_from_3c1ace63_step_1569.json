@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove tableCustomers state and associated useEffects from line 3713-3757 in App.jsx\"",
+  "EndLine": "3757",
+  "Instruction": "\"Remove tableCustomers declarations from their old position to prepare moving them below\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "3713",
+  "TargetContent": "\"  const [tableCustomers, setTableCustomers] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_customers');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode\\n  ]);\\n\\n  useEffect(() => {\\n    localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomers));\\n  }, [tableCustomers]);\\n\\n  useEffect(() => {\\n    if (isRestoringCustomerRef.current) {\\n      isRestoringCustomerRef.current = false;\\n    }\\n  });\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Removing tableCustomers block from line 3713 in App.jsx\"",
+  "toolSummary": "\"Remove tableCustomers block from line 3713\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update online profile loading logic to fetch countAdvanceInSales from the backend business settings.\"",
+  "EndLine": "5696",
+  "Instruction": "\"Update setPosSettings in online load in App.jsx to load countAdvanceInSales from biz.settings.\"",
+  "ReplacementContent": "\"    const fetchedTaxRate = parseFloat(biz.tax_percent || (parseFloat(biz.cgst_percent || 0) + parseFloat(biz.sgst_percent || 0))) || 0;\\n    setConfig(prev => ({\\n      ...prev,\\n      currency: biz.currency_symbol || biz.currency_code || '₹',\\n      tax_rate: fetchedTaxRate,\\n      business_type: String(biz.business_category || biz.business_type || '').toUpperCase().includes('RETAIL') ? 'RETAIL' : 'RESTAURANT'\\n    }));\\n\\n    const serverSettings = biz.settings ? (typeof biz.settings === 'string' ? JSON.parse(biz.settings) : biz.settings) : {};\\n    setPosSettings(prev => ({\\n      ...prev,\\n      taxRate: fetchedTaxRate,\\n      countAdvanceInSales: serverSettings.countAdvanceInSales !== undefined ? !!serverSettings.countAdvanceInSales : prev.countAdvanceInSales\\n    }));\"",
+  "StartLine": "5683",
+  "TargetContent": "\"    const fetchedTaxRate = parseFloat(biz.tax_percent || (parseFloat(biz.cgst_percent || 0) + parseFloat(biz.sgst_percent || 0))) || 0;\\n    setConfig(prev => ({\\n      ...prev,\\n      currency: biz.currency_symbol || biz.currency_code || '₹',\\n      tax_rate: fetchedTaxRate,\\n      business_type: String(biz.business_category || biz.business_type || '').toUpperCase().includes('RETAIL') ? 'RETAIL' : 'RESTAURANT'\\n    }));\\n\\n    setPosSettings(prev => ({\\n      ...prev,\\n      taxRate: fetchedTaxRate\\n    }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating online settings loading\"",
+  "toolSummary": "\"File edit on App.jsx\""
+}

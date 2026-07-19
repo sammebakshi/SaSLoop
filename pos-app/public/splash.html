@@ -300,15 +300,110 @@
       to { opacity: 0.9; }
     }
 
+    /* ====== Custom Window & Title Bar Layout ====== */
+    .splash-card {
+      width: 600px;
+      height: 700px;
+      background: linear-gradient(180deg, #0d1117 0%, #161b22 100%);
+      border: 1px solid #30363d;
+      border-radius: 24px; /* beautiful rounded corners */
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .titlebar {
+      height: 44px;
+      border-bottom: 1px solid #30363d;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-left: 18px;
+      padding-right: 0;
+      background: #0d1117;
+      user-select: none;
+      -webkit-app-region: drag;
+      width: 100%;
+      z-index: 100;
+      flex-shrink: 0;
+    }
+
+    .titlebar-title {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      -webkit-app-region: no-drag;
+    }
+
+    .title-main {
+      color: #ffffff;
+    }
+
+    .title-sub {
+      color: #18ba60;
+    }
+
+    .titlebar-controls {
+      display: flex;
+      align-items: center;
+      height: 100%;
+      -webkit-app-region: no-drag;
+    }
+
+    .control-btn {
+      width: 48px;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #8b949e;
+      cursor: pointer;
+      transition: background-color 0.2s, color 0.2s;
+    }
+
+    .control-btn:hover {
+      background-color: #21262d;
+      color: #ffffff;
+    }
+
+    .control-btn.btn-close:hover {
+      background-color: #f43f5e;
+      color: #ffffff;
+    }
+
+    .card-content {
+      flex: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      background: transparent;
+      overflow: hidden;
+    }
+
     /* ====== Status Text at the bottom center ====== */
     .status-container {
       position: absolute;
-      bottom: 8vh;
+      bottom: 30px;
+      left: 0;
+      right: 0;
+      margin: 0 auto;
       z-index: 30;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 4px;
+      width: 100%;
     }
     .status-text {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -328,126 +423,155 @@
 </head>
 <body>
 
-  <div class="animation-container">
-    <!-- Devices and lines in their own layer to support blurring at the end -->
-    <div class="devices-layer">
-      <svg class="connection-svg" viewBox="0 0 600 600">
-        <!-- 1. KDS Cable (Orthogonal path from POS (160, 300) to KDS (440, 300)) -->
-        <path class="cable-bg conn-line-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="6" stroke-linejoin="round" />
-        <path class="cable-core conn-line-kds-core" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="2.5" stroke-linejoin="round" />
-        
-        <!-- KDS Neon Dot Animation -->
-        <g opacity="0">
-          <circle r="8" fill="#38bdf8" opacity="0.9" style="filter: blur(3px);">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
-          </circle>
-          <circle r="3" fill="#ffffff" opacity="1">
-            <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
-          </circle>
-          <animate attributeName="opacity" from="0" to="1" begin="2.4s" dur="0.1s" fill="freeze" />
-        </g>
-        
-        <!-- 2. Printer Cable (Orthogonal path from POS (160, 300) to Printer (300, 420)) -->
-        <path class="cable-bg conn-line-printer" d="M 160 300 H 210 V 420 H 300" stroke-width="6" stroke-linejoin="round" />
-        <path class="cable-core conn-line-printer-core" d="M 160 300 H 210 V 420 H 300" stroke-width="2.5" stroke-linejoin="round" />
-        
-        <!-- Printer Neon Dot Animation -->
-        <g opacity="0">
-          <circle r="8" fill="#f59e0b" opacity="0.9" style="filter: blur(3px);">
-            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
-          </circle>
-          <circle r="3" fill="#ffffff" opacity="1">
-            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
-          </circle>
-          <animate attributeName="opacity" from="0" to="1" begin="3.7s" dur="0.1s" fill="freeze" />
-        </g>
-        
-        <!-- 3. Web Cable (Orthogonal path from POS (160, 300) to Web (300, 180)) -->
-        <path class="cable-bg conn-line-web" d="M 160 300 H 210 V 180 H 300" stroke-width="6" stroke-linejoin="round" />
-        <path class="cable-core conn-line-web-core" d="M 160 300 H 210 V 180 H 300" stroke-width="2.5" stroke-linejoin="round" />
-        
-        <!-- Web Neon Dot Animation -->
-        <g opacity="0">
-          <circle r="8" fill="#10b981" opacity="0.9" style="filter: blur(3px);">
-            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
-          </circle>
-          <circle r="3" fill="#ffffff" opacity="1">
-            <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
-          </circle>
-          <animate attributeName="opacity" from="0" to="1" begin="5.0s" dur="0.1s" fill="freeze" />
-        </g>
-      </svg>
-
-      <!-- 1. POS Terminal -->
-      <div class="icon icon-pos">
-        <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="3" width="20" height="13" rx="2.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.5"/>
-          <path d="M6 16L4 21H20L18 16" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
-          <rect class="pos-screen" x="7" y="5.5" width="10" height="6" rx="0.5" stroke-width="1"/>
-          <g class="pos-content">
-            <line x1="9" y1="7.5" x2="15" y2="7.5" stroke="#18ba60" stroke-width="0.8" stroke-linecap="round"/>
-            <line x1="9" y1="9.5" x2="13" y2="9.5" stroke="#18ba60" stroke-width="0.8" stroke-linecap="round"/>
-          </g>
-        </svg>
-        <div class="icon-label">POS Terminal</div>
+  <div class="splash-card">
+    <!-- Custom Title Bar like we have in POS -->
+    <div class="titlebar">
+      <div class="titlebar-title">
+        <span class="title-main">SaSLoop</span>
+        <span id="title-sub" class="title-sub">Master POS</span>
       </div>
-
-      <!-- 2. KDS Display -->
-      <div class="icon icon-kds">
-        <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <rect x="2" y="4" width="20" height="14" rx="2.5" fill="#1e293b" class="kds-border" stroke-width="1.5"/>
-          <g class="kds-content">
-            <line x1="6" y1="8" x2="13" y2="8" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="6" y1="11" x2="10" y2="11" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
-            <line x1="6" y1="14" x2="14" y2="14" stroke="#475569" stroke-width="0.8" stroke-linecap="round"/>
-            <rect x="15" y="7.5" width="4" height="6" rx="0.5" fill="#f59e0b" fill-opacity="0.25" stroke="#f59e0b" stroke-width="1"/>
-          </g>
-        </svg>
-        <div class="icon-label">Kitchen Display</div>
-      </div>
-
-      <!-- 3. Thermal Printer -->
-      <div class="icon icon-printer">
-        <svg width="135" height="135" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path class="printer-paper-top" d="M6 9H18V4H6V9Z" stroke-width="1.5"/>
-          <rect x="3" y="9" width="18" height="9" rx="2" fill="#1e293b" stroke="#ffffff" stroke-width="1.5"/>
-          <circle cx="6" cy="12.5" r="1.2" class="printer-led-green"/>
-          <circle cx="9" cy="12.5" r="0.8" class="printer-led-amber"/>
-          <path class="printer-paper-bottom" d="M6 18H18V22H6V18Z" fill="#f8fafc" stroke="#ffffff" stroke-width="1.2"/>
-          <g class="printer-content">
-            <line x1="8.5" y1="19.5" x2="15.5" y2="19.5" stroke="#94a3b8" stroke-width="0.8"/>
-            <line x1="8.5" y1="21" x2="13" y2="21" stroke="#94a3b8" stroke-width="0.8"/>
-          </g>
-        </svg>
-        <div class="icon-label">Thermal Printer</div>
-      </div>
-
-      <!-- 4. Web Globe -->
-      <div class="icon icon-web">
-        <svg width="130" height="130" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="12" cy="12" r="9.5" class="web-globe" stroke-width="1.8" fill="#1e293b"/>
-          <g class="web-content">
-            <path d="M3 9H21M3 15H21" stroke="#10b981" stroke-width="1.2"/>
-            <path d="M12 2.5C14.8 5.3 16 8.5 16 12C16 15.5 14.8 18.7 12 21.5C9.2 18.7 8 15.5 8 12C8 8.5 9.2 5.3 12 2.5Z" stroke="#10b981" stroke-width="1.2"/>
-          </g>
-        </svg>
-        <div class="icon-label">Web Platform</div>
+      <div class="titlebar-controls">
+        <button class="control-btn btn-close" onclick="closeWindow()" title="Close">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </div>
 
-    <!-- 5. Central Logo (Placed outside the devices-layer so it remains clear and sharp) -->
-    <div class="central-logo">
-      <img src="logo.png" alt="SaSLoop Logo">
-      <div class="brand-text">SaSLoop <span>Master POS</span></div>
-    </div>
-  </div>
+    <div class="card-content">
+      <div class="animation-container">
+        <!-- Devices and lines in their own layer to support blurring at the end -->
+        <div class="devices-layer">
+          <svg class="connection-svg" viewBox="0 0 600 600">
+            <!-- 1. KDS Cable (Orthogonal path from POS (160, 300) to KDS (440, 300)) -->
+            <path class="cable-bg conn-line-kds" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="6" stroke-linejoin="round" />
+            <path class="cable-core conn-line-kds-core" d="M 160 300 H 210 V 340 H 390 V 300 H 440" stroke-width="2.5" stroke-linejoin="round" />
+            
+            <!-- KDS Neon Dot Animation -->
+            <g opacity="0">
+              <circle r="8" fill="#38bdf8" opacity="0.9" style="filter: blur(3px);">
+                <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
+              </circle>
+              <circle r="3" fill="#ffffff" opacity="1">
+                <animateMotion dur="1.2s" repeatCount="indefinite" path="M 160 300 H 210 V 340 H 390 V 300 H 440" begin="2.4s" />
+              </circle>
+              <animate attributeName="opacity" from="0" to="1" begin="2.4s" dur="0.1s" fill="freeze" />
+            </g>
+            
+            <!-- 2. Printer Cable (Orthogonal path from POS (160, 300) to Printer (300, 420)) -->
+            <path class="cable-bg conn-line-printer" d="M 160 300 H 210 V 420 H 300" stroke-width="6" stroke-linejoin="round" />
+            <path class="cable-core conn-line-printer-core" d="M 160 300 H 210 V 420 H 300" stroke-width="2.5" stroke-linejoin="round" />
+            
+            <!-- Printer Neon Dot Animation -->
+            <g opacity="0">
+              <circle r="8" fill="#f59e0b" opacity="0.9" style="filter: blur(3px);">
+                <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
+              </circle>
+              <circle r="3" fill="#ffffff" opacity="1">
+                <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 420 H 300" begin="3.7s" />
+              </circle>
+              <animate attributeName="opacity" from="0" to="1" begin="3.7s" dur="0.1s" fill="freeze" />
+            </g>
+            
+            <!-- 3. Web Cable (Orthogonal path from POS (160, 300) to Web (300, 180)) -->
+            <path class="cable-bg conn-line-web" d="M 160 300 H 210 V 180 H 300" stroke-width="6" stroke-linejoin="round" />
+            <path class="cable-core conn-line-web-core" d="M 160 300 H 210 V 180 H 300" stroke-width="2.5" stroke-linejoin="round" />
+            
+            <!-- Web Neon Dot Animation -->
+            <g opacity="0">
+              <circle r="8" fill="#10b981" opacity="0.9" style="filter: blur(3px);">
+                <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
+              </circle>
+              <circle r="3" fill="#ffffff" opacity="1">
+                <animateMotion dur="1.0s" repeatCount="indefinite" path="M 160 300 H 210 V 180 H 300" begin="5.0s" />
+              </circle>
+              <animate attributeName="opacity" from="0" to="1" begin="5.0s" dur="0.1s" fill="freeze" />
+            </g>
+          </svg>
 
-  <!-- Status Text at the Bottom -->
-  <div class="status-container">
-    <div class="status-text" id="status-text">INITIALIZING...</div>
+          <!-- 1. POS Terminal -->
+          <div class="icon icon-pos">
+            <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="3" width="20" height="13" rx="2.5" fill="#1e293b" stroke="#ffffff" stroke-width="1.5"/>
+              <path d="M6 16L4 21H20L18 16" stroke="#ffffff" stroke-width="1.5" stroke-linejoin="round"/>
+              <rect class="pos-screen" x="7" y="5.5" width="10" height="6" rx="0.5" stroke-width="1"/>
+              <g class="pos-content">
+                <line x1="9" y1="7.5" x2="15" y2="7.5" stroke="#18ba60" stroke-width="0.8" stroke-linecap="round"/>
+                <line x1="9" y1="9.5" x2="13" y2="9.5" stroke="#18ba60" stroke-width="0.8" stroke-linecap="round"/>
+              </g>
+            </svg>
+            <div class="icon-label">POS Terminal</div>
+          </div>
+
+          <!-- 2. KDS Display -->
+          <div class="icon icon-kds">
+            <svg width="140" height="140" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="2" y="4" width="20" height="14" rx="2.5" fill="#1e293b" class="kds-border" stroke-width="1.5"/>
+              <g class="kds-content">
+                <line x1="6" y1="8" x2="13" y2="8" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="6" y1="11" x2="10" y2="11" stroke="#38bdf8" stroke-width="1.5" stroke-linecap="round"/>
+                <line x1="6" y1="14" x2="14" y2="14" stroke="#475569" stroke-width="0.8" stroke-linecap="round"/>
+                <rect x="15" y="7.5" width="4" height="6" rx="0.5" fill="#f59e0b" fill-opacity="0.25" stroke="#f59e0b" stroke-width="1"/>
+              </g>
+            </svg>
+            <div class="icon-label">Kitchen Display</div>
+          </div>
+
+          <!-- 3. Thermal Printer -->
+          <div class="icon icon-printer">
+            <svg width="135" height="135" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path class="printer-paper-top" d="M6 9H18V4H6V9Z" stroke-width="1.5"/>
+              <rect x="3" y="9" width="18" height="9" rx="2" fill="#1e293b" stroke="#ffffff" stroke-width="1.5"/>
+              <circle cx="6" cy="12.5" r="1.2" class="printer-led-green"/>
+              <circle cx="9" cy="12.5" r="0.8" class="printer-led-amber"/>
+              <path class="printer-paper-bottom" d="M6 18H18V22H6V18Z" fill="#f8fafc" stroke="#ffffff" stroke-width="1.2"/>
+              <g class="printer-content">
+                <line x1="8.5" y1="19.5" x2="15.5" y2="19.5" stroke="#94a3b8" stroke-width="0.8"/>
+                <line x1="8.5" y1="21" x2="13" y2="21" stroke="#94a3b8" stroke-width="0.8"/>
+              </g>
+            </svg>
+            <div class="icon-label">Thermal Printer</div>
+          </div>
+
+          <!-- 4. Web Globe -->
+          <div class="icon icon-web">
+            <svg width="130" height="130" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="12" cy="12" r="9.5" class="web-globe" stroke-width="1.8" fill="#1e293b"/>
+              <g class="web-content">
+                <path d="M3 9H21M3 15H21" stroke="#10b981" stroke-width="1.2"/>
+                <path d="M12 2.5C14.8 5.3 16 8.5 16 12C16 15.5 14.8 18.7 12 21.5C9.2 18.7 8 15.5 8 12C8 8.5 9.2 5.3 12 2.5Z" stroke="#10b981" stroke-width="1.2"/>
+              </g>
+            </svg>
+            <div class="icon-label">Web Platform</div>
+          </div>
+        </div>
+
+        <!-- 5. Central Logo (Placed outside the devices-layer so it remains clear and sharp) -->
+        <div class="central-logo">
+          <img src="logo.png" alt="SaSLoop Logo">
+          <div class="brand-text">SaSLoop <span id="brand-sub">Master POS</span></div>
+        </div>
+      </div>
+
+      <!-- Status Text at the Bottom -->
+      <div class="status-container">
+        <div class="status-text" id="status-text">INITIALIZING...</div>
+      </div>
+    </div>
   </div>
 
   <script>
+    function closeWindow() {
+      try {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('window-close');
+      } catch (e) {
+        console.log('Not in Electron');
+      }
+    }
+
     const statusText = document.getElementById('status-text');
     const stages = [
       { time: 0, text: 'SYSTEM INITIALIZING...' },
@@ -461,9 +585,33 @@
 
     stages.forEach(stage => {
       setTimeout(() => {
-        statusText.innerText = stage.text;
+        let text = stage.text;
+        try {
+          const { ipcRenderer } = require('electron');
+          ipcRenderer.invoke('is-terminal-mode').then(isTerminal => {
+            if (isTerminal) {
+              text = text.replace('MASTER POS', 'POS TERMINAL');
+            }
+            statusText.innerText = text;
+          });
+        } catch (e) {
+          statusText.innerText = text;
+        }
       }, stage.time);
     });
+
+    // Detect mode and update UI dynamically
+    try {
+      const { ipcRenderer } = require('electron');
+      ipcRenderer.invoke('is-terminal-mode').then(isTerminal => {
+        if (isTerminal) {
+          document.getElementById('title-sub').innerText = 'POS Terminal';
+          document.getElementById('brand-sub').innerText = 'POS Terminal';
+        }
+      });
+    } catch (e) {
+      console.log('Not in Electron');
+    }
 
     // Send transition signal once animation is complete (at 7.0 seconds)
     setTimeout(() => {

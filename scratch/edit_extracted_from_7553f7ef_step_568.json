@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Initialize isAuthenticated to false to force login screen on restart\"",
+  "EndLine": "1533",
+  "Instruction": "\"Revert isAuthenticated default value to false\"",
+  "ReplacementContent": "\"  const [isAuthenticated, setIsAuthenticated] = useState(false);\"",
+  "StartLine": "1531",
+  "TargetContent": "\"  const [isAuthenticated, setIsAuthenticated] = useState(() => !!localStorage.getItem('pos_token'));\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Revert isAuthenticated default state\"",
+  "toolSummary": "\"Revert isAuthenticated default state\""
+}

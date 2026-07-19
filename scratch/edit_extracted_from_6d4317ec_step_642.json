@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove ChatAnimationBackground from the transition view container so that the locker dial is displayed in focus on the transparent-friendly dark screen.\"",
+  "EndLine": "8905",
+  "ReplacementContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "StartLine": "8897",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden\\\">\\n        <ChatAnimationBackground />\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying transition render block to display locker dial alone\"",
+  "toolSummary": "\"Updating transition block in App.jsx\""
+}

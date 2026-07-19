@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate Receipt import on line 715 to fix the Vite 8 build parse error.\"",
+  "EndLine": "716",
+  "Instruction": "\"Remove Receipt from the import statement on line 715.\"",
+  "ReplacementContent": "\"import { Headphones, Hourglass, UserCheck, Database } from 'lucide-react';\"",
+  "StartLine": "714",
+  "TargetContent": "\"import { Headphones, Hourglass, UserCheck, Receipt, Database } from 'lucide-react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing duplicate Receipt import\"",
+  "toolSummary": "\"Removing duplicate Receipt import\""
+}

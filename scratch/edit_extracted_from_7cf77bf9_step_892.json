@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add todayCreditSales and totalCreditSales to stats initial state\"",
+  "EndLine": "2180",
+  "Instruction": "\"Modify stats state structure to declare default credit sales variables\"",
+  "ReplacementContent": "\"  const [stats, setStats] = useState({\\n    todaySales: 0, todayCount: 0, totalSales: 0, totalCount: 0, monthSales: 0, monthCount: 0,\\n    offlineSales: 0, offlineCount: 0, onlineSales: 0, onlineCount: 0, \\n    dineInSales: 0, dineInCount: 0, quickSales: 0, quickCount: 0, takeawaySales: 0, takeawayCount: 0, \\n    deliverySales: 0, deliveryCount: 0,\\n    totalTax: 0, totalDiscount: 0,\\n    todayCreditSales: 0, totalCreditSales: 0,\"",
+  "StartLine": "2175",
+  "TargetContent": "\"  const [stats, setStats] = useState({\\n    todaySales: 0, todayCount: 0, totalSales: 0, totalCount: 0, monthSales: 0, monthCount: 0,\\n    offlineSales: 0, offlineCount: 0, onlineSales: 0, onlineCount: 0, \\n    dineInSales: 0, dineInCount: 0, quickSales: 0, quickCount: 0, takeawaySales: 0, takeawayCount: 0, \\n    deliverySales: 0, deliveryCount: 0,\\n    totalTax: 0, totalDiscount: 0,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring credit sales in stats state\"",
+  "toolSummary": "\"App.jsx stats state definition edit\""
+}

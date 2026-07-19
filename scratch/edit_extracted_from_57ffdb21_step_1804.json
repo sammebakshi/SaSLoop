@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define coupon application and fetch handlers\"",
+  "EndLine": "3951",
+  "Instruction": "\"Define handleApplyCoupon, handleRemoveCoupon, and update handleOpenCouponModal.\"",
+  "ReplacementContent": "\"  const handleApplyCoupon = (coupon) => {\\n    const subtotal = calculateTotals().subtotal;\\n    const minAmt = parseFloat(coupon.applicable_order_amt || coupon.min_order_amount || 0);\\n    if (subtotal < minAmt) {\\n      toast.error('Coupon requires minimum spend of Rs ' + minAmt.toFixed(2));\\n      return;\\n    }\\n    setAppliedCoupon(coupon);\\n    setCouponCode(coupon.coupon_code || coupon.code);\\n    toast.success('Coupon ' + (coupon.coupon_code || coupon.code) + ' applied successfully!');\\n    setIsCouponModalOpen(false);\\n  };\\n\\n  const handleRemoveCoupon = () => {\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n    toast.info(\\\"Coupon removed.\\\");\\n  };\\n\\n  const handleOpenCouponModal = async () => {\\n    setIsCouponModalOpen(true);\\n    try {\\n      const res = await posService.getCoupons(posSettings.outletId);\\n      setAvailableCoupons(res.data || []);\\n    } catch (err) {\\n      console.error(\\\"Failed to fetch coupons:\\\", err);\\n      setAvailableCoupons([]);\\n    }\\n  };\"",
+  "StartLine": "3948",
+  "TargetContent": "\"  const handleOpenCouponModal = () => {\\n    setIsCouponModalOpen(true);\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating coupon helper handlers\"",
+  "toolSummary": "\"Update coupon helper handlers\""
+}

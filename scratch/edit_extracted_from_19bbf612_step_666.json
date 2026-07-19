@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore Tables Grid opening div with p-1 and gap-1 styling.\"",
+  "EndLine": "6051",
+  "Instruction": "\"Insert back the tables grid overflow-y-auto div wrapper.\"",
+  "ReplacementContent": "\"                             {/* Tables Grid */}\\n                             <div className=\\\"flex-1 overflow-y-auto p-1 no-scrollbar\\\">\\n                               <div className=\\\"grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1\\\">\"",
+  "StartLine": "6046",
+  "TargetContent": "\"                             {/* Tables Grid */}\\n                               <div className=\\\"grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring split-view tables grid container with p-1 and gap-1\"",
+  "toolSummary": "\"Replace File Content App.jsx for split-view container fix\""
+}

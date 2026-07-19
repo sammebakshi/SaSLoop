@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Allow SAVED table status when settling dine-in pre-orders from the dashboard side drawer.\"",
+  "EndLine": "10940",
+  "Instruction": "\"Replace line 10936 to include 'SAVED' in the allowed settlement statuses array.\"",
+  "ReplacementContent": "\"                                                 if (activeOrderToView.type === 'DINE_IN' && !['BILL_SAVED', 'SAVED', 'PRINTED'].includes(tableStatuses[activeOrderToView.table_id])) {\"",
+  "StartLine": "10935",
+  "TargetContent": "\"                                                 if (activeOrderToView.type === 'DINE_IN' && !['BILL_SAVED', 'PRINTED'].includes(tableStatuses[activeOrderToView.table_id])) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating activeOrderToView dine-in check status array\"",
+  "toolSummary": "\"Update table status check\""
+}

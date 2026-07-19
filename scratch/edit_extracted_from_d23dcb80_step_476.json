@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add states for item form and open/close status in App.jsx\"",
+  "EndLine": "669",
+  "Instruction": "\"Add itemMgmtForm and isItemFormOpen states in App.jsx\"",
+  "ReplacementContent": "\"  const [isItemManagementModalOpen, setIsItemManagementModalOpen] = useState(false);\\n  const [itemMgmtTypeFilter, setItemMgmtTypeFilter] = useState('0'); // '0' = Standard Items, '1' = Options / Modifiers\\n  const [isItemFormOpen, setIsItemFormOpen] = useState(false);\\n  const [itemMgmtForm, setItemMgmtForm] = useState({\\n     id: null,\\n     code: '',\\n     product_name: '',\\n     price: '',\\n     category_id: '',\\n     food_type: 'veg',\\n     description: '',\\n     current_stock: '',\\n     item_type: '0',\\n     availability: true\\n  });\"",
+  "StartLine": "667",
+  "TargetContent": "\"  const [isItemManagementModalOpen, setIsItemManagementModalOpen] = useState(false);\\n  const [itemMgmtTypeFilter, setItemMgmtTypeFilter] = useState('0'); // '0' = Standard Items, '1' = Options / Modifiers\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding item form state in App.jsx\"",
+  "toolSummary": "\"Adding item form state in App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customerHistoryActiveTab state declaration for Customer History modal tab visibility.\"",
+  "EndLine": "3680",
+  "Instruction": "\"Add customerHistoryActiveTab state declaration.\"",
+  "ReplacementContent": "\"  const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);\\n  const [customerHistoryActiveTab, setCustomerHistoryActiveTab] = useState('orders');\\n  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);\"",
+  "StartLine": "3675",
+  "TargetContent": "\"  const [isCustomerHistoryModalOpen, setIsCustomerHistoryModalOpen] = useState(false);\\n  const [selectedHistoryOrder, setSelectedHistoryOrder] = useState(null);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing file\"",
+  "toolSummary": "\"Add customerHistoryActiveTab state declaration\""
+}

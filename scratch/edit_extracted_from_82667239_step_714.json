@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add onContextMenu handler to Separate View table buttons\"",
+  "EndLine": "4287",
+  "Instruction": "\"Add onContextMenu to Separate View table button on line 4286.\"",
+  "ReplacementContent": "\"                                    <button\\n                                      key={table.id}\\n                                      onClick={() => selectPosTable(table)}\\n                                      onContextMenu={(e) => {\\n                                        e.preventDefault();\\n                                        setTableContextMenu({\\n                                          tableId: table.id,\\n                                          x: e.clientX,\\n                                          y: e.clientY\\n                                        });\\n                                      }}\\n                                      className={`h-24 w-full rounded-md ${statusColors[status] || statusColors.AVAILABLE} text-white font-bold text-xs cursor-pointer transition-all active:scale-[0.98] relative shadow-sm flex flex-col justify-between p-3 ${isSelected ? 'ring-2 ring-offset-2 ring-[#ff9f43] border-2 border-[#ff9f43]' : 'border-0'}`}>\"",
+  "StartLine": "4285",
+  "TargetContent": "\"                                    <button key={table.id} onClick={() => selectPosTable(table)} className={`h-24 w-full rounded-md ${statusColors[status] || statusColors.AVAILABLE} text-white font-bold text-xs cursor-pointer transition-all active:scale-[0.98] relative shadow-sm flex flex-col justify-between p-3 ${isSelected ? 'ring-2 ring-offset-2 ring-[#ff9f43] border-2 border-[#ff9f43]' : 'border-0'}`}>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding context menu handler to Separate View tables\"",
+  "toolSummary": "\"Adding context menu handler to Separate View tables\""
+}

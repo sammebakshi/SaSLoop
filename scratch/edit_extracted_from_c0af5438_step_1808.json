@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add cleanPreOrderDate helper function in App.jsx.\"",
+  "EndLine": "1365",
+  "Instruction": "\"Insert cleanPreOrderDate right before getReceiptSubtotal.\"",
+  "ReplacementContent": "\"const cleanPreOrderDate = (dateVal) => {\\n  if (!dateVal) return getCurrentDateString();\\n  let d;\\n  if (typeof dateVal === 'object' && dateVal instanceof Date) {\\n    d = dateVal;\\n  } else {\\n    const cleanStr = String(dateVal).includes('T') ? String(dateVal).split('T')[0] : String(dateVal);\\n    d = new Date(cleanStr + 'T00:00');\\n  }\\n  if (isNaN(d.getTime())) return getCurrentDateString();\\n  const year = d.getFullYear();\\n  const month = String(d.getMonth() + 1).padStart(2, '0');\\n  const day = String(d.getDate()).padStart(2, '0');\\n  return `${year}-${month}-${day}`;\\n};\\n\\nconst getReceiptSubtotal = (receipt) => {\"",
+  "StartLine": "1363",
+  "TargetContent": "\"const getReceiptSubtotal = (receipt) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding cleanPreOrderDate helper function\"",
+  "toolSummary": "\"File edit\""
+}

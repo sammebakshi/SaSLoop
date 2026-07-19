@@ -1,26 +1,16 @@
 const fs = require('fs');
 const path = require('path');
 
-const filePath = path.join(__dirname, '../pos-app/dist/assets/index-BM8m9_ly.js');
-if (!fs.existsSync(filePath)) {
-  console.error("File does not exist:", filePath);
-  process.exit(1);
-}
-
+const filePath = 'c:/Users/Sajad/Desktop/SaSLoop/pos-app/dist/assets/index-D58SoB06.js';
 const content = fs.readFileSync(filePath, 'utf8');
 const lines = content.split('\n');
 
-console.log("Total lines:", lines.length);
+// Line 1712 is index 1711 (0-indexed)
+const line = lines[1711];
+console.log("Line 1712 length:", line.length);
 
-const targetLine = 1712; // 1-indexed, so 1711
-const lineContent = lines[targetLine - 1];
-if (lineContent) {
-  console.log("Length of line:", lineContent.length);
-  // Get slice around column 9970 (1-indexed, so 9969)
-  const colIndex = 9970 - 1;
-  const start = Math.max(0, colIndex - 100);
-  const end = Math.min(lineContent.length, colIndex + 100);
-  console.log("Slice around column 9970:\n", lineContent.substring(start, end));
-} else {
-  console.log("Line 1712 not found!");
-}
+const startCol = Math.max(0, 3959 - 250);
+const endCol = Math.min(line.length, 3959 + 250);
+
+console.log("Context around column 3959:\n");
+console.log(line.substring(startCol, endCol));

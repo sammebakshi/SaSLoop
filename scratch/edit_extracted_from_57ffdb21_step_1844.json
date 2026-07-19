@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove first Tables View buffet button from App.jsx\"",
+  "EndLine": "9840",
+  "Instruction": "\"Delete the Tables View button.\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "9832",
+  "TargetContent": "\"                      <button \\n                        onClick={() => { setActiveTab('billing'); setBillingView('tables'); }} \\n                        className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}\\n                        title=\\\"Tables View\\\"\\n                      >\\n                        <svg viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" height=\\\"20\\\" fill=\\\"currentColor\\\">\\n                          <path d=\\\"M12 6a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm9 11a9 9 0 0 0-18 0h18zm1 1H2a1 1 0 0 0 0 2h20a1 1 0 0 0 0-2z\\\" />\\n                        </svg>\\n                      </button>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing first Tables View buffet button\"",
+  "toolSummary": "\"Remove first Tables View buffet button\""
+}

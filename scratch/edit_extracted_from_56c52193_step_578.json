@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Cleaned up the orphaned lines left inside the fetchDashboardStatsFromServer function block to restore JavaScript syntax correctness.\"",
+  "EndLine": "6741",
+  "Instruction": "\"Replace malformed fetchDashboardStatsFromServer function body with a clean no-op.\"",
+  "ReplacementContent": "\"  const fetchDashboardStatsFromServer = async () => {\\n    // Disabled: Server-to-POS stats fetching is disabled. Stats are calculated locally.\\n    return;\\n  };\"",
+  "StartLine": "6725",
+  "TargetContent": "\"  const fetchDashboardStatsFromServer = async () => {\\n            name: i.name,\\n            qty: parseInt(i.count || 0)\\n          }));\\n          setPieItems(piePoints);\\n        }\\n      }\\n    } catch (e) {\\n      console.warn(\\\"Failed to fetch dashboard stats from server:\\\", e);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing stats fetch syntax in App.jsx\"",
+  "toolSummary": "\"Fix stats fetch syntax\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add myOutlets and activeOutletId state definitions.\"",
+  "EndLine": "1956",
+  "Instruction": "\"Insert myOutlets and activeOutletId states below isEmailingReport state declaration.\"",
+  "ReplacementContent": "\"  const [isEmailingReport, setIsEmailingReport] = useState(false);\\n  const [myOutlets, setMyOutlets] = useState([]);\\n  const [activeOutletId, setActiveOutletId] = useState(() => {\\n     const saved = localStorage.getItem('pos_active_outlet_id');\\n     return (saved && saved !== 'undefined' && saved !== 'null') ? parseInt(saved) : null;\\n  });\"",
+  "StartLine": "1955",
+  "TargetContent": "\"  const [isEmailingReport, setIsEmailingReport] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding outlet context state variables\"",
+  "toolSummary": "\"Add outlet context state variables\""
+}

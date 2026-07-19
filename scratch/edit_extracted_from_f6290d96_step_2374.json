@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Removed separate unmounting TransitionSplashScreen layout so the transition overlay can be rendered inside the login layout instead\"",
+  "EndLine": "8557",
+  "Instruction": "\"Remove the separate return statement for isTransitioningToDashboard\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "8549",
+  "TargetContent": "\"  if (isTransitioningToDashboard) {\\n    return (\\n      <div className=\\\"h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none\\\">\\n        <TransitionSplashScreen username={username} />\\n      </div>\\n    );\\n  }\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing isTransitioningToDashboard unmounting block\"",
+  "toolSummary": "\"File edit\""
+}

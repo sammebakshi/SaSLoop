@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set username state when loading cached profile in initApp.\"",
+  "EndLine": "3290",
+  "Instruction": "\"Call setUsername with the cached profile's username inside initApp.\"",
+  "ReplacementContent": "\"      const cachedProfile = localStorage.getItem('pos_profile');\\n      if (cachedProfile) {\\n        const parsed = JSON.parse(cachedProfile);\\n        setBusiness(parsed);\\n        if (parsed.username) {\\n          setUsername(parsed.username);\\n        }\\n        cachedBiz = parsed.business_details || parsed || {};\"",
+  "StartLine": "3283",
+  "TargetContent": "\"      const cachedProfile = localStorage.getItem('pos_profile');\\n      if (cachedProfile) {\\n        const parsed = JSON.parse(cachedProfile);\\n        setBusiness(parsed);\\n        cachedBiz = parsed.business_details || parsed || {};\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Setting username from cached profile in initApp\"",
+  "toolSummary": "\"Replace File Content App.jsx for cached username in initApp\""
+}

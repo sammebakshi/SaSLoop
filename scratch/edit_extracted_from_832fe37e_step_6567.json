@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"This fixes the critical runtime crash: handleOpenCouponModal was referenced in JSX (lines 9319, 9380) but never defined. It simply opens the coupon modal.\"",
+  "EndLine": "3563",
+  "Instruction": "\"Add the missing handleOpenCouponModal function definition after the loyalty popup useEffect block\"",
+  "ReplacementContent": "\"  }, [showLoyaltyPopup]);\\n\\n  const handleOpenCouponModal = () => {\\n    setIsCouponModalOpen(true);\\n  };\\n\\n  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);\"",
+  "StartLine": "3561",
+  "TargetContent": "\"  }, [showLoyaltyPopup]);\\n\\n  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding missing handler function\"",
+  "toolSummary": "\"Fix handleOpenCouponModal crash\""
+}

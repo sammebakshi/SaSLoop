@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up malformed end of Printers tab wrapper\"",
+  "EndLine": "19908",
+  "Instruction": "\"Clean up trailing brackets and extra div tags in settings printer tab container\"",
+  "ReplacementContent": "\"                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                        })()}\"",
+  "StartLine": "19896",
+  "TargetContent": "\"                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                                        >\\n                                           <div className={`w-3.5 h-3.5 rounded-full bg-white absolute top-0.5 transition-all ${posSettings.showLogoOnReceipt ? 'right-0.5' : 'left-0.5'}`} />\\n                                        </button>\\n                                     </div>\\n                                  </div>\\n                               </div>\\n                            );\\n                         })()}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing malformed trailing code in settings tab\"",
+  "toolSummary": "\"Fix trailing brackets in App.jsx\""
+}

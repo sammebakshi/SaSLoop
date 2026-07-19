@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Initialize connectionStatus state based on isTerminalMode to prevent flickering or layout shifts on startup in terminal mode.\"",
+  "EndLine": "1773",
+  "Instruction": "\"Change the connectionStatus initial state to check isTerminalMode.\"",
+  "ReplacementContent": "\"  const [masterIp, setMasterIp] = useState(() => localStorage.getItem('pos_master_ip') || '');\\n  const [isTestingConnection, setIsTestingConnection] = useState(false);\\n  const [connectionStatus, setConnectionStatus] = useState(() => isTerminalMode ? 'scanning' : null); // 'success', 'error', 'scanning', or null\"",
+  "StartLine": "1770",
+  "TargetContent": "\"  const [masterIp, setMasterIp] = useState(() => localStorage.getItem('pos_master_ip') || '');\\n  const [isTestingConnection, setIsTestingConnection] = useState(false);\\n  const [connectionStatus, setConnectionStatus] = useState(null); // 'success', 'error', or null\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating connectionStatus state initialization\"",
+  "toolSummary": "\"State initialization update\""
+}

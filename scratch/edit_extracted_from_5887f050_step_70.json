@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add manualIp state in App.jsx\"",
+  "EndLine": "1801",
+  "Instruction": "\"Declare manualIp state variable below scanLogs state variable in App.jsx\"",
+  "ReplacementContent": "\"  const [scanLogs, setScanLogs] = useState([]);\\n  const [manualIp, setManualIp] = useState('');\\n  const [showDebugTool, setShowDebugTool] = useState(false);\"",
+  "StartLine": "1799",
+  "TargetContent": "\"  const [scanLogs, setScanLogs] = useState([]);\\n  const [showDebugTool, setShowDebugTool] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding manualIp state\"",
+  "toolSummary": "\"Add manualIp state to App.jsx\""
+}

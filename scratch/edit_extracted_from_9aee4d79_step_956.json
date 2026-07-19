@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove escape backslashes from email subject template literal.\"",
+  "EndLine": "2002",
+  "Instruction": "\"Remove backslash escapes before backticks and dollar signs in the email subject template string.\"",
+  "ReplacementContent": "\"        subject: `SaSLoop Report: ${selectedReport} - ${new Date().toLocaleDateString()}`,\"",
+  "StartLine": "1998",
+  "TargetContent": "\"        subject: \\\\`SaSLoop Report: \\\\${selectedReport} - \\\\${new Date().toLocaleDateString()}\\\\`,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing email subject template literal syntax\"",
+  "toolSummary": "\"Fix email subject template literal syntax\""
+}

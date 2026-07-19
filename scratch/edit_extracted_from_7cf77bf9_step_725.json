@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Refine calculateStats to filter out deleted/cancelled/free orders and match dates in local timezone\"",
+  "EndLine": "3926",
+  "Instruction": "\"Replace the simple total sales counter block with status checks and timezone-safe date parsing\"",
+  "ReplacementContent": "\"      // Total counters (Only count normal, active, non-free successful sales)\\n      const isCancelled = o.status === 'CANCELLED';\\n      const isDeleted = o.status === 'DELETED';\\n      const isFree = o.status === 'FREE' || \\n                     String(o.payment_method || '').toUpperCase() === 'FREE' || \\n                     String(o.payment_method || '').toUpperCase() === 'COMPLIMENTARY';\\n      const isNormalSale = !isCancelled && !isDeleted && !isFree;\\n\\n      if (isNormalSale) {\\n        acc.totalSales += amt;\\n        acc.totalCount += 1;\\n\\n        const dateVal = o.created_at || o.timestamp || o.date;\\n        if (dateVal) {\\n          const orderDate = new Date(dateVal);\\n          const isToday = orderDate.getFullYear() === now.getFullYear() &&\\n                          orderDate.getMonth() === now.getMonth() &&\\n                          orderDate.getDate() === now.getDate();\\n          const isThisMonth = orderDate.getFullYear() === now.getFullYear() &&\\n                              orderDate.getMonth() === now.getMonth();\\n\\n          if (isToday) {\\n            acc.todaySales += amt;\\n            acc.todayCount += 1;\\n          }\\n          if (isThisMonth) {\\n            acc.monthSales += amt;\\n            acc.monthCount += 1;\\n          }\\n        }\\n      }\"",
+  "StartLine": "3922",
+  "TargetContent": "\"      // Total counters\\n      acc.totalSales += amt; acc.totalCount += 1;\\n      if (o.created_at?.startsWith(todayStr)) { acc.todaySales += amt; acc.todayCount += 1; }\\n      if (o.created_at?.startsWith(monthStr)) { acc.monthSales += amt; acc.monthCount += 1; }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating stats calculation logic\"",
+  "toolSummary": "\"App.jsx stats computation edit\""
+}

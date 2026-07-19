@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Trigger the rejection modal when clicking the Reject card action button.\"",
+  "EndLine": "10302",
+  "Instruction": "\"Replace handleUpdateOrderStatus(orderId, 'CANCELLED') with handleOpenRejectionModal(orderId) inside card actions.\"",
+  "ReplacementContent": "\"                                    <button\\n                                      onClick={() => {\\n                                        handleOpenRejectionModal(orderId);\\n                                      }}\"",
+  "StartLine": "10298",
+  "TargetContent": "\"                                    <button\\n                                      onClick={() => {\\n                                        handleUpdateOrderStatus(orderId, 'CANCELLED');\\n                                      }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Reject card action trigger\"",
+  "toolSummary": "\"Replace file content\""
+}

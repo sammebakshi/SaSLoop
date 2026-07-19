@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update customerPhone useEffect to skip when restoring customer details\"",
+  "EndLine": "1629",
+  "Instruction": "\"Update customerPhone useEffect to check isRestoringCustomerRef\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    if (isRestoringCustomerRef.current) {\\n      return;\\n    }\\n    if (justSelectedCustomerRef.current) {\\n      return;\\n    }\\n    setSelectedCustomer(null);\\n    setRedeemedPoints(0);\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n  }, [customerPhone]);\"",
+  "StartLine": "1620",
+  "TargetContent": "\"  useEffect(() => {\\n    if (justSelectedCustomerRef.current) {\\n      return;\\n    }\\n    setSelectedCustomer(null);\\n    setRedeemedPoints(0);\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n  }, [customerPhone]);\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating customerPhone useEffect in App.jsx\"",
+  "toolSummary": "\"Update customerPhone useEffect\""
+}

@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix duplicate lines in Settle Bill button handler in App.jsx.\"",
+  "EndLine": "10786",
+  "Instruction": "\"Clean up the onClick handler of the Settle Bill button to avoid duplicated statements.\"",
+  "ReplacementContent": "\"                        <button\\n                           type=\\\"button\\\"\\n                           onClick={() => {\\n                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\\n                              setIsPaymentModalOpen(false);\\n                           }}\"",
+  "StartLine": "10774",
+  "TargetContent": "\"                        <button\\n                           type=\\\"button\\\"\\n                           onClick={() => {\\n                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\\n                              setIsPaymentModalOpen(false);\\n                           }}\\n                              setIsPaymentModalOpen(false);\\n                           }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add save and print settle checks to handleCheckout function.\"",
+  "EndLine": "5882",
+  "Instruction": "\"Add checkPosAccess checks for SAVE and PRINT actions to handleCheckout.\"",
+  "ReplacementContent": "\"  const handleCheckout = async (type = 'SETTLE', method = 'CASH', referenceNo = '', tip = 0, isDue = false) => {\\n    if (isCheckingOut) {\\n      console.warn(\\\"Checkout already in progress, ignoring double click.\\\");\\n      return;\\n    }\\n    if (type === 'SAVE' && !checkPosAccess('OrderWindow', 'enable_save_settle')) {\\n      toast.error(\\\"Save Bill action is restricted!\\\");\\n      return;\\n    }\\n    if (type === 'PRINT' && !checkPosAccess('OrderWindow', 'enable_print_settle')) {\\n      toast.error(\\\"Print & Save action is restricted!\\\");\\n      return;\\n    }\"",
+  "StartLine": "5878",
+  "TargetContent": "\"  const handleCheckout = async (type = 'SETTLE', method = 'CASH', referenceNo = '', tip = 0, isDue = false) => {\\n    if (isCheckingOut) {\\n      console.warn(\\\"Checkout already in progress, ignoring double click.\\\");\\n      return;\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating handleCheckout type checks\"",
+  "toolSummary": "\"Edit App.jsx (handleCheckout top)\""
+}

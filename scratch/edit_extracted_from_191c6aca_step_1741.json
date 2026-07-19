@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Declare isAlertsModalOpen state in App.jsx.\"",
+  "EndLine": "2130",
+  "Instruction": "\"Declare isAlertsModalOpen state hook in App.jsx.\"",
+  "ReplacementContent": "\"  // Customer Management Modals & Forms States\\n  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\\n  const [isAlertsModalOpen, setIsAlertsModalOpen] = useState(false);\\n  const [isManageCustomersModalOpen, setIsManageCustomersModalOpen] = useState(false);\"",
+  "StartLine": "2125",
+  "TargetContent": "\"  // Customer Management Modals & Forms States\\n  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\\n  const [isManageCustomersModalOpen, setIsManageCustomersModalOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring isAlertsModalOpen state hook\"",
+  "toolSummary": "\"Declaring isAlertsModalOpen state hook\""
+}

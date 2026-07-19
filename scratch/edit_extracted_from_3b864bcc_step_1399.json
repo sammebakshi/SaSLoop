@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Map serverIp in fetchDashboardStatsFromServer.\"",
+  "EndLine": "5100",
+  "Instruction": "\"Add serverIp mapping to fetchDashboardStatsFromServer.\"",
+  "ReplacementContent": "\"          totalDiscount: parseFloat(res.data.totalDiscount || 0),\\n          todayCreditSales: parseFloat(res.data.todayCreditSales || 0),\\n          totalCreditSales: parseFloat(res.data.totalCreditSales || 0),\\n          serverIp: res.data.serverIp || prev.serverIp || '127.0.0.1'\\n        }));\"",
+  "StartLine": "5096",
+  "TargetContent": "\"          totalDiscount: parseFloat(res.data.totalDiscount || 0),\\n          todayCreditSales: parseFloat(res.data.todayCreditSales || 0),\\n          totalCreditSales: parseFloat(res.data.totalCreditSales || 0)\\n        }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Mapping serverIp in stats fetcher\"",
+  "toolSummary": "\"Edit file\""
+}

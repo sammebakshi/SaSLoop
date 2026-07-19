@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Customer Name placeholder to check staff permissions for PreOrder customer details\"",
+  "EndLine": "10848",
+  "Instruction": "\"Replace the settings check on line 10847 with a check on staff permissions\"",
+  "ReplacementContent": "\"                              )) || (activeTrayTab === 'PreOrder' && getStaffPermissions()?.pos_access?.PreOrder?.customer_details_mandatory === true)\"",
+  "StartLine": "10847",
+  "TargetContent": "\"                              )) || (activeTrayTab === 'PreOrder' && business?.business_details?.settings?.preOrderDetailsMandatory === true)\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Customer Name placeholder condition\"",
+  "toolSummary": "\"Update Customer Name placeholder\""
+}

@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add search and filtering states for the Change Table modal.\"",
+  "EndLine": "2184",
+  "ReplacementContent": "\"  // Customer Management Modals & Forms States\\n  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\\n  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false);\\n  const [changeTableSearchQuery, setChangeTableSearchQuery] = useState('');\\n  const [changeTableActiveDepartment, setChangeTableActiveDepartment] = useState('ALL');\"",
+  "StartLine": "2180",
+  "TargetContent": "\"  // Customer Management Modals & Forms States\\n  const [isAddCustomerModalOpen, setIsAddCustomerModalOpen] = useState(false);\\n  const [isChangeTableModalOpen, setIsChangeTableModalOpen] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring Change Table modal search/filter states\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

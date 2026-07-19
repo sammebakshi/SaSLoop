@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change table status set to BILL_SAVED on checkout SAVE action so that the table transitions to a bill-saved state allowing settlement.\"",
+  "EndLine": "7195",
+  "Instruction": "\"Change table status to BILL_SAVED when saving the bill.\"",
+  "ReplacementContent": "\"      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'BILL_SAVED' }));\"",
+  "StartLine": "7194",
+  "TargetContent": "\"      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating table status assignment on bill save\"",
+  "toolSummary": "\"Modify table status on save\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update syncing modal title to Master POS in App.jsx\"",
+  "EndLine": "19762",
+  "Instruction": "\"Replace Syncing Station with Syncing Master POS.\"",
+  "ReplacementContent": "\"                           <h3 className=\\\"font-bold text-[14px]\\\">Syncing Master POS</h3>\"",
+  "StartLine": "19758",
+  "TargetContent": "\"                           <h3 className=\\\"font-bold text-[14px]\\\">Syncing Station</h3>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating syncing modal header\"",
+  "toolSummary": "\"Edit syncing header in App.jsx\""
+}

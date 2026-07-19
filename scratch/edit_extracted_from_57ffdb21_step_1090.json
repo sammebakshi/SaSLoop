@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update load step text to Master in App.jsx\"",
+  "EndLine": "183",
+  "Instruction": "\"Replace Syncing Station settings with Syncing Master settings.\"",
+  "ReplacementContent": "\"      { time: 0, text: 'Initializing system modules...' },\\n      { time: 500, text: 'Connecting to local database...' },\\n      { time: 1000, text: 'Syncing Master settings...' },\\n      { time: 1500, text: 'Loading UI components...' },\\n      { time: 1900, text: 'System ready.' }\"",
+  "StartLine": "177",
+  "TargetContent": "\"      { time: 0, text: 'Initializing system modules...' },\\n      { time: 500, text: 'Connecting to local database...' },\\n      { time: 1000, text: 'Syncing Station settings...' },\\n      { time: 1500, text: 'Loading UI components...' },\\n      { time: 1900, text: 'System ready.' }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating loading step text\"",
+  "toolSummary": "\"Edit load text in App.jsx\""
+}

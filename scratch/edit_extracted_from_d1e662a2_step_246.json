@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleOpenCouponModal to use permission override\"",
+  "EndLine": "4210",
+  "Instruction": "\"Add checkPermissionAndExecute wrapper to handleOpenCouponModal in App.jsx\"",
+  "ReplacementContent": "\"  const handleOpenCouponModal = async (bypassPermissionCheck = false) => {\\n    if (!bypassPermissionCheck && !checkBillingPermission('add_coupon')) {\\n      checkPermissionAndExecute(getBillingPermissionSection(), 'add_coupon', 'Add Coupon', () => {\\n        handleOpenCouponModal(true);\\n      });\\n      return;\\n    }\\n    setIsCouponModalOpen(true);\"",
+  "StartLine": "4204",
+  "TargetContent": "\"  const handleOpenCouponModal = async () => {\\n    if (!checkBillingPermission('add_coupon')) {\\n      toast.error(\\\"You do not have permission to add a coupon.\\\");\\n      return;\\n    }\\n    setIsCouponModalOpen(true);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleOpenCouponModal trigger\"",
+  "toolSummary": "\"Updating handleOpenCouponModal trigger\""
+}

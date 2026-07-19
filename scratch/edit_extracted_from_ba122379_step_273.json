@@ -1,0 +1,8 @@
+{
+  "Description": "\"Wrap Old KOT actions in permission checkers.\"",
+  "Instruction": "\"Wrap handleOldKOTComplementary, handleOldKOTDelete, and handleOldKOTCancel in checkPermission calls.\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":6432,\"ReplacementContent\":\"  const handleOldKOTComplementary = () => {\\n    checkPermission('KOT.item_as_complementary', proceedOldKOTComplementary);\\n  };\\n\\n  const proceedOldKOTComplementary = () => {\",\"StartLine\":6432,\"TargetContent\":\"  const handleOldKOTComplementary = () => {\"},{\"AllowMultiple\":false,\"EndLine\":6468,\"ReplacementContent\":\"  const handleOldKOTDelete = () => {\\n    checkPermission('KOT.delete_kot', proceedOldKOTDelete);\\n  };\\n\\n  const proceedOldKOTDelete = () => {\",\"StartLine\":6468,\"TargetContent\":\"  const handleOldKOTDelete = () => {\"},{\"AllowMultiple\":false,\"EndLine\":6492,\"ReplacementContent\":\"  const handleOldKOTCancel = () => {\\n    checkPermission('KOT.cancel_kot', proceedOldKOTCancel);\\n  };\\n\\n  const proceedOldKOTCancel = () => {\",\"StartLine\":6492,\"TargetContent\":\"  const handleOldKOTCancel = () => {\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wrap old KOT functions in checkPermission calls\"",
+  "toolSummary": "\"Wrap old KOT functions in App.jsx\""
+}

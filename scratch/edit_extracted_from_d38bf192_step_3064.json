@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add countAdvanceInSales setting to the settings UI in App.jsx\"",
+  "EndLine": "16388",
+  "Instruction": "\"Add countAdvanceInSales settings object to the View Settings list\"",
+  "ReplacementContent": "\"                                       { key: 'showTableDepartments', label: 'Show table departments' },\\n                                       { key: 'showCompactItemView', label: 'Show Compact Item View' },\\n                                       { key: 'countAdvanceInSales', label: \\\"Count advance payment in today's sales\\\" }\\n                                    ].map(item => {\"",
+  "StartLine": "16385",
+  "TargetContent": "\"                                       { key: 'showTableDepartments', label: 'Show table departments' },\\n                                       { key: 'showCompactItemView', label: 'Show Compact Item View' }\\n                                    ].map(item => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

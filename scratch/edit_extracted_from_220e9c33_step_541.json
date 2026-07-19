@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Initialized ebillEnabled state from localStorage for persistence.\"",
+  "EndLine": "1650",
+  "Instruction": "\"Initialize ebillEnabled state from localStorage\"",
+  "ReplacementContent": "\"  const [ebillEnabled, setEbillEnabled] = useState(() => {\\n    const saved = localStorage.getItem('ebillEnabled');\\n    return saved !== null ? JSON.parse(saved) : false;\\n  });\"",
+  "StartLine": "1649",
+  "TargetContent": "\"  const [ebillEnabled, setEbillEnabled] = useState(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying ebillEnabled initialization\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

@@ -1,0 +1,11 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Correct Customer Name placeholder mapping using POS Access Level settings in App.jsx.\"",
+  "EndLine": "10811",
+  "ReplacementContent": "\"                          <input\\n                            type=\\\"text\\\"\\n                            id=\\\"customer-name-input\\\"\\n                            placeholder={\\n                              (orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                              )\\n                                ? \\\"Customer Name *\\\"\\n                                : \\\"Customer Name\\\"\\n                            }\"",
+  "StartLine": "10806",
+  "TargetContent": "\"                          <input\\n                            type=\\\"text\\\"\\n                            id=\\\"customer-name-input\\\"\\n                            placeholder={business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery && (orderType === 'PICKUP' || orderType === 'DELIVERY') ? \\\"Customer Name *\\\" : \\\"Customer Name\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Customer Name placeholder in App.jsx\"",
+  "toolSummary": "\"Edit file\""
+}

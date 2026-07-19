@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up layout by removing the incorrect ChangeTableModal JSX tag.\"",
+  "EndLine": "7586",
+  "Instruction": "\"Replace lines 7583-7585 to remove the ChangeTableModal JSX tag.\"",
+  "ReplacementContent": "\"                             {renderPreOrderTempTables()}\\n                          </div>\"",
+  "StartLine": "7582",
+  "TargetContent": "\"                             {renderPreOrderTempTables()}\\n                             {isChangeTableModalOpen && <ChangeTableModal isOpen={isChangeTableModalOpen} onClose={() => setIsChangeTableModalOpen(false)} />}\\n                          </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Clean up App.jsx modal tag\"",
+  "toolSummary": "\"Replace file content App.jsx\""
+}

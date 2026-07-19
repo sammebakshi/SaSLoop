@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix ReferenceError: isDue is not defined in the checkout click handler.\"",
+  "EndLine": "18581",
+  "Instruction": "\"Fix reference error by replacing local definition with correct variable names.\"",
+  "ReplacementContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              const isDue = selectedPaymentMode === 'DUE' || isDuePayment;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDue);\\n                              setIsPaymentModalOpen(false);\"",
+  "StartLine": "18576",
+  "TargetContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              const isDuePayment = selectedPaymentMode === 'DUE' || isDue;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\\n                              setIsPaymentModalOpen(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing isDue reference in checkout handler\"",
+  "toolSummary": "\"File edit\""
+}

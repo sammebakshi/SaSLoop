@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore cached waiters from localStorage in localRefresh block.\"",
+  "EndLine": "4375",
+  "Instruction": "\"Load pos_waiters in localRefresh try block.\"",
+  "ReplacementContent": "\"      const cachedCharges = localStorage.getItem('pos_additional_charges');\\n      if (cachedCharges) setAvailableCharges(JSON.parse(cachedCharges).filter(c => c.is_active));\\n\\n      const cachedWaiters = localStorage.getItem('pos_waiters');\\n      if (cachedWaiters) setWaitersList(JSON.parse(cachedWaiters));\\n\\n      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) setCustomerDb(JSON.parse(cachedCustomerDb));\"",
+  "StartLine": "4370",
+  "TargetContent": "\"      const cachedCharges = localStorage.getItem('pos_additional_charges');\\n      if (cachedCharges) setAvailableCharges(JSON.parse(cachedCharges).filter(c => c.is_active));\\n\\n      const cachedCustomerDb = localStorage.getItem('pos_customer_db');\\n      if (cachedCustomerDb) setCustomerDb(JSON.parse(cachedCustomerDb));\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding waiters cache restoration in localRefresh\"",
+  "toolSummary": "\"Adding waiters cache restoration\""
+}

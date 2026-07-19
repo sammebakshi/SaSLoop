@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add resetCustomerState helper function to App.jsx\"",
+  "EndLine": "5208",
+  "Instruction": "\"Add resetCustomerState helper function right before initApp\"",
+  "ReplacementContent": "\"  const resetCustomerState = () => {\\n    setCustomerPhone('');\\n    setCustomerName('');\\n    setCustomerAddress('');\\n    setRedeemedPoints(0);\\n    setAppliedCoupon(null);\\n    setCouponCode('');\\n    setSelectedCustomer(null);\\n  };\\n\\n  const initApp = async () => {\"",
+  "StartLine": "5206",
+  "TargetContent": "\"  }, [cart, selectedTable, tableBills]); // Removed tableCarts from dependencies to break the loop\\n\\n  const initApp = async () => {\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding resetCustomerState helper in App.jsx\"",
+  "toolSummary": "\"Add resetCustomerState helper\""
+}

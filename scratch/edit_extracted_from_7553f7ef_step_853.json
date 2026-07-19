@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove the backend clearSalesData API call so logout only clears local POS data, not the back office database\"",
+  "EndLine": "4282",
+  "Instruction": "\"Remove the clearSalesData backend call block entirely\"",
+  "ReplacementContent": "\"\\n\"",
+  "StartLine": "4273",
+  "TargetContent": "\"\\n      // 1b. Call the backend clean wipe endpoint to erase sales, orders, and receipts from the database\\n      try {\\n        if (posService && posService.clearSalesData) {\\n          await posService.clearSalesData();\\n        }\\n      } catch (err) {\\n        console.error(\\\"Failed to clear sales data on backend:\\\", err);\\n      }\\n\\n\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Remove backend wipe call\"",
+  "toolSummary": "\"Remove backend wipe call\""
+}

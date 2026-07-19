@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Normalize pending check in print receipt layout to treat non-completed pre-orders as pending/saved bills.\"",
+  "EndLine": "9607",
+  "Instruction": "\"Refine isPending check in generateThermalReceiptHtml inside App.jsx\"",
+  "ReplacementContent": "\"            const isPending = order.status === 'PENDING' || (isPreOrder && order.status !== 'COMPLETED');\"",
+  "StartLine": "9605",
+  "TargetContent": "\"            const isPending = order.status === 'PENDING';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Refining isPending check in App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

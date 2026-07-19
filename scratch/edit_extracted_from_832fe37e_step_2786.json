@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Separate Est. Points and Redeemed Points spans as siblings to maintain clean block structure in preview HUD.\"",
+  "EndLine": "19617",
+  "Instruction": "\"Separate Est. Points and Redeemed Points spans.\"",
+  "ReplacementContent": "\"                            <span className=\\\"text-[9px] text-gray-500 font-mono block\\\">\\n                               Est. Points: {previewReceipt.points_earned !== undefined ? previewReceipt.points_earned : Math.floor((previewReceipt.total_price || 0) * 0.05)} PTS\\n                            </span>\\n                            {previewReceipt.points_redeemed > 0 && (\\n                               <span className=\\\"text-[9px] text-amber-500 font-bold font-mono block\\\">\\n                                  Redeemed: {previewReceipt.points_redeemed} PTS\\n                               </span>\\n                            )}\"",
+  "StartLine": "19610",
+  "TargetContent": "\"                            <span className=\\\"text-[9px] text-gray-500 font-mono\\\">\\n                               Est. Points: {previewReceipt.points_earned !== undefined ? previewReceipt.points_earned : Math.floor((previewReceipt.total_price || 0) * 0.05)} PTS\\n                               {previewReceipt.points_redeemed > 0 && (\\n                                  <span className=\\\"text-[9px] text-amber-500 font-bold font-mono\\\">\\n                                     Redeemed: {previewReceipt.points_redeemed} PTS\\n                                  </span>\\n                               )}\\n                            </span>\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Refactoring nested spans in diagnostics HUD to separate sibling blocks\"",
+  "toolSummary": "\"Refactor nested spans in HUD\""
+}

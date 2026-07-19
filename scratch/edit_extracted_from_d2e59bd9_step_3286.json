@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add digital order filters and selection states in App.jsx\"",
+  "EndLine": "1738",
+  "Instruction": "\"Add digital workspace states below editingOrder state\"",
+  "ReplacementContent": "\"  const [editingOrder, setEditingOrder] = useState(null);\\n  const [digitalSelectedStateFilter, setDigitalSelectedStateFilter] = useState('NEW');\\n  const [digitalSelectedPlatforms, setDigitalSelectedPlatforms] = useState(['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ZOMATO', 'SWIGGY', 'ONDC']);\\n  const [digitalSearchQuery, setDigitalSearchQuery] = useState('');\\n  const [digitalSearchDate, setDigitalSearchDate] = useState('');\\n  const [selectedDigitalOrder, setSelectedDigitalOrder] = useState(null);\\n  const [nextBillNo, setNextBillNo] = useState(1);\"",
+  "StartLine": "1736",
+  "TargetContent": "\"  const [editingOrder, setEditingOrder] = useState(null);\\n  const [nextBillNo, setNextBillNo] = useState(1);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Add digital states in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

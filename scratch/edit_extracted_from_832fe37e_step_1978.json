@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fixes the broken SVG/button/div close tags for the coupon button, and properly opens the Row 1 Waiter+eBill div after it.\"",
+  "EndLine": "9689",
+  "Instruction": "\"Add missing closing tags for coupon SVG and button, close the top toolbar div, then start the Waiter+eBill row\"",
+  "ReplacementContent": "\"                             <circle cx=\\\"15.5\\\" cy=\\\"13.5\\\" r=\\\"1.2\\\" fill=\\\"currentColor\\\" />\\n                           </svg>\\n                         </button>\\n\\n\\n                      </div>\\n\\n                      {/* Row 1: Waiter + eBill */}\\n                      <div className=\\\"flex items-center gap-1.5\\\">\"",
+  "StartLine": "9687",
+  "TargetContent": "\"                             <circle cx=\\\"15.5\\\" cy=\\\"13.5\\\" r=\\\"1.2\\\" fill=\\\"currentColor\\\" />\\n                                            {/* Row 1: Waiter + eBill */}\\n                       <div className=\\\"flex items-center gap-1.5\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing coupon button closing tags\"",
+  "toolSummary": "\"Fix coupon button tags\""
+}

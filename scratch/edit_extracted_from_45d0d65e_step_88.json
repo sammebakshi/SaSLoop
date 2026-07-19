@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add updateOrderPrinterSetting helper function in App.jsx to handle updating order-type-specific printer configurations.\"",
+  "EndLine": "8452",
+  "Instruction": "\"Insert the updateOrderPrinterSetting function in App.jsx.\"",
+  "ReplacementContent": "\"  };\\n\\n  const updateOrderPrinterSetting = (orderType, type, key, value) => {\\n    setPosSettings(prev => {\\n      const orderPrinters = prev.orderPrinters ? { ...prev.orderPrinters } : {};\\n      if (!orderPrinters[orderType]) {\\n        orderPrinters[orderType] = {\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        };\\n      } else {\\n        orderPrinters[orderType] = {\\n          bill: orderPrinters[orderType].bill ? { ...orderPrinters[orderType].bill } : { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          kot: orderPrinters[orderType].kot ? { ...orderPrinters[orderType].kot } : { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        };\\n      }\\n      orderPrinters[orderType][type] = {\\n        ...orderPrinters[orderType][type],\\n        [key]: value\\n      };\\n      return { ...prev, orderPrinters };\\n    });\\n  };\\n\\n  const selectPosTable = (table) => {\"",
+  "StartLine": "8449",
+  "TargetContent": "\"  };\\n\\n  const selectPosTable = (table) => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding updateOrderPrinterSetting helper\"",
+  "toolSummary": "\"Add helper function updateOrderPrinterSetting in App.jsx\""
+}

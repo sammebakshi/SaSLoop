@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Gated KOT customer points button with checkCustomerHistoryPermission in App.jsx\"",
+  "EndLine": "11015",
+  "Instruction": "\"Wrap KOT customer points button callback in checkCustomerHistoryPermission\"",
+  "ReplacementContent": "\"                        <button \\n                          onClick={() => {\\n                            if (!customerPhone) {\\n                              toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                              return;\\n                            }\\n                            const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                            checkCustomerHistoryPermission(() => {\\n                              refreshCustomerHistory(fullPhone);\\n                              setCustomerHistoryActiveTab('points');\\n                              setIsCustomerHistoryModalOpen(true);\\n                            });\\n                          }} \\n                          className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}\"",
+  "StartLine": "11004",
+  "TargetContent": "\"                        <button \\n                          onClick={() => {\\n                            if (!customerPhone) {\\n                              toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                              return;\\n                            }\\n                            const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                            refreshCustomerHistory(fullPhone);\\n                            setCustomerHistoryActiveTab('points');\\n                            setIsCustomerHistoryModalOpen(true);\\n                          }} \\n                          className={`transition-colors ${isDark ? 'text-gray-400 hover:text-white' : 'text-slate-700 hover:text-black'}`}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating KOT tab customer points button in App.jsx\"",
+  "toolSummary": "\"Gate KOT customer points button\""
+}

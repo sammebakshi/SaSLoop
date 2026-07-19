@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handlePreOrderKOTAction validation to check staff permissions for PreOrder customer details\"",
+  "EndLine": "4643",
+  "Instruction": "\"Change isPreOrderMandatory variable to check getStaffPermissions()?.pos_access?.PreOrder?.customer_details_mandatory === true\"",
+  "ReplacementContent": "\"    const isPreOrderMandatory = getStaffPermissions()?.pos_access?.PreOrder?.customer_details_mandatory === true;\"",
+  "StartLine": "4642",
+  "TargetContent": "\"    const isPreOrderMandatory = business?.business_details?.settings?.preOrderDetailsMandatory === true;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handlePreOrderKOTAction validation\"",
+  "toolSummary": "\"Update handlePreOrderKOTAction validation\""
+}

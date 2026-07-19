@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable Filter tables and Change Table buttons for all order types in the top action toolbar when separateView is true.\"",
+  "EndLine": "10327",
+  "Instruction": "\"Change orderType === 'DINE_IN' && posSettings.separateView to posSettings.separateView for both buttons.\"",
+  "ReplacementContent": "\"                        {[\\n                          { label: 'Filter tables', onClick: handleFilterTables, show: posSettings.separateView },\\n                          { label: 'Change Table', onClick: handleChangeTable, show: posSettings.separateView },\\n                          { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },\\n                          { label: 'Refresh', onClick: localRefresh, show: true },\\n                          { label: 'Load Menu', onClick: handleSyncRefresh, show: true }\\n                        ].filter(btn => btn.show).map(btn => (\"",
+  "StartLine": "10321",
+  "TargetContent": "\"                        {[\\n                          { label: 'Filter tables', onClick: handleFilterTables, show: orderType === 'DINE_IN' && posSettings.separateView },\\n                          { label: 'Change Table', onClick: handleChangeTable, show: orderType === 'DINE_IN' && posSettings.separateView },\\n                          { label: 'Add Customer', onClick: () => setIsAddCustomerModalOpen(true), show: true },\\n                          { label: 'Refresh', onClick: localRefresh, show: true },\\n                          { label: 'Load Menu', onClick: handleSyncRefresh, show: true }\\n                        ].filter(btn => btn.show).map(btn => (\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating top Action Toolbar buttons show condition\"",
+  "toolSummary": "\"Update App.jsx top toolbar conditions\""
+}

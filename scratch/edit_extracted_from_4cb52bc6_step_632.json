@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Filtered settings modal tab headers in App.jsx according to back office permissions\"",
+  "EndLine": "19456",
+  "Instruction": "\"Filter settings modal tabs based on hasPOSPermission\"",
+  "ReplacementContent": "\"                     {/* Tab Headers */}\\n                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>\\n                        {[\\n                           { id: 'general', label: 'General', icon: <Settings size={12} />, permission: ['Dashboard', 'settings'] },\\n                           { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} />, permission: ['Dashboard', 'store_settings'] },\\n                           { id: 'printer', label: 'Printers', icon: <Printer size={12} />, permission: ['Dashboard', 'printers'] },\\n                           { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} />, permission: ['Dashboard', 'settings'] },\\n                           { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} />, permission: ['Dashboard', 'settings'] },\\n                           { id: 'profile', label: 'Profile', icon: <User size={12} /> }\\n                        ].filter(tab => !tab.permission || hasPOSPermission(tab.permission, true)).map((tab) => (\"",
+  "StartLine": "19447",
+  "TargetContent": "\"                     {/* Tab Headers */}\\n                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>\\n                        {[\\n                           { id: 'general', label: 'General', icon: <Settings size={12} /> },\\n                           { id: 'outlet', label: 'Outlet Settings', icon: <Store size={12} /> },\\n                           { id: 'printer', label: 'Printers', icon: <Printer size={12} /> },\\n                           { id: 'shortcuts', label: 'Shortcuts', icon: <Key size={12} /> },\\n                           { id: 'formatting', label: 'Formatting', icon: <Sliders size={12} /> },\\n                           { id: 'profile', label: 'Profile', icon: <User size={12} /> }\\n                        ].map((tab) => (\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Filtering settings modal tab headers in App.jsx\"",
+  "toolSummary": "\"Filter settings modal tabs\""
+}

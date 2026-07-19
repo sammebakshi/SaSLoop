@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Correctly compute and pass checkIsDue boolean to handleCheckout\"",
+  "EndLine": "14996",
+  "Instruction": "\"Replace checkMethod and handleCheckout calls to use checkIsDue instead of isDuePayment\"",
+  "ReplacementContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              const checkIsDue = selectedPaymentMode.toLowerCase() === 'credit' || selectedPaymentMode.toLowerCase() === 'due' || isDuePayment;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, checkIsDue);\\n                              setIsPaymentModalOpen(false);\"",
+  "StartLine": "14993",
+  "TargetContent": "\"                              const checkMethod = isSplitPayment ? 'SPLIT' : selectedPaymentMode;\\n                              await handleCheckout('SETTLE', checkMethod, paymentReferenceNo, tipAmount, isDuePayment);\\n                              setIsPaymentModalOpen(false);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing handleCheckout arguments\"",
+  "toolSummary": "\"Replacing handleCheckout arguments\""
+}

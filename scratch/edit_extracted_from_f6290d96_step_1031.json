@@ -1,0 +1,8 @@
+{
+  "Description": "\"Increased React splash fallback timer to 4200ms to accommodate the longer cinematic fly-in animation (3.8s + buffer).\"",
+  "Instruction": "\"Update the React fallback splash timer to 4200ms to match the longer cinematic animation sequence\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":5268,\"ReplacementContent\":\"    }, 4200);\",\"StartLine\":5268,\"TargetContent\":\"    }, 3000);\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update splash timer duration\"",
+  "toolSummary": "\"Update App.jsx timer\""
+}

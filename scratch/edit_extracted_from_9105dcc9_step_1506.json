@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove active carts and busy tables validation check in handleLogoutFlow so that clearing data on logout is never blocked.\"",
+  "EndLine": "4161",
+  "Instruction": "\"Remove the hasActiveCarts and hasBusyTables checks and early return when clearData is true.\"",
+  "ReplacementContent": "\"    if (clearData) {\"",
+  "StartLine": "4141",
+  "TargetContent": "\"    if (clearData) {\\n      // Check for active carts or busy tables first (ignore pre-orders)\\n      const hasActiveCarts = \\n        (dineInCart && dineInCart.length > 0) ||\\n        (pickupCart && pickupCart.length > 0) ||\\n        (quickCart && quickCart.length > 0) ||\\n        (preOrderCart && preOrderCart.length > 0) ||\\n        Object.entries(tableCarts || {}).some(([tableId, c]) => {\\n          if (String(tableId).startsWith('temp-')) return false;\\n          return Array.isArray(c) && c.length > 0;\\n        });\\n\\n      const hasBusyTables = Object.entries(tableStatuses || {}).some(([tableId, status]) => {\\n        if (String(tableId).startsWith('temp-')) return false;\\n        return status === 'SAVED' || status === 'BILL_SAVED' || status === 'PRINTED';\\n      });\\n\\n      if (hasActiveCarts || hasBusyTables) {\\n        toast.error(\\\"Data can't be cleared: Tables are busy.\\\");\\n        return;\\n      }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing logout validation checks\"",
+  "toolSummary": "\"Modify App.jsx logout logic\""
+}

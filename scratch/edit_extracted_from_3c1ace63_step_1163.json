@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset customer details states on book pre-order save\"",
+  "EndLine": "10707",
+  "Instruction": "\"Reset customer details states on book pre-order save\"",
+  "ReplacementContent": "\"                                    setPreOrderNotes('');\\n                                    setCart([]);\\n                                    setCustomerName('');\\n                                    setCustomerPhone('');\\n                                    setCustomerAddress('');\\n                                    setRedeemedPoints(0);\\n                                    setAppliedCoupon(null);\\n                                    setCouponCode('');\\n                                    setSelectedCustomer(null);\\n                                    setPreOrderSubTab('KOT');\"",
+  "StartLine": "10701",
+  "TargetContent": "\"                                    setPreOrderNotes('');\\n                                    setCart([]);\\n                                    setCustomerName('');\\n                                    setCustomerPhone('');\\n                                    setCustomerAddress('');\\n                                    setPreOrderSubTab('KOT');\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating book pre-order customer reset in App.jsx\"",
+  "toolSummary": "\"Update book pre-order reset\""
+}

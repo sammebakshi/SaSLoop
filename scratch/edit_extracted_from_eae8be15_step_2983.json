@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fetch discounts and additional charges from backend in initApp\"",
+  "EndLine": "1377",
+  "Instruction": "\"Add try-catch blocks to fetch discounts and charges inside the tax try block\"",
+  "ReplacementContent": "\"        try {\\n          const paymentRes = await posService.getPaymentModes(outletIdToPass);\\n          console.log(\\\"[initApp] Fetched payment modes:\\\", paymentRes.data);\\n          const modes = (paymentRes.data || []).map(r => r.method_name || r.payment_mode).filter(Boolean);\\n          setPaymentModes(modes.length > 0 ? modes : ['CASH']);\\n        } catch (e) {\\n          console.error(\\\"Failed to fetch payment modes:\\\", e);\\n          setPaymentModes(['CASH']); // Fallback\\n        }\\n\\n        try {\\n          const discountRes = await posService.getDiscounts(outletIdToPass);\\n          setAvailableDiscounts((discountRes.data || []).filter(d => d.is_active));\\n        } catch (e) {\\n          console.error(\\\"Failed to fetch discounts:\\\", e);\\n        }\\n\\n        try {\\n          const chargesRes = await posService.getAdditionalCharges(outletIdToPass);\\n          setAvailableCharges((chargesRes.data || []).filter(c => c.is_active));\\n        } catch (e) {\\n          console.error(\\\"Failed to fetch additional charges:\\\", e);\\n        }\"",
+  "StartLine": "1368",
+  "TargetContent": "\"        try {\\n          const paymentRes = await posService.getPaymentModes(outletIdToPass);\\n          console.log(\\\"[initApp] Fetched payment modes:\\\", paymentRes.data);\\n          const modes = (paymentRes.data || []).map(r => r.method_name || r.payment_mode).filter(Boolean);\\n          setPaymentModes(modes.length > 0 ? modes : ['CASH']);\\n        } catch (e) {\\n          console.error(\\\"Failed to fetch payment modes:\\\", e);\\n          setPaymentModes(['CASH']); // Fallback\\n        }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating initApp to load discounts and charges\"",
+  "toolSummary": "\"Load discounts/charges in initApp\""
+}

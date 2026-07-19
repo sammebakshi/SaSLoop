@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate closing div in Table Management modal header\"",
+  "EndLine": "17988",
+  "Instruction": "\"Remove extra closing div tag in isTableManagementModalOpen block\"",
+  "ReplacementContent": "\"                           <button onClick={() => setIsTableManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                        </div>\\n                     </div>\\n\\n                    <div className=\\\"p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]\\\">\"",
+  "StartLine": "17975",
+  "TargetContent": "\"                           <button onClick={() => setIsTableManagementModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>\\n                        </div>\\n                     </div>\\n                    </div>\\n\\n                    <div className=\\\"p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]\\\">\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Removing duplicate closing div in table management\"",
+  "toolSummary": "\"Replace file content to remove duplicate div in table management\""
+}

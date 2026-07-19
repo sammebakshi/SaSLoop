@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Set targeted printer and custom window dimensions for silent print in handlePrintKOT.\"",
+  "EndLine": "8894",
+  "Instruction": "\"Replace posSettings.printerName with printConfig.name and set window width dynamically based on paperSize.\"",
+  "ReplacementContent": "\"    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        ipcRenderer.send('print-silent', {\\n          html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),\\n          printerName: printConfig.name\\n        });\\n        return;\\n      } catch (err) {\\n        console.error(\\\"Silent KOT print failed:\\\", err);\\n      }\\n    }\\n\\n    const printWindow = window.open('', '_blank', `width=${printConfig.paperSize === 'THERMAL_58MM' ? 220 : 300},height=600`);\"",
+  "StartLine": "8881",
+  "TargetContent": "\"    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        ipcRenderer.send('print-silent', {\\n          html: receiptHtml.replace('<script>window.onload = () => { window.print(); window.close(); }</script>', ''),\\n          printerName: posSettings.printerName\\n        });\\n        return;\\n      } catch (err) {\\n        console.error(\\\"Silent KOT print failed:\\\", err);\\n      }\\n    }\\n\\n    const printWindow = window.open('', '_blank', 'width=300,height=600');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating silent print routing in handlePrintKOT\"",
+  "toolSummary": "\"Replace file content in App.jsx\""
+}

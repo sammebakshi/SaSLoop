@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fallback to redeemed_points in simulator if points_redeemed is undefined\"",
+  "EndLine": "19805",
+  "Instruction": "\"Update ptsRedeemed variable in thermal simulator to fall back to previewReceipt.redeemed_points\"",
+  "ReplacementContent": "\"                            {(() => {\\n                               const ptsRedeemed = previewReceipt.points_redeemed !== undefined \\n                                 ? parseInt(previewReceipt.points_redeemed) \\n                                 : (previewReceipt.redeemed_points !== undefined ? parseInt(previewReceipt.redeemed_points) : 0);\\n                               const ptsDiscount = previewReceipt.points_discount !== undefined \\n                                 ? parseFloat(previewReceipt.points_discount) \\n                                 : (ptsRedeemed * (getPointsValueRate ? getPointsValueRate() : 0.1));\"",
+  "StartLine": "19800",
+  "TargetContent": "\"                            {(() => {\\n                               const ptsRedeemed = previewReceipt.points_redeemed !== undefined ? parseInt(previewReceipt.points_redeemed) : 0;\\n                               const ptsDiscount = previewReceipt.points_discount !== undefined \\n                                 ? parseFloat(previewReceipt.points_discount) \\n                                 : (ptsRedeemed * (getPointsValueRate ? getPointsValueRate() : 0));\"",
+  "TargetFile": "\"C:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Updating thermal simulator points logic in App.jsx\"",
+  "toolSummary": "\"Update thermal simulator points logic\""
+}

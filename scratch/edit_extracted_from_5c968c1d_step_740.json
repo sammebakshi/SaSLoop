@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isMaximized state and window resize/maximize IPC listener in App.jsx\"",
+  "EndLine": "3117",
+  "Instruction": "\"Add isMaximized state and the useEffect hook setting up the listener for window-state-changed after posSettings localStorage effect\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\\n\\n  const [isMaximized, setIsMaximized] = useState(true);\\n\\n  useEffect(() => {\\n    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        const handleState = (event, state) => {\\n          setIsMaximized(state.isMaximized);\\n        };\\n        ipcRenderer.on('window-state-changed', handleState);\\n        return () => {\\n          ipcRenderer.removeListener('window-state-changed', handleState);\\n        };\\n      } catch (e) {\\n        console.warn(\\\"Electron IPC listener failed:\\\", e);\\n      }\\n    }\\n  }, []);\"",
+  "StartLine": "3113",
+  "TargetContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding isMaximized state and listener hook\"",
+  "toolSummary": "\"Edit App.jsx window state hook\""
+}

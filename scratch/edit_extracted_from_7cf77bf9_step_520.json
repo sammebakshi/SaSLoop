@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add handleSort function definition to App.jsx\"",
+  "EndLine": "2079",
+  "Instruction": "\"Add handleSort helper function under paginatedTotal memo hook\"",
+  "ReplacementContent": "\"  const paginatedTotal = React.useMemo(() => {\\n    return paginatedOrders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);\\n  }, [paginatedOrders]);\\n\\n  const handleSort = (field) => {\\n    if (receiptsSortField === field) {\\n      setReceiptsSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');\\n    } else {\\n      setReceiptsSortField(field);\\n      setReceiptsSortDirection('desc'); // Default to descending for numbers/dates\\n    }\\n  };\"",
+  "StartLine": "2076",
+  "TargetContent": "\"  const paginatedTotal = React.useMemo(() => {\\n    return paginatedOrders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);\\n  }, [paginatedOrders]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding handleSort helper function\"",
+  "toolSummary": "\"App.jsx handleSort function edit\""
+}

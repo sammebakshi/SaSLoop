@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Hide Order/KOT and Billing sub-tabs in Quick Bill mode by adding conditional check\"",
+  "EndLine": "8730",
+  "Instruction": "\"Add orderType !== 'QUICK' condition to sub-tabs row wrapper check\"",
+  "ReplacementContent": "\"                  {/* Sub-tabs row for DINE_IN, PICKUP & QUICK */}\\n                  {activeTrayTab !== 'PreOrder' && orderType !== 'QUICK' && (\\n                    <div className={`flex shrink-0 items-center justify-between border-b p-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>\\n                      <div className=\\\"flex gap-1\\\">\\n                        <button\\n                          onClick={() => setActiveTrayTab('KOT')}\"",
+  "StartLine": "8725",
+  "TargetContent": "\"                  {/* Sub-tabs row for DINE_IN, PICKUP & QUICK */}\\n                  {activeTrayTab !== 'PreOrder' && (\\n                    <div className={`flex shrink-0 items-center justify-between border-b p-1 transition-colors ${isDark ? 'border-[#30363d] bg-[#0d1117]' : 'border-slate-200 bg-white'}`}>\\n                      <div className=\\\"flex gap-1\\\">\\n                        <button\\n                          onClick={() => setActiveTrayTab('KOT')}\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Hiding sub-tabs row in Quick Bill mode\"",
+  "toolSummary": "\"Hide sub-tabs in Quick Bill\""
+}

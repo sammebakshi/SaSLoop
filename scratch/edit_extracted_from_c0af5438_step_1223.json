@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Rename Next to Billing button label in the pre-order Payments subtab to Proceed to Booking.\"",
+  "EndLine": "12565",
+  "Instruction": "\"Rename Next to Billing button label.\"",
+  "ReplacementContent": "\"                      {preOrderSubTab === 'PAYMENTS' && (\\n                        <button\\n                          onClick={() => setPreOrderSubTab('BILLING')}\\n                          className={`flex-1 py-2.5 rounded text-[11px] font-extrabold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-[#1a2530] border-slate-800 text-white hover:bg-[#2c3e50]'}`}\\n                        >\\n                          Proceed to Booking\\n                        </button>\\n                      )}\"",
+  "StartLine": "12558",
+  "TargetContent": "\"                      {preOrderSubTab === 'PAYMENTS' && (\\n                        <button\\n                          onClick={() => setPreOrderSubTab('BILLING')}\\n                          className={`flex-1 py-2.5 rounded text-[11px] font-extrabold transition-all active:scale-95 border ${isDark ? 'bg-gray-900 border-gray-700 text-white hover:bg-gray-800' : 'bg-[#1a2530] border-slate-800 text-white hover:bg-[#2c3e50]'}`}\\n                        >\\n                          Next to Billing\\n                        </button>\\n                      )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Renaming Next to Billing button to Proceed to Booking\"",
+  "toolSummary": "\"File edit\""
+}

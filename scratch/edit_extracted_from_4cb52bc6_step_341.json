@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Imported PasscodeModal at the top of App.jsx\"",
+  "EndLine": "1468",
+  "Instruction": "\"Import PasscodeModal in App.jsx\"",
+  "ReplacementContent": "\"import JordanHistory from './components/reports/JordanHistory';\\nimport PasscodeModal from './components/PasscodeModal';\\n\\nconst REPORT_COMPONENTS = {\"",
+  "StartLine": "1466",
+  "TargetContent": "\"import JordanHistory from './components/reports/JordanHistory';\\n\\nconst REPORT_COMPONENTS = {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Importing PasscodeModal in App.jsx\"",
+  "toolSummary": "\"Import PasscodeModal\""
+}

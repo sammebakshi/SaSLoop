@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Sync fetchBarData date range with lineStartDate and lineEndDate.\"",
+  "EndLine": "727",
+  "Instruction": "\"Change barStartDate/barEndDate to lineStartDate/lineEndDate inside fetchBarData.\"",
+  "ReplacementContent": "\"  const fetchBarData = () => {\\n    if (!recentOrders || recentOrders.length === 0) return;\\n    const start = lineStartDate || getOldestOrderDate(recentOrders);\\n    const end = lineEndDate || new Date().toISOString().split('T')[0];\"",
+  "StartLine": "723",
+  "TargetContent": "\"  const fetchBarData = () => {\\n    if (!recentOrders || recentOrders.length === 0) return;\\n    const start = barStartDate || getOldestOrderDate(recentOrders);\\n    const end = barEndDate || new Date().toISOString().split('T')[0];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Syncing fetchBarData date range in App.jsx\"",
+  "toolSummary": "\"Sync fetchBarData date range in App.jsx\""
+}

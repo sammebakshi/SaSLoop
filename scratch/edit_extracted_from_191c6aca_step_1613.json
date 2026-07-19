@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add default order mode filter options (Dining, Pickup, Delivery, Preorder) to the departments list in App.jsx.\"",
+  "EndLine": "4407",
+  "Instruction": "\"Update departments list to include Dining, Pickup, Delivery, and Preorder as filters.\"",
+  "ReplacementContent": "\"  const departments = [\\n    'All',\\n    'Dining',\\n    'Pickup',\\n    'Delivery',\\n    'Preorder',\\n    ...new Set([\\n      ...tableDepartments.map(d => d.department_name),\\n      ...tables.map(t => t.department_name)\\n    ].filter(d => d && !['Dining', 'Pickup', 'Delivery', 'Preorder', 'Pre-Order', 'Dine-In', 'Pickup/Delivery'].includes(d)))\\n  ];\"",
+  "StartLine": "4401",
+  "TargetContent": "\"  const departments = [\\n    'All',\\n    ...new Set([\\n      ...tableDepartments.map(d => d.department_name),\\n      ...tables.map(t => t.department_name)\\n    ].filter(Boolean))\\n  ];\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating departments variable definition\"",
+  "toolSummary": "\"Updating departments variable definition\""
+}

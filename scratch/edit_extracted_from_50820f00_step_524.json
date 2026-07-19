@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Define handleSelectWaiter function.\"",
+  "EndLine": "2843",
+  "Instruction": "\"Insert handleSelectWaiter after the localStorage persistence hooks.\"",
+  "ReplacementContent": "\"  }, [tableAdditionalCharges]);\\n\\n  const handleSelectWaiter = (waiter) => {\\n    setSelectedWaiter(waiter);\\n    if (selectedTable) {\\n      setTableWaiters(prev => ({ ...prev, [selectedTable.id]: waiter }));\\n    }\\n  };\"",
+  "StartLine": "2839",
+  "TargetContent": "\"  }, [tableAdditionalCharges]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Declaring handleSelectWaiter function\"",
+  "toolSummary": "\"Declaring handleSelectWaiter\""
+}

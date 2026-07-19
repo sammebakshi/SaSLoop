@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import Receipt and Layers icons from lucide-react.\"",
+  "EndLine": "10",
+  "Instruction": "\"Add Receipt and Layers to the imported icons at line 7 in App.jsx.\"",
+  "ReplacementContent": "\"  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText, Receipt, Layers,\"",
+  "StartLine": "5",
+  "TargetContent": "\"  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding Receipt and Layers icons to imports\"",
+  "toolSummary": "\"Import additional icons\""
+}

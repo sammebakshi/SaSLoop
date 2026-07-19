@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove the unused cardSet pagination state.\"",
+  "EndLine": "633",
+  "Instruction": "\"Remove the cardSet state definition line.\"",
+  "ReplacementContent": "\"\"",
+  "StartLine": "632",
+  "TargetContent": "\"  const [cardSet, setCardSet] = useState(1);\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing cardSet state from App.jsx\"",
+  "toolSummary": "\"Remove cardSet state\""
+}

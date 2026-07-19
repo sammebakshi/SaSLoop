@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update clear action click handler to reset selected waiter and pre-order notes\"",
+  "EndLine": "9124",
+  "Instruction": "\"Add setSelectedWaiter(null) and setPreOrderNotes('') into the clear button onClick callback\"",
+  "ReplacementContent": "\"                          onClick={() => {\\n                            setCustomerPhone('');\\n                            setCustomerName('');\\n                            setCustomerAddress('');\\n                            setKOTNote('');\\n                            setCoversCount('');\\n                            setSelectedWaiter(null);\\n                            setPreOrderNotes('');\\n                          }}\"",
+  "StartLine": "9116",
+  "TargetContent": "\"                          onClick={() => {\\n                            setCustomerPhone('');\\n                            setCustomerName('');\\n                            setCustomerAddress('');\\n                            setKOTNote('');\\n                            setCoversCount('');\\n                          }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating clear action callback in App.jsx\"",
+  "toolSummary": "\"Edit App.jsx clear action\""
+}

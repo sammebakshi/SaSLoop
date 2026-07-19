@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Make isCustomerDetailsMandatory context-aware of subOrderType\"",
+  "EndLine": "3900",
+  "Instruction": "\"Update isCustomerDetailsMandatory to look at subOrderType when orderType is PICKUP.\"",
+  "ReplacementContent": "\"  const isCustomerDetailsMandatory = () => {\\n    const access = getStaffPermissions()?.pos_access;\\n    if (!access) return false;\\n    const currentActualType = orderType === 'PICKUP' ? subOrderType : orderType;\\n    if (currentActualType === 'DELIVERY') return access.Delivery?.customer_details_mandatory === true;\\n    if (currentActualType === 'PICKUP') return access.Pickup?.customer_details_mandatory === true;\\n    return false;\\n  };\"",
+  "StartLine": "3893",
+  "TargetContent": "\"  const isCustomerDetailsMandatory = () => {\\n    const access = getStaffPermissions()?.pos_access;\\n    if (!access) return false;\\n    if (orderType === 'DELIVERY') return access.Delivery?.customer_details_mandatory === true;\\n    if (orderType === 'PICKUP') return access.Pickup?.customer_details_mandatory === true;\\n    return false;\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Implement grid status override in Combined View Grid for vacant tables.\"",
+  "EndLine": "3889",
+  "Instruction": "\"Add status override for vacant tables in Combined View grid map.\"",
+  "ReplacementContent": "\"                                    if (activeBillCount > 0 && status === 'AVAILABLE') {\\n                                      status = 'SAVED';\\n                                    }\\n                                    if (activeBillCount === 0 && status !== 'ORDERING') {\\n                                      status = 'AVAILABLE';\\n                                    }\"",
+  "StartLine": "3885",
+  "TargetContent": "\"                                    if (activeBillCount > 0 && status === 'AVAILABLE') {\\n                                      status = 'SAVED';\\n                                    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Combined View Grid override with smaller scope\"",
+  "toolSummary": "\"Edit App.jsx for Combined Grid status\""
+}

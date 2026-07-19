@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Import PasscodeModal in App.jsx\"",
+  "EndLine": "18",
+  "Instruction": "\"Add import PasscodeModal statement in App.jsx\"",
+  "ReplacementContent": "\"import { posService, authService, API_BASE } from './services/api';\\nimport WhatsAppMarketing from './components/WhatsAppMarketing';\\nimport PasscodeModal from './components/PasscodeModal';\\nimport { ToastContainer, toast } from 'react-toastify';\"",
+  "StartLine": "13",
+  "TargetContent": "\"import { posService, authService, API_BASE } from './services/api';\\nimport WhatsAppMarketing from './components/WhatsAppMarketing';\\nimport { ToastContainer, toast } from 'react-toastify';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Importing PasscodeModal in App.jsx\"",
+  "toolSummary": "\"Replace App.jsx imports\""
+}

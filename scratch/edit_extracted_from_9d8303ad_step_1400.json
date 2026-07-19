@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset expandedOrderId when closing customer history.\"",
+  "EndLine": "8505",
+  "Instruction": "\"Update history click handler without whitespace issues.\"",
+  "ReplacementContent": "\"setHistoryCustomerPhone(null); setExpandedOrderId(null)\"",
+  "StartLine": "8503",
+  "TargetContent": "\"setHistoryCustomerPhone(null)\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating history close handler\"",
+  "toolSummary": "\"Reset expandedOrderId on close\""
+}

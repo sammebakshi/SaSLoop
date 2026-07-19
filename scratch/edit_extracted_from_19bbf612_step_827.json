@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change quantity column header width to w-28.\"",
+  "EndLine": "6986",
+  "Instruction": "\"Replace w-24 Qty header column with w-28.\"",
+  "ReplacementContent": "\"                    <div className={`w-28 px-2 py-1.5 text-center border-r ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}>Qty</div>\"",
+  "StartLine": "6981",
+  "TargetContent": "\"                    <div className={`w-24 px-2 py-1.5 text-center border-r ${isDark ? 'border-[#30363d]' : 'border-slate-200'}`}>Qty</div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Qty column header width to w-28\"",
+  "toolSummary": "\"Replace File Content App.jsx for Qty header width\""
+}

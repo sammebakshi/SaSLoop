@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Display server-synchronized today's and total credit sales in dashboard cards\"",
+  "EndLine": "7755",
+  "Instruction": "\"Update the Today's Credit Sales and Total Credit Sales DashboardCards to use stats property values\"",
+  "ReplacementContent": "\"                              <DashboardCard title=\\\"Today's Credit Sales\\\" val={`${config.currency} ${stats.todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className=\\\"text-[#18ba60]\\\"/>} isDark={isDark} />\\n                              <DashboardCard title=\\\"Total Credit Sales\\\" val={`${config.currency} ${stats.totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className=\\\"text-[#18ba60]\\\"/>} isDark={isDark} />\"",
+  "StartLine": "7753",
+  "TargetContent": "\"                              <DashboardCard title=\\\"Today's Credit Sales\\\" val={`${config.currency} ${todayCreditSales.toFixed(2)}`} icon={<Coins size={18} className=\\\"text-[#18ba60]\\\"/>} isDark={isDark} />\\n                              <DashboardCard title=\\\"Total Credit Sales\\\" val={`${config.currency} ${totalCreditSales.toFixed(2)}`} icon={<Wallet size={18} className=\\\"text-[#18ba60]\\\"/>} isDark={isDark} />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Mapping stats variables to credit cards\"",
+  "toolSummary": "\"App.jsx credit cards stats mapping edit\""
+}

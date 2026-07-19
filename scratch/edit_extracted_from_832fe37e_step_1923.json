@@ -1,0 +1,8 @@
+{
+  "Description": "\"Also fix the \\\"Default\\\" waiter fallback in the KOT print template and KOT preview modal - waiter line is only shown when a waiter is actually selected.\"",
+  "Instruction": "\"Fix waiter Default in KOT print template and KOT preview\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":7660,\"ReplacementContent\":\"            ${selectedWaiter ? `Waiter: ${selectedWaiter.name}` : ''}\\n          </div>\",\"StartLine\":7659,\"TargetContent\":\"            Waiter :${selectedWaiter ? selectedWaiter.name : 'Default'}\\n          </div>\"},{\"AllowMultiple\":false,\"EndLine\":18624,\"ReplacementContent\":\"                                        {selectedWaiter && <span><strong>Waiter:</strong> {selectedWaiter.name}</span>}\",\"StartLine\":18624,\"TargetContent\":\"                                        <span><strong>Waiter:</strong> {selectedWaiter ? selectedWaiter.name : 'Default'}</span>\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing waiter Default in KOT templates\"",
+  "toolSummary": "\"Fix waiter in KOT templates\""
+}

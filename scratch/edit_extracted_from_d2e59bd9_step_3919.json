@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fixed missing parent div closing tag in details pane render block.\"",
+  "EndLine": "10512",
+  "Instruction": "\"Add missing closing tag for details pane parent div in App.jsx\"",
+  "ReplacementContent": "\"                            {String(order.status).toUpperCase() === 'DISPATCHED' && (\\n                              <button\\n                                onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}\\n                                className=\\\"w-full py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer\\\"\\n                              >\\n                                Mark Completed (Complete Sale)\\n                              </button>\\n                            )}\\n                          </div>\\n                        </div>\\n                      );\\n                    })()}\\n                  </div>\"",
+  "StartLine": "10500",
+  "TargetContent": "\"                            {String(order.status).toUpperCase() === 'DISPATCHED' && (\\n                              <button\\n                                onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}\\n                                className=\\\"w-full py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer\\\"\\n                              >\\n                                Mark Completed (Complete Sale)\\n                              </button>\\n                            )}\\n                        </div>\\n                      );\\n                    })()}\\n                  </div>\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding missing closing tag\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added riders list state and ticker state in UniversalPOS to keep dynamic preparation times and status details fresh.\"",
+  "EndLine": "1742",
+  "Instruction": "\"Add riders and ticker states below selectedDigitalOrder in App.jsx\"",
+  "ReplacementContent": "\"  const [selectedDigitalOrder, setSelectedDigitalOrder] = useState(null);\\n  const [riders, setRiders] = useState([]);\\n  const [ticker, setTicker] = useState(0);\\n  \\n  useEffect(() => {\\n    const timer = setInterval(() => {\\n      setTicker(t => t + 1);\\n    }, 1000);\\n    return () => clearInterval(timer);\\n  }, []);\"",
+  "StartLine": "1742",
+  "TargetContent": "\"  const [selectedDigitalOrder, setSelectedDigitalOrder] = useState(null);\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding riders and ticker states\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

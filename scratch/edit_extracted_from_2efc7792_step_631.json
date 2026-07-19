@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace sidebar ShoppingCart icon with the brand logo image tag.\"",
+  "EndLine": "7831",
+  "Instruction": "\"Change ShoppingCart icon in the sidebar header to logo.png image tag.\"",
+  "ReplacementContent": "\"      <nav className={`w-[60px] border-r flex flex-col shrink-0 ${t.sidebar} ${isDark ? 'border-[#30363d]' : 'border-slate-100'} z-50`}>\\n        <div className={`h-[58px] flex items-center justify-center border-b ${isDark ? 'border-[#30363d]' : 'border-slate-100'}`}>\\n           <img src=\\\"logo.png\\\" className=\\\"w-[38px] h-[38px] object-contain rounded-xl bg-white p-0.5 shadow-sm border border-slate-100 dark:border-white/5\\\" alt=\\\"Logo\\\" />\\n        </div>\"",
+  "StartLine": "7824",
+  "TargetContent": "\"      <nav className={`w-[60px] border-r flex flex-col shrink-0 ${t.sidebar} ${isDark ? 'border-[#30363d]' : 'border-slate-100'} z-50`}>\\n        <div className={`h-[58px] flex items-center justify-center border-b ${isDark ? 'border-[#30363d]' : 'border-slate-100'}`}>\\n           <ShoppingCart className={`${isDark ? 'text-white' : 'text-black'} w-[28px] h-[28px]`} />\\n        </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing sidebar logo in App.jsx\"",
+  "toolSummary": "\"File edit\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Limit X-axis label overlaps on Bar Chart\"",
+  "EndLine": "7952",
+  "Instruction": "\"Replace Bar Chart X-axis labels loop to prevent overlaps and format dates\"",
+  "ReplacementContent": "\"                                {barData.map((d, i) => {\\n                                  const step = Math.ceil(barData.length / 6) || 1;\\n                                  const shouldShow = i % step === 0 || i === barData.length - 1;\\n                                  return (\\n                                    <span key={i} className=\\\"truncate max-w-[40px] text-center\\\">\\n                                      {shouldShow ? formatDateLabel(d.day) : ''}\\n                                    </span>\\n                                  );\\n                                })}\"",
+  "StartLine": "7945",
+  "TargetContent": "\"                                {barData.map((d, i) => (\\n                                  <span key={i} className=\\\"truncate max-w-[40px] text-center\\\">{d.day}</span>\\n                                ))}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Optimizing Bar Chart X-axis labels\"",
+  "toolSummary": "\"App.jsx Bar Chart labels edit\""
+}

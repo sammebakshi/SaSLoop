@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleCheckout check to use the userAccess?.PreOrder?.customer_details_mandatory permissions flag\"",
+  "EndLine": "7219",
+  "Instruction": "\"Replace the setting check on line 7218 with userAccess?.PreOrder?.customer_details_mandatory === true\"",
+  "ReplacementContent": "\"    const isPreOrderMandatory = isPreOrder && userAccess?.PreOrder?.customer_details_mandatory === true;\"",
+  "StartLine": "7218",
+  "TargetContent": "\"    const isPreOrderMandatory = isPreOrder && business?.business_details?.settings?.preOrderDetailsMandatory === true;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating handleCheckout check\"",
+  "toolSummary": "\"Update handleCheckout check\""
+}

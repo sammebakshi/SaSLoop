@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update selectPosTable to store the current table's active waiter, discount, and additional charges before switching, and restore them for the newly selected table.\"",
+  "EndLine": "6747",
+  "Instruction": "\"Save current table's states and load target table's states in selectPosTable.\"",
+  "ReplacementContent": "\"  const selectPosTable = (table) => {\\n    // Save the current mode cart before switching to a table\\n    saveCurrentCartForMode(orderType, activeTrayTab, selectedTable, cart);\\n    \\n    if (selectedTable) {\\n      setTableWaiters(prev => ({ ...prev, [selectedTable.id]: selectedWaiter }));\\n      setTableDiscounts(prev => ({ ...prev, [selectedTable.id]: discount }));\\n      setTableAdditionalCharges(prev => ({ ...prev, [selectedTable.id]: appliedAdditionalCharges }));\\n    }\\n\\n    setSelectedTable(table);\\n\\n    const restoredWaiter = tableWaiters[table.id] || null;\\n    const restoredDiscount = tableDiscounts[table.id] || { type: 'NONE', value: 0 };\\n    const restoredCharges = tableAdditionalCharges[table.id] || [];\\n\\n    setSelectedWaiter(restoredWaiter);\\n    setDiscount(restoredDiscount);\\n    setSelectedDiscountId(restoredDiscount.id || (restoredDiscount.value ? 'custom' : null));\\n    setAppliedAdditionalCharges(restoredCharges);\\n\\n    if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "StartLine": "6739",
+  "TargetContent": "\"  const selectPosTable = (table) => {\\n    // Save the current mode cart before switching to a table\\n    saveCurrentCartForMode(orderType, activeTrayTab, selectedTable, cart);\\n    setSelectedTable(table);\\n    if (table.is_temporary && (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0) {\\n      setCart([...tableBills[table.id]]);\\n    } else {\\n      setCart(tableCarts[table.id] || []);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding table state preservation to selectPosTable\"",
+  "toolSummary": "\"Adding table state preservation\""
+}

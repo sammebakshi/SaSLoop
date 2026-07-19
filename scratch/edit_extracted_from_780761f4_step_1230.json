@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Added the source property to the order creation payload in the desktop POS app. Sets 'POS_WINDOWS' when online, and 'POS_WINDOWS_OFFLINE' when offline.\"",
+  "EndLine": "5757",
+  "Instruction": "\"Add source property to newOrder object in App.jsx\"",
+  "ReplacementContent": "\"    const newOrder = { \\n      id: orderId, \\n      source: navigator.onLine ? 'POS_WINDOWS' : 'POS_WINDOWS_OFFLINE',\\n      customer_name: customerName || \\\"POS Guest\\\", \\n      customer_phone: fullPhone, \\n      customer_number: fullPhone, \\n      address: customerAddress || \\\"\\\",\"",
+  "StartLine": "5751",
+  "TargetContent": "\"    const newOrder = { \\n      id: orderId, \\n      customer_name: customerName || \\\"POS Guest\\\", \\n      customer_phone: fullPhone, \\n      customer_number: fullPhone, \\n      address: customerAddress || \\\"\\\",\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating desktop App.jsx order source\"",
+  "toolSummary": "\"Update App.jsx order source\""
+}

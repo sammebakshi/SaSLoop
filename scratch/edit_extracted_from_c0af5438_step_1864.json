@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore the closing sequence for the charges modal.\"",
+  "EndLine": "18286",
+  "Instruction": "\"Restore )} closing sequence.\"",
+  "ReplacementContent": "\"                  </motion.div>\\n               </motion.div>\\n            )}\\n         </AnimatePresence>\"",
+  "StartLine": "18282",
+  "TargetContent": "\"                  </motion.div>\\n               </motion.div>\\n          </AnimatePresence>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring charges modal closing sequence\"",
+  "toolSummary": "\"File edit\""
+}

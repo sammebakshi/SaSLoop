@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace Combined View delete index finder with logic supporting both code and name.\"",
+  "EndLine": "10406",
+  "Instruction": "\"Update idx assignment inside setCart in Combined View delete handler.\"",
+  "ReplacementContent": "\"                                  setCart(prev => {\\n                                    const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code || (item.product_name || item.name || '').toLowerCase() === code);\\n                                    if (idx !== -1) {\"",
+  "StartLine": "10403",
+  "TargetContent": "\"                                  setCart(prev => {\\n                                    const idx = prev.findIndex(item => (item.code || '').toLowerCase() === code);\\n                                    if (idx !== -1) {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing Combined View delete finder logic\"",
+  "toolSummary": "\"Replacing Combined View delete finder logic\""
+}

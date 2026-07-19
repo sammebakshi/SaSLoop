@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Adding the missing onClick handler to the DINE_IN Split Bill button so it opens the split bill modal.\"",
+  "EndLine": "8214",
+  "Instruction": "\"Add onClick handler to the DINE_IN Split Bill button to open the split modal.\"",
+  "ReplacementContent": "\"                              <button onClick={() => setIsSplitModalOpen(true)} className=\\\"bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10\\\">\\n                                Split Bill\\n                              </button>\"",
+  "StartLine": "8212",
+  "TargetContent": "\"                              <button className=\\\"bg-[#489972] hover:bg-[#56a881] px-2.5 py-0.5 rounded-full text-[10px] font-bold transition-all border border-white/10\\\">\\n                                Split Bill\\n                              </button>\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Fixing Split Bill onClick\"",
+  "toolSummary": "\"DINE_IN Split Bill fix\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clear staffList state on logout in App.jsx.\"",
+  "EndLine": "4398",
+  "Instruction": "\"Add setStaffList([]) after setWaitersList([]) in the logout function in App.jsx.\"",
+  "ReplacementContent": "\"    setWaitersList([]);\\n    setStaffList([]);\\n    setRiders([]);\"",
+  "StartLine": "4396",
+  "TargetContent": "\"    setWaitersList([]);\\n    setRiders([]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Clear staffList on logout in App.jsx\"",
+  "toolSummary": "\"Clear staffList on logout\""
+}

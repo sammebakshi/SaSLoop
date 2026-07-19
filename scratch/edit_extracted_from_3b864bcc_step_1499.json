@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Make UPI condition check explicit in payment breakdown.\"",
+  "EndLine": "8857",
+  "Instruction": "\"Replace the else acc.UPI statement with else if (method.includes('UPI')) acc.UPI += amt.\"",
+  "ReplacementContent": "\"                  else if (method.includes('UPI')) acc.UPI += amt;\"",
+  "StartLine": "8855",
+  "TargetContent": "\"                  else acc.UPI += amt;\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Editing UPI matching logic in App.jsx\"",
+  "toolSummary": "\"Edit file\""
+}

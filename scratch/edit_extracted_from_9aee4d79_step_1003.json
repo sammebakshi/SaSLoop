@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add handleSwitchOutlet and useEffect hook to fetch user outlets.\"",
+  "EndLine": "2023",
+  "Instruction": "\"Add outlet switching logic and automated fetching hook in App.jsx.\"",
+  "ReplacementContent": "\"    } finally {\\n      setIsEmailingReport(false);\\n    }\\n  };\\n\\n  const handleSwitchOutlet = async (targetId) => {\\n     if (!targetId) {\\n        localStorage.removeItem('pos_active_outlet_id');\\n        setActiveOutletId(null);\\n     } else {\\n        localStorage.setItem('pos_active_outlet_id', String(targetId));\\n        setActiveOutletId(targetId);\\n     }\\n     toast.info(\\\"Switching outlet context and synchronizing database caches...\\\");\\n     try {\\n        await initApp();\\n        toast.success(\\\"Outlet synchronized successfully!\\\");\\n     } catch (err) {\\n        console.error(\\\"Failed to synchronize active outlet app state:\\\", err);\\n        toast.error(\\\"Failed to synchronize active outlet.\\\");\\n     }\\n  };\\n\\n  useEffect(() => {\\n     if (isAuthenticated && activeTab === 'settings' && getStaffPermissions()?.pos_access?.SwitchOutlet?.visible !== false) {\\n        const fetchOutlets = async () => {\\n           try {\\n              const res = await authService.getMyOutlets();\\n              setMyOutlets(res.data || []);\\n           } catch (err) {\\n              console.error(\\\"Failed to fetch user outlets:\\\", err);\\n           }\\n        };\\n        fetchOutlets();\\n     }\\n  }, [isAuthenticated, activeTab]);\"",
+  "StartLine": "2018",
+  "TargetContent": "\"    } finally {\\n      setIsEmailingReport(false);\\n    }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding outlet switcher handler and hook\"",
+  "toolSummary": "\"Add outlet switcher handler and hook\""
+}

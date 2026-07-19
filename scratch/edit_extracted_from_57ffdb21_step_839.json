@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Apply outline CSS classes to slideshow title and description\"",
+  "EndLine": "795",
+  "Instruction": "\"Replace inline textShadow styles with text-outline-white and text-outline-white-sm classes on the slideshow text.\"",
+  "ReplacementContent": "\"                {/* Slide Title */}\\n                <h2 \\n                  className=\\\"text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-slate-800 leading-tight text-outline-white\\\"\\n                >\\n                  {slide.title}\\n                </h2>\\n\\n                {/* Slide Description */}\\n                <p \\n                  className=\\\"text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed max-w-[460px] mx-auto text-outline-white-sm\\\"\\n                >\\n                  {slide.desc}\\n                </p>\"",
+  "StartLine": "778",
+  "TargetContent": "\"                {/* Slide Title */}\\n                <h2 \\n                  className=\\\"text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-slate-800 leading-tight\\\"\\n                  style={{ textShadow: '-2px -2px 0 #fff, 2px -2px 0 #fff, -2px 2px 0 #fff, 2px 2px 0 #fff, 0 2px 4px rgba(0,0,0,0.1)' }}\\n                >\\n                  {slide.title}\\n                </h2>\\n\\n                {/* Slide Description */}\\n                <p \\n                  className=\\\"text-slate-500 text-xs sm:text-sm font-semibold leading-relaxed max-w-[460px] mx-auto\\\"\\n                  style={{ textShadow: '-1.5px -1.5px 0 #fff, 1.5px -1.5px 0 #fff, -1.5px 1.5px 0 #fff, 1.5px 1.5px 0 #fff, 0 1px 3px rgba(0,0,0,0.08)' }}\\n                >\\n                  {slide.desc}\\n                </p>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying App.jsx slideshow styles\"",
+  "toolSummary": "\"Update slideshow text styles\""
+}

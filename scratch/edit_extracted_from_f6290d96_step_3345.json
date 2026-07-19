@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Pass order type to handlePrintKOT on line 11551\"",
+  "EndLine": "11552",
+  "Instruction": "\"Pass selectedTable?.original_order_type || 'DINE_IN' to handlePrintKOT on line 11551\"",
+  "ReplacementContent": "\"                          handlePrintKOT(cart, selectedTable.table_name, bNo, 'NEW', selectedTable?.original_order_type || 'DINE_IN');\"",
+  "StartLine": "11550",
+  "TargetContent": "\"                          handlePrintKOT(cart, selectedTable.table_name, bNo);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Retrying KOT print call replacement\"",
+  "toolSummary": "\"Retry KOT print call replacement\""
+}

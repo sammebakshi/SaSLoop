@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Load customer history on Gift icon click in KOT toolbar\"",
+  "EndLine": "9840",
+  "Instruction": "\"Make the Gift icon click call refreshCustomerHistory.\"",
+  "ReplacementContent": "\"                          onClick={() => {\\n                            if (!customerPhone) {\\n                              toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                              return;\\n                            }\\n                            const fullPhone = customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone;\\n                            refreshCustomerHistory(fullPhone);\\n                            setIsCustomerHistoryModalOpen(true);\\n                          }}\"",
+  "StartLine": "9834",
+  "TargetContent": "\"                          onClick={() => {\\n                            if (!customerPhone) {\\n                              toast.warn(\\\"Please enter a customer mobile number first.\\\");\\n                              return;\\n                            }\\n                            setIsCustomerHistoryModalOpen(true);\\n                          }}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating second Gift icon click handler\"",
+  "toolSummary": "\"Update second Gift icon click handler\""
+}

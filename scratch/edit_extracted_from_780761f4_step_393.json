@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Replace legacy TMBill branding with SaSLoop POS branding on line 17028 of App.jsx in pos-app.\"",
+  "EndLine": "17030",
+  "Instruction": "\"Update TMBill reference to SaSLoop POS on line 17028\"",
+  "ReplacementContent": "\"                                    {posSettings.appVersion || \\\"SaSLoop POS Version: 19.02\\\"}\"",
+  "StartLine": "17026",
+  "TargetContent": "\"                                    {posSettings.appVersion || \\\"TMBill Pacific Version: 19.02\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Replacing branding on line 17028\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

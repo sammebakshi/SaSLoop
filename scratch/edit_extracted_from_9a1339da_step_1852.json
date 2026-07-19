@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Change contact number input placeholder to 9906123989.\"",
+  "EndLine": "16870",
+  "Instruction": "\"Update placeholder for contact number in App.jsx.\"",
+  "ReplacementContent": "\"                                             <input\\n                                                 type=\\\"text\\\"\\n                                                 value={posSettings.phone || ''}\\n                                                 onChange={e => setPosSettings(prev => ({ ...prev, phone: e.target.value }))}\\n                                                 className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}\\n                                                 placeholder=\\\"e.g. 9906123989\\\"\"",
+  "StartLine": "16860",
+  "TargetContent": "\"                                             <input\\n                                                 type=\\\"text\\\"\\n                                                 value={posSettings.phone || ''}\\n                                                 onChange={e => setPosSettings(prev => ({ ...prev, phone: e.target.value }))}\\n                                                 className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white focus:border-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-slate-400'}`}\\n                                                 placeholder=\\\"e.g. 9906495133\\\"\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating placeholder value in Settings panel in App.jsx\"",
+  "toolSummary": "\"Modify App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix the leftover dangling brackets/parentheses from the target removal in KOT info header toolbar.\"",
+  "EndLine": "10164",
+  "Instruction": "\"Remove leftover tags and brackets.\"",
+  "ReplacementContent": "\"                      {/* Customer Info Header Toolbar */}\\n                      <div className=\\\"flex justify-end gap-3 px-1\\\">\"",
+  "StartLine": "10157",
+  "TargetContent": "\"                      {/* Customer Info Header Toolbar */}\\n                      <div className=\\\"flex justify-end gap-3 px-1\\\">\\n                                 )}\\n                              </div>\\n                            </div>\\n                          )}\\n                        </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Cleaning up KOT info header toolbar syntax\"",
+  "toolSummary": "\"Clean up KOT toolbar syntax\""
+}

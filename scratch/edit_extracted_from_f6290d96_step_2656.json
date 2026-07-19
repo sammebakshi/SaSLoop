@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update Customer Name placeholder with asterisk indicator using user POS access level settings in App.jsx.\"",
+  "EndLine": "10812",
+  "Instruction": "\"Update Customer Name placeholder in App.jsx to use POS Access Level permission settings\"",
+  "ReplacementContent": "\"                           <input\\n                             type=\\\"text\\\"\\n                             id=\\\"customer-name-input\\\"\\n                             placeholder={\\n                               (orderType === 'PICKUP' || orderType === 'DELIVERY') && (\\n                                 (subOrderType === 'DELIVERY' && getStaffPermissions()?.pos_access?.Delivery?.customer_details_mandatory === true) ||\\n                                 (subOrderType !== 'DELIVERY' && getStaffPermissions()?.pos_access?.Pickup?.customer_details_mandatory === true)\\n                               )\\n                                 ? \\\"Customer Name *\\\"\\n                                 : \\\"Customer Name\\\"\\n                             }\"",
+  "StartLine": "10805",
+  "TargetContent": "\"                           <input\\n                             type=\\\"text\\\"\\n                             id=\\\"customer-name-input\\\"\\n                             placeholder={business?.business_details?.settings?.custDetailsMandatoryForPickupDelivery && (orderType === 'PICKUP' || orderType === 'DELIVERY') ? \\\"Customer Name *\\\" : \\\"Customer Name\\\"}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Customer Name placeholder\"",
+  "toolSummary": "\"Edit file\""
+}

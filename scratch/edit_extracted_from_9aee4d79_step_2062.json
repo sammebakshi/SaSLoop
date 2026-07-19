@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert updateOrderPrinterSetting and resolvePrinterConfig helper functions inside App.jsx.\"",
+  "EndLine": "2167",
+  "Instruction": "\"Add helper functions for order-type specific printers.\"",
+  "ReplacementContent": "\"    } catch (err) {\\n      console.error(\\\"Failed to refresh customer history:\\\", err);\\n    }\\n  };\\n\\n  const updateOrderPrinterSetting = (orderTypeKey, jobType, field, value) => {\\n    setPosSettings(prev => {\\n      const printers = { ...(prev.orderPrinters || {}) };\\n      if (!printers[orderTypeKey]) {\\n        printers[orderTypeKey] = {\\n          kot: { enabled: true, name: '', paperSize: 'THERMAL_80MM' },\\n          bill: { enabled: true, name: '', paperSize: 'THERMAL_80MM' }\\n        };\\n      }\\n      printers[orderTypeKey] = {\\n        ...printers[orderTypeKey],\\n        [jobType]: {\\n          ...(printers[orderTypeKey][jobType] || {}),\\n          [field]: value\\n        }\\n      };\\n      return {\\n        ...prev,\\n        orderPrinters: printers\\n      };\\n    });\\n  };\\n\\n  const resolvePrinterConfig = (orderTypeKey, printerJobType) => {\\n    let key = String(orderTypeKey || '').toUpperCase().trim();\\n    if (key.includes('PRE_ORDER') || key.includes('PREORDER')) {\\n      key = 'PRE_ORDER';\\n    } else if (key.includes('DELIVERY')) {\\n      key = 'DELIVERY';\\n    } else if (key.includes('PICKUP')) {\\n      key = 'PICKUP';\\n    } else if (key.includes('QUICK')) {\\n      key = 'QUICK';\\n    } else if (key.includes('DINE_IN') || key.includes('DINEIN')) {\\n      key = 'DINE_IN';\\n    } else {\\n      key = 'DINE_IN';\\n    }\\n\\n    const printers = posSettings.orderPrinters || {};\\n    const configGroup = printers[key] || {};\\n    const jobConfig = configGroup[printerJobType] || {};\\n\\n    return {\\n      enabled: jobConfig.enabled !== false,\\n      name: jobConfig.name || posSettings.printerName || 'Default Thermal Printer',\\n      paperSize: jobConfig.paperSize || posSettings.printerType || 'THERMAL_80MM'\\n    };\\n  };\\n\\n  const compileLedgerData = () => {\"",
+  "StartLine": "2160",
+  "TargetContent": "\"    } catch (err) {\\n      console.error(\\\"Failed to refresh customer history:\\\", err);\\n    }\\n  };\\n\\n  const compileLedgerData = () => {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Injecting helper fns for printer config in App.jsx\"",
+  "toolSummary": "\"Add helper functions\""
+}

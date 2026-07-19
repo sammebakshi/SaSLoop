@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Reset printDetailedBalance when clearing customer details on checkout success in App.jsx\"",
+  "EndLine": "5008",
+  "Instruction": "\"Reset printDetailedBalance to true.\"",
+  "ReplacementContent": "\"      setSelectedCustomer(null);\\n      setPrintDetailedBalance(true);\\n      setKOTNote('');\"",
+  "StartLine": "5006",
+  "TargetContent": "\"      setSelectedCustomer(null);\\n      setKOTNote('');\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Resetting printDetailedBalance on checkout success\"",
+  "toolSummary": "\"Reset printDetailedBalance on checkout success\""
+}

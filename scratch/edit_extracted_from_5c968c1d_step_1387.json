@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove undefined ChangeTableModal component usage in layout.\"",
+  "EndLine": "7586",
+  "Instruction": "\"Remove line 7584 from the file.\"",
+  "ReplacementContent": "\"                              {renderPreOrderTempTables()}\\n                           </div>\"",
+  "StartLine": "7582",
+  "TargetContent": "\"                              {renderPreOrderTempTables()}\\n                              {isChangeTableModalOpen && <ChangeTableModal isOpen={isChangeTableModalOpen} onClose={() => setIsChangeTableModalOpen(false)} />}\\n                           </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Remove undefined component from App.jsx\"",
+  "toolSummary": "\"Replace file content App.jsx\""
+}

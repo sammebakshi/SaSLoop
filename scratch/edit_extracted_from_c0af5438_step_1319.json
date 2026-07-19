@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update the print template header to label the number as Pre-Order No instead of Bill on the pre-order booking receipt.\"",
+  "EndLine": "9357",
+  "Instruction": "\"Update label in print template header.\"",
+  "ReplacementContent": "\"             <div class=\\\"grid-col text-right\\\">\\n               <div>${isBookingReceipt ? 'Pre-Order No' : 'Bill'}: ${billNoDisplay}</div>\\n               <div>Payment: ${paymentMethod} ${order.reference_no ? `(${order.reference_no})` : ''}</div>\"",
+  "StartLine": "9352",
+  "TargetContent": "\"             <div class=\\\"grid-col text-right\\\">\\n               <div>Bill: ${billNoDisplay}</div>\\n               <div>Payment: ${paymentMethod} ${order.reference_no ? `(${order.reference_no})` : ''}</div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating pre-order print header label\"",
+  "toolSummary": "\"File edit\""
+}

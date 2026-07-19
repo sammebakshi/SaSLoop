@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update the printed KOT template to display the selected waiter name instead of a hardcoded Default.\"",
+  "EndLine": "6703",
+  "Instruction": "\"Change Waiter :Default to display the selectedWaiter's name or Default.\"",
+  "ReplacementContent": "\"          <div style=\\\"font-size: 12px; margin-top: 1mm;\\\">\\n            Waiter :${selectedWaiter ? selectedWaiter.name : 'Default'}\\n          </div>\"",
+  "StartLine": "6701",
+  "TargetContent": "\"          <div style=\\\"font-size: 12px; margin-top: 1mm;\\\">\\n            Waiter :Default\\n          </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating printed KOT waiter display\"",
+  "toolSummary": "\"Updating printed KOT waiter display\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add absolute qty updater and mouse press-and-hold repeating interval handlers.\"",
+  "EndLine": "888",
+  "Instruction": "\"Add absolute quantity updater, startQtyChange, and stopQtyChange helper functions.\"",
+  "ReplacementContent": "\"  const updateCartItemQty = (itemId, change) => {\\n    setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity: Math.max(1, (c.quantity || 1) + change) } : c));\\n  };\\n\\n  const updateCartItemQtyAbsolute = (itemId, qty) => {\\n    const cleanQty = Math.max(1, parseInt(qty) || 1);\\n    setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity: cleanQty } : c));\\n  };\\n\\n  const startQtyChange = (itemId, change) => {\\n    stopQtyChange();\\n    updateCartItemQty(itemId, change);\\n    qtyTimeoutRef.current = setTimeout(() => {\\n      qtyIntervalRef.current = setInterval(() => {\\n        updateCartItemQty(itemId, change);\\n      }, 100);\\n    }, 300);\\n  };\\n\\n  const stopQtyChange = () => {\\n    if (qtyTimeoutRef.current) {\\n      clearTimeout(qtyTimeoutRef.current);\\n      qtyTimeoutRef.current = null;\\n    }\\n    if (qtyIntervalRef.current) {\\n      clearInterval(qtyIntervalRef.current);\\n      qtyIntervalRef.current = null;\\n    }\\n  };\"",
+  "StartLine": "884",
+  "TargetContent": "\"  const updateCartItemQty = (itemId, change) => {\\n    setCart(prev => prev.map(c => c.id === itemId ? { ...c, quantity: Math.max(1, (c.quantity || 1) + change) } : c));\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding absolute and continuous quantity updater functions\"",
+  "toolSummary": "\"Replace File Content App.jsx for continuous qty functions\""
+}

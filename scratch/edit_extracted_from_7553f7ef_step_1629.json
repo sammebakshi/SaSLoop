@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Clean up temporary tables on KOT item transfer in App.jsx\"",
+  "EndLine": "7681",
+  "Instruction": "\"Add check to remove temporary tables when all items are transferred in App.jsx.\"",
+  "ReplacementContent": "\"    const activeRemaining = remainingItems.filter(item => !item.isCancelled);\\n    if (activeRemaining.length === 0) {\\n      setTableStatuses(statusPrev => ({ ...statusPrev, [selectedTable.id]: 'AVAILABLE' }));\\n      setTableActiveTimestamps(timePrev => { const n = { ...timePrev }; delete n[selectedTable.id]; return n; });\\n      setTableBillNumbers(numPrev => { const n = { ...numPrev }; delete n[selectedTable.id]; return n; });\\n      releaseTableExtraState(selectedTable.id);\\n      if (selectedTable.is_temporary) {\\n        setTables(prev => prev.filter(t => t.id !== selectedTable.id));\\n      }\\n      setIsOldKOTModalOpen(false);\\n      setSelectedTable(null);\\n    }\"",
+  "StartLine": "7672",
+  "TargetContent": "\"    const activeRemaining = remainingItems.filter(item => !item.isCancelled);\\n    if (activeRemaining.length === 0) {\\n      setTableStatuses(statusPrev => ({ ...statusPrev, [selectedTable.id]: 'AVAILABLE' }));\\n      setTableActiveTimestamps(timePrev => { const n = { ...timePrev }; delete n[selectedTable.id]; return n; });\\n      setTableBillNumbers(numPrev => { const n = { ...numPrev }; delete n[selectedTable.id]; return n; });\\n      releaseTableExtraState(selectedTable.id);\\n      setIsOldKOTModalOpen(false);\\n      setSelectedTable(null);\\n    }\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Update handleOldKOTTransfer\"",
+  "toolSummary": "\"Update handleOldKOTTransfer\""
+}

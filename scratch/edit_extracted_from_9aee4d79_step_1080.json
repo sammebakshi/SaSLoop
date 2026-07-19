@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enforce passcode check on handleSwitchOutlet.\"",
+  "EndLine": "2048",
+  "Instruction": "\"Wrap shift/outlet logic in runSwitch and prompt for authorization when SwitchOutlet.visible_passcode is true.\"",
+  "ReplacementContent": "\"  const handleSwitchOutlet = async (targetId) => {\\n     const runSwitch = async () => {\\n        if (!targetId) {\\n           localStorage.removeItem('pos_active_outlet_id');\\n           setActiveOutletId(null);\\n        } else {\\n           localStorage.setItem('pos_active_outlet_id', String(targetId));\\n           setActiveOutletId(targetId);\\n        }\\n        toast.info(\\\"Switching outlet context and synchronizing database caches...\\\");\\n        try {\\n           await initApp();\\n           toast.success(\\\"Outlet synchronized successfully!\\\");\\n        } catch (err) {\\n           console.error(\\\"Failed to synchronize active outlet app state:\\\", err);\\n           toast.error(\\\"Failed to synchronize active outlet.\\\");\\n        }\\n     };\\n\\n     const isPasscodeRequired = getStaffPermissions()?.pos_access?.SwitchOutlet?.visible_passcode === true;\\n     if (isPasscodeRequired) {\\n        requestPasscodeAuthorization('switch_outlet', runSwitch, null, true);\\n     } else {\\n        runSwitch();\\n     }\\n  };\"",
+  "StartLine": "2032",
+  "TargetContent": "\"  const handleSwitchOutlet = async (targetId) => {\\n     if (!targetId) {\\n        localStorage.removeItem('pos_active_outlet_id');\\n        setActiveOutletId(null);\\n     } else {\\n        localStorage.setItem('pos_active_outlet_id', String(targetId));\\n        setActiveOutletId(targetId);\\n     }\\n     toast.info(\\\"Switching outlet context and synchronizing database caches...\\\");\\n     try {\\n        await initApp();\\n        toast.success(\\\"Outlet synchronized successfully!\\\");\\n     } catch (err) {\\n        console.error(\\\"Failed to synchronize active outlet app state:\\\", err);\\n        toast.error(\\\"Failed to synchronize active outlet.\\\");\\n     }\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Gating outlet switcher with passcode\"",
+  "toolSummary": "\"Gate outlet switcher with passcode\""
+}

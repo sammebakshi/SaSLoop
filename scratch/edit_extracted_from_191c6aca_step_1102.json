@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Wire up sidebar Alerts icon to open the Alerts modal.\"",
+  "EndLine": "10198",
+  "Instruction": "\"Change onClick of notificationIcon to open alerts modal.\"",
+  "ReplacementContent": "\"          <SidebarIcon id=\\\"notificationIcon\\\" isDark={isDark} icon={<Bell size={18} fill=\\\"none\\\" stroke=\\\"currentColor\\\" strokeWidth={2} />} active={isAlertsModalOpen} onClick={() => setIsAlertsModalOpen(true)} label=\\\"Alerts\\\" />\"",
+  "StartLine": "10196",
+  "TargetContent": "\"          <SidebarIcon id=\\\"notificationIcon\\\" isDark={isDark} icon={<Bell size={18} fill=\\\"none\\\" stroke=\\\"currentColor\\\" strokeWidth={2} />} active={false} onClick={() => {}} label=\\\"Alerts\\\" />\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Wiring up sidebar Alerts icon\"",
+  "toolSummary": "\"Wiring up sidebar Alerts icon\""
+}

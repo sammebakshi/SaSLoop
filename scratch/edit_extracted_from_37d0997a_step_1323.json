@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fix getFilteredTablesForCurrentView to not hide pre-order tables in PRE_ORDER mode.\"",
+  "EndLine": "5153",
+  "Instruction": "\"Update getFilteredTablesForCurrentView to support PRE_ORDER and QUICK modes correctly.\"",
+  "ReplacementContent": "\"  const getFilteredTablesForCurrentView = () => {\\n    return tables.filter(t => {\\n      if (orderType === 'DINE_IN') {\\n        if (t.is_temporary && t.original_order_type !== 'DINE_IN') return false;\\n      } else if (orderType === 'PICKUP') {\\n        if (t.is_temporary && t.original_order_type !== 'PICKUP') return false;\\n      } else if (orderType === 'PRE_ORDER') {\\n        if (t.is_temporary && t.original_order_type !== 'PRE_ORDER') return false;\\n      } else {\\n        if (t.is_temporary) return false;\\n      }\\n      if (orderType === 'DINE_IN' && activeDepartment !== 'All') {\\n        if (t.department_name !== activeDepartment) return false;\\n      }\\n      if (tableSearchQuery) {\\n        if (!t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase())) return false;\\n      }\\n      return true;\\n    });\\n  };\"",
+  "StartLine": "5135",
+  "TargetContent": "\"  const getFilteredTablesForCurrentView = () => {\\n    return tables.filter(t => {\\n      if (orderType === 'DINE_IN') {\\n        if (t.is_temporary && t.original_order_type !== 'DINE_IN') return false;\\n      } else if (orderType === 'PICKUP') {\\n        if (t.is_temporary && t.original_order_type !== 'PICKUP') return false;\\n      } else {\\n        if (t.is_temporary && t.original_order_type === 'PRE_ORDER') return false;\\n      }\\n      if (orderType === 'DINE_IN' && activeDepartment !== 'All') {\\n        if (t.department_name !== activeDepartment) return false;\\n      }\\n      if (tableSearchQuery) {\\n        if (!t.table_name.toLowerCase().includes(tableSearchQuery.toLowerCase())) return false;\\n      }\\n      return true;\\n    });\\n  };\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating getFilteredTablesForCurrentView\"",
+  "toolSummary": "\"Update getFilteredTablesForCurrentView\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore correct HTML nesting inside the search bar div.\"",
+  "EndLine": "8431",
+  "Instruction": "\"Remove the early closing div tag on line 8430.\"",
+  "ReplacementContent": "\"                              <div className=\\\"flex items-center gap-1\\\">\\n                                <span className=\\\"text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold\\\">?</span>\"",
+  "StartLine": "8427",
+  "TargetContent": "\"                              <div className=\\\"flex items-center gap-1\\\">\\n                                <span className=\\\"text-[10px] text-white bg-red-500 rounded-full w-5 h-5 flex items-center justify-center font-bold\\\">?</span>\\n                              </div>\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Restoring search controls div nesting in App.jsx\"",
+  "toolSummary": "\"Fix HTML nesting error\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Insert underlined BILL NO block in the thermal receipt simulator view.\"",
+  "EndLine": "18725",
+  "Instruction": "\"Add the underlined BILL NO header block inside the receipt simulator between date and info grid.\"",
+  "ReplacementContent": "\"                            <div className=\\\"text-center text-[8px] text-gray-600 leading-snug mt-1\\\">\\n                               {formatDateTime(previewReceipt.created_at || previewReceipt.timestamp)}\\n                            </div>\\n                         </div>\\n\\n                         <div className=\\\"border-t border-dashed border-black/45 my-1.5\\\"></div>\\n                         <div className=\\\"text-center font-bold text-[10px] uppercase tracking-wider my-0.5 underline\\\">\\n                            BILL NO: {previewReceipt.bill_no || 'TBD'}\\n                         </div>\\n                         <div className=\\\"border-t border-dashed border-black/45 my-1.5\\\"></div>\"",
+  "StartLine": "18717",
+  "TargetContent": "\"                            <div className=\\\"text-center text-[8px] text-gray-600 leading-snug mt-1\\\">\\n                               {formatDateTime(previewReceipt.created_at || previewReceipt.timestamp)}\\n                            </div>\\n                         </div>\\n\\n                         <div className=\\\"border-t border-dashed border-black/45 my-2\\\"></div>\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Inserting BILL NO simulator header\"",
+  "toolSummary": "\"Update receipt simulator header in App.jsx\""
+}

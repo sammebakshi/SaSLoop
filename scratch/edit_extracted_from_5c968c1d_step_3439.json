@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Setting table status to BILL_SAVED on bill save, enabling the settle/payment button without requiring printing.\"",
+  "EndLine": "6165",
+  "Instruction": "\"Change table status to BILL_SAVED when saving a bill\"",
+  "ReplacementContent": "\"    if (selectedTable) {\\n      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'BILL_SAVED' }));\\n      else if (type === 'PRINT') {\"",
+  "StartLine": "6159",
+  "TargetContent": "\"    if (selectedTable) {\\n      if (type === 'SAVE') setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'SAVED' }));\\n      else if (type === 'PRINT') {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating table status on bill save\"",
+  "toolSummary": "\"Edit App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove duplicate Receipt import on line 7 in App.jsx.\"",
+  "EndLine": "10",
+  "Instruction": "\"Remove Receipt from imports on line 7.\"",
+  "ReplacementContent": "\"  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText, Layers,\"",
+  "StartLine": "5",
+  "TargetContent": "\"  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText, Receipt, Layers,\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing duplicate Receipt import in App.jsx\"",
+  "toolSummary": "\"Remove duplicate import\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add serverIp to stats initial state.\"",
+  "EndLine": "2439",
+  "Instruction": "\"Add serverIp: '127.0.0.1' to the stats initial state.\"",
+  "ReplacementContent": "\"    cancelledDigitalSales: 0, cancelledDigitalCount: 0,\\n    totalTaxOnline: 0,\\n    totalDiscountOnline: 0,\\n    serverIp: '127.0.0.1'\\n  });\"",
+  "StartLine": "2436",
+  "TargetContent": "\"    cancelledDigitalSales: 0, cancelledDigitalCount: 0,\\n    totalTaxOnline: 0,\\n    totalDiscountOnline: 0\\n  });\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding serverIp to initial stats state\"",
+  "toolSummary": "\"Edit file\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add useEffect hook in App.jsx to load printers list from Electron.\"",
+  "EndLine": "4092",
+  "Instruction": "\"Add useEffect to load printer names from electron via IPC.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\\n\\n  useEffect(() => {\\n    if (window.require) {\\n      try {\\n        const { ipcRenderer } = window.require('electron');\\n        ipcRenderer.invoke('get-printers')\\n          .then(printers => {\\n            if (Array.isArray(printers) && printers.length > 0) {\\n              const mapped = printers.map((p, idx) => ({\\n                name: p.name,\\n                id: `printer_${idx}_${p.name.replace(/\\\\s+/g, '_')}`\\n              }));\\n              setAvailablePrinters(mapped);\\n            }\\n          })\\n          .catch(err => {\\n            console.error('[React] Error fetching printer list:', err);\\n          });\\n      } catch (err) {\\n        console.warn('[React] Electron ipcRenderer not available:', err);\\n      }\\n    }\\n  }, []);\"",
+  "StartLine": "4089",
+  "TargetContent": "\"  useEffect(() => {\\n    localStorage.setItem('pos_terminal_settings', JSON.stringify(posSettings));\\n  }, [posSettings]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding useEffect to App.jsx\"",
+  "toolSummary": "\"Add useEffect to load printers list in App.jsx\""
+}

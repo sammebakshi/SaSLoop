@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add printDetailedBalance to tableCustomers observer useEffect in App.jsx\"",
+  "EndLine": "4739",
+  "Instruction": "\"Include printDetailedBalance in tableCustomers state syncer.\"",
+  "ReplacementContent": "\"  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode,\\n          printDetailedBalance\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode,\\n    printDetailedBalance\\n  ]);\"",
+  "StartLine": "4712",
+  "TargetContent": "\"  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\\n        ...prev,\\n        [selectedTable.id]: {\\n          customerCountryCode,\\n          customerPhone,\\n          customerName,\\n          customerAddress,\\n          selectedCustomer,\\n          redeemedPoints,\\n          appliedCoupon,\\n          couponCode\\n        }\\n      }));\\n    }\\n  }, [\\n    selectedTable,\\n    customerCountryCode,\\n    customerPhone,\\n    customerName,\\n    customerAddress,\\n    selectedCustomer,\\n    redeemedPoints,\\n    appliedCoupon,\\n    couponCode\\n  ]);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding printDetailedBalance state observer in useEffect\"",
+  "toolSummary": "\"Add printDetailedBalance state observer in useEffect\""
+}

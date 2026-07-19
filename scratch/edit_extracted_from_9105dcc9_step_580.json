@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add isResettingRef and guard tableCustomers sync useEffect.\"",
+  "EndLine": "5035",
+  "Instruction": "\"Declare isResettingRef and guard tableCustomers sync useEffect with it.\"",
+  "ReplacementContent": "\"  const isFirstFetchRef = useRef(true);\\n  const isResettingRef = useRef(false);\\n  const activeTabRef = useRef(activeTab);\\n  activeTabRef.current = activeTab;\\n\\n  const [tableCustomers, setTableCustomers] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_customers');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current && !isResettingRef.current) {\\n      setTableCustomers(prev => ({\"",
+  "StartLine": "5020",
+  "TargetContent": "\"  const isFirstFetchRef = useRef(true);\\n  const activeTabRef = useRef(activeTab);\\n  activeTabRef.current = activeTab;\\n\\n  const [tableCustomers, setTableCustomers] = useState(() => {\\n    try {\\n      const saved = localStorage.getItem('pos_table_customers');\\n      return saved ? JSON.parse(saved) : {};\\n    } catch (e) { return {}; }\\n  });\\n\\n  useEffect(() => {\\n    if (selectedTable && !isRestoringCustomerRef.current) {\\n      setTableCustomers(prev => ({\"",
+  "TargetFile": "\"c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx\"",
+  "toolAction": "\"Adding isResettingRef and guarding tableCustomers sync useEffect\"",
+  "toolSummary": "\"Edit App.jsx to add isResettingRef and guard tableCustomers sync\""
+}

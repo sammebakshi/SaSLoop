@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Extract pre-order scheduled date and time in handlePrint\"",
+  "EndLine": "7061",
+  "Instruction": "\"Extract scheduledDate and scheduledTime from order object\"",
+  "ReplacementContent": "\"    // Normalize customer details\\n    const customerName = order.customer_name || 'POS Guest';\\n    const customerPhone = order.customer_phone || order.customer_number || '';\\n    const customerAddress = order.address || order.customer_address || '';\\n\\n    // Normalize pre-order schedule details\\n    const scheduledDate = order.scheduled_date || order.pre_order_scheduled_date || '';\\n    const scheduledTime = order.scheduled_time || order.pre_order_scheduled_time || '';\\n\"",
+  "StartLine": "7056",
+  "TargetContent": "\"    // Normalize customer details\\n    const customerName = order.customer_name || 'POS Guest';\\n    const customerPhone = order.customer_phone || order.customer_number || '';\\n    const customerAddress = order.address || order.customer_address || '';\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Extracting pre-order scheduled fields in handlePrint\"",
+  "toolSummary": "\"Extract scheduledDate and scheduledTime in handlePrint\""
+}

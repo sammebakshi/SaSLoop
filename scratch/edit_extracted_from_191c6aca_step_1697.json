@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Fetch table departments and table customers in online initApp flow.\"",
+  "EndLine": "6755",
+  "Instruction": "\"Add API fetches for table departments and table customers.\"",
+  "ReplacementContent": "\"      }\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load POS active state:\\\", e);\\n    }\\n\\n    const outletIdToPass = biz.user_id || biz.parent_user_id || biz.id;\\n\\n    // Fetch Table Departments\\n    try {\\n      const deptRes = await posService.getTableDepartments(outletIdToPass);\\n      setTableDepartments(deptRes.data || []);\\n      localStorage.setItem('pos_table_departments', JSON.stringify(deptRes.data || []));\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load table departments:\\\", e);\\n    }\\n\\n    // Fetch Table Customers\\n    try {\\n      const tableCustomersRes = await posService.getTableCustomers(outletIdToPass);\\n      setTableCustomers(tableCustomersRes.data || []);\\n      localStorage.setItem('pos_table_customers', JSON.stringify(tableCustomersRes.data || []));\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load table customers:\\\", e);\\n    }\\n\\n    // 5. Fetch Taxes\\n    try {\"",
+  "StartLine": "6745",
+  "TargetContent": "\"      }\\n    } catch (e) {\\n      console.warn(\\\"initApp - Failed to load POS active state:\\\", e);\\n    }\\n\\n    const outletIdToPass = biz.user_id || biz.parent_user_id || biz.id;\\n\\n    // 5. Fetch Taxes\\n    try {\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding table departments and table customers online fetching to initApp\"",
+  "toolSummary": "\"Adding table departments and table customers online fetching to initApp\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add Bike, FileX, and FileCheck icons from lucide-react\"",
+  "EndLine": "11",
+  "Instruction": "\"Add Bike, FileX, and FileCheck to imports list\"",
+  "ReplacementContent": "\"import { \\n  ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Upload, MessageSquare,\\n  LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar, \\n  RefreshCcw, Package, Truck, ShoppingBag, Zap as QuickIcon,\\n  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key,\\n  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText,\\n  Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight,\\n  Users, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,\\n  Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck\\n} from 'lucide-react';\"",
+  "StartLine": "1",
+  "TargetContent": "\"import { \\n  ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Upload, MessageSquare,\\n  LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar, \\n  RefreshCcw, Package, Truck, ShoppingBag, Zap as QuickIcon,\\n  Printer, Save, CheckCircle, Globe, QrCode, List, Bell, Monitor, LayoutGrid, Sliders, Key,\\n  BarChart3, Store, PieChart, Activity, WifiOff, CreditCard, FileText,\\n  Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight,\\n  Users, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,\\n  Coffee, Wallet, BellRing, DollarSign\\n} from 'lucide-react';\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding imports in App.jsx\"",
+  "toolSummary": "\"Add imports to App.jsx\""
+}

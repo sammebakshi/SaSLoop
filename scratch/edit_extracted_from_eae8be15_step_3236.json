@@ -1,0 +1,10 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add customer_number to newOrder payload in handleCheckout\"",
+  "EndLine": "1835",
+  "Instruction": "\"Add customer_number: customerPhone to newOrder.\"",
+  "ReplacementContent": "\"    const newOrder = { \\n      id: orderId, \\n      customer_name: customerName || \\\"POS Guest\\\", \\n      customer_phone: customerPhone, \\n      customer_number: customerPhone, \\n      address: customerAddress || \\\"\\\",\"",
+  "StartLine": "1828",
+  "TargetContent": "\"    const newOrder = { \\n      id: orderId, \\n      customer_name: customerName || \\\"POS Guest\\\", \\n      customer_phone: customerPhone, \\n      address: customerAddress || \\\"\\\",\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
+}

@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Pass pre-order details as extraDetails to handlePrintKOT reprint in App.jsx\"",
+  "EndLine": "12683",
+  "Instruction": "\"Update the Print KOT button inside order view history to pass pre-order extraDetails\"",
+  "ReplacementContent": "\"                              <button\\n                                onClick={() => {\\n                                  const extraDetails = (order.pre_order_id || order.scheduled_date || order.pre_order_scheduled_date) ? {\\n                                    isPreOrder: true,\\n                                    scheduledDate: order.scheduled_date || order.pre_order_scheduled_date,\\n                                    scheduledTime: order.scheduled_time || order.pre_order_scheduled_time,\\n                                    customerName: order.customer_name,\\n                                    customerPhone: order.customer_number || order.customer_phone\\n                                  } : null;\\n                                  handlePrintKOT(orderItems, order.table_number || 'Digital', order.bill_no, 'NEW', extraDetails);\\n                                }}\\n                                className=\\\"flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer\\\"\\n                              >\\n                                Print KOT\\n                              </button>\\n\"",
+  "StartLine": "12678",
+  "TargetContent": "\"                              <button\\n                                onClick={() => handlePrintKOT(orderItems, order.table_number || 'Digital', order.bill_no)}\\n                                className=\\\"flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer\\\"\\n                              >\\n                                Print KOT\\n                              </button>\\n\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding extraDetails to reprint handlePrintKOT call\"",
+  "toolSummary": "\"Pass pre-order metadata to reprint KOT\""
+}

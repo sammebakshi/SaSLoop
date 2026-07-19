@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Add coupon_code property to newOrder payload on checkout\"",
+  "EndLine": "6621",
+  "Instruction": "\"Insert coupon_code inside newOrder object construction\"",
+  "ReplacementContent": "\"      pre_order_scheduled_date: editingPreOrder ? editingPreOrder.scheduled_date : null,\\n      pre_order_scheduled_time: editingPreOrder ? editingPreOrder.scheduled_time : null,\\n      coupon_code: appliedCoupon ? appliedCoupon.coupon_code : null,\\n      paid_amount: method === 'SPLIT'\"",
+  "StartLine": "6610",
+  "TargetContent": "\"      pre_order_scheduled_date: editingPreOrder ? editingPreOrder.scheduled_date : null,\\n      pre_order_scheduled_time: editingPreOrder ? editingPreOrder.scheduled_time : null,\\n      paid_amount: method === 'SPLIT'\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Adding coupon_code field to newOrder object in App.jsx\"",
+  "toolSummary": "\"Edit newOrder object in App.jsx\""
+}

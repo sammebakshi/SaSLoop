@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Update handleUpdateOrderStatus in App.jsx to accept rejectionReason parameter and pass it to posService.\"",
+  "EndLine": "5506",
+  "Instruction": "\"Update function signature and service call to include rejectionReason.\"",
+  "ReplacementContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus, rejectionReason) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus, rejectionReason);\\n      toast.success(`Order status updated to ${newStatus}`);\"",
+  "StartLine": "5503",
+  "TargetContent": "\"  const handleUpdateOrderStatus = async (orderId, newStatus) => {\\n    try {\\n      await posService.updateOrderStatus(orderId, newStatus);\\n      toast.success(`Order status updated to ${newStatus}`);\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Modifying handleUpdateOrderStatus signature in App.jsx\"",
+  "toolSummary": "\"Replace file content\""
+}

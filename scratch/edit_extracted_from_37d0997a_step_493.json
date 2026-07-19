@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Enable the middle Action Bar in combined view (Tables + Menu on one page) for all order types.\"",
+  "EndLine": "10511",
+  "Instruction": "\"Change {orderType === 'DINE_IN' && ( to {true && ( under the Action Bar comment.\"",
+  "ReplacementContent": "\"                           </div>\\n                        )}\\n\\n                        {/* Action Bar (in between tables and menu) */}\\n                        {true && (\\n                           <div className={`h-10 border-b flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>\"",
+  "StartLine": "10505",
+  "TargetContent": "\"                           </div>\\n                        )}\\n\\n                        {/* Action Bar (in between tables and menu) */}\\n                        {orderType === 'DINE_IN' && (\\n                           <div className={`h-10 border-b flex items-center px-2 gap-1.5 shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-[#f8f9fa]'}`}>\"",
+  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Updating Action Bar condition to true\"",
+  "toolSummary": "\"Update App.jsx Action Bar render condition\""
+}

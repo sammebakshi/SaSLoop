@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Remove extra container padding and gaps from split-view tables list.\"",
+  "EndLine": "6052",
+  "Instruction": "\"Change split-view tables parent padding to p-1 and grid gap to gap-1.\"",
+  "ReplacementContent": "\"                              {/* Tables Grid */}\\n                              <div className=\\\"flex-1 overflow-y-auto p-1 no-scrollbar\\\">\\n                                <div className=\\\"grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-1\\\">\"",
+  "StartLine": "6047",
+  "TargetContent": "\"                              {/* Tables Grid */}\\n                              <div className=\\\"flex-1 overflow-y-auto p-2 no-scrollbar\\\">\\n                                <div className=\\\"grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2\\\">\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Removing split-view tables container extra padding\"",
+  "toolSummary": "\"Replace File Content App.jsx for split-view container padding\""
+}

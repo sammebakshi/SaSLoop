@@ -1,0 +1,9 @@
+{
+  "ArtifactMetadata": "{\"ArtifactType\":\"other\",\"RequestFeedback\":false,\"Summary\":\"Fix JSX closing tag nesting errors in App.jsx.\"}",
+  "Description": "\"Realign the closing div tags for the !isAuthenticated and shift.status === 'NOT_STARTED' return blocks to fix JSX compiler issues.\"",
+  "Instruction": "\"Fix JSX syntax errors by correctly matching open/close tags.\"",
+  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":7077,\"ReplacementContent\":\"          </div>\\n        </div>\\n      </div>\\n    </div>\\n    );\\n  }\",\"StartLine\":7071,\"TargetContent\":\"          </div>\\n        </div>\\n      </div>\\n    );\\n  }\"},{\"AllowMultiple\":false,\"EndLine\":7108,\"ReplacementContent\":\"        </div>\\n     );\\n  }\",\"StartLine\":7103,\"TargetContent\":\"        </div>\\n      </div>\\n     );\\n  }\"}]",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fix JSX closing tags nesting in App.jsx\"",
+  "toolSummary": "\"Fix JSX nesting in App.jsx\""
+}

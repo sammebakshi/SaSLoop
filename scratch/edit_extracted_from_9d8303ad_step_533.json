@@ -1,0 +1,12 @@
+{
+  "AllowMultiple": "false",
+  "Description": "\"Restore truncated JSX tags for manage-balances view in App.jsx.\"",
+  "EndLine": "8522",
+  "Instruction": "\"Restore the table cells, body, and division wraps for the manage-balances component.\"",
+  "ReplacementContent": "\"                                        <tr>\\n                                           <td colSpan=\\\"4\\\" className={`p-12 text-center ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>\\n                                              No matching customers found.\\n                                           </td>\\n                                        </tr>\\n                                     )}\\n                                  </tbody>\\n                               </table>\\n                            </div>\\n                         </>\\n                      )}\\n                   </div>\\n                </motion.div>\\n             )}\"",
+  "StartLine": "8520",
+  "TargetContent": "\"                                        <tr>\\n                </motion.div>\\n             )}\"",
+  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
+  "toolAction": "\"Fixing truncated JSX tags\"",
+  "toolSummary": "\"Fixing truncated JSX tags\""
+}
