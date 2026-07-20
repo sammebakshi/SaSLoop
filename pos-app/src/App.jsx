@@ -10914,6 +10914,7 @@ const UniversalPOS = () => {
             <button
               type="button"
               onClick={() => {
+                setIsCloseConfirmModalOpen(true);
                 try {
                   const { ipcRenderer } = window.require('electron');
                   ipcRenderer.send('window-close');
@@ -11268,6 +11269,7 @@ const UniversalPOS = () => {
                </motion.div>
              )}
            </AnimatePresence>
+           {renderCloseConfirmModal()}
         </div>
      );
   }
