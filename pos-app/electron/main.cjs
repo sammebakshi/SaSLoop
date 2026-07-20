@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 // Detect if running in Terminal mode
@@ -207,17 +207,21 @@ let mainWindow = null;
 let splashWindow = null;
 
 function createWindow() {
-  // Create Splash Screen Window (Frameless, Transparent, Centered with custom dimensions)
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width: screenWidth, height: screenHeight } = primaryDisplay.bounds;
+
+  // Create Splash Screen Window (Full Display, Frameless, Transparent)
   splashWindow = new BrowserWindow({
-    width: 640,
-    height: 740,
+    width: screenWidth,
+    height: screenHeight,
+    x: 0,
+    y: 0,
     frame: false,
     transparent: true,
     alwaysOnTop: true,
     resizable: false,
     show: false,
-    center: true,
-    hasShadow: true,
+    hasShadow: false,
     skipTaskbar: true,
     webPreferences: {
       nodeIntegration: true,

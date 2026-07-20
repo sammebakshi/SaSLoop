@@ -1,4 +1,9 @@
-<!DOCTYPE html>
+const fs = require('fs');
+const path = require('path');
+
+const splashPath = path.join(__dirname, '..', 'pos-app', 'public', 'splash.html');
+
+const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -528,3 +533,7 @@
   </script>
 </body>
 </html>
+`;
+
+fs.writeFileSync(splashPath, htmlContent, 'utf8');
+console.log("🎉 Successfully updated splash.html with full screen transparent design!");
