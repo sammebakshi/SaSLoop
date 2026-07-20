@@ -185,9 +185,18 @@ ipcMain.on('window-maximize', (event) => {
   }
 });
 
+let isForceClosing = false;
+
 ipcMain.on('window-close', (event) => {
   const win = BrowserWindow.fromWebContents(event.sender);
-  if (win) win.close();
+  if (win) {
+    win.webContents.send('trigger-close-confirmation');
+  }
+});
+
+ipcMain.on('force-close-app', () => {
+  isForceClosing = true;
+  app.quit();
 });
 
 ipcMain.handle('is-terminal-mode', () => {
@@ -271,6 +280,14 @@ function createWindow() {
   });
   win.on('unmaximize', () => {
     win.webContents.send('window-state-changed', { isMaximized: false });
+  });
+  win.on('close', (e) => {
+    if (!isForceClosing) {
+      e.preventDefault();
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('trigger-close-confirmation');
+      }
+    }
   });
 
   // Coordination helper to transition from splash to main window
