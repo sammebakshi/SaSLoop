@@ -1579,10 +1579,10 @@ router.get("/outlet-all-items", authMiddleware, async (req, res) => {
     `;
     const params = [];
     if (outlet_id && outlet_id !== 'global' && outlet_id !== 'null' && outlet_id !== 'undefined') {
-      query += " WHERE m.outlet_id = $1";
+      query += " WHERE (m.outlet_id = $1 OR m.user_id = $1) AND m.is_pos_default = true";
       params.push(outlet_id);
     } else {
-      query += " WHERE m.user_id = $1 AND m.outlet_id IS NULL";
+      query += " WHERE m.user_id = $1 AND m.is_pos_default = true";
       params.push(ownerId);
     }
     query += " ORDER BY omi.id ASC";
