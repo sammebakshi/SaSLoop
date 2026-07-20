@@ -21724,18 +21724,37 @@ const UniversalPOS = () => {
             </motion.div>
           </motion.div>
         )}
+         </AnimatePresence>
 
            {isSettingsModalOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/80 backdrop-blur-sm">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-[820px] max-w-[95vw] max-h-[90vh] rounded-[2rem] overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                    {/* Header */}
-                    <div className={`p-6 flex justify-between items-center shrink-0 border-b ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                       <div>
-                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Settings className="text-[#10ac84]" size={22}/> Terminal Settings</h3>
-                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Configure terminal preferences and printer layouts</p>
-                       </div>
-                       <button onClick={() => setIsSettingsModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
-                    </div>
+              <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                  <div className={`w-[820px] max-w-[95vw] h-[85vh] rounded-3xl overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                     {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Settings className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Terminal Settings</span>
+                        </div>
+                        <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden lg:block">
+                           Configure terminal preferences and printer layouts
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => {
+                                 setIsSettingsModalOpen(false);
+                                 setSettingsActiveTab('general');
+                              }}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
+                     </div>
 
                     {/* Tab Headers */}
                     <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'} overflow-x-auto no-scrollbar`}>
@@ -23160,23 +23179,34 @@ const UniversalPOS = () => {
                               </div>
                            </div>
                         )}
+                      </div>
+                     {/* Footer */}
+                     <div className={`px-5 py-3 border-t flex justify-end items-center gap-3 shrink-0 ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                        <button
+                           onClick={() => {
+                              setIsSettingsModalOpen(false);
+                              setSettingsActiveTab('general');
+                           }}
+                           className={`px-5 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 border ${
+                              isDark ? 'border-[#30363d] text-slate-300 hover:bg-[#1f2937]' : 'border-slate-200 text-slate-600 hover:bg-slate-100'
+                           }`}
+                        >
+                           Cancel
+                        </button>
+                        <button
+                           onClick={() => {
+                              toast.success("Settings Saved!");
+                              setIsSettingsModalOpen(false);
+                              setSettingsActiveTab('general');
+                           }}
+                           className="px-6 py-2 bg-[#18ba60] hover:bg-[#15a855] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all active:scale-95 shadow-md"
+                        >
+                           Save & Close
+                        </button>
                      </div>
-                    {/* Footer */}
-                    <div className={`p-4 border-t flex justify-end items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#f8f9fa] border-slate-200'}`}>
-                       <button
-                          onClick={() => {
-                             toast.success("Settings Saved!");
-                             setIsSettingsModalOpen(false);
-                          }}
-                          className="px-6 py-2 bg-[#10ac84] hover:bg-[#0e9a75] text-white rounded-lg text-[10px] font-black uppercase transition-all active:scale-95 shadow-md"
-                       >
-                          Save & Close
-                       </button>
-                    </div>
-                 </motion.div>
-              </motion.div>
-           )}
-        </AnimatePresence>
+                  </div>
+               </div>
+            )}
 
 
 
