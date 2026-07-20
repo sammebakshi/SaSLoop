@@ -15,19 +15,34 @@
   }
 }
 
-/* Custom Scrollbar for the Terminal */
+/* Custom Global Green & Grey Scrollbar for the Entire App */
 ::-webkit-scrollbar {
-  width: 6px;
+  width: 7px;
+  height: 7px;
 }
 ::-webkit-scrollbar-track {
-  background: #0f172a;
+  background: #1e293b;
+  border-radius: 9999px;
+}
+.light ::-webkit-scrollbar-track,
+body.light ::-webkit-scrollbar-track {
+  background: #e2e8f0;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 10px;
+  background: #18ba60;
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #15a353;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #18ba60 #1e293b;
+}
+.light *,
+body.light * {
+  scrollbar-color: #18ba60 #e2e8f0;
 }
 
 /* Light Mode Overrides for Hardcoded Dark Classes */
