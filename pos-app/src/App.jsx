@@ -10914,13 +10914,15 @@ const UniversalPOS = () => {
             <button
               type="button"
               onClick={() => {
+                console.log("[CLOSE-BTN] Login page X button clicked");
                 setIsCloseConfirmModalOpen(true);
                 try {
                   const { ipcRenderer } = window.require('electron');
                   ipcRenderer.send('window-close');
                 } catch (e) { console.warn("Window control only available in desktop app"); }
               }}
-              className="w-12 h-full flex items-center justify-center transition-colors hover:bg-rose-600 text-slate-400 hover:text-white"
+              style={{ WebkitAppRegion: 'no-drag' }}
+              className="w-12 h-full flex items-center justify-center transition-colors hover:bg-rose-600 text-slate-400 hover:text-white cursor-pointer relative z-50"
               title="Close"
             >
               <X size={14} strokeWidth={2.5} />
