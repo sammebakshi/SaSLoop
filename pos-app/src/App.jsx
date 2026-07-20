@@ -10862,14 +10862,44 @@ const UniversalPOS = () => {
       <div className="h-screen w-screen flex items-center justify-center bg-[#0d1117] select-none relative overflow-hidden">
         <ChatAnimationBackground />
         <InitialSplashScreen />
-        {renderCloseConfirmModal()}
+        
+        {/* iPhone Style Theme Toggle Switch in Bottom Right */}
+        <div className="fixed bottom-5 right-6 z-50 flex items-center gap-2 select-none" style={{ WebkitAppRegion: 'no-drag' }}>
+          <button
+            type="button"
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            className={`w-16 h-8 rounded-full p-1 transition-all duration-300 flex items-center relative cursor-pointer border shadow-lg ${
+              isDark 
+                ? 'bg-[#161b22] border-[#30363d] shadow-black/60' 
+                : 'bg-slate-200 border-slate-300 shadow-slate-300/50'
+            }`}
+            title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
+          >
+            <div className="w-full flex justify-between items-center px-1 pointer-events-none">
+              <Sun size={13} className={`transition-all duration-300 ${!isDark ? 'text-amber-500 opacity-100 scale-100' : 'opacity-30 scale-75'}`} />
+              <Moon size={13} className={`transition-all duration-300 ${isDark ? 'text-blue-400 opacity-100 scale-100' : 'opacity-30 scale-75'}`} />
+            </div>
+            <div
+              className={`absolute top-0.5 w-7 h-7 rounded-full shadow-md flex items-center justify-center transition-all duration-300 ease-out transform ${
+                isDark ? 'translate-x-8 bg-[#21262d] text-blue-400 border border-[#30363d]' : 'translate-x-0 bg-white text-amber-500 border border-slate-200'
+              }`}
+            >
+              {isDark ? (
+                <Moon size={12} strokeWidth={2.5} className="text-blue-400 fill-blue-400/20" />
+              ) : (
+                <Sun size={12} strokeWidth={2.5} className="text-amber-500 fill-amber-500/20" />
+              )}
+            </div>
+          </button>
+        </div>
+      {renderCloseConfirmModal()}
       </div>
     );
   }
 
   if (!isAuthenticated) {
     return (
-      <div className="h-screen flex flex-col font-sans bg-slate-50 relative select-none">
+      <div className={`h-screen flex flex-col font-sans relative select-none transition-colors duration-300 ${isDark ? 'bg-[#0d1117] text-white' : 'bg-slate-50 text-slate-800'}`}>
         {/* Custom titlebar on Login Page */}
         <div
           className="h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 bg-[#0d1117] border-slate-800 relative select-none w-full"
@@ -10929,7 +10959,7 @@ const UniversalPOS = () => {
         </div>
 
         {/* Split Screen Login Page */}
-        <div className="flex-1 flex flex-row relative overflow-hidden bg-slate-50">
+        <div className={`flex-1 flex flex-row relative overflow-hidden transition-colors duration-300 ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
           {/* Seamless Honeycomb Pattern Overlay covering the full screen */}
           <div 
             className="absolute inset-0 opacity-[0.32] pointer-events-none z-0" 
@@ -10940,7 +10970,7 @@ const UniversalPOS = () => {
           />
           
           {/* Left panel: Large Vector Slideshow & Company Intro */}
-          <div className="hidden lg:flex lg:w-1/2 h-full flex-col items-center justify-between p-10 bg-transparent relative overflow-y-auto border-r border-slate-100 select-none z-10">
+          <div className={`hidden lg:flex lg:w-1/2 h-full flex-col items-center justify-between p-10 bg-transparent relative overflow-y-auto border-r select-none z-10 transition-colors duration-300 ${isDark ? 'border-[#30363d] text-white' : 'border-slate-100 text-slate-800'}`}>
             <div className="flex-1 w-full flex items-center justify-center relative">
               <LoginSlideshow />
             </div>
@@ -10948,14 +10978,14 @@ const UniversalPOS = () => {
             {/* Company Introduction Section */}
             <div className="w-full max-w-[560px] border-t border-slate-200/80 pt-6 mt-6 text-center mx-auto relative">
               <h3 
-                className="text-[11px] font-black text-slate-800 uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5 text-outline-white"
+                className={`text-[11px] font-black uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-800'}`}
               >
                 <span className="w-1.5 h-1.5 bg-[#18ba60] rounded-full"></span>
                 SaSLoop Technologies
                 <span className="w-1.5 h-1.5 bg-[#18ba60] rounded-full"></span>
               </h3>
               <p 
-                className="text-[11.5px] text-slate-600 font-semibold leading-relaxed text-outline-white-sm"
+                className={`text-[11.5px] font-semibold leading-relaxed ${isDark ? 'text-gray-300' : 'text-slate-600'}`}
               >
                 SaSLoop is a state-of-the-art enterprise solution designed for the modern hospitality and retail sectors. We combine high-speed billing, smart KOT routing, automatic WhatsApp notifications, live analytics, and real-time inventory management into a single, unified, offline-first ecosystem.
               </p>
@@ -10967,7 +10997,7 @@ const UniversalPOS = () => {
             <ToastContainer theme="light" position="bottom-left" />
 
         {/* Login Card */}
-        <div className="w-full max-w-[400px] sm:max-w-[420px] bg-white rounded-[2rem] login-card-shadow border border-slate-200/80 relative z-10 overflow-hidden mx-2">
+        <div className={`w-full max-w-[400px] sm:max-w-[420px] rounded-[2rem] login-card-shadow border relative z-10 overflow-hidden mx-2 transition-all duration-300 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white shadow-black/50' : 'bg-white border-slate-200/80 text-slate-800 shadow-xl'}`}>
 
           {/* Top Decorative Header */}
           <div className="h-32 bg-gradient-to-br from-[#0d1117] to-[#1c4934] relative flex items-center justify-center overflow-hidden">
@@ -10986,7 +11016,7 @@ const UniversalPOS = () => {
           {/* Form Container */}
           <div className="p-8 pb-10">
             <div className="text-center mb-6">
-              <h2 className="text-xl font-bold text-slate-800">
+              <h2 className={`text-xl font-bold ${isDark ? 'text-white' : 'text-slate-800'}`}>
                 {isTerminalMode ? "SaSLoop POS Terminal Login" : "Master Pos Login"}
               </h2>
             </div>
@@ -10998,7 +11028,7 @@ const UniversalPOS = () => {
                   <User className="w-5 h-5" />
                 </div>
                 <input
-                  className="w-full py-4 pl-12 pr-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  className={`w-full py-4 pl-12 pr-4 border rounded-2xl outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all shadow-inner ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white placeholder:text-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
                   placeholder="Email or Username"
                   value={username}
                   onChange={e => setUsername(e.target.value)}
@@ -11013,7 +11043,7 @@ const UniversalPOS = () => {
                   <Lock className="w-5 h-5" />
                 </div>
                 <input
-                  className="w-full py-4 pl-12 pr-12 bg-slate-50 border border-slate-200 rounded-2xl text-slate-800 outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400 shadow-inner"
+                  className={`w-full py-4 pl-12 pr-12 border rounded-2xl outline-none text-sm font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all shadow-inner ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white placeholder:text-gray-500' : 'bg-slate-50 border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
                   value={password}
@@ -11032,7 +11062,7 @@ const UniversalPOS = () => {
 
               {/* Master POS IP Input for Terminals */}
               {isTerminalMode && (
-                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 text-left">
+                <div className={`p-4 border rounded-2xl space-y-2 text-left ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
                   <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Master POS Connection Settings</label>
                   <div className="flex gap-2">
                     <div className="relative flex-1 group">
@@ -11040,7 +11070,7 @@ const UniversalPOS = () => {
                         <Globe className="w-4 h-4" />
                       </div>
                       <input
-                        className="w-full py-2.5 pl-10 pr-3 bg-white border border-slate-200 rounded-xl text-slate-800 outline-none text-xs font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all placeholder:text-slate-400"
+                        className={`w-full py-2.5 pl-10 pr-3 border rounded-xl outline-none text-xs font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder:text-gray-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
                         placeholder="Master PC IP (e.g. 192.168.1.50)"
                         value={masterIp}
                         onChange={e => setMasterIp(e.target.value)}
@@ -11099,7 +11129,7 @@ const UniversalPOS = () => {
           </div>
 
           {/* Footer */}
-          <div className="bg-slate-50 border-t border-slate-100 text-center flex flex-col gap-2 px-6 py-4">
+          <div className={`border-t text-center flex flex-col gap-2 px-6 py-4 transition-colors ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-100'}`}>
               <div className="flex justify-between items-center w-full">
                   <p className="text-[10px] text-slate-500 font-bold">
                     {isTerminalMode ? "SaSLoop POS Terminal v1.0.1" : "SaSLoop Master POS v1.0.1"}
