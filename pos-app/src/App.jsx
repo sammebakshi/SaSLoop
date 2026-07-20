@@ -11019,24 +11019,26 @@ const UniversalPOS = () => {
                    initial={{ scale: 0.95, y: 20 }}
                    animate={{ scale: 1, y: 0 }}
                    exit={{ scale: 0.95, y: 20 }}
-                   className={`w-full max-w-md rounded-2xl overflow-hidden shadow-2xl border flex flex-col bg-[#0d1117] border-[#30363d] text-white`}
+                   className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col transition-all bg-[#0d1117] border-[#30363d] text-white`}
                  >
-                   {/* Header */}
-                   <div className="p-5 border-b flex justify-between items-center shrink-0 bg-[#161b22] border-[#30363d]">
-                     <div className="flex items-center gap-2">
-                       <LogOut className="text-red-500" size={20} />
-                       <h3 className="text-sm font-black uppercase italic tracking-tighter">Confirm Logout</h3>
-                     </div>
-                     <button
-                       onClick={() => {
-                         setLogoutModalStep(null);
-                         setClearLocalDataChecked(false);
-                       }}
-                       className="p-1.5 rounded-lg transition-all text-xs hover:bg-white/10 text-gray-400 hover:text-white"
-                     >
-                       ✕
-                     </button>
-                   </div>
+                   {/* UDM Title Bar */}
+                    <div className="h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full bg-[#0d1117] border-[#30363d] text-white">
+                      <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <LogOut className="text-rose-500" size={14} />
+                        <span className="text-white">SaSLoop</span>
+                        <span className="text-rose-500">Confirm Logout</span>
+                      </div>
+                      <div className="flex items-center h-full">
+                        <button
+                          type="button"
+                          onClick={() => setLogoutModalStep(null)}
+                          className="w-12 h-full flex items-center justify-center transition-colors hover:bg-rose-600 text-slate-400 hover:text-white"
+                          title="Close"
+                        >
+                          <X size={14} strokeWidth={2.5} />
+                        </button>
+                      </div>
+                    </div>
 
                    {/* Body */}
                    <div className="p-6 space-y-5 bg-[#0d1117]">
@@ -17916,14 +17918,17 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isSplitModalOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-4xl bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
-                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                        <div className="flex items-center gap-6">
-                           <div>
-                              <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><ArrowRight className="text-emerald-500"/> Split Bill Settlement</h3>
-                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Divide the check for individual payments</p>
-                           </div>
-                           <div className={`flex items-center rounded-xl p-1 ${isDark ? 'bg-[#0d1117] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-full max-w-4xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh] transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <ArrowRight className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Split Bill Settlement</span>
+                        </div>
+                        <div className="flex items-center h-full gap-3">
+                           {/* Tabs */}
+                           <div className={`flex items-center rounded-xl p-0.5 ${isDark ? 'bg-[#161b22] border border-[#30363d]' : 'bg-slate-100 border border-slate-200'}`}>
                               {['PORTION', 'PERCENT', 'ITEM'].filter(mode => {
                                  if (mode === 'PORTION') return checkSplitBillPermission('portion_wise');
                                  if (mode === 'PERCENT') return checkSplitBillPermission('percentage_wise');
@@ -17933,15 +17938,28 @@ const UniversalPOS = () => {
                                  <button
                                     key={mode}
                                     type="button"
-                                    onClick={() => setSplitMode(mode)}
-                                    className={`px-4 py-1.5 rounded-lg text-xs font-black uppercase italic transition-all ${splitMode === mode ? 'bg-[#10ac84] text-white shadow-sm' : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-600 hover:text-slate-900')}`}
+                                    onClick={() => handleSplitModeChange(mode)}
+                                    className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase italic transition-all ${
+                                       splitMode === mode
+                                          ? 'bg-emerald-600 text-white shadow-md'
+                                          : (isDark ? 'text-gray-400 hover:text-white' : 'text-slate-500 hover:text-slate-800')
+                                    }`}
                                  >
                                     {mode}
                                  </button>
                               ))}
                            </div>
+                           <button
+                              type="button"
+                              onClick={() => setIsSplitModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
                         </div>
-                        <button onClick={() => setIsSplitModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
                      </div>
 
                     <div className="flex-1 overflow-y-auto p-8 bg-slate-50 no-scrollbar">
@@ -18147,13 +18165,29 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {isExpenseModalOpen && checkMasterPermission('MasterManagement.AddExpense', 'visible') && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-5xl bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh]">
-                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                        <div>
-                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><TrendingUp className="text-rose-400"/> Daily Expense Ledger</h3>
-                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Track and manage your operational outflows</p>
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-full max-w-5xl bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col h-[85vh] transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <TrendingUp className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Daily Expense Ledger</span>
                         </div>
-                        <button onClick={() => setIsExpenseModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
+                           Track and manage your operational outflows
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => setIsExpenseModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
                      </div>
 
                     <div className="flex-1 flex overflow-hidden bg-slate-50">
@@ -18284,32 +18318,44 @@ const UniversalPOS = () => {
         <AnimatePresence>
            {selectedItemForModifiers && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e293b]/80 backdrop-blur-sm">
-                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className="w-full max-w-lg bg-white rounded-[2rem] overflow-hidden shadow-2xl border border-white/10">
-                    {/* Header with image */}
-                    <div className="relative rounded-t-[2rem] overflow-hidden">
-                       {selectedItemForModifiers.image_url ? (
-                          <div className="relative h-40 w-full">
-                             <img src={selectedItemForModifiers.image_url.startsWith('http') ? selectedItemForModifiers.image_url : `${API_BASE}${selectedItemForModifiers.image_url}`} alt={selectedItemForModifiers.product_name} className="w-full h-full object-cover" />
-                             <div className="absolute inset-0 bg-gradient-to-t from-emerald-700/95 via-emerald-600/60 to-transparent" />
-                             <div className="absolute bottom-0 left-0 right-0 p-6 flex justify-between items-end">
-                                <div>
-                                   <h3 className="text-xl font-black uppercase italic tracking-tighter text-white drop-shadow-lg">{selectedItemForModifiers.product_name}</h3>
-                                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-80">Customize your selection</p>
-                                </div>
-                                <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-80 hover:opacity-100 text-2xl font-bold transition-all bg-black/20 rounded-full w-9 h-9 flex items-center justify-center backdrop-blur-sm">✕</button>
-                             </div>
-                          </div>
-                       ) : (
-                          <div className="p-6 bg-emerald-600 text-white flex justify-between items-center">
-                             <div>
-                                <h3 className="text-xl font-black uppercase italic tracking-tighter">{selectedItemForModifiers.product_name}</h3>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100 opacity-60">Customize your selection</p>
-                             </div>
-                             <button onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }} className="text-white opacity-60 hover:opacity-100 text-2xl font-bold transition-all">✕</button>
-                          </div>
-                       )}
-                    </div>
-                    <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto no-scrollbar">
+                 <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className={`w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Sliders className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Customize Item</span>
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => { setSelectedItemForModifiers(null); setTempKitchenNote(''); }}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
+                     </div>
+
+                     {/* Product Visual & Name header */}
+                     {selectedItemForModifiers.image_url ? (
+                        <div className="h-40 w-full overflow-hidden relative shrink-0">
+                           <img src={selectedItemForModifiers.image_url.startsWith('http') ? selectedItemForModifiers.image_url : `${API_BASE}${selectedItemForModifiers.image_url}`} alt={selectedItemForModifiers.product_name} className="w-full h-full object-cover" />
+                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                           <div className="absolute bottom-4 left-6">
+                              <h4 className="text-lg font-extrabold text-white uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
+                              <p className="text-[10px] text-slate-200 uppercase tracking-widest mt-0.5">Customize selection</p>
+                           </div>
+                        </div>
+                     ) : (
+                        <div className={`p-5 border-b flex flex-col justify-center shrink-0 ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-50 border-slate-150'}`}>
+                           <h4 className="text-base font-extrabold uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
+                           <p className="text-[9px] text-slate-500 uppercase tracking-widest mt-0.5">Customize selection</p>
+                        </div>
+                     )}<div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto no-scrollbar">
                         {optionGroups.filter(og => og.item_id === selectedItemForModifiers.id).map(og => (
                            <div key={og.id} className="space-y-3">
                               <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400">{og.name} (Min: {og.min_selectable}, Max: {og.max_selectable})</h4>
@@ -18486,40 +18532,32 @@ const UniversalPOS = () => {
                     initial={{ scale: 0.9, y: 20 }}
                     animate={{ scale: 1, y: 0 }}
                     exit={{ scale: 0.9, y: 20 }}
-                    className={`w-full max-w-sm rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
-                       isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
-                    }`}
+                    className={`w-full max-w-sm rounded-3xl overflow-hidden shadow-2xl border transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}
                  >
-                    {/* Header */}
-                    <div className={`p-6 flex justify-between items-center border-b ${
-                       isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                    }`}>
-                       <div className="flex items-center gap-2.5">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
-                             <Calculator size={16} />
-                          </div>
-                          <div>
-                             <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                {openPriceItem.product_name}
-                             </h3>
-                             <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
-                                Enter Custom Item Price
-                             </p>
-                          </div>
-                       </div>
-                       <button
-                          onClick={() => {
-                             setIsOpenPriceModalOpen(false);
-                             setOpenPriceItem(null);
-                             setOpenPriceValue('');
-                          }}
-                          className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
-                             isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
-                          }`}
-                       >
-                          ✕
-                       </button>
-                    </div>
+                    {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Calculator className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Enter Custom Price</span>
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => {
+                                 setIsOpenPriceModalOpen(false);
+                                 setOpenPriceItem(null);
+                                 setOpenPriceValue('');
+                              }}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
+                     </div>
 
                     {/* Display Screen */}
                     <div className="p-5">
@@ -18834,35 +18872,27 @@ const UniversalPOS = () => {
                      initial={{ scale: 0.9, y: 20 }}
                      animate={{ scale: 1, y: 0 }}
                      exit={{ scale: 0.9, y: 20 }}
-                     className={`w-full max-w-md rounded-[2rem] overflow-hidden shadow-2xl border transition-all ${
-                        isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'
-                     }`}
+                     className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}
                   >
-                     {/* Header */}
-                     <div className={`p-6 flex justify-between items-center border-b ${
-                        isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                     }`}>
-                        <div className="flex items-center gap-2.5">
-                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-500/10 text-emerald-500`}>
-                              <Coins size={16} />
-                           </div>
-                           <div>
-                              <h3 className={`text-xl font-black uppercase italic tracking-tighter leading-none ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                                 Additional Charges
-                              </h3>
-                              <p className={`text-[10px] font-bold uppercase tracking-wider mt-1.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>
-                                 Apply database charges or add custom fees
-                              </p>
-                           </div>
+                     {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Coins className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Additional Charges</span>
                         </div>
-                        <button
-                           onClick={() => setIsChargesModalOpen(false)}
-                           className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${
-                              isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'
-                           }`}
-                        >
-                           ✕
-                        </button>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => setIsChargesModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
                      </div>
 
                      {/* Content */}
@@ -19186,17 +19216,30 @@ const UniversalPOS = () => {
 
             return (
                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                  <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-3xl border w-full max-w-2xl h-[90vh] max-h-[90vh] overflow-hidden shadow-2xl flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
 
-                     {/* Header */}
-                     <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
-                        <div>
-                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                              Choose Payment Mode
-                           </h3>
-                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Bill No: {billNo}</p>
+                     {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <CreditCard className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Choose Payment Mode</span>
                         </div>
-                        <button onClick={() => setIsPaymentModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+                        <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden sm:block">
+                           Bill No: {billNo}
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => setIsPaymentModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
                      </div>
 
                      {/* Content */}
@@ -19690,17 +19733,31 @@ const UniversalPOS = () => {
            const outstandingDue = Math.abs(Math.min(0, bal));
            return (
               <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-[2rem] border w-full max-w-md overflow-hidden shadow-2xl flex flex-col ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
-                    {/* Header */}
-                    <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'border-slate-200 bg-slate-50'}`}>
-                       <div>
-                          <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                             <Wallet size={18} className="text-emerald-500" /> Pay Previous Balance
-                          </h3>
-                          <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>{trayCustomer?.name || 'Customer'} • {trayFullPhone}</p>
-                       </div>
-                       <button onClick={() => setIsPayDueModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
-                    </div>
+                 <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className={`rounded-3xl border w-full max-w-md overflow-hidden shadow-2xl flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                    {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <Wallet className="text-[#18ba60]" size={14} />
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Pay Previous Balance</span>
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => {
+                                 setIsPayDueModalOpen(false);
+                                 setDuePaymentAmount('');
+                                 setDuePaymentMode('CASH');
+                              }}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
+                     </div>
 
                     {/* Content */}
                     <div className="p-5 space-y-4">
@@ -19811,21 +19868,31 @@ const UniversalPOS = () => {
 
         {isOldKOTModalOpen && (
            <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-              <div className="bg-[#0d1117] border border-[#30363d] rounded-[2rem] w-full max-w-4xl flex flex-col shadow-2xl">
-                 {/* Header */}
-                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                     <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Old KOT</h3>
-                     <button
-                        onClick={() => {
-                           setIsOldKOTModalOpen(false);
-                           setSelectedOldKOTItems({});
-                           setOldKOTItemReasons({});
-                           setSelectAllOldKOT(false);
-                        }}
-                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                     >
-                        ✕
-                     </button>
+              <div className={`border rounded-3xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
+                 {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <Printer className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Old KOT</span>
+                     </div>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => {
+                              setIsOldKOTModalOpen(false);
+                              setSelectedOldKOTItems({});
+                              setOldKOTItemReasons({});
+                              setSelectAllOldKOT(false);
+                           }}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
 
                  {/* Toolbar */}
@@ -20018,26 +20085,29 @@ const UniversalPOS = () => {
 
         {isChangeTableModalOpen && (
            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-              <div className={`border rounded-[2rem] w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden ${
-                 isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'
-              }`}>
-                 {/* Header */}
-                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                     <h3 className={`text-lg font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Change Table / Transfer Order
-                     </h3>
-                     <button 
-                        onClick={() => {
-                           if (changeTableResolveRef.current) changeTableResolveRef.current(null);
-                           setIsChangeTableModalOpen(false);
-                        }} 
-                        className={`p-2 rounded-xl transition-all text-sm cursor-pointer ${
-                           isDark ? 'text-[#8b949e] hover:bg-white/10 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-800'
-                        }`}
-                     >
-                        ✕
-                     </button>
+              <div className={`border rounded-3xl w-full max-w-4xl flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                 {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <LayoutGrid className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Change Table / Transfer Order</span>
+                     </div>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => {
+                              if (changeTableResolveRef.current) changeTableResolveRef.current(null);
+                              setIsChangeTableModalOpen(false);
+                           }}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
                  {/* Body */}
                  <div className="p-6 space-y-4">
@@ -20094,14 +20164,26 @@ const UniversalPOS = () => {
 
         {isTransferModalOpen && (
            <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4 backdrop-blur-sm">
-              <div className="bg-[#0d1117] border border-[#30363d] rounded-[2rem] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden">
-                 {/* Header */}
-                 <div className={`p-6 border-b flex justify-between items-center ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                     <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        Transfer Items to Table
-                     </h3>
-                     <button onClick={() => setIsTransferModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
+              <div className={`border rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                 {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <LayoutGrid className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Transfer Items to Table</span>
+                     </div>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => setIsTransferModalOpen(false)}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
                  {/* Body */}
                  <div className="p-5 max-h-[60vh] overflow-y-auto no-scrollbar space-y-4">
@@ -20146,28 +20228,31 @@ const UniversalPOS = () => {
          {/* Waiter Selection Modal */}
          {isWaiterModalOpen && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-               <div className={`border rounded-[2rem] w-full max-w-md flex flex-col shadow-2xl ${
-                  isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
-               }`}>
-                  {/* Header */}
-                  <div className={`p-6 border-b flex justify-between items-center ${
-                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                     <div className="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" strokeWidth="2.5" fill="none" className="text-emerald-500">
-                           <path d="M3 20h18" strokeLinecap="round" />
-                           <path d="M19 16a7 7 0 0 0-14 0z" fill="currentColor" />
-                           <path d="M12 5v4M10 5h4" strokeLinecap="round" />
-                        </svg>
-                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Waiter / Staff</h3>
+               <div className={`border rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  {/* UDM Title Bar */}
+                     <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                        <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                           <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" strokeWidth="2.5" fill="none" className="text-[#18ba60]">
+                              <path d="M3 20h18" strokeLinecap="round" />
+                              <path d="M19 16a7 7 0 0 0-14 0z" fill="currentColor" />
+                              <path d="M12 5v4M10 5h4" strokeLinecap="round" />
+                           </svg>
+                           <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                           <span className="text-[#18ba60]">Select Waiter / Staff</span>
+                        </div>
+                        <div className="flex items-center h-full">
+                           <button
+                              type="button"
+                              onClick={() => setIsWaiterModalOpen(false)}
+                              className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                              title="Close"
+                           >
+                              <X size={14} strokeWidth={2.5} />
+                           </button>
+                        </div>
                      </div>
-                     <button
-                        onClick={() => setIsWaiterModalOpen(false)}
-                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                     >
-                        ✕
-                     </button>
-                  </div>
 
                   {/* Content */}
                   <div className="p-4 max-h-[300px] overflow-y-auto flex flex-col gap-2">
@@ -20238,23 +20323,26 @@ const UniversalPOS = () => {
          {/* Rider Selection Modal */}
          {isRiderModalOpen && (
             <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-               <div className={`border rounded-[2rem] w-full max-w-md flex flex-col shadow-2xl ${
-                  isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
-               }`}>
-                  {/* Header */}
-                  <div className={`p-6 border-b flex justify-between items-center ${
-                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                     <div className="flex items-center gap-2">
-                        <Bike className="text-emerald-500" size={22} />
-                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>Select Delivery Boy / Rider</h3>
+               <div className={`border rounded-3xl w-full max-w-md flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <Bike className="text-[#18ba60]" size={14} />
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Select Delivery Boy / Rider</span>
                      </div>
-                     <button
-                        onClick={() => setIsRiderModalOpen(false)}
-                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                     >
-                        ✕
-                     </button>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => setIsRiderModalOpen(false)}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                                 isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                              }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
 
                   {/* Content */}
@@ -20326,31 +20414,32 @@ const UniversalPOS = () => {
           {/* Coupon Modal */}
          {isCouponModalOpen && (
             <div className="fixed inset-0 bg-black/75 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-               <div className={`border rounded-[2rem] w-full max-w-lg flex flex-col shadow-2xl overflow-hidden transition-all ${
-                  isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'
-               }`}>
-                  {/* Header */}
-                  <div className={`p-5 border-b flex justify-between items-center ${
-                     isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'
-                  }`}>
-                     <div className="flex items-center gap-2">
-                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500">
+               <div className={`border rounded-3xl w-full max-w-lg flex flex-col shadow-2xl overflow-hidden transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-[#c9d1d9]' : 'bg-white border-slate-200 text-slate-800'}`}>
+                  {/* UDM Title Bar */}
+                  <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                     <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-[#18ba60]">
                            <path d="M21 5H3a2 2 0 0 0-2 2v3a2 2 0 0 1 0 4v3a2 2 0 0 0 2 2h18a2 2 0 0 0 2-2v-3a2 2 0 0 1 0-4V7a2 2 0 0 0-2-2Z"/>
                            <path d="M8 6v12" strokeDasharray="2 2"/>
                            <circle cx="12.5" cy="10.5" r="1.2" fill="currentColor"/>
                            <path d="M11.5 14.5 16.5 9.5"/>
                            <circle cx="15.5" cy="13.5" r="1.2" fill="currentColor"/>
                         </svg>
-                        <h3 className={`text-xl font-black uppercase italic tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>
-                           Apply Coupon Discount
-                        </h3>
+                        <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                        <span className="text-[#18ba60]">Apply Coupon Discount</span>
                      </div>
-                     <button
-                        onClick={() => setIsCouponModalOpen(false)}
-                        className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-                     >
-                        ✕
-                     </button>
+                     <div className="flex items-center h-full">
+                        <button
+                           type="button"
+                           onClick={() => setIsCouponModalOpen(false)}
+                           className={`w-12 h-full flex items-center justify-center transition-colors ${
+                              isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'
+                           }`}
+                           title="Close"
+                        >
+                           <X size={14} strokeWidth={2.5} />
+                        </button>
+                     </div>
                   </div>
 
                   {/* Body */}

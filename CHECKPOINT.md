@@ -6,8 +6,8 @@
 ---
 
 ## Last Updated
-- **Date**: 2026-07-18 12:30 IST
-- **Conversation**: `33a62668-6911-44f4-b317-17997cf098d6`
+- **Date**: 2026-07-20 12:38 IST
+- **Conversation**: `c998d905-0df8-4875-9b1a-5e90cde5d163`
 
 ## Current State
 - App is **built and deployed** to https://backend.sasloop.in
@@ -16,23 +16,32 @@
 - Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`) to keep the main project history clean.
 
 ## Recently Completed
-- Custom styled splash screen window in Electron with rounded corners (`24px`), dynamic titlebar matching the POS branding layout, and window-close controls via IPC.
-- Re-compiled Electron desktop executable containing the splash screen design changes (`sasloop-terminal-pos-v1.0.1 Setup 1.0.1.exe`).
-- Added active table/cart safety check block (prevents POS data clearing on logout if tables are busy or active carts exist, prompting the user with a notification).
-- Fixed POS data restoring on login after logout (added sync of empty active state to backend server before clearing token, preventing the server from feeding the old session's active bills and tables back to the client upon next login).
-- Fixed POS local data clearing on logout (resolved key skipping due to index shifting by gathering all localStorage keys first, and added complete reset of in-memory lists/metadata states to prevent memory leakage between sessions).
-- Designed full pictured slideshow with zoom/crossfade transitions on the login page (using 5 high-fidelity mockups: Billing, KDS, Floor Plans, Receipts, and Reports)
-- Increased login page custom titlebar height to h-11 and made window control buttons span the full height with larger icons
-- Added dashboard support hotline numbers absolutely centered on the login page titlebar
-- Replaced login title text with a styled "SaSLoop POS" brand title
-- Removed legacy animated background lines and FeatureShowcase layout from login page
-- Electron build repackaged successfully with updated windows desktop installer (sasloop-pos-v1.0.1 Setup 1.0.1.exe)
+- Standardized all 16 cashier-facing and sales front-office popup windows to the premium Universal Design Module / Unified Design Modal (UDM) standard:
+  1. **Choose Payment Mode / Settle Bill Modal**
+  2. **Pay Previous Balance Modal** (with custom customer info card inside body to prevent header congestion)
+  3. **Old KOT Modal**
+  4. **Change Table / Transfer Order Modal**
+  5. **Transfer Items to Table Modal**
+  6. **Select Waiter / Staff Modal**
+  7. **Select Delivery Boy / Rider Modal**
+  8. **Apply Coupon Discount Modal**
+  9. **Additional Charges Modal**
+  10. **Customer Profile & History Modal**
+  11. **Apply Discount Modal**
+  12. **Confirm Logout Modal**
+  13. **Split Bill Modal** (with split option selector integrated into Title Bar)
+  14. **Daily Expense Ledger Modal**
+  15. **Modifier Selection Modal** (with visual banner and product customization details integrated into body)
+  16. **Open Price Keypad Modal** (with target product info badge inside body)
+- Standardized container corners to `rounded-3xl` with `transition-all`.
+- Replaced custom headers with the unified `h-11` Title Bar featuring the brand prefix `SaSLoop`, standard Lucide icons, page titles, and the standard hover-responsive close button.
+- Electron build repackaged successfully with updated windows desktop installer (`Master-POS-Setup-v1.0.1.exe`) and updated unpacked master binaries (`win-unpacked-master`).
 
 ## In Progress
 - Nothing currently in progress
 
 ## Key Files
-- POS Client: `pos-app/src/App.jsx` (~19,400 lines)
+- POS Client: `pos-app/src/App.jsx` (~24,800 lines)
 - Backend: `server.js`
 - Deploy: `fast-deploy.ps1`
 - Auto-backup: `auto-backup.ps1`
@@ -40,9 +49,7 @@
 ## Build & Deploy Commands
 ```powershell
 cd c:\Users\Sajad\Desktop\SaSLoop\pos-app
-npm run electron:build
-cd ..
-powershell -ExecutionPolicy Bypass -File .\fast-deploy.ps1
+node build-master.cjs
 ```
 
 ## Git Backup Commands
