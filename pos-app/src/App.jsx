@@ -10726,7 +10726,7 @@ const UniversalPOS = () => {
     const totalUnsynced = unsyncedOrdersCount + unsyncedItemsCount;
 
     return (
-      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+      <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md select-none">
          <div className={`w-full max-w-md rounded-3xl overflow-hidden shadow-2xl border flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
             {/* UDM Title Bar */}
             <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
@@ -10866,8 +10866,6 @@ const UniversalPOS = () => {
       </div>
     );
   }
-
-
 
   if (!isAuthenticated) {
     return (
@@ -11130,6 +11128,7 @@ const UniversalPOS = () => {
           <TransitionSplashScreen username={username} />
         </div>
       )}
+      {renderCloseConfirmModal()}
     </div>
     );
   }
@@ -24836,9 +24835,7 @@ const UniversalPOS = () => {
           </motion.div>
         )}
 
-         {renderCloseConfirmModal()}
-
-        {logoutModalStep === 'confirm' && (
+         {logoutModalStep === 'confirm' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -25041,6 +25038,7 @@ const UniversalPOS = () => {
       </AnimatePresence>
 
       <VirtualKeyboard target={keyboardTarget} onClose={() => setKeyboardTarget(null)} />
+      {renderCloseConfirmModal()}
     </div>
   );
 };
