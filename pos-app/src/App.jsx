@@ -10946,7 +10946,7 @@ const UniversalPOS = () => {
             </div>
             
             {/* Company Introduction Section */}
-            <div className="w-full max-w-[560px] border-t border-slate-200/80 pt-6 mt-6 text-center mx-auto relative">
+            <div className="w-full max-w-[560px] pt-6 mt-6 text-center mx-auto relative">
               <h3 
                 className={`text-[11px] font-black uppercase tracking-widest mb-2 flex items-center justify-center gap-1.5 ${isDark ? 'text-white' : 'text-slate-800'}`}
               >
