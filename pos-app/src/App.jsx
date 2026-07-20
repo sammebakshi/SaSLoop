@@ -1763,7 +1763,7 @@ const UniversalPOS = () => {
   useEffect(() => { localStorage.setItem('pos_theme', theme); }, [theme]);
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [showInitialSplash, setShowInitialSplash] = useState(true);
+  const [showInitialSplash, setShowInitialSplash] = useState(false);
   const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
   const [config, setConfig] = useState({ currency: 'Rs', tax_rate: 0, business_type: 'RESTAURANT' });
