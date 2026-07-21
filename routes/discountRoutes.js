@@ -32,15 +32,13 @@ router.get("/", authMiddleware, async (req, res) => {
             SELECT d.*, u.business_name as outlet_name 
             FROM discounts d
             LEFT JOIN app_users u ON d.outlet_id = u.id
-            WHERE d.user_id = $1
+            WHERE (d.user_id = $1 OR d.user_id = (SELECT parent_user_id FROM app_users WHERE id = $1) OR d.user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1))
         `;
         const params = [ownerId];
         
         if (outletId) {
             query += " AND (d.outlet_id = $2 OR d.outlet_id IS NULL)";
             params.push(outletId);
-        } else {
-            query += " AND d.outlet_id IS NULL";
         }
         
         query += " ORDER BY d.name ASC";

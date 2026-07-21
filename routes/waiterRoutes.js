@@ -25,9 +25,12 @@ router.post("/", authMiddleware, async (req, res) => {
 // ✅ GET ALL WAITERS FOR LOGGED-IN BUSINESS
 router.get("/", authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.bizId;
+    const userId = req.user.bizId || req.user.id;
     const result = await pool.query(
-      "SELECT * FROM waiters WHERE user_id = $1 AND is_active = true ORDER BY name ASC",
+      `SELECT id, name, phone, 'waiter' as role FROM waiters WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1)) AND (is_active IS NULL OR is_active = true)
+       UNION ALL
+       SELECT id, COALESCE(name, first_name, username) as name, phone, COALESCE(role, 'staff') as role FROM app_users WHERE (parent_user_id = $1 OR id = $1) AND (status IS NULL OR status = 'active')
+       ORDER BY name ASC`,
       [userId]
     );
     res.json(result.rows);

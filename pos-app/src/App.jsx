@@ -7188,7 +7188,7 @@ const UniversalPOS = () => {
         const role = String(s.role || '').toLowerCase();
         return role === 'waiter' || des.includes('waiter') || role.includes('waiter') || des.includes('captain') || role.includes('captain');
       });
-      const finalWaiters = waitersOnly;
+      const finalWaiters = waitersOnly.length > 0 ? waitersOnly : staffList;
       setWaitersList(finalWaiters);
       localStorage.setItem('pos_waiters', JSON.stringify(finalWaiters));
     } catch (e) {
