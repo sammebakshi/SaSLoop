@@ -265,7 +265,8 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
-      webSecurity: false, // Allow ES module loading from file:// protocol
+      webSecurity: false,
+      devTools: false,
       additionalArguments: [isTerminalMode ? '--is-terminal-mode' : '--is-master-mode']
     },
     autoHideMenuBar: true, // Professional look
@@ -285,10 +286,8 @@ function createWindow() {
 
   if (!app.isPackaged) {
     win.loadURL('http://127.0.0.1:5173');
-    win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'));
-    win.webContents.openDevTools();
   }
   
   win.on('maximize', () => {

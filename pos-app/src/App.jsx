@@ -11030,19 +11030,6 @@ const UniversalPOS = () => {
                 </button>
               </div>
 
-              {/* Live Server Indicator (Locked) */}
-              <div className={`p-3.5 border rounded-2xl flex items-center justify-between text-left ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-[#18ba60] flex items-center justify-center shrink-0">
-                    <Globe className="w-4 h-4" />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Server Connection</label>
-                    <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">Live Cloud Backend (backend.sasloop.in)</span>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-wider">Locked 🔒</span>
-              </div>
 
               {/* Connectivity Status Banner */}
               {typeof window !== 'undefined' && !window.navigator.onLine && (

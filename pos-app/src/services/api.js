@@ -48,6 +48,7 @@ api.interceptors.request.use((config) => {
 
 export const authService = {
     login: (identifier, password) => api.post('/api/auth/login', { identifier, password }),
+    posLogin: (username, password) => api.post('/api/auth/pos-login', { username, password }),
     getProfile: () => api.get('/api/auth/profile'),
     getMyOutlets: () => api.get('/api/auth/my-outlets')
 };
