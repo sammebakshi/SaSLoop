@@ -94,6 +94,21 @@ router.get("/riders", authMiddleware, async (req, res) => {
        ORDER BY name ASC`,
       [userId]
     );
+
+    // Fallback: If no users are designated explicitly as delivery boy yet, return non-admin staff sub-accounts
+    if (result.rows.length === 0) {
+      const fallback = await pool.query(
+        `SELECT id, COALESCE(name, first_name, username) as name, phone, COALESCE(user_type, role, 'Delivery Boy') as role
+         FROM app_users
+         WHERE parent_user_id = $1
+           AND (status IS NULL OR status = 'active')
+           AND role NOT IN ('user', 'brand_owner', 'master_admin')
+         ORDER BY name ASC`,
+        [userId]
+      );
+      return res.json(fallback.rows);
+    }
+
     res.json(result.rows);
   } catch (err) {
     console.error("🔥 GET RIDERS ERROR:", err);
