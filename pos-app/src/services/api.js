@@ -63,15 +63,35 @@ export const posService = {
     deleteMenuItem: (id) => api.delete(`/api/brand/outlet-menu-items/${id}`),
     getTaxGroups: (outletId) => api.get('/api/brand/tax-groups', { params: { outlet_id: outletId } }),
     getKitchenDepartments: (outletId) => api.get('/api/brand/kitchen-departments', { params: { outlet_id: outletId } }),
-    getOptionGroups: () => api.get('/api/option-groups'),
+    getOptionGroups: () => api.get('/api/pos/option-groups'),
     getTables: () => api.get('/api/pos/tables'),
     getOrders: () => api.get('/api/orders'),
     createOrder: (order) => api.post('/api/orders', order),
     updateOrderStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
     createKot: (kot) => api.post('/api/kots', kot),
     getWaiters: () => api.get('/api/waiters'),
+    getStaff: () => api.get('/api/waiters'),
+    getRiders: () => api.get('/api/waiters').catch(() => ({ data: [] })),
     getDiscounts: () => api.get('/api/discounts'),
-    getAdditionalCharges: () => api.get('/api/additional-charges')
+    getAdditionalCharges: () => api.get('/api/additional-charges'),
+    getTaxes: (outletId) => api.get('/api/brand/tax-groups', { params: { outlet_id: outletId } }),
+    getPaymentModes: (outletId) => api.get('/api/pos/payment-modes', { params: { outlet_id: outletId } }),
+    getQRs: () => api.get('/api/pos/qrs'),
+    getActiveState: () => api.get('/api/pos/active-state'),
+
+    // CRM & Customer Sync Endpoints
+    getCustomers: () => api.get('/api/crm/customers'),
+    searchCustomers: (query) => api.get('/api/crm/customers/search', { params: { query } }),
+    getCustomerHistory: (phone) => api.get(`/api/crm/customers/${encodeURIComponent(phone)}/history`),
+    saveCustomer: (payload) => api.post('/api/crm/customers', {
+        name: payload.name,
+        number: payload.number || payload.phone,
+        address: payload.address,
+        points: payload.points,
+        balance: payload.balance
+    }),
+    adjustCustomer: (payload) => api.post('/api/crm/customers/adjust', payload),
+    payCustomerDue: (payload) => api.post('/api/crm/customers/pay-due', payload)
 };
 
 export default api;
