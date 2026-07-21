@@ -18543,21 +18543,29 @@ const UniversalPOS = () => {
                                  {og.options.map(o => {
                                     const modObj = { name: o.name, price: parseFloat(o.price_override) || 0, groupId: og.id };
 
-                                    // Match image for this option item (checking option object, catalog, mgmt items, and fallback to main dish image)
+                                    // Match image for this option item
                                     const allCatItems = Array.isArray(catalog) ? catalog : [];
                                     const allMgItems = Array.isArray(itemMgmtItems) ? itemMgmtItems : [];
                                     const mainItemName = (selectedItemForModifiers.product_name || selectedItemForModifiers.item_name || '').trim().toLowerCase();
                                     const optionName = (o.name || '').trim().toLowerCase();
 
                                     let rawOptImg = o.image_url || o.image;
+
+                                    if (!rawOptImg && (o.item_id || o.id)) {
+                                       const targetOptId = String(o.item_id || o.id);
+                                       const matchedById = allCatItems.find(ci => String(ci.id) === targetOptId) ||
+                                                           allMgItems.find(mi => String(mi.id) === targetOptId);
+                                       rawOptImg = matchedById?.image_url || matchedById?.image;
+                                    }
+
                                     if (!rawOptImg) {
                                        const matchedOptItem = allCatItems.find(ci => {
                                           const n = (ci.product_name || ci.item_name || '').trim().toLowerCase();
-                                          return n === optionName || n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}`;
+                                          return n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}` || n === `${mainItemName} (${optionName})`;
                                        }) || allMgItems.find(mi => {
                                           const n = (mi.product_name || mi.item_name || '').trim().toLowerCase();
-                                          return n === optionName || n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}`;
-                                       }) || allCatItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase().includes(optionName));
+                                          return n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}` || n === `${mainItemName} (${optionName})`;
+                                       });
 
                                        rawOptImg = matchedOptItem?.image_url || matchedOptItem?.image || selectedItemForModifiers.image_url || selectedItemForModifiers.image;
                                     }
