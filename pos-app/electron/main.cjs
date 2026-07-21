@@ -1,6 +1,28 @@
 const { app, BrowserWindow, ipcMain, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// Detect local network IP address
+const getLocalNetworkIp = () => {
+  try {
+    const interfaces = os.networkInterfaces();
+    for (const name of Object.keys(interfaces)) {
+      for (const net of interfaces[name]) {
+        if (net.family === 'IPv4' && !net.internal) {
+          return net.address;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Electron] Failed to resolve network IP:', e.message);
+  }
+  return '127.0.0.1';
+};
+
+const activeNetworkIp = getLocalNetworkIp();
+console.log(`[Electron] Active Network IP detected: ${activeNetworkIp}`);
+
 // Detect if running in Terminal mode
 const isTerminalMode = app.getName().toLowerCase().includes('terminal') || 
                        process.env.IS_TERMINAL === 'true';
@@ -36,10 +58,6 @@ if (!isTerminalMode) {
 }
 
 // Disable hardware acceleration to resolve GPU crashes/errors
-// app.disableHardwareAcceleration();
-// app.commandLine.appendSwitch('disable-gpu');
-// app.commandLine.appendSwitch('disable-software-rasterizer');
-// app.commandLine.appendSwitch('disable-gpu-compositing');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('disable-gpu-sandbox');
 
@@ -50,31 +68,25 @@ ipcMain.on('print-silent', (event, { html, printerName }) => {
   const printWin = new BrowserWindow({
     show: false,
     webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true
+      nodeIntegration: true,
+      contextIsolation: false
     }
   });
 
-  printWin.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html));
+  printWin.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
 
   printWin.webContents.on('did-finish-load', () => {
-    const printOptions = {
+    const options = {
       silent: true,
       printBackground: true
     };
-
-    // If a custom printer name is set and is not the default label, use it
-    if (printerName && printerName !== 'Default Thermal Printer') {
-      printOptions.deviceName = printerName;
+    if (printerName && printerName.trim() !== '') {
+      options.deviceName = printerName.trim();
     }
 
-    printWin.webContents.print(printOptions, (success, failureReason) => {
-      if (!success) {
-        console.error(`[IPC] Silent print failed: ${failureReason}`);
-      } else {
-        console.log('[IPC] Silent print completed successfully');
-      }
-      printWin.destroy();
+    printWin.webContents.print(options, (success, failureReason) => {
+      console.log(`[IPC] Silent print result: success=${success}, reason=${failureReason}`);
+      if (!printWin.isDestroyed()) printWin.close();
     });
   });
 });

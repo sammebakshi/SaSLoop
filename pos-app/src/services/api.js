@@ -15,6 +15,18 @@ const isTerminalMode = (() => {
   return !!(hasTerminalExec || hasTerminalEnv || hasTerminalStorage);
 })();
 
+// Detect dynamic network IP passed from Electron main process
+const detectedNetworkIp = (() => {
+  if (typeof window !== 'undefined' && window.process && window.process.argv) {
+    const arg = window.process.argv.find(a => a && a.startsWith('--network-ip='));
+    if (arg) {
+      const ip = arg.split('=')[1];
+      if (ip && ip !== '127.0.0.1') return ip;
+    }
+  }
+  return null;
+})();
+
 const storedMasterIp = typeof localStorage !== 'undefined' ? localStorage.getItem('pos_master_ip') : null;
 
 const resolveInitialBaseUrl = () => {
@@ -26,15 +38,23 @@ const resolveInitialBaseUrl = () => {
         return isRawIp ? `http://${storedMasterIp}:5000` : `https://${storedMasterIp}`;
     }
     
-    // In Terminal Mode, we must not automatically default to localhost since that would connect to the local PC's Master
+    // In Terminal Mode, we must not automatically default to localhost
     if (isTerminalMode) {
         return "http://127.0.0.1:0"; 
     }
+
+    // Default to Network IP (e.g. http://192.168.29.101:5000) if detected from Electron
+    if (detectedNetworkIp) {
+        return `http://${detectedNetworkIp}:5000`;
+    }
     
-    // Default fallback for Master POS
-    return (typeof window !== 'undefined' && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"))
-        ? "http://localhost:5000"
-        : "https://backend.sasloop.in";
+    // Default fallback for Master POS (using location hostname or local IP)
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+    if (hostname && hostname !== 'localhost' && hostname !== '127.0.0.1') {
+        return `http://${hostname}:5000`;
+    }
+    
+    return "http://localhost:5000";
 };
 
 export const API_BASE = resolveInitialBaseUrl();
