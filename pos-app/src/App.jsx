@@ -11030,49 +11030,19 @@ const UniversalPOS = () => {
                 </button>
               </div>
 
-              {/* Master POS IP Input for Terminals */}
-              {isTerminalMode && (
-                <div className={`p-4 border rounded-2xl space-y-2 text-left ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
-                  <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Master POS Connection Settings</label>
-                  <div className="flex gap-2">
-                    <div className="relative flex-1 group">
-                      <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400 group-focus-within:text-[#18ba60] transition-colors">
-                        <Globe className="w-4 h-4" />
-                      </div>
-                      <input
-                        className={`w-full py-2.5 pl-10 pr-3 border rounded-xl outline-none text-xs font-bold focus:border-[#18ba60] focus:ring-1 focus:ring-[#18ba60] transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white placeholder:text-gray-500' : 'bg-white border-slate-200 text-slate-800 placeholder:text-slate-400'}`}
-                        placeholder="Master PC IP (e.g. 192.168.1.50)"
-                        value={masterIp}
-                        onChange={e => setMasterIp(e.target.value)}
-                        autoComplete="off"
-                      />
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => testMasterConnection(masterIp)}
-                      disabled={isTestingConnection || !masterIp}
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-950 disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                    >
-                      {isTestingConnection && connectionStatus === 'scanning' ? '...' : 'Connect'}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={autoDetectMasterServer}
-                      disabled={isTestingConnection}
-                      className="px-3 py-2 bg-[#18ba60] hover:bg-[#15a353] disabled:bg-slate-300 text-white rounded-xl text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                      title="Auto Detect Master POS Server on local subnet"
-                    >
-                      {isTestingConnection && connectionStatus === 'scanning' ? 'Scanning...' : 'Auto Detect'}
-                    </button>
+              {/* Live Server Indicator (Locked) */}
+              <div className={`p-3.5 border rounded-2xl flex items-center justify-between text-left ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-emerald-500/10 text-[#18ba60] flex items-center justify-center shrink-0">
+                    <Globe className="w-4 h-4" />
                   </div>
-                  {connectionStatus === 'success' && (
-                    <p className="text-[9px] text-emerald-600 font-bold flex items-center gap-1">✔ Connection Active</p>
-                  )}
-                  {connectionStatus === 'error' && (
-                    <p className="text-[9px] text-rose-600 font-bold flex items-center gap-1">❌ Connection Failed</p>
-                  )}
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">Server Connection</label>
+                    <span className="text-xs font-extrabold text-emerald-600 dark:text-emerald-400">Live Cloud Backend (backend.sasloop.in)</span>
+                  </div>
                 </div>
-              )}
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-600 text-[10px] font-black uppercase tracking-wider">Locked 🔒</span>
+              </div>
 
               {/* Connectivity Status Banner */}
               {typeof window !== 'undefined' && !window.navigator.onLine && (
