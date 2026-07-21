@@ -13390,7 +13390,7 @@ const UniversalPOS = () => {
                         >
                           <History size={18} strokeWidth={2.5}/>
                         </button>
-                        {String(orderType || '').toUpperCase().includes('DELIVERY') || String(subOrderType || '').toUpperCase().includes('DELIVERY') || activeTrayTab === 'DELIVERY' ? (
+                        {orderType === 'DELIVERY' || (orderType === 'PICKUP' && subOrderType === 'DELIVERY') ? (
                           <button
                             onClick={() => {
                               setIsRiderModalOpen(true);
