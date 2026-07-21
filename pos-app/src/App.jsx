@@ -1756,7 +1756,90 @@ const UniversalPOS = () => {
       return saved ? JSON.parse(saved) : [];
     } catch (e) { return []; }
   });
-  const [activeOptionItem, setActiveOptionItem] = useState(null);
+
+  const getItemOptionGroups = (item) => {
+    if (!item || !optionGroups || !Array.isArray(optionGroups)) return [];
+    const targetId = String(item.id);
+    const targetName = (item.product_name || item.item_name || item.name || '').trim().toLowerCase();
+    const allCatalogItems = Array.isArray(catalog) ? catalog : [];
+    const allMgmtItems = Array.isArray(itemMgmtItems) ? itemMgmtItems : [];
+
+    return optionGroups.filter(og => {
+      if (og.item_id && String(og.item_id) === targetId) return true;
+
+      if (Array.isArray(og.linked_main_items) && og.linked_main_items.length > 0) {
+        const isLinked = og.linked_main_items.some(l => {
+          if (typeof l === 'object' && l !== null) {
+            const lId = l.item_id || l.id;
+            if (lId && String(lId) === targetId) return true;
+            if (l.product_name && l.product_name.trim().toLowerCase() === targetName) return true;
+            if (l.name && l.name.trim().toLowerCase() === targetName) return true;
+          } else {
+            if (String(l) === targetId) return true;
+          }
+          return false;
+        });
+        if (isLinked) return true;
+      }
+
+      if (Array.isArray(og.linked_items) && og.linked_items.length > 0) {
+        const isLinked = og.linked_items.some(l => {
+          if (typeof l === 'object' && l !== null) {
+            return String(l.item_id || l.id) === targetId;
+          }
+          return String(l) === targetId;
+        });
+        if (isLinked) return true;
+      }
+
+      if (og.name && targetName && og.name.trim().toLowerCase() === targetName) return true;
+
+      return false;
+    }).map(og => {
+      const rawOpts = Array.isArray(og.options) && og.options.length > 0
+        ? og.options
+        : (Array.isArray(og.associated_options) ? og.associated_options : []);
+
+      return {
+        ...og,
+        options: rawOpts.map(o => {
+          const oName = o.name || o.product_name || 'Option';
+          let price = parseFloat(o.price_override !== undefined && parseFloat(o.price_override) > 0 ? o.price_override : (o.price !== undefined && parseFloat(o.price) > 0 ? o.price : (o.base_price || 0))) || 0;
+
+          if (price === 0 && oName) {
+            const itemNameLower = targetName;
+            const mainItemIndex = allCatalogItems.findIndex(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === itemNameLower);
+
+            let matchedOptionItem = null;
+            if (mainItemIndex !== -1) {
+              for (let i = mainItemIndex; i < Math.min(mainItemIndex + 10, allCatalogItems.length); i++) {
+                const candidate = allCatalogItems[i];
+                if ((candidate.product_name || candidate.item_name || '').trim().toLowerCase() === oName.toLowerCase()) {
+                  matchedOptionItem = candidate;
+                  break;
+                }
+              }
+            }
+
+            if (!matchedOptionItem) {
+              matchedOptionItem = allCatalogItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === oName.toLowerCase()) ||
+                                 allMgmtItems.find(mi => (mi.product_name || mi.item_name || '').trim().toLowerCase() === oName.toLowerCase());
+            }
+
+            if (matchedOptionItem) {
+              price = parseFloat(matchedOptionItem.price || matchedOptionItem.base_price || 0);
+            }
+          }
+
+          return {
+            ...o,
+            name: oName,
+            price_override: price
+          };
+        })
+      };
+    });
+  };
   const isDark = theme === 'dark';
   const t = isDark ? THEME.dark : THEME.light;
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -2116,11 +2199,34 @@ const UniversalPOS = () => {
       if (removeListener) removeListener();
     };
   }, []);
+  // Helper to strictly filter items belonging to POS Default Menu only (excluding DG digital menu items)
+  const filterPosDefaultItems = (rawItems, catalogList = []) => {
+    if (!Array.isArray(rawItems)) return [];
+    const catalogCodes = new Set((catalogList || []).map(i => String(i.code || '').toUpperCase()));
+
+    return rawItems.filter(item => {
+      const codeUpper = String(item.code || '').toUpperCase();
+      const menuNameUpper = String(item.menu_name || '').toUpperCase();
+
+      // 1. Match with catalog codes if catalog exists
+      if (catalogCodes.size > 0 && catalogCodes.has(codeUpper)) return true;
+
+      // 2. Strict exclusion of Digital Menu items (short code starts with DG or menu_name is DIGI MENU)
+      if (codeUpper.startsWith('DG') || menuNameUpper.includes('DIGI')) return false;
+
+      // 3. Inclusion of POS Menu items (short code starts with PS or menu_name is POS MENU or is_pos_default is true)
+      if (codeUpper.startsWith('PS') || menuNameUpper.includes('POS') || item.menu_is_pos_default === true) return true;
+
+      return catalogCodes.size === 0;
+    });
+  };
+
   // Items Management state
   const [itemMgmtItems, setItemMgmtItems] = useState(() => {
     try {
       const saved = localStorage.getItem('pos_item_mgmt_items');
-      return saved ? JSON.parse(saved) : [];
+      const parsed = saved ? JSON.parse(saved) : [];
+      return filterPosDefaultItems(parsed);
     } catch (e) { return []; }
   });
   const [itemMgmtCategories, setItemMgmtCategories] = useState(() => {
@@ -5614,7 +5720,7 @@ const UniversalPOS = () => {
 
     const label = getItemPriceLabel();
     const updatedItem = { ...openPriceItem, price: priceNum, priceLabel: label };
-    const hasOptions = optionGroups.some(og => og.item_id === updatedItem.id);
+    const hasOptions = getItemOptionGroups(updatedItem).length > 0;
 
     if (hasOptions) {
       setSelectedItemForModifiers(updatedItem);
@@ -5649,7 +5755,7 @@ const UniversalPOS = () => {
         if (!isNaN(priceNum) && priceNum >= 0) {
           const label = getItemPriceLabel();
           const updatedItem = { ...openPriceItem, price: priceNum, priceLabel: label };
-          const hasOptions = optionGroups.some(og => og.item_id === updatedItem.id);
+          const hasOptions = getItemOptionGroups(updatedItem).length > 0;
 
           if (hasOptions) {
             setSelectedItemForModifiers(updatedItem);
@@ -5702,13 +5808,13 @@ const UniversalPOS = () => {
         throw new TypeError("optionGroups is not an array: " + typeof optionGroups);
       }
 
-      const hasOptions = optionGroups.some(og => og.item_id === item.id);
+      const hasOptions = getItemOptionGroups(item).length > 0;
       if (hasOptions) {
         const tierPrice = getItemDisplayPrice(item);
         const label = getItemPriceLabel();
         setSelectedItemForModifiers({
           ...item,
-          price: tierPrice,
+          price: 0,
           original_price: item.price,
           priceLabel: label
         });
@@ -6484,15 +6590,18 @@ const UniversalPOS = () => {
         if (custRes.data && Array.isArray(custRes.data)) {
           const customersMap = {};
           custRes.data.forEach(c => {
-            customersMap[c.phone] = {
-              name: c.name,
-              phone: c.phone,
-              address: c.address,
-              points: Number(c.points) || 0,
-              orders: Number(c.orders) || 0,
-              totalSpent: Number(c.total_spent) || 0,
-              balance: Number(c.balance) || 0
-            };
+            const pKey = c.phone || c.customer_number || c.number;
+            if (pKey) {
+              customersMap[pKey] = {
+                name: c.name || c.display_name || 'Customer',
+                phone: pKey,
+                address: c.address || '',
+                points: Number(c.points) || 0,
+                orders: Number(c.orders) || 0,
+                totalSpent: Number(c.total_spent) || 0,
+                balance: Number(c.balance) || 0
+              };
+            }
           });
           setCustomerDb(prev => {
             if (JSON.stringify(prev) !== JSON.stringify(customersMap)) {
@@ -7109,15 +7218,18 @@ const UniversalPOS = () => {
       if (custRes.data && Array.isArray(custRes.data)) {
         const customersMap = {};
         custRes.data.forEach(c => {
-          customersMap[c.phone] = {
-            name: c.name,
-            phone: c.phone,
-            address: c.address,
-            points: Number(c.points) || 0,
-            orders: Number(c.orders) || 0,
-            totalSpent: Number(c.total_spent) || 0,
-            balance: Number(c.balance) || 0
-          };
+          const pKey = c.phone || c.customer_number || c.number;
+          if (pKey) {
+            customersMap[pKey] = {
+              name: c.name || c.display_name || 'Customer',
+              phone: pKey,
+              address: c.address || '',
+              points: Number(c.points) || 0,
+              orders: Number(c.orders) || 0,
+              totalSpent: Number(c.total_spent) || 0,
+              balance: Number(c.balance) || 0
+            };
+          }
         });
         setCustomerDb(customersMap);
         localStorage.setItem('pos_customer_db', JSON.stringify(customersMap));
@@ -7295,14 +7407,7 @@ const UniversalPOS = () => {
       const depts = kitchenDeptsRes.data || [];
 
       // Filter items so ONLY items belonging to the POS Default menu are displayed in Item Management
-      const catalogCodes = new Set((catalog || []).map(i => String(i.code).toUpperCase()));
-      const items = rawItems.filter(item => {
-        if (catalogCodes.size > 0 && catalogCodes.has(String(item.code).toUpperCase())) return true;
-        if (item.menu_is_pos_default === true) return true;
-        if (item.menu_name && item.menu_name.toUpperCase().includes('POS')) return true;
-        if (item.menu_name && item.menu_name.toUpperCase().includes('DIGI')) return false;
-        return catalogCodes.size === 0;
-      });
+      const items = filterPosDefaultItems(rawItems, catalog);
 
       setItemMgmtItems(items);
       setItemMgmtCategories(cats);
@@ -7321,7 +7426,7 @@ const UniversalPOS = () => {
         const cachedTaxes = localStorage.getItem('pos_item_mgmt_taxes');
         const cachedDepts = localStorage.getItem('pos_item_mgmt_depts');
 
-        if (cachedItems) setItemMgmtItems(JSON.parse(cachedItems));
+        if (cachedItems) setItemMgmtItems(filterPosDefaultItems(JSON.parse(cachedItems), catalog));
         if (cachedCats) setItemMgmtCategories(JSON.parse(cachedCats));
         if (cachedTaxes) setItemMgmtTaxGroups(JSON.parse(cachedTaxes));
         if (cachedDepts) setItemMgmtKitchenDepts(JSON.parse(cachedDepts));
@@ -16604,7 +16709,10 @@ const UniversalPOS = () => {
                        <p className="text-[9px] font-bold text-[#8b949e] mt-1">Configure dashboard visibility and permissions.</p>
                     </button>
                     <button
-                       onClick={() => setIsTableManagementModalOpen(true)}
+                        onClick={() => {
+                           setConfigSubView('items');
+                           loadItemMgmtData();
+                        }}
                        className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
                     >
                        <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
@@ -16613,6 +16721,20 @@ const UniversalPOS = () => {
                        <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Table Management</h4>
                        <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage tables, QR codes, and departments.</p>
                     </button>
+                    <button
+                        onClick={() => {
+                           setActiveTab('config');
+                           setConfigSubView('items');
+                           loadItemMgmtData();
+                        }}
+                        className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                     >
+                        <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                           <Utensils size={20}/>
+                        </div>
+                        <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Items Management</h4>
+                        <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage menu items, prices, and availability.</p>
+                     </button>
                                          {getStaffPermissions()?.pos_access?.UserManagement?.visible !== false && (
                                             <button
                                                onClick={() => setIsUserManagementModalOpen(true)}
@@ -16667,42 +16789,24 @@ const UniversalPOS = () => {
                                                <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage table bookings and guests.</p>
                                             </button>
                                          )}
-                    <button
-                       onClick={async () => {
-                          setActiveTab('config');
-                          setConfigSubView('items');
-                          if (itemMgmtItems.length === 0) {
-                             setItemMgmtLoading(true);
-                             try {
-                                const outletId = business?.user_id || business?.parent_user_id || business?.id;
-                                const [itemsRes, catsRes, taxGroupsRes, kitchenDeptsRes] = await Promise.all([
-                                   posService.getAllMenuItems(outletId),
-                                   posService.getCategories(outletId),
-                                   posService.getTaxGroups(outletId),
-                                   posService.getKitchenDepartments(outletId)
-                                ]);
-                                setItemMgmtItems(itemsRes.data || []);
-                                setItemMgmtCategories(catsRes.data || []);
-                                setItemMgmtTaxGroups(taxGroupsRes.data || []);
-                                setItemMgmtKitchenDepts(kitchenDeptsRes.data || []);
-                             } catch (err) {
-                                console.error('Failed to load menu items:', err);
-                                toast.error('Failed to load items');
-                             }
-                             setItemMgmtLoading(false);
-                          }
-                       }}
-                       className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
-                    >
-                       <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
-                          <Utensils size={20}/>
-                       </div>
-                       <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Items Management</h4>
-                       <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage menu items, prices, and availability.</p>
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                                         <button
+                                            onClick={() => {
+                                               setActiveTab('config');
+                                               setConfigSubView('items');
+                                               loadItemMgmtData();
+                                            }}
+                                            className="p-6 rounded-xl bg-[#161b22] border border-[#30363d] text-left hover:border-[#10ac84] transition-all group"
+                                         >
+                                            <div className="w-10 h-10 bg-[#10ac84]/10 rounded-lg flex items-center justify-center text-[#10ac84] mb-4 group-hover:bg-[#10ac84] group-hover:text-white transition-all">
+                                               <Utensils size={20}/>
+                                            </div>
+                                            <h4 className="text-xs font-black uppercase italic text-[#c9d1d9]">Items Management</h4>
+                                            <p className="text-[9px] font-bold text-[#8b949e] mt-1">Manage menu items, prices, and availability.</p>
+                                         </button>
+                 </div>
+              </motion.div>
+            )}
+
             {activeTab === 'config' && configSubView === 'main' && (
               <motion.div
                 key="config-main"
@@ -16717,30 +16821,11 @@ const UniversalPOS = () => {
 
                  {/* Grey Container Band */}
                  <div className={`p-4 rounded-sm border ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-[#eaebed] border-[#dcdee2]'} flex items-center`}>
-                    <button
-                       onClick={async () => {
-                          setConfigSubView('items');
-                          if (itemMgmtItems.length === 0) {
-                             setItemMgmtLoading(true);
-                             try {
-                                const outletId = business?.user_id || business?.parent_user_id || business?.id;
-                                const [itemsRes, catsRes, taxGroupsRes, kitchenDeptsRes] = await Promise.all([
-                                   posService.getAllMenuItems(outletId),
-                                   posService.getCategories(outletId),
-                                   posService.getTaxGroups(outletId),
-                                   posService.getKitchenDepartments(outletId)
-                                ]);
-                                setItemMgmtItems(itemsRes.data || []);
-                                setItemMgmtCategories(catsRes.data || []);
-                                setItemMgmtTaxGroups(taxGroupsRes.data || []);
-                                setItemMgmtKitchenDepts(kitchenDeptsRes.data || []);
-                             } catch (err) {
-                                console.error('Failed to load menu items:', err);
-                                toast.error('Failed to load items');
-                             }
-                             setItemMgmtLoading(false);
-                          }
-                       }}
+                     <button
+                        onClick={() => {
+                           setConfigSubView('items');
+                           loadItemMgmtData();
+                        }}
                        className={`w-28 h-28 rounded-md border flex flex-col items-center justify-center gap-2 transition-all hover:scale-[1.02] shadow-sm ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:border-[#18ba60]' : 'bg-white border-[#d2d4d8] hover:border-[#10ac84] hover:shadow-md'}`}
                     >
                        <BookOpen size={28} className={isDark ? 'text-[#18ba60]' : 'text-slate-950'} />
@@ -16881,31 +16966,6 @@ const UniversalPOS = () => {
                            </button>
                         )}
 
-                       {/* Add Item Button */}
-                       <button
-                          onClick={() => {
-                             setItemMgmtForm({
-                                id: null,
-                                code: '',
-                                product_name: '',
-                                price: '',
-                                category_id: itemMgmtCategories[0]?.id || '',
-                                food_type: 'veg',
-                                description: '',
-                                current_stock: '',
-                                item_type: '0',
-                                availability: true,
-                                tax_group_id: '',
-                                department_id: '',
-                                hsn_code: '',
-                                recommended: false
-                             });
-                             setIsItemFormOpen(true);
-                          }}
-                          className="h-10 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all text-white bg-[#18ba60] hover:bg-[#15a353] active:scale-95 shadow-md shadow-[#18ba60]/30 border border-[#18ba60] cursor-pointer shrink-0"
-                       >
-                          <Plus size={16} className="stroke-[3]" /> Add Item
-                       </button>
                     </div>
                  </div>
 
@@ -17074,39 +17134,6 @@ const UniversalPOS = () => {
                                                   </span>
                                                </div>
 
-                                               {/* Edit & Delete Actions (Top Right) */}
-                                               <div className="absolute top-3 right-3 flex gap-2">
-                                                  <button
-                                                     onClick={() => {
-                                                        setItemMgmtForm({
-                                                           id: item.id,
-                                                           code: item.code || '',
-                                                           product_name: item.product_name || '',
-                                                           price: item.price || '',
-                                                           category_id: item.category_id || '',
-                                                           food_type: item.food_type || 'veg',
-                                                           description: item.description || '',
-                                                           current_stock: item.current_stock || '',
-                                                           item_type: item.item_type || '0',
-                                                           availability: item.availability !== false,
-                                                           tax_group_id: item.tax_group_id || '',
-                                                           department_id: item.kitchen_dept_id || '',
-                                                           hsn_code: item.hsn_code || '',
-                                                           recommended: !!item.recommended
-                                                        });
-                                                        setIsItemFormOpen(true);
-                                                     }}
-                                                     className={`p-1.5 rounded-lg border transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:bg-[#161b22] text-[#8b949e] hover:text-white' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-500 hover:text-slate-800'}`}
-                                                  >
-                                                     <Pencil size={12} />
-                                                  </button>
-                                                  <button
-                                                     onClick={() => handleDeleteItemMgmt(item.id, item.item_type, item.product_name)}
-                                                     className={`p-1.5 rounded-lg border transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] hover:bg-rose-950 border-rose-900/50 text-rose-500 hover:text-rose-400' : 'bg-white border-slate-200 hover:bg-rose-50 text-rose-500 hover:text-rose-700'}`}
-                                                  >
-                                                     <Trash2 size={12} />
-                                                  </button>
-                                               </div>
 
                                                {/* Availability Toggle (Bottom Right) */}
                                                <div className="absolute bottom-3 right-3">
@@ -18477,7 +18504,7 @@ const UniversalPOS = () => {
 {/* MODIFIER SELECTION MODAL */}
         <AnimatePresence>
            {selectedItemForModifiers && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#1e293b]/80 backdrop-blur-sm">
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/30 pointer-events-auto">
                  <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} className={`w-full max-w-lg bg-white rounded-3xl overflow-hidden shadow-2xl border border-white/10 flex flex-col transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-900'}`}>
                     {/* UDM Title Bar */}
                      <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
@@ -18502,26 +18529,34 @@ const UniversalPOS = () => {
 
                      {/* Product Visual & Name header */}
                      {selectedItemForModifiers.image_url ? (
-                        <div className="h-40 w-full overflow-hidden relative shrink-0">
+                        <div className="h-36 w-full overflow-hidden relative shrink-0">
                            <img src={selectedItemForModifiers.image_url.startsWith('http') ? selectedItemForModifiers.image_url : `${API_BASE}${selectedItemForModifiers.image_url}`} alt={selectedItemForModifiers.product_name} className="w-full h-full object-cover" />
                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                           <div className="absolute bottom-4 left-6">
+                           <div className="absolute bottom-3 left-5">
                               <h4 className="text-lg font-extrabold text-white uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
                               <p className="text-[10px] text-slate-200 uppercase tracking-widest mt-0.5">Customize selection</p>
                            </div>
                         </div>
                      ) : (
-                        <div className={`p-5 border-b flex flex-col justify-center shrink-0 ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-50 border-slate-150'}`}>
+                        <div className={`p-4 border-b flex flex-col justify-center shrink-0 ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-50 border-slate-150'}`}>
                            <h4 className="text-base font-extrabold uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
                            <p className="text-[9px] text-slate-500 uppercase tracking-widest mt-0.5">Customize selection</p>
                         </div>
-                     )}<div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto no-scrollbar">
-                        {optionGroups.filter(og => og.item_id === selectedItemForModifiers.id).map(og => (
+                     )}
+                     
+                     <div className="p-5 space-y-5 max-h-[55vh] overflow-y-auto no-scrollbar">
+                        {getItemOptionGroups(selectedItemForModifiers).map(og => (
                            <div key={og.id} className="space-y-3">
-                              <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400">{og.name} (Min: {og.min_selectable}, Max: {og.max_selectable})</h4>
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400">{og.name} (Min: {og.min_selectable}, Max: {og.max_selectable})</h4>
                               <div className="grid grid-cols-2 gap-3">
                                  {og.options.map(o => {
                                     const modObj = { name: o.name, price: parseFloat(o.price_override) || 0, groupId: og.id };
+
+                                    // Match image for this option item
+                                    const matchedOptItem = allCatalogItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === o.name.toLowerCase()) ||
+                                                           allMgmtItems.find(mi => (mi.product_name || mi.item_name || '').trim().toLowerCase() === o.name.toLowerCase());
+                                    const rawOptImg = matchedOptItem?.image_url || matchedOptItem?.image;
+                                    const optImgSrc = rawOptImg ? (rawOptImg.startsWith('http') || rawOptImg.startsWith('data:') ? rawOptImg : `${API_BASE}${rawOptImg}`) : null;
 
                                     // Count occurrences of this exact option in the cart for this item
                                     const optionQtyInCart = cart.reduce((sum, c) => {
@@ -18536,96 +18571,151 @@ const UniversalPOS = () => {
 
                                     const isSelected = optionQtyInCart > 0;
 
-                                    return (
-                                       <button key={o.name} onClick={() => {
-                                             // 1. Calculate total options currently in cart for this group
-                                             const totalGroupQty = cart.reduce((sum, c) => {
-                                                if (c.id === selectedItemForModifiers.id && c.priceLabel === selectedItemForModifiers.priceLabel && c.modifiers) {
-                                                   const count = c.modifiers.filter(m => m.groupId === og.id).length;
-                                                   if (count > 0) {
-                                                      return sum + c.quantity;
-                                                   }
-                                                }
-                                                return sum;
-                                             }, 0);
+                                    // Increase option helper
+                                    const handleAddOption = () => {
+                                       const totalGroupQty = cart.reduce((sum, c) => {
+                                          if (c.id === selectedItemForModifiers.id && c.priceLabel === selectedItemForModifiers.priceLabel && c.modifiers) {
+                                             const count = c.modifiers.filter(m => m.groupId === og.id).length;
+                                             if (count > 0) return sum + c.quantity;
+                                          }
+                                          return sum;
+                                       }, 0);
 
-                                             // 2. Enforce max_selectable
-                                             if (og.max_selectable === 1) {
-                                                setCart(prev => {
-                                                   const existIdx = prev.findIndex(c =>
-                                                      c.id === selectedItemForModifiers.id &&
-                                                      c.priceLabel === selectedItemForModifiers.priceLabel &&
-                                                      c.modifiers &&
-                                                      c.modifiers.some(m => m.groupId === og.id)
-                                                   );
+                                       if (og.max_selectable === 1) {
+                                          setCart(prev => {
+                                             const existIdx = prev.findIndex(c =>
+                                                c.id === selectedItemForModifiers.id &&
+                                                c.priceLabel === selectedItemForModifiers.priceLabel &&
+                                                c.modifiers &&
+                                                c.modifiers.some(m => m.groupId === og.id)
+                                             );
 
-                                                   if (existIdx !== -1) {
-                                                      // Replace existing option from the same group
-                                                      return prev.map((c, idx) => {
-                                                         if (idx === existIdx) {
-                                                            const updatedModifiers = c.modifiers.map(m => m.groupId === og.id ? modObj : m);
-                                                            return {
-                                                               ...c,
-                                                               quantity: 1,
-                                                               modifiers: updatedModifiers,
-                                                               modifier: tempKitchenNote || undefined
-                                                            };
-                                                         }
-                                                         return c;
-                                                      });
-                                                   } else {
-                                                      // Add new item with quantity 1
-                                                      return [...prev, {
-                                                         ...selectedItemForModifiers,
-                                                         quantity: 1,
-                                                         price: 0,
-                                                         modifiers: [modObj],
-                                                         modifier: tempKitchenNote || undefined
-                                                      }];
-                                                   }
-                                                });
-                                                toast.success(`Selected ${selectedItemForModifiers.product_name} (${o.name})`);
+                                             if (existIdx !== -1) {
+                                                return prev.map((c, idx) => idx === existIdx ? { ...c, quantity: 1, modifiers: c.modifiers.map(m => m.groupId === og.id ? modObj : m), modifier: tempKitchenNote || undefined } : c);
                                              } else {
-                                                // max_selectable > 1
-                                                if (totalGroupQty >= og.max_selectable) {
-                                                   toast.warning(`Max ${og.max_selectable} options allowed for ${og.name}`);
-                                                   return;
-                                                }
-
-                                                setCart(prev => {
-                                                   const existIdx = prev.findIndex(p => {
-                                                      if (p.id !== selectedItemForModifiers.id || p.priceLabel !== selectedItemForModifiers.priceLabel) return false;
-                                                      return p.modifiers && p.modifiers.some(m => m.name === o.name && m.groupId === og.id);
-                                                   });
-
-                                                   if (existIdx !== -1) {
-                                                      // Increment quantity
-                                                      return prev.map((p, i) => i === existIdx ? { ...p, quantity: p.quantity + 1 } : p);
-                                                   } else {
-                                                      // Add new item with quantity 1
-                                                      return [...prev, {
-                                                         ...selectedItemForModifiers,
-                                                         quantity: 1,
-                                                         price: 0,
-                                                         modifiers: [modObj],
-                                                         modifier: tempKitchenNote || undefined
-                                                      }];
-                                                   }
-                                                });
-                                                toast.success(`Added ${selectedItemForModifiers.product_name} (${o.name})`);
+                                                return [...prev, { ...selectedItemForModifiers, quantity: 1, price: 0, modifiers: [modObj], modifier: tempKitchenNote || undefined }];
                                              }
-                                             setLastAddedItemId(selectedItemForModifiers.id);
-                                          }} className={`p-4 rounded-2xl border flex flex-col items-start transition-all relative ${isSelected ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg' : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-white'}`}>
-                                           <span className="text-[10px] font-black uppercase italic">
-                                              {o.name} {optionQtyInCart > 0 && `(x${optionQtyInCart})`}
-                                           </span>
-                                           <span className="text-[8px] font-bold opacity-60">+{config.currency}{modObj.price}</span>
-                                        </button>
-                                     );
-                                  })}
-                               </div>
-                            </div>
-                         ))}
+                                          });
+                                          toast.success(`Selected ${o.name}`);
+                                       } else {
+                                          if (totalGroupQty >= og.max_selectable) {
+                                             toast.warning(`Max ${og.max_selectable} options allowed for ${og.name}`);
+                                             return;
+                                          }
+                                          setCart(prev => {
+                                             const existIdx = prev.findIndex(p => {
+                                                if (p.id !== selectedItemForModifiers.id || p.priceLabel !== selectedItemForModifiers.priceLabel) return false;
+                                                return p.modifiers && p.modifiers.some(m => m.name === o.name && m.groupId === og.id);
+                                             });
+                                             if (existIdx !== -1) {
+                                                return prev.map((p, i) => i === existIdx ? { ...p, quantity: p.quantity + 1 } : p);
+                                             } else {
+                                                return [...prev, { ...selectedItemForModifiers, quantity: 1, price: 0, modifiers: [modObj], modifier: tempKitchenNote || undefined }];
+                                             }
+                                          });
+                                          toast.success(`Added ${o.name}`);
+                                       }
+                                       setLastAddedItemId(selectedItemForModifiers.id);
+                                    };
+
+                                    // Decrease option helper (removes 1 quantity)
+                                    const handleRemoveOption = () => {
+                                       setCart(prev => {
+                                          const existIdx = prev.findIndex(p => {
+                                             if (p.id !== selectedItemForModifiers.id || p.priceLabel !== selectedItemForModifiers.priceLabel) return false;
+                                             return p.modifiers && p.modifiers.some(m => m.name === o.name && m.groupId === og.id);
+                                          });
+                                          if (existIdx !== -1) {
+                                             const target = prev[existIdx];
+                                             if (target.quantity > 1) {
+                                                return prev.map((p, i) => i === existIdx ? { ...p, quantity: p.quantity - 1 } : p);
+                                             } else {
+                                                return prev.filter((_, i) => i !== existIdx);
+                                             }
+                                          }
+                                          return prev;
+                                       });
+                                       toast.info(`Removed 1 ${o.name}`);
+                                    };
+
+                                    return (
+                                       <div
+                                          key={o.name}
+                                          className={`rounded-2xl border flex flex-col overflow-hidden transition-all relative group ${
+                                             isSelected
+                                                ? (isDark ? 'bg-slate-800 border-emerald-500 shadow-md ring-2 ring-emerald-500/50' : 'bg-emerald-50/60 border-emerald-500 shadow-md ring-2 ring-emerald-500/50')
+                                                : (isDark ? 'bg-[#161b22] border-[#30363d] hover:border-slate-500' : 'bg-slate-50 border-slate-200 hover:bg-white hover:border-slate-300')
+                                          }`}
+                                       >
+                                          {/* Option Image Header */}
+                                          {optImgSrc ? (
+                                             <div className="h-24 w-full overflow-hidden relative shrink-0 bg-slate-200">
+                                                <img src={optImgSrc} alt={o.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                                                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+                                                <span className="absolute bottom-1.5 left-2 text-[11px] font-black uppercase text-white tracking-tight drop-shadow">
+                                                   {o.name}
+                                                </span>
+                                             </div>
+                                          ) : null}
+
+                                          <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                                             {!optImgSrc && (
+                                                <span className={`text-xs font-black uppercase tracking-tight block ${isSelected ? (isDark ? 'text-emerald-400' : 'text-emerald-700') : (isDark ? 'text-white' : 'text-slate-900')}`}>
+                                                   {o.name}
+                                                </span>
+                                             )}
+                                             <div className="flex items-center justify-between gap-1">
+                                                <span className="text-[11px] font-bold text-emerald-600 dark:text-emerald-400">
+                                                   +{config.currency}{modObj.price}
+                                                </span>
+                                                {isSelected && (
+                                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-emerald-500 text-white shadow-sm">
+                                                      x{optionQtyInCart}
+                                                   </span>
+                                                )}
+                                             </div>
+
+                                             {/* Action Controller: Stepper (+/-) if selected, else Add Button */}
+                                             {isSelected ? (
+                                                <div className="flex items-center gap-1.5 pt-1 w-full">
+                                                   <button
+                                                      type="button"
+                                                      onClick={handleRemoveOption}
+                                                      className="flex-1 h-8 rounded-xl bg-rose-500 hover:bg-rose-600 active:scale-95 text-white font-black text-sm flex items-center justify-center shadow transition-all"
+                                                      title="Decrease / Remove 1"
+                                                   >
+                                                      -
+                                                   </button>
+                                                   <span className="px-1 text-xs font-black text-slate-800 dark:text-white min-w-[18px] text-center">
+                                                      {optionQtyInCart}
+                                                   </span>
+                                                   <button
+                                                      type="button"
+                                                      onClick={handleAddOption}
+                                                      className="flex-1 h-8 rounded-xl bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-black text-sm flex items-center justify-center shadow transition-all"
+                                                      title="Increase 1"
+                                                   >
+                                                      +
+                                                   </button>
+                                                </div>
+                                             ) : (
+                                                <button
+                                                   type="button"
+                                                   onClick={handleAddOption}
+                                                   className={`w-full py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all shadow-sm active:scale-95 ${
+                                                      isDark ? 'bg-slate-700 hover:bg-emerald-600 text-white' : 'bg-slate-200 hover:bg-emerald-600 hover:text-white text-slate-700'
+                                                   }`}
+                                                >
+                                                   Add +
+                                                </button>
+                                             )}
+                                          </div>
+                                       </div>
+                                    );
+                                 })}
+                              </div>
+                           </div>
+                        ))}
                          <div className="space-y-3">
                             <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400">Kitchen Note</h4>
                             <textarea
@@ -18647,7 +18737,7 @@ const UniversalPOS = () => {
                       </div>
                       <div className="p-6 bg-slate-50 border-t border-slate-200 flex gap-3">
                          <button onClick={() => {
-                               const itemOptionGroups = optionGroups.filter(og => og.item_id === selectedItemForModifiers.id);
+                               const itemOptionGroups = getItemOptionGroups(selectedItemForModifiers);
 
                                // Check min selection for each group using cart quantities
                                for (const og of itemOptionGroups) {
