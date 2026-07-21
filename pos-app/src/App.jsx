@@ -18553,8 +18553,10 @@ const UniversalPOS = () => {
                                     const modObj = { name: o.name, price: parseFloat(o.price_override) || 0, groupId: og.id };
 
                                     // Match image for this option item
-                                    const matchedOptItem = allCatalogItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === o.name.toLowerCase()) ||
-                                                           allMgmtItems.find(mi => (mi.product_name || mi.item_name || '').trim().toLowerCase() === o.name.toLowerCase());
+                                    const allCatItems = Array.isArray(catalog) ? catalog : [];
+                                    const allMgItems = Array.isArray(itemMgmtItems) ? itemMgmtItems : [];
+                                    const matchedOptItem = allCatItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === o.name.toLowerCase()) ||
+                                                           allMgItems.find(mi => (mi.product_name || mi.item_name || '').trim().toLowerCase() === o.name.toLowerCase());
                                     const rawOptImg = matchedOptItem?.image_url || matchedOptItem?.image;
                                     const optImgSrc = rawOptImg ? (rawOptImg.startsWith('http') || rawOptImg.startsWith('data:') ? rawOptImg : `${API_BASE}${rawOptImg}`) : null;
 
