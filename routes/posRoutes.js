@@ -100,80 +100,54 @@ router.get("/option-groups", authMiddleware, async (req, res) => {
                 console.warn(`[POS] Skipping group '${group.name}' (ID: ${group.id}) because it has no valid item link.`);
                 continue;
             }
-
-            // Fetch options for the group
-            const optionsQuery = `
-              SELECT * FROM (
-                SELECT DISTINCT ON (ol.id) ol.id, ol.name, ol.price_override, omi.base_price as item_price, ol.sorting_order
-                FROM options_list ol
-                LEFT JOIN outlet_menu_items omi ON ol.name = omi.item_name 
-                  AND omi.menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $1)
-                  AND (
-                    (omi.item_type = '0') 
-                    OR 
-                    (
-                      omi.item_type = '1' 
-                      AND omi.id > $1 
-                      AND omi.id < COALESCE(
-                        (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $1) AND id > $1), 
-                        99999999
-                      )
-                    )
-                  )
-                WHERE ol.group_id = $2 AND ol.is_active = true 
-                ORDER BY ol.id, omi.item_type DESC, omi.id ASC
-              ) sub
-              ORDER BY sorting_order ASC`;
-
-            let optionsRes = await pool.query(optionsQuery, [menuItemId, group.id]);
-            
-            // Check if we need price fallback (e.g. if options returned null base price and no price override)
-            const needsFallback = optionsRes.rows.some(o => 
-                (o.item_price === null || parseFloat(o.item_price) === 0) && 
-                (o.price_override === null || parseFloat(o.price_override) === 0)
+            // Fetch options for the group directly from options_list
+            const optionsRes = await pool.query(
+              "SELECT id, name, price_override, sorting_order FROM options_list WHERE group_id = $1 AND is_active = true ORDER BY sorting_order ASC",
+              [group.id]
             );
 
-            if (needsFallback) {
-                // Find other items linked to the same option group in the same menu
-                const otherItemsRes = await pool.query(
-                    `SELECT iog.item_id 
-                     FROM item_option_groups iog
-                     JOIN outlet_menu_items omi ON iog.item_id = omi.id
-                     WHERE iog.group_id = $1 
-                       AND omi.menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $2) 
-                       AND iog.item_id != $2`,
-                    [group.id, menuItemId]
-                );
+            // Resolve prices: use price_override if set, otherwise look up base_price from outlet_menu_items by matching option name
+            const resolvedOptions = [];
+            for (const o of optionsRes.rows) {
+                let price = parseFloat(o.price_override || 0);
 
-                for (const otherItem of otherItemsRes.rows) {
-                    const fallbackRes = await pool.query(optionsQuery, [otherItem.item_id, group.id]);
-                    const hasValidPrices = fallbackRes.rows.some(o => 
-                        (o.item_price !== null && parseFloat(o.item_price) > 0) || 
-                        (o.price_override !== null && parseFloat(o.price_override) > 0)
+                if (price === 0) {
+                    // Attempt A: Match option name to item_name within the same menu, starting after the main item
+                    const matchInMenu = await pool.query(
+                      `SELECT base_price FROM outlet_menu_items
+                       WHERE menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $1)
+                         AND item_name ILIKE $2
+                         AND COALESCE(NULLIF(base_price::text, ''), '0')::numeric > 0
+                       ORDER BY id ASC LIMIT 1`,
+                      [menuItemId, o.name]
                     );
-                    if (hasValidPrices) {
-                        // Found a valid fallback! Copy the prices/overrides to the original options array
-                        optionsRes.rows = optionsRes.rows.map(originalOpt => {
-                            const matchingFallback = fallbackRes.rows.find(fo => fo.id === originalOpt.id);
-                            if (matchingFallback) {
-                                return {
-                                    ...originalOpt,
-                                    item_price: matchingFallback.item_price,
-                                    price_override: matchingFallback.price_override
-                                };
-                            }
-                            return originalOpt;
-                        });
-                        break;
+
+                    if (matchInMenu.rows.length > 0) {
+                        price = parseFloat(matchInMenu.rows[0].base_price);
+                    } else {
+                        // Attempt B: Match option name globally across all menus for this outlet
+                        const matchGlobal = await pool.query(
+                          `SELECT base_price FROM outlet_menu_items
+                           WHERE item_name ILIKE $1
+                             AND COALESCE(NULLIF(base_price::text, ''), '0')::numeric > 0
+                           ORDER BY id ASC LIMIT 1`,
+                          [o.name]
+                        );
+                        if (matchGlobal.rows.length > 0) {
+                            price = parseFloat(matchGlobal.rows[0].base_price);
+                        }
                     }
                 }
+
+                resolvedOptions.push({
+                    id: o.id,
+                    name: o.name,
+                    price_override: price > 0 ? String(price) : '0.00'
+                });
             }
-            
-            group.options = optionsRes.rows.map(o => ({
-                id: o.id,
-                name: o.name,
-                price_override: parseFloat(o.price_override) > 0 ? o.price_override : o.item_price
-            }));
+
+            group.options = resolvedOptions;
+
             
             group.outlet_menu_item_id = menuItemId;
             group.item_id = posItemId;
