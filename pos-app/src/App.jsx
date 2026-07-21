@@ -3608,7 +3608,7 @@ const UniversalPOS = () => {
     totalTaxOnline: 0,
     totalDiscountOnline: 0,
     avgSalePerPerson: '0.00',
-    serverIp: '127.0.0.1',
+    serverIp: localIpAddress || '192.168.29.101',
     weeklyHeatmap: [],
     paymentBreakdown: []
   });
@@ -7289,10 +7289,20 @@ const UniversalPOS = () => {
         posService.getTaxGroups(outletId),
         posService.getKitchenDepartments(outletId)
       ]);
-      const items = itemsRes.data || [];
+      const rawItems = itemsRes.data || [];
       const cats = catsRes.data || [];
       const taxes = taxGroupsRes.data || [];
       const depts = kitchenDeptsRes.data || [];
+
+      // Filter items so ONLY items belonging to the POS Default menu are displayed in Item Management
+      const catalogCodes = new Set((catalog || []).map(i => String(i.code).toUpperCase()));
+      const items = rawItems.filter(item => {
+        if (catalogCodes.size > 0 && catalogCodes.has(String(item.code).toUpperCase())) return true;
+        if (item.menu_is_pos_default === true) return true;
+        if (item.menu_name && item.menu_name.toUpperCase().includes('POS')) return true;
+        if (item.menu_name && item.menu_name.toUpperCase().includes('DIGI')) return false;
+        return catalogCodes.size === 0;
+      });
 
       setItemMgmtItems(items);
       setItemMgmtCategories(cats);
@@ -16892,9 +16902,9 @@ const UniversalPOS = () => {
                              });
                              setIsItemFormOpen(true);
                           }}
-                          className="h-9 px-4 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all text-white bg-[#0f172a] hover:bg-[#1e293b] dark:bg-[#1e293b] dark:hover:bg-[#374151]"
+                          className="h-10 px-5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all text-white bg-[#18ba60] hover:bg-[#15a353] active:scale-95 shadow-md shadow-[#18ba60]/30 border border-[#18ba60] cursor-pointer shrink-0"
                        >
-                          <Plus size={14} /> Add Item
+                          <Plus size={16} className="stroke-[3]" /> Add Item
                        </button>
                     </div>
                  </div>
