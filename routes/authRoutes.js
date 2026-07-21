@@ -181,7 +181,7 @@ router.post("/pos-login", async (req, res) => {
 
         // 1. Find user by username
         const result = await pool.query(
-            "SELECT id, email, role, password as hashed_password, pos_pin, parent_user_id, name, business_name, status FROM app_users WHERE username = $1 OR email = $1",
+            "SELECT id, email, role, user_type, staff_permissions, admin_permissions, password as hashed_password, pos_pin, parent_user_id, name, business_name, status FROM app_users WHERE username = $1 OR email = $1",
             [username]
         );
 
@@ -191,7 +191,7 @@ router.post("/pos-login", async (req, res) => {
         }
 
         const user = result.rows[0];
-        console.log(`👤 用户发现: ${user.email}, Role: ${user.role}`);
+        console.log(`👤 用户发现: ${user.email}, Role: ${user.role}, UserType: ${user.user_type}`);
 
         if (user.status !== 'active') {
             console.log(`🚫 用户状态非活跃: ${user.status}`);
@@ -227,13 +227,13 @@ router.post("/pos-login", async (req, res) => {
         const bizId = user.parent_user_id || user.id;
 
         const token = jwt.sign(
-            { id: user.id, bizId, role: user.role, isPOS: true },
+            { id: user.id, bizId, role: user.role, user_type: user.user_type, isPOS: true },
             process.env.JWT_SECRET || "secretkey",
             { expiresIn: "7d" }
         );
 
         console.log("✨ POS 登录成功，正在生成 Token");
-        res.json({ token, user: { ...user, bizId, hashed_password: undefined } });
+        res.json({ token, user: { ...user, pos_access_level: user.user_type || user.role || 'cashier', bizId, hashed_password: undefined } });
     } catch (err) {
         console.error("🔥 POS LOGIN ERROR:", err);
         res.status(500).json({ error: "Server error during POS login: " + err.message });
@@ -254,7 +254,7 @@ router.get("/profile", authMiddleware, async (req, res) => {
         }
 
         const userResult = await pool.query(
-            "SELECT id, name, email, role, phone, whatsapp_number, address, username, business_name, business_type, created_at, parent_user_id, staff_permissions FROM app_users WHERE id = $1",
+            "SELECT id, name, email, role, user_type, phone, whatsapp_number, address, username, business_name, business_type, created_at, parent_user_id, staff_permissions, admin_permissions FROM app_users WHERE id = $1",
             [userId]
         );
 
@@ -301,6 +301,9 @@ router.get("/profile", authMiddleware, async (req, res) => {
 
         const profileData = {
             ...user,
+            pos_access_level: user.user_type || user.role || 'cashier',
+            staff_permissions: user.staff_permissions || {},
+            admin_permissions: user.admin_permissions || {},
             phone: phone,
             whatsapp_number: whatsappNumber,
             address: address,
