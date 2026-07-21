@@ -1,33 +1,29 @@
-const jwt = require("jsonwebtoken");
-const axios = require("axios");
+const axios = require('axios');
 
-const JWT_SECRET = "secretkey";
-
-// Generate token for user 49 (which maps to bizId 48)
-const token = jwt.sign(
-  { id: 49, bizId: 48, email: "shahetehzeebpos@gmail.com", role: "POS" },
-  JWT_SECRET
-);
-
-async function test() {
+async function testCatalogApi() {
   try {
-    const res = await axios.get("http://127.0.0.1:5000/api/catalog", {
+    const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
+      identifier: 'shahetehzeeb',
+      password: '1234'
+    });
+    const token = loginRes.data.token;
+    console.log("Logged in successfully.");
+
+    const catRes = await axios.get('http://localhost:5000/api/catalog', {
       headers: { Authorization: `Bearer ${token}` }
     });
-    
-    console.log("Total items returned in catalog:", res.data.length);
-    const items = res.data.filter(item => 
-      ['KABAB', 'RISTA', 'GOSHTABA', 'DANIYA KORMA'].includes(item.name) || 
-      ['KABAB', 'RISTA', 'GOSHTABA', 'DANIYA KORMA'].includes(item.product_name)
-    );
-    console.log("Filtered items of interest:");
-    console.dir(items, { depth: null });
-  } catch (err) {
-    console.error("API Error:", err.message);
-    if (err.response) {
-      console.error(err.response.data);
+
+    console.log("=== POS CATALOG API ITEMS COUNT ===", catRes.data.length);
+    if (catRes.data.length > 0) {
+      console.log("Sample 5 items returned to POS Billing:");
+      catRes.data.slice(0, 5).forEach(item => {
+        console.log(`- Code: "${item.code}" | Name: "${item.product_name}" | Price: ₹${item.price} | Category: "${item.category}"`);
+      });
     }
+
+  } catch (err) {
+    console.error("Catalog API Error:", err.response?.data || err.message);
   }
 }
 
-test();
+testCatalogApi();

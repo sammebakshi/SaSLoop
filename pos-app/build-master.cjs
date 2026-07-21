@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 const packageJsonPath = path.join(__dirname, 'package.json');
 const backupJsonPath = path.join(__dirname, 'package.json.bak');
 
-console.log('🏁 Starting SaSLoop Master POS build automation...');
+console.log('🏁 Starting SaSLoop Master POS v1.0.2 build automation...');
 
 // 1. Back up package.json
 try {
@@ -17,15 +17,17 @@ try {
 }
 
 try {
-  // 2. Modify package.json details
+  // 2. Modify package.json details for Master build v1.0.2
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  packageJson.productName = 'sasloop-master-pos-v1.0.1';
+  packageJson.version = '1.0.2';
+  packageJson.productName = 'sasloop-master-pos-v1.0.2';
   if (packageJson.build && packageJson.build.nsis) {
     packageJson.build.nsis.shortcutName = 'SaSLoop POS Master';
+    packageJson.build.nsis.artifactName = 'Master-POS-Setup-v${version}.${ext}';
   }
   
   fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2), 'utf8');
-  console.log('📝 Modified package.json for Master build');
+  console.log('📝 Modified package.json to v1.0.2 for Master build');
 
   // 3. Compile and build the application
   console.log('🔨 Launching build compiler (npm run build && electron-builder)...');

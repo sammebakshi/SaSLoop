@@ -1,8 +1,8 @@
 {
   "name": "pos-app",
-  "productName": "sasloop-master-pos-v1.0.1",
+  "productName": "sasloop-master-pos-v1.0.2",
   "private": true,
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "electron/main.cjs",
   "build": {
     "files": [
