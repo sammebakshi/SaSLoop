@@ -71,7 +71,7 @@ export const posService = {
     createKot: (kot) => api.post('/api/kots', kot),
     getWaiters: () => api.get('/api/waiters'),
     getStaff: () => api.get('/api/waiters'),
-    getRiders: () => api.get('/api/waiters').catch(() => ({ data: [] })),
+    getRiders: () => api.get('/api/waiters/riders'),
     getDiscounts: () => api.get('/api/discounts'),
     getAdditionalCharges: () => api.get('/api/additional-charges'),
     getTaxes: (outletId) => api.get('/api/brand/tax-groups', { params: { outlet_id: outletId } }),
