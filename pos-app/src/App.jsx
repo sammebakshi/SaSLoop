@@ -18527,22 +18527,13 @@ const UniversalPOS = () => {
                         </div>
                      </div>
 
-                     {/* Product Visual & Name header */}
-                     {selectedItemForModifiers.image_url ? (
-                        <div className="h-36 w-full overflow-hidden relative shrink-0">
-                           <img src={selectedItemForModifiers.image_url.startsWith('http') ? selectedItemForModifiers.image_url : `${API_BASE}${selectedItemForModifiers.image_url}`} alt={selectedItemForModifiers.product_name} className="w-full h-full object-cover" />
-                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                           <div className="absolute bottom-3 left-5">
-                              <h4 className="text-lg font-extrabold text-white uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
-                              <p className="text-[10px] text-slate-200 uppercase tracking-widest mt-0.5">Customize selection</p>
-                           </div>
+                     {/* Product Title Header (Top image banner removed as requested) */}
+                     <div className={`px-5 py-3 border-b flex items-center justify-between shrink-0 ${isDark ? 'bg-black/20 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
+                        <div>
+                           <h4 className="text-base font-extrabold uppercase tracking-tight text-emerald-600 dark:text-emerald-400">{selectedItemForModifiers.product_name}</h4>
+                           <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-semibold mt-0.5">Customize Selection</p>
                         </div>
-                     ) : (
-                        <div className={`p-4 border-b flex flex-col justify-center shrink-0 ${isDark ? 'bg-black/10 border-white/5' : 'bg-slate-50 border-slate-150'}`}>
-                           <h4 className="text-base font-extrabold uppercase tracking-tight">{selectedItemForModifiers.product_name}</h4>
-                           <p className="text-[9px] text-slate-500 uppercase tracking-widest mt-0.5">Customize selection</p>
-                        </div>
-                     )}
+                     </div>
                      
                      <div className="p-5 space-y-5 max-h-[55vh] overflow-y-auto no-scrollbar">
                         {getItemOptionGroups(selectedItemForModifiers).map(og => (
@@ -18552,12 +18543,25 @@ const UniversalPOS = () => {
                                  {og.options.map(o => {
                                     const modObj = { name: o.name, price: parseFloat(o.price_override) || 0, groupId: og.id };
 
-                                    // Match image for this option item
+                                    // Match image for this option item (checking option object, catalog, mgmt items, and fallback to main dish image)
                                     const allCatItems = Array.isArray(catalog) ? catalog : [];
                                     const allMgItems = Array.isArray(itemMgmtItems) ? itemMgmtItems : [];
-                                    const matchedOptItem = allCatItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase() === o.name.toLowerCase()) ||
-                                                           allMgItems.find(mi => (mi.product_name || mi.item_name || '').trim().toLowerCase() === o.name.toLowerCase());
-                                    const rawOptImg = matchedOptItem?.image_url || matchedOptItem?.image;
+                                    const mainItemName = (selectedItemForModifiers.product_name || selectedItemForModifiers.item_name || '').trim().toLowerCase();
+                                    const optionName = (o.name || '').trim().toLowerCase();
+
+                                    let rawOptImg = o.image_url || o.image;
+                                    if (!rawOptImg) {
+                                       const matchedOptItem = allCatItems.find(ci => {
+                                          const n = (ci.product_name || ci.item_name || '').trim().toLowerCase();
+                                          return n === optionName || n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}`;
+                                       }) || allMgItems.find(mi => {
+                                          const n = (mi.product_name || mi.item_name || '').trim().toLowerCase();
+                                          return n === optionName || n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}`;
+                                       }) || allCatItems.find(ci => (ci.product_name || ci.item_name || '').trim().toLowerCase().includes(optionName));
+
+                                       rawOptImg = matchedOptItem?.image_url || matchedOptItem?.image || selectedItemForModifiers.image_url || selectedItemForModifiers.image;
+                                    }
+
                                     const optImgSrc = rawOptImg ? (rawOptImg.startsWith('http') || rawOptImg.startsWith('data:') ? rawOptImg : `${API_BASE}${rawOptImg}`) : null;
 
                                     // Count occurrences of this exact option in the cart for this item
