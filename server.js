@@ -205,10 +205,9 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // ======================
 // Resolve build path relative to server.js
 let candidatePaths = [
-    path.resolve(__dirname, "build"),
     path.resolve(__dirname, "SaSLoop-dashboard", "build"),
     path.resolve(__dirname, "SaSLoop-dashboard", "dist"),
-    path.resolve(__dirname, "..", "SaSLoop-dashboard", "build"),
+    path.resolve(__dirname, "build"),
     path.resolve(__dirname, "dist")
 ];
 
