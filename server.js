@@ -205,34 +205,24 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // ======================
 // Resolve build path relative to server.js
 let candidatePaths = [
-    path.join(__dirname, "SaSLoop-dashboard", "build"),
-    path.join(__dirname, "SaSLoop-dashboard", "dist"),
-    path.join(__dirname, "..", "SaSLoop-dashboard", "build"),
-    path.join(__dirname, "dist")
+    path.resolve(__dirname, "SaSLoop-dashboard", "build"),
+    path.resolve(__dirname, "SaSLoop-dashboard", "dist"),
+    path.resolve(__dirname, "..", "SaSLoop-dashboard", "build"),
+    path.resolve(__dirname, "dist")
 ];
 
 let buildPath = candidatePaths.find(p => fs.existsSync(path.join(p, "index.html"))) || candidatePaths[0];
 
-console.log("🚀 FINAL FRONTEND PATH:", buildPath);
-
-// Debugger to see why CSS/JS might be failing
-app.use((req, res, next) => {
-    if (req.path.includes('.') && !req.path.startsWith('/api')) {
-        const fullPath = path.join(buildPath, req.path);
-        const exists = fs.existsSync(fullPath);
-        console.log(`[ASSET CHECK] ${exists ? '✅' : '❌'} ${req.path} -> ${fullPath}`);
+candidatePaths.forEach(p => {
+    if (fs.existsSync(p)) {
+        app.use(express.static(p, {
+            index: false,
+            immutable: true,
+            maxAge: '1y'
+        }));
+        console.log("✅ Mounted Dashboard Static Path:", p);
     }
-    next();
 });
-
-if (fs.existsSync(buildPath)) {
-    app.use(express.static(buildPath, {
-        index: false, // Don't serve index.html here, let SPA handler do it
-        immutable: true,
-        maxAge: '1y'
-    }));
-    console.log("✅ Dashboard Assets Mounted!");
-}
 
 // ======================
 // ✅ ULTIMATE SPA HANDLER (Reliable Navigation)
