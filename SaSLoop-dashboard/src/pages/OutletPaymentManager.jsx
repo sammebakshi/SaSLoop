@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   CreditCard, ChevronRight, ChevronLeft, 
   Trash2, Search, RefreshCw, ShieldCheck, 
-  Lock, Smartphone, Wallet, Building2, Store, X, Plus, QrCode
+  Lock, Smartphone, Wallet, Building2, Store, X, Plus, QrCode, Edit2
 } from "lucide-react";
 import API_BASE from "../config";
 
@@ -19,6 +19,7 @@ const OutletPaymentManager = () => {
     const [outletQrs, setOutletQrs] = useState([]);
     const [qrLoading, setQrLoading] = useState(false);
     const [newQr, setNewQr] = useState({ name: "", brand: "other", upi_id: "", qr_type: "static", is_active: true });
+    const [editingQrId, setEditingQrId] = useState(null);
     const [showAddQr, setShowAddQr] = useState(false);
 
     // Business settings for centralized print toggle
@@ -76,6 +77,43 @@ const OutletPaymentManager = () => {
         }
     };
 
+    const handleSaveWaSettings = async (mode, upiId) => {
+        try {
+            const token = localStorage.getItem("token");
+            const impersonateId = sessionStorage.getItem("impersonate_id");
+            const target_user_id = (impersonateId && impersonateId !== "global") ? impersonateId : null;
+            
+            const res = await fetch(`${API_BASE}/api/business/setup`, {
+                method: "POST",
+                headers: {
+                    "Authorization": `Bearer ${token}`,
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    target_user_id,
+                    settings: {
+                        ...bizSettings,
+                        whatsapp_payment_modes: mode,
+                        whatsapp_upi_id: upiId
+                    }
+                })
+            });
+            if (res.ok) {
+                setBizSettings(prev => ({
+                    ...prev,
+                    whatsapp_payment_modes: mode,
+                    whatsapp_upi_id: upiId
+                }));
+                alert("WhatsApp Ordering Payment Settings saved successfully!");
+                fetchBusinessStatus();
+            } else {
+                alert("Failed to update WhatsApp payment settings");
+            }
+        } catch (err) {
+            console.error("Failed to save WhatsApp settings:", err);
+        }
+    };
+
     const fetchOutletQrs = async () => {
         setQrLoading(true);
         try {
@@ -97,18 +135,40 @@ const OutletPaymentManager = () => {
         }
     };
 
+    const handleStartEdit = (qr) => {
+        setEditingQrId(qr.id);
+        setNewQr({
+            name: qr.name,
+            brand: qr.brand || "other",
+            upi_id: qr.upi_id,
+            qr_type: qr.qr_type || "static",
+            is_active: qr.is_active !== undefined ? qr.is_active : true
+        });
+        setShowAddQr(true);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingQrId(null);
+        setNewQr({ name: "", brand: "other", upi_id: "", qr_type: "static", is_active: true });
+        setShowAddQr(false);
+    };
+
     const addQrCode = async (e) => {
         e.preventDefault();
         if (!newQr.name.trim() || !newQr.upi_id.trim()) {
-            alert("Please enter both a Name and UPI ID / URL");
+            alert("Please enter both a Name and UPI ID / Payment Link");
             return;
         }
         try {
             const token = localStorage.getItem("token");
             const impersonateId = sessionStorage.getItem("impersonate_id");
+            const url = editingQrId 
+                ? `${API_BASE}/api/pos/qrs/${editingQrId}` 
+                : `${API_BASE}/api/pos/qrs`;
+            const method = editingQrId ? "PUT" : "POST";
             
-            const res = await fetch(`${API_BASE}/api/pos/qrs`, {
-                method: "POST",
+            const res = await fetch(url, {
+                method,
                 headers: { 
                     "Authorization": `Bearer ${token}`,
                     "Content-Type": "application/json"
@@ -119,15 +179,14 @@ const OutletPaymentManager = () => {
                 })
             });
             if (res.ok) {
-                setNewQr({ name: "", brand: "other", upi_id: "", qr_type: "static", is_active: true });
-                setShowAddQr(false);
+                handleCancelEdit();
                 fetchOutletQrs();
             } else {
                 const errData = await res.json();
-                alert(`Failed to add QR code: ${errData.error || 'Server error'}`);
+                alert(`Failed to save QR code: ${errData.error || 'Server error'}`);
             }
         } catch (err) {
-            console.error("Failed to add QR code:", err);
+            console.error("Failed to save QR code:", err);
         }
     };
 
@@ -479,20 +538,100 @@ const OutletPaymentManager = () => {
                         </div>
                         <div>
                             <h3 className="text-[14px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">UPI QR Codes Registry</h3>
-                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Add payment QR codes or custom payment URLs</p>
+                            <p className="text-[11px] text-slate-500 dark:text-slate-400">Add, edit, or manage payment QR codes and direct payment links</p>
                         </div>
                     </div>
-                    <button 
-                        onClick={() => setShowAddQr(!showAddQr)}
-                        className="pro-btn-primary h-9 px-4 text-[10px] font-black uppercase"
-                    >
-                        {showAddQr ? "Close Form" : "+ Add QR Code"}
-                    </button>
+                    <div className="flex items-center gap-3 flex-wrap">
+                        {/* Print QR on Bill Master Toggle Switch */}
+                        <div className="flex items-center gap-2 bg-slate-50 dark:bg-white/5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-white/5">
+                            <span className="text-[10px] font-black uppercase text-slate-700 dark:text-slate-300">Print QR on Bill</span>
+                            <button
+                                type="button"
+                                onClick={() => handleTogglePrintQr(!printUpiQr)}
+                                className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${printUpiQr ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-700'}`}
+                            >
+                                <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${printUpiQr ? 'translate-x-4' : 'translate-x-0'}`} />
+                            </button>
+                            <span className={`text-[9px] font-black tracking-wider px-1.5 py-0.5 rounded ${printUpiQr ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>
+                                {printUpiQr ? 'ENABLED' : 'DISABLED'}
+                            </span>
+                        </div>
+                        <button 
+                            onClick={() => {
+                                if (showAddQr) {
+                                    handleCancelEdit();
+                                } else {
+                                    setShowAddQr(true);
+                                }
+                            }}
+                            className="pro-btn-primary h-9 px-4 text-[10px] font-black uppercase"
+                        >
+                            {showAddQr ? "Close Form" : "+ Add QR Code"}
+                        </button>
+                    </div>
+                </div>
+
+                {/* WhatsApp Ordering Payment Settings Sub-Card */}
+                <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 mb-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-emerald-500 text-[14px]">💬</span>
+                            <div>
+                                <h4 className="text-[12px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">WhatsApp Ordering Payment Settings</h4>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Configure dedicated payment methods and a separate UPI ID for orders placed on WhatsApp</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => handleSaveWaSettings(bizSettings.whatsapp_payment_modes || 'BOTH', bizSettings.whatsapp_upi_id || '')}
+                            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-emerald-700 transition-all shadow-sm"
+                        >
+                            Save WhatsApp Payment Settings
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Allowed Payment Methods on WhatsApp</label>
+                            <select
+                                value={bizSettings.whatsapp_payment_modes || 'BOTH'}
+                                onChange={e => setBizSettings(prev => ({ ...prev, whatsapp_payment_modes: e.target.value }))}
+                                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#161b22] text-[11px] font-bold text-slate-800 dark:text-white outline-none focus:border-emerald-500"
+                            >
+                                <option value="BOTH">Both Prepaid UPI & Cash on Delivery (Customer Chooses)</option>
+                                <option value="COD">Cash on Delivery (COD) Only (No Payment Link Sent)</option>
+                                <option value="UPI">Prepaid UPI Only (Online Payment Link Required)</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Dedicated WhatsApp UPI ID / VPA</label>
+                            <input
+                                type="text"
+                                placeholder="e.g. whatsappmerchant@upi or https://..."
+                                value={bizSettings.whatsapp_upi_id || ''}
+                                onChange={e => setBizSettings(prev => ({ ...prev, whatsapp_upi_id: e.target.value }))}
+                                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#161b22] text-[11px] font-mono text-slate-800 dark:text-white outline-none focus:border-emerald-500"
+                            />
+                            <span className="text-[8.5px] text-slate-400">If set, WhatsApp order payment links will use this separate UPI ID instead of the default QR.</span>
+                        </div>
+                    </div>
                 </div>
 
                 {showAddQr && (
                     <form onSubmit={addQrCode} className="bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 p-4 rounded-xl mb-6 space-y-4 max-w-2xl animate-in slide-in-from-top-2 duration-300">
-                        <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">New QR Configuration</h4>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-[11px] font-bold text-slate-700 dark:text-slate-300 uppercase tracking-widest">
+                                {editingQrId ? `Edit QR Configuration (ID: ${editingQrId})` : "New QR Configuration"}
+                            </h4>
+                            {editingQrId && (
+                                <button 
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    className="text-[9px] font-bold text-rose-500 hover:underline uppercase"
+                                >
+                                    Cancel Editing
+                                </button>
+                            )}
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="flex flex-col gap-1">
                                 <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500">Display Name</label>
@@ -521,23 +660,37 @@ const OutletPaymentManager = () => {
                                 </select>
                             </div>
                             <div className="flex flex-col gap-1 md:col-span-2">
-                                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500">UPI VPA / Payment URL</label>
+                                <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500">UPI VPA or Direct Payment URL</label>
                                 <input 
                                     required
                                     type="text"
-                                    placeholder="e.g. name@upi or https://..."
+                                    placeholder="e.g. merchant@upi or https://pay.link/yourname"
                                     value={newQr.upi_id}
                                     onChange={e => setNewQr(prev => ({ ...prev, upi_id: e.target.value }))}
                                     className="p-2.5 rounded-lg border outline-none text-[11px] font-bold bg-white dark:bg-[#161b22] border-slate-200 dark:border-[#30363d] text-slate-800 dark:text-white"
                                 />
+                                <span className="text-[9px] text-slate-400 font-medium ml-1">
+                                    Enter a standard UPI VPA (e.g. name@upi) or a direct payment URL (e.g. https://...).
+                                </span>
                             </div>
                         </div>
-                        <button 
-                            type="submit"
-                            className="pro-btn-primary py-2.5 px-6 text-[10px] font-black uppercase"
-                        >
-                            Save QR Code
-                        </button>
+                        <div className="flex items-center gap-3">
+                            <button 
+                                type="submit"
+                                className="pro-btn-primary py-2.5 px-6 text-[10px] font-black uppercase"
+                            >
+                                {editingQrId ? "Update QR Code" : "Save QR Code"}
+                            </button>
+                            {editingQrId && (
+                                <button 
+                                    type="button"
+                                    onClick={handleCancelEdit}
+                                    className="px-4 py-2.5 border border-slate-300 dark:border-white/10 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase"
+                                >
+                                    Cancel
+                                </button>
+                            )}
+                        </div>
                     </form>
                 )}
 
@@ -557,7 +710,8 @@ const OutletPaymentManager = () => {
                                 <tr className="border-b border-slate-100 dark:border-white/5 text-slate-400 text-[9px] tracking-wider">
                                     <th className="py-3 px-4">Name</th>
                                     <th className="py-3 px-4">Brand</th>
-                                    <th className="py-3 px-4">UPI VPA / URL</th>
+                                    <th className="py-3 px-4">Type</th>
+                                    <th className="py-3 px-4">UPI VPA / Payment URL</th>
                                     <th className="py-3 px-4">Status</th>
                                     <th className="py-3 px-4 text-right">Actions</th>
                                 </tr>
@@ -565,6 +719,7 @@ const OutletPaymentManager = () => {
                             <tbody>
                                 {outletQrs.map((qr) => {
                                     const brandColors = { paytm: '#00BAF2', phonepe: '#5F259F', gpay: '#4285F4', bhim: '#00838F', amazonpay: '#FF9900', other: '#6B7280' };
+                                    const isUrl = qr.upi_id.startsWith('http://') || qr.upi_id.startsWith('https://') || qr.upi_id.startsWith('upi://');
                                     return (
                                         <tr key={qr.id} className="border-b border-slate-50 dark:border-white/[0.02] hover:bg-slate-50 dark:hover:bg-white/[0.01]">
                                             <td className="py-3.5 px-4 text-slate-800 dark:text-white font-black">{qr.name}</td>
@@ -574,6 +729,11 @@ const OutletPaymentManager = () => {
                                                     style={{ backgroundColor: brandColors[qr.brand] || brandColors.other }}
                                                 >
                                                     {qr.brand}
+                                                </span>
+                                            </td>
+                                            <td className="py-3.5 px-4">
+                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black ${isUrl ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' : 'bg-slate-500/10 text-slate-600 dark:text-slate-400'}`}>
+                                                    {isUrl ? 'Direct Link' : 'UPI VPA'}
                                                 </span>
                                             </td>
                                             <td className="py-3.5 px-4 text-slate-600 dark:text-slate-400 lowercase font-mono">{qr.upi_id}</td>
@@ -590,12 +750,22 @@ const OutletPaymentManager = () => {
                                                 </button>
                                             </td>
                                             <td className="py-3.5 px-4 text-right">
-                                                <button 
-                                                    onClick={() => deleteQrCode(qr.id)}
-                                                    className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </button>
+                                                <div className="flex items-center justify-end gap-1">
+                                                    <button 
+                                                        onClick={() => handleStartEdit(qr)}
+                                                        className="p-1.5 text-slate-400 hover:text-indigo-600 transition-colors"
+                                                        title="Edit QR Code"
+                                                    >
+                                                        <Edit2 size={14} />
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => deleteQrCode(qr.id)}
+                                                        className="p-1.5 text-slate-400 hover:text-rose-600 transition-colors"
+                                                        title="Delete QR Code"
+                                                    >
+                                                        <Trash2 size={14} />
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     );

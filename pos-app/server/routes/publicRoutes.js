@@ -568,10 +568,30 @@ router.get("/payment-redirect/:orderRef", async (req, res) => {
         }
 
         // 3. Serve a minimal HTML page to trigger the deep link (more reliable for mobile browsers)
-        const customLink = biz?.settings?.custom_payment_link;
-        const upiId = biz?.settings?.upi_id || "restaurant@upi";
+        let customLink = biz?.settings?.custom_payment_link;
+        let upiId = biz?.settings?.upi_id;
+
+        if (!customLink && !upiId) {
+            try {
+                const qrRes = await pool.query(
+                    "SELECT upi_id FROM outlet_qrs WHERE user_id = $1 AND is_active = true ORDER BY id ASC LIMIT 1",
+                    [order.user_id]
+                );
+                if (qrRes.rows.length > 0) {
+                    const activeVal = qrRes.rows[0].upi_id;
+                    if (activeVal.startsWith('http://') || activeVal.startsWith('https://') || activeVal.startsWith('upi://')) {
+                        customLink = activeVal;
+                    } else {
+                        upiId = activeVal;
+                    }
+                }
+            } catch (qrErr) {
+                console.error("Error querying outlet_qrs for payment redirect:", qrErr);
+            }
+        }
+
         const cleanName = (biz?.name || "Restaurant").replace(/[^a-zA-Z0-9 ]/g, '');
-        const finalRedirect = customLink || `upi://pay?pa=${upiId}&pn=${encodeURIComponent(cleanName)}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}&mc=5812&mode=02&tr=${order.order_reference}`;
+        const finalRedirect = customLink || `upi://pay?pa=${upiId || "restaurant@upi"}&pn=${encodeURIComponent(cleanName)}&am=${order.total_price}&cu=INR&tn=Order%20${order.order_reference}&mc=5812&mode=02&tr=${order.order_reference}`;
         
         res.send(`
             <!DOCTYPE html>

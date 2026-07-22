@@ -84,6 +84,8 @@ const allowedOrigins = [
     'https://www.sasloop.in',
     'https://backend.sasloop.in',
     'https://www.backend.sasloop.in',
+    'https://menu.sasloop.in',
+    'http://menu.sasloop.in',
     'http://80.225.240.191',
     'https://80.225.240.191',
     process.env.FRONTEND_URL
@@ -202,7 +204,10 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // 🎨 DESIGN & ASSETS (Prioritized)
 // ======================
 // Resolve build path relative to server.js
-let buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
+let buildPath = path.join(__dirname, "SaSLoop-dashboard", "dist");
+if (!fs.existsSync(buildPath)) {
+    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
+}
 if (!fs.existsSync(buildPath)) {
     buildPath = path.join(__dirname, "SaSLoop-dashboard", "build_new");
 }
@@ -211,8 +216,8 @@ if (!fs.existsSync(buildPath)) {
     if (fs.existsSync(altPath)) buildPath = altPath;
 }
 if (!fs.existsSync(buildPath)) {
-    const distPath = path.join(__dirname, "dist");
-    if (fs.existsSync(distPath)) buildPath = distPath;
+    const rootDistPath = path.join(__dirname, "dist");
+    if (fs.existsSync(rootDistPath)) buildPath = rootDistPath;
 }
 
 console.log("🚀 FINAL FRONTEND PATH:", buildPath);

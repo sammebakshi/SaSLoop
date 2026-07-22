@@ -8,7 +8,7 @@ import {
   Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight, ArrowLeft,
   Users, UserPlus, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,
   Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck, Coins,
-  Minus, Square, X, Power
+  Minus, Square, X, Power, VolumeX
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { posService, authService, API_BASE, updateApiBaseUrl } from './services/api';
@@ -3293,16 +3293,37 @@ const UniversalPOS = () => {
     return `${min}m ${sec}s ago`;
   };
 
-  // Centralized Receipts Fetching Function
+  // Centralized Receipts & Digital Orders Fetching Function
   const fetchOrdersForMode = async (mode, start = receiptsStartDate, end = receiptsEndDate) => {
     if (!isAuthenticated) return;
     setFetchingOrders(true);
     try {
-      const sorted = [...(recentOrders || [])].sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));
+      let serverOrders = [];
+      try {
+        const res = await posService.getOrders();
+        if (res && res.data && Array.isArray(res.data)) {
+          serverOrders = res.data;
+        }
+      } catch (sErr) {
+        console.warn("Failed to fetch server orders, using local fallback:", sErr);
+      }
+
+      // Merge server orders with local unsynced orders
+      const localUnsynced = (recentOrders || []).filter(o => o.synced === false || String(o.id).startsWith('L-'));
+      const combined = [...serverOrders];
+      const seenIds = new Set(serverOrders.map(o => String(o.id)));
+
+      localUnsynced.forEach(lo => {
+        if (!seenIds.has(String(lo.id))) {
+          combined.push(lo);
+        }
+      });
+
+      const sorted = combined.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));
       setRecentOrders(sorted);
       calculateStats(sorted);
     } catch (err) {
-      console.error("Local receipts calculation error:", err);
+      console.error("Receipts calculation error:", err);
     } finally {
       setFetchingOrders(false);
     }
@@ -4961,14 +4982,14 @@ const UniversalPOS = () => {
   const [backendQrs, setBackendQrs] = useState([]);
 
   useEffect(() => {
-    const printEnabled = !!business?.business_details?.settings?.print_upi_qr;
+    const printEnabled = posSettings.printUpiQr !== undefined ? !!posSettings.printUpiQr : !!business?.business_details?.settings?.print_upi_qr;
     if (!previewReceipt || !printEnabled) {
       setPreviewQrUrl(null);
       setPreviewQrMeta(null);
       return;
     }
     const payeeName = business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
-    const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId));
+    const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(e => e.is_active);
 
     if (!activeEntry) {
       setPreviewQrUrl(null);
@@ -6287,6 +6308,8 @@ const UniversalPOS = () => {
 
   const [successSoundName, setSuccessSoundName] = useState(() => localStorage.getItem('pos_success_sound_name') || '');
   const [cancelSoundName, setCancelSoundName] = useState(() => localStorage.getItem('pos_cancel_sound_name') || '');
+  const [newOrderSoundName, setNewOrderSoundName] = useState(() => localStorage.getItem('pos_new_order_sound_name') || '');
+  const [pendingDigitalOrders, setPendingDigitalOrders] = useState([]);
   const seenOrderIdsRef = useRef(new Set());
   const isFirstFetchRef = useRef(true);
   const activeTabRef = useRef(activeTab);
@@ -6352,6 +6375,29 @@ const UniversalPOS = () => {
     }
   };
 
+  const playDefaultNewOrderSound = () => {
+    try {
+      const ctx = getSharedAudioCtx();
+      if (!ctx) return;
+
+      const now = ctx.currentTime;
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(523.25, now);
+      osc1.frequency.setValueAtTime(659.25, now + 0.15);
+      osc1.frequency.setValueAtTime(783.99, now + 0.30);
+      gain1.gain.setValueAtTime(0.4, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.7);
+    } catch (e) {
+      console.error("Failed to play default new order sound:", e);
+    }
+  };
+
   const playNotificationSound = (type = 'success') => {
     try {
       const customSound = localStorage.getItem(`pos_${type}_sound`);
@@ -6367,19 +6413,23 @@ const UniversalPOS = () => {
               audio.onended = () => URL.revokeObjectURL(blobUrl);
             })
             .catch(err => {
-              console.warn("Failed to play custom audio, playing fallback synth chime:", err);
+              console.warn("Failed to play custom audio, playing fallback:", err);
               URL.revokeObjectURL(blobUrl);
-              playDefaultNotificationSound();
+              if (type === 'new_order') playDefaultNewOrderSound();
+              else playDefaultNotificationSound();
             });
         } else {
-          playDefaultNotificationSound();
+          if (type === 'new_order') playDefaultNewOrderSound();
+          else playDefaultNotificationSound();
         }
       } else {
-        playDefaultNotificationSound();
+        if (type === 'new_order') playDefaultNewOrderSound();
+        else playDefaultNotificationSound();
       }
     } catch (e) {
       console.error("Audio error:", e);
-      playDefaultNotificationSound();
+      if (type === 'new_order') playDefaultNewOrderSound();
+      else playDefaultNotificationSound();
     }
   };
 
@@ -6400,7 +6450,8 @@ const UniversalPOS = () => {
           localStorage.setItem(`pos_${type}_sound`, event.target.result);
           localStorage.setItem(`pos_${type}_sound_name`, file.name);
           if (type === 'success') setSuccessSoundName(file.name);
-          else setCancelSoundName(file.name);
+          else if (type === 'cancel') setCancelSoundName(file.name);
+          else if (type === 'new_order') setNewOrderSoundName(file.name);
           toast.success(`${file.name} saved as ${type} sound`);
 
           const mimeType = getMimeType(file.name);
@@ -6432,8 +6483,8 @@ const UniversalPOS = () => {
 
   const startLoopingSound = () => {
     try {
-      const customSound = localStorage.getItem('pos_success_sound');
-      const soundName = localStorage.getItem('pos_success_sound_name');
+      const customSound = localStorage.getItem('pos_new_order_sound') || localStorage.getItem('pos_success_sound');
+      const soundName = localStorage.getItem('pos_new_order_sound_name') || localStorage.getItem('pos_success_sound_name');
       if (customSound) {
         if (!activeAlertAudioRef.current) {
           const mimeType = getMimeType(soundName);
@@ -6450,27 +6501,27 @@ const UniversalPOS = () => {
               activeAlertAudioRef.current = null;
 
               if (!synthIntervalRef.current) {
-                playDefaultNotificationSound();
+                playDefaultNewOrderSound();
                 synthIntervalRef.current = setInterval(() => {
-                  playDefaultNotificationSound();
-                }, 4000);
+                  playDefaultNewOrderSound();
+                }, 3000);
               }
             });
           } else {
             if (!synthIntervalRef.current) {
-              playDefaultNotificationSound();
+              playDefaultNewOrderSound();
               synthIntervalRef.current = setInterval(() => {
-                playDefaultNotificationSound();
-              }, 4000);
+                playDefaultNewOrderSound();
+              }, 3000);
             }
           }
         }
       } else {
         if (!synthIntervalRef.current) {
-          playDefaultNotificationSound();
+          playDefaultNewOrderSound();
           synthIntervalRef.current = setInterval(() => {
-            playDefaultNotificationSound();
-          }, 4000);
+            playDefaultNewOrderSound();
+          }, 3000);
         }
       }
     } catch (e) {
@@ -6499,13 +6550,12 @@ const UniversalPOS = () => {
 
   const checkNewOnlineOrders = async () => {
     if (!isAuthenticated) {
+      setPendingDigitalOrders([]);
       stopLoopingSound();
       return;
     }
     try {
-      const res = await posService.getAllOrders({
-        startDate: new Date().toISOString().split('T')[0] + ' 00:00:00'
-      });
+      const res = await posService.getOrders();
       if (res.data && Array.isArray(res.data)) {
         const currentNewOrders = res.data.filter(order => {
           let source = order.source;
@@ -6526,7 +6576,9 @@ const UniversalPOS = () => {
           return isTargetSource && isTargetStatus;
         });
 
-        if (currentNewOrders.length > 0 && activeTabRef.current !== 'digital') {
+        setPendingDigitalOrders(currentNewOrders);
+
+        if (currentNewOrders.length > 0) {
           startLoopingSound();
         } else {
           stopLoopingSound();
@@ -6536,16 +6588,10 @@ const UniversalPOS = () => {
           currentNewOrders.forEach(o => seenOrderIdsRef.current.add(String(o.id)));
           isFirstFetchRef.current = false;
         } else {
-          let playedSound = false;
           currentNewOrders.forEach(o => {
             const oId = String(o.id);
             if (!seenOrderIdsRef.current.has(oId)) {
               seenOrderIdsRef.current.add(oId);
-
-              if (!playedSound) {
-                playNotificationSound('success');
-                playedSound = true;
-              }
 
               let sourceLabel = "Online Order";
               let source = o.source;
@@ -6593,7 +6639,7 @@ const UniversalPOS = () => {
     }
 
     checkNewOnlineOrders();
-    const interval = setInterval(checkNewOnlineOrders, 10000);
+    const interval = setInterval(checkNewOnlineOrders, 6000);
     return () => {
       clearInterval(interval);
       stopLoopingSound();
@@ -9777,12 +9823,12 @@ const UniversalPOS = () => {
     const headerFooterLines = `${addressLinesHtml}${contactLineHtml}${gstinLineHtml}`;
 
     let qrCodeHtml = '';
-    const printEnabled = !!business?.business_details?.settings?.print_upi_qr;
+    const printEnabled = posSettings.printUpiQr !== undefined ? !!posSettings.printUpiQr : !!business?.business_details?.settings?.print_upi_qr;
     if (printEnabled) {
       try {
         const payeeName = business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
         let upiUri = '';
-        const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId));
+        const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(e => e.is_active);
         if (activeEntry) {
           const isUrl = activeEntry.upi_id.startsWith('http://') || activeEntry.upi_id.startsWith('https://') || activeEntry.upi_id.startsWith('upi://');
           if (isUrl) {
@@ -11455,6 +11501,42 @@ const UniversalPOS = () => {
 
   return (
     <div className={`h-screen w-full flex font-sans overflow-hidden ${theme} ${t.bg} ${t.textPrimary}`}>
+      {/* Top Floating Notification Banner for New WhatsApp / Digital Orders */}
+      {pendingDigitalOrders.length > 0 && (
+        <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[9999] bg-[#10ac84] text-white px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 animate-bounce">
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="text-[11px] font-black uppercase tracking-wider">
+              🔔 {pendingDigitalOrders.length} New {pendingDigitalOrders[0]?.source === 'WHATSAPP' || String(pendingDigitalOrders[0]?.order_type).toUpperCase() === 'WHATSAPP' ? 'WhatsApp' : 'Digital'} Order Received!
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('digital');
+                setSelectedDigitalOrder(pendingDigitalOrders[0]);
+                stopLoopingSound();
+              }}
+              className="bg-white text-[#10ac84] hover:bg-slate-100 px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5"
+            >
+              <Eye size={13} /> View Order
+            </button>
+            <button
+              type="button"
+              onClick={() => stopLoopingSound()}
+              className="p-1.5 hover:bg-black/20 rounded-lg text-white/90 transition-colors"
+              title="Mute Alert"
+            >
+              <VolumeX size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <ToastContainer theme={isDark ? 'dark' : 'light'} position="bottom-left" />
       <nav className={`w-[60px] border-r flex flex-col shrink-0 ${t.sidebar} ${isDark ? 'border-[#30363d]' : 'border-slate-100'} z-50`}>
         <div className={`h-[58px] flex items-center justify-center border-b ${isDark ? 'border-[#30363d]' : 'border-slate-100'}`}>
@@ -22396,29 +22478,35 @@ const UniversalPOS = () => {
                               {/* Sounds */}
                               <div className={`p-4 rounded-xl border ${isDark ? 'bg-[#161b22]/50 border-[#30363d]' : 'bg-slate-50/50 border-slate-200'} space-y-3`}>
                                  <span className={`text-[10px] font-black uppercase tracking-wider block ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>Notification Sounds</span>
-                                 <div className="grid grid-cols-2 gap-4">
-                                    <div className="flex items-center justify-between gap-2 border-r border-slate-200 dark:border-gray-800 pr-4">
-                                       <div className="flex flex-col">
-                                          <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Success Notification Sound</span>
-                                          <span className="text-[8px] font-bold text-[#8b949e] truncate max-w-[120px]" title={successSoundName}>{successSoundName || 'Upto 2MB sound file'}</span>
+                                 <div className="grid grid-cols-3 gap-4">
+                                    <div className="flex items-center justify-between gap-2 border-r border-slate-200 dark:border-gray-800 pr-3">
+                                       <div className="flex flex-col min-w-0">
+                                          <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Success Sound</span>
+                                          <span className="text-[8px] font-bold text-[#8b949e] truncate max-w-[100px]" title={successSoundName}>{successSoundName || 'Default Synth'}</span>
                                        </div>
-                                       <div className="flex gap-1">
-                                          {successSoundName && (
-                                             <button type="button" onClick={() => playNotificationSound('success')} className={`px-2 py-1 ${isDark ? 'bg-[#21262d] text-white hover:bg-[#30363d]' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'} text-[8px] font-bold rounded transition-colors`}>Play</button>
-                                          )}
-                                          <button type="button" onClick={() => handleSelectSound('success')} className="px-3 py-1.5 bg-[#10ac84] text-white rounded text-[8px] font-black uppercase hover:bg-[#0e9a75] transition-all">Select</button>
+                                       <div className="flex gap-1 shrink-0">
+                                          <button type="button" onClick={() => playNotificationSound('success')} className={`px-2 py-1 ${isDark ? 'bg-[#21262d] text-white hover:bg-[#30363d]' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'} text-[8px] font-bold rounded transition-colors`}>Play</button>
+                                          <button type="button" onClick={() => handleSelectSound('success')} className="px-2.5 py-1 bg-[#10ac84] text-white rounded text-[8px] font-black uppercase hover:bg-[#0e9a75] transition-all">Select</button>
                                        </div>
                                     </div>
-                                    <div className="flex items-center justify-between gap-2 pl-2">
-                                       <div className="flex flex-col">
-                                          <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Cancel Notification Sound</span>
-                                          <span className="text-[8px] font-bold text-[#8b949e] truncate max-w-[120px]" title={cancelSoundName}>{cancelSoundName || 'Upto 2MB sound file'}</span>
+                                    <div className="flex items-center justify-between gap-2 border-r border-slate-200 dark:border-gray-800 pr-3">
+                                       <div className="flex flex-col min-w-0">
+                                          <span className={`text-[10px] font-black ${isDark ? 'text-white' : 'text-slate-800'}`}>Cancel Sound</span>
+                                          <span className="text-[8px] font-bold text-[#8b949e] truncate max-w-[100px]" title={cancelSoundName}>{cancelSoundName || 'Default Synth'}</span>
                                        </div>
-                                       <div className="flex gap-1">
-                                          {cancelSoundName && (
-                                             <button type="button" onClick={() => playNotificationSound('cancel')} className={`px-2 py-1 ${isDark ? 'bg-[#21262d] text-white hover:bg-[#30363d]' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'} text-[8px] font-bold rounded transition-colors`}>Play</button>
-                                          )}
-                                          <button type="button" onClick={() => handleSelectSound('cancel')} className="px-3 py-1.5 bg-[#161b22] dark:bg-white/5 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white rounded text-[8px] font-black uppercase hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Select</button>
+                                       <div className="flex gap-1 shrink-0">
+                                          <button type="button" onClick={() => playNotificationSound('cancel')} className={`px-2 py-1 ${isDark ? 'bg-[#21262d] text-white hover:bg-[#30363d]' : 'bg-slate-200 text-slate-800 hover:bg-slate-300'} text-[8px] font-bold rounded transition-colors`}>Play</button>
+                                          <button type="button" onClick={() => handleSelectSound('cancel')} className="px-2.5 py-1 bg-[#161b22] dark:bg-white/5 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white rounded text-[8px] font-black uppercase hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Select</button>
+                                       </div>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 pl-1">
+                                       <div className="flex flex-col min-w-0">
+                                          <span className={`text-[10px] font-black text-amber-500`}>🔔 New Order Sound</span>
+                                          <span className="text-[8px] font-bold text-[#8b949e] truncate max-w-[100px]" title={newOrderSoundName}>{newOrderSoundName || 'Default Chime'}</span>
+                                       </div>
+                                       <div className="flex gap-1 shrink-0">
+                                          <button type="button" onClick={() => playNotificationSound('new_order')} className="px-2 py-1 bg-amber-500/20 text-amber-500 hover:bg-amber-500/30 text-[8px] font-bold rounded transition-colors">Play</button>
+                                          <button type="button" onClick={() => handleSelectSound('new_order')} className="px-2.5 py-1 bg-amber-500 text-white rounded text-[8px] font-black uppercase hover:bg-amber-600 transition-all">Select</button>
                                        </div>
                                     </div>
                                  </div>
@@ -23314,118 +23402,126 @@ const UniversalPOS = () => {
                                     <div className={`p-3 rounded-xl border flex items-center justify-between gap-3 ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
                                        <div className="flex flex-col min-w-0">
                                           <span className={`text-[8.5px] font-black uppercase ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>Print QR on Bill</span>
-                                          <span className={`text-[9px] font-black tracking-wider ${business?.business_details?.settings?.print_upi_qr ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                             {business?.business_details?.settings?.print_upi_qr ? '● ENABLED IN BACK OFFICE' : '○ DISABLED IN BACK OFFICE'}
+                                          <span className={`text-[9px] font-black tracking-wider ${(posSettings.printUpiQr !== undefined ? posSettings.printUpiQr : business?.business_details?.settings?.print_upi_qr) ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                             {(posSettings.printUpiQr !== undefined ? posSettings.printUpiQr : business?.business_details?.settings?.print_upi_qr) ? '● PRINT ON BILL ENABLED' : '○ PRINT ON BILL DISABLED'}
                                           </span>
                                        </div>
+                                       <button
+                                          type="button"
+                                          onClick={() => {
+                                             const currentVal = posSettings.printUpiQr !== undefined ? posSettings.printUpiQr : !!business?.business_details?.settings?.print_upi_qr;
+                                             setPosSettings(prev => ({ ...prev, printUpiQr: !currentVal }));
+                                          }}
+                                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${(posSettings.printUpiQr !== undefined ? posSettings.printUpiQr : business?.business_details?.settings?.print_upi_qr) ? 'bg-[#238636]' : 'bg-slate-300 dark:bg-slate-700'}`}
+                                       >
+                                          <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${(posSettings.printUpiQr !== undefined ? posSettings.printUpiQr : business?.business_details?.settings?.print_upi_qr) ? 'translate-x-4' : 'translate-x-0'}`} />
+                                       </button>
                                     </div>
 
-                                    {business?.business_details?.settings?.print_upi_qr && (
-                                       <>
-                                          {/* Centralized QRs Selection */}
-                                          <div className="space-y-2.5">
-                                             <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">Select Backoffice QR Code</label>
+                                    {/* Centralized QRs Selection */}
+                                    <div className="space-y-2.5">
+                                       <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">Select Backoffice QR Code</label>
 
-                                             {backendQrs.length === 0 ? (
-                                                <div className={`p-3 rounded-xl border border-dashed text-center text-[9px] font-bold ${isDark ? 'border-[#30363d] text-gray-500' : 'border-slate-200 text-slate-400'}`}>
-                                                   ⚠️ No QR Codes configured in Back Office. Configure them under "Outlet Payment Methods" on the dashboard.
-                                                </div>
-                                             ) : (
-                                                <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
-                                                   {backendQrs.map(entry => {
-                                                      const brandColors = { paytm: '#00BAF2', phonepe: '#5F259F', gpay: '#4285F4', bhim: '#00838F', amazonpay: '#FF9900', other: '#6B7280' };
-                                                      const brandNames = { paytm: 'Paytm', phonepe: 'PhonePe', gpay: 'Google Pay', bhim: 'BHIM', amazonpay: 'Amazon Pay', other: 'UPI' };
-                                                      const isActive = String(posSettings.activeStaticUpiId) === String(entry.id);
-                                                      const entryIsUrl = entry.upi_id.startsWith('http://') || entry.upi_id.startsWith('https://') || entry.upi_id.startsWith('upi://');
-                                                      return (
+                                       {backendQrs.length === 0 ? (
+                                          <div className={`p-3 rounded-xl border border-dashed text-center text-[9px] font-bold ${isDark ? 'border-[#30363d] text-gray-500' : 'border-slate-200 text-slate-400'}`}>
+                                             ⚠️ No QR Codes configured in Back Office. Configure them under "Outlet Payment Methods" on the dashboard.
+                                          </div>
+                                       ) : (
+                                          <div className="space-y-2 max-h-48 overflow-y-auto custom-scrollbar">
+                                             {backendQrs.map(entry => {
+                                                const brandColors = { paytm: '#00BAF2', phonepe: '#5F259F', gpay: '#4285F4', bhim: '#00838F', amazonpay: '#FF9900', other: '#6B7280' };
+                                                const brandNames = { paytm: 'Paytm', phonepe: 'PhonePe', gpay: 'Google Pay', bhim: 'BHIM', amazonpay: 'Amazon Pay', other: 'UPI' };
+                                                const selectedQr = (backendQrs || []).find(q => String(q.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(q => q.is_active);
+                                                const isActive = selectedQr && String(selectedQr.id) === String(entry.id);
+                                                const entryIsUrl = entry.upi_id.startsWith('http://') || entry.upi_id.startsWith('https://') || entry.upi_id.startsWith('upi://');
+                                                return (
+                                                   <div
+                                                      key={entry.id}
+                                                      className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
+                                                         isActive
+                                                            ? 'border-[#238636] bg-[#238636]/10'
+                                                            : isDark ? 'border-[#30363d] bg-[#161b22] hover:border-gray-500' : 'border-slate-200 bg-white hover:border-slate-400'
+                                                      }`}
+                                                      onClick={() => setPosSettings(prev => ({ ...prev, activeStaticUpiId: entry.id, upiId: entry.upi_id }))}
+                                                   >
+                                                      <input
+                                                         type="radio"
+                                                         name="activeQrCode"
+                                                         checked={isActive}
+                                                         onChange={() => setPosSettings(prev => ({ ...prev, activeStaticUpiId: entry.id, upiId: entry.upi_id }))}
+                                                         className="w-3.5 h-3.5 text-[#238636] focus:ring-[#238636] shrink-0"
+                                                      />
+                                                      <div className="flex items-center gap-2 flex-1 min-w-0">
                                                          <div
-                                                            key={entry.id}
-                                                            className={`flex items-center gap-2.5 p-2.5 rounded-xl border transition-all cursor-pointer ${
-                                                               isActive
-                                                                  ? 'border-[#238636] bg-[#238636]/10'
-                                                                  : isDark ? 'border-[#30363d] bg-[#161b22] hover:border-gray-500' : 'border-slate-200 bg-white hover:border-slate-400'
-                                                            }`}
-                                                            onClick={() => setPosSettings(prev => ({ ...prev, activeStaticUpiId: entry.id, upiId: entry.upi_id }))}
+                                                            className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-black text-[8px] shrink-0"
+                                                            style={{ backgroundColor: brandColors[entry.brand] || brandColors.other }}
                                                          >
-                                                            <input
-                                                               type="radio"
-                                                               checked={isActive}
-                                                               onChange={() => setPosSettings(prev => ({ ...prev, activeStaticUpiId: entry.id, upiId: entry.upi_id }))}
-                                                               className="w-3.5 h-3.5 text-[#238636] focus:ring-[#238636] shrink-0"
-                                                            />
-                                                            <div className="flex items-center gap-2 flex-1 min-w-0">
-                                                               <div
-                                                                  className="w-6 h-6 rounded-lg flex items-center justify-center text-white font-black text-[8px] shrink-0"
-                                                                  style={{ backgroundColor: brandColors[entry.brand] || brandColors.other }}
-                                                               >
-                                                                  {(brandNames[entry.brand] || 'U')[0]}
-                                                               </div>
-                                                               <div className="flex flex-col min-w-0">
-                                                                  <span className={`text-[9px] font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>{entry.name}</span>
-                                                                  <span className="text-[8.5px] text-[#8b949e] truncate lowercase font-mono">{entry.upi_id}</span>
-                                                               </div>
-                                                            </div>
-                                                            <span className="text-[8px] font-bold uppercase text-[#8b949e] bg-slate-500/10 px-1.5 py-0.5 rounded">
-                                                               {entryIsUrl ? 'URL' : 'VPA'}
-                                                            </span>
+                                                            {(brandNames[entry.brand] || 'U')[0]}
                                                          </div>
-                                                      );
-                                                   })}
-                                                </div>
-                                             )}
-                                          </div>
-
-                                          {/* Mode Select (only if selected QR is NOT a URL) */}
-                                          {(() => {
-                                             const selectedQr = backendQrs.find(q => String(q.id) === String(posSettings.activeStaticUpiId));
-                                             const isUrl = selectedQr?.upi_id.startsWith('http://') || selectedQr?.upi_id.startsWith('https://') || selectedQr?.upi_id.startsWith('upi://');
-
-                                             if (selectedQr && !isUrl) {
-                                                return (
-                                                   <div className="space-y-2">
-                                                      <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">QR Print Settings</label>
-                                                      <div className="flex gap-2">
-                                                         {['dynamic', 'static'].map(mode => (
-                                                            <button
-                                                               key={mode}
-                                                               type="button"
-                                                               onClick={() => setPosSettings(prev => ({ ...prev, qrMode: mode }))}
-                                                               className={`flex-1 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${
-                                                                  posSettings.qrMode === mode
-                                                                     ? 'bg-[#238636] text-white border-[#238636]'
-                                                                     : isDark ? 'bg-[#161b22] border-[#30363d] text-gray-400 hover:border-gray-500' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
-                                                               }`}
-                                                            >
-                                                               {mode === 'dynamic' ? '⚡ Dynamic QR (Bill Amount)' : '📌 Static QR (Fixed VPA)'}
-                                                            </button>
-                                                         ))}
+                                                         <div className="flex flex-col min-w-0">
+                                                            <span className={`text-[9px] font-black truncate ${isDark ? 'text-white' : 'text-slate-800'}`}>{entry.name}</span>
+                                                            <span className="text-[8.5px] text-[#8b949e] truncate lowercase font-mono">{entry.upi_id}</span>
+                                                         </div>
                                                       </div>
+                                                      <span className="text-[8px] font-bold uppercase text-[#8b949e] bg-slate-500/10 px-1.5 py-0.5 rounded">
+                                                         {entryIsUrl ? 'URL' : 'VPA'}
+                                                      </span>
                                                    </div>
                                                 );
-                                             } else if (selectedQr && isUrl) {
-                                                return (
-                                                   <div className={`p-2.5 rounded-xl text-[8.5px] font-bold ${isDark ? 'bg-indigo-900/20 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
-                                                      📌 Selected QR code will print the exact payment URL. No billing amount modifier will be applied.
-                                                   </div>
-                                                );
-                                             }
-                                             return null;
-                                          })()}
-
-                                          {/* Integration Mode */}
-                                          <div className="flex flex-col gap-1.5">
-                                             <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">Integration Mode</label>
-                                             <select
-                                                value={posSettings.upiPaymentMethod || 'direct'}
-                                                onChange={e => setPosSettings(prev => ({ ...prev, upiPaymentMethod: e.target.value }))}
-                                                className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                                             >
-                                                <option value="direct">Direct UPI (Manual Settle)</option>
-                                                <option value="gateway" disabled>Payment Gateway (Coming Soon)</option>
-                                             </select>
+                                             })}
                                           </div>
-                                       </>
-                                    )}
+                                       )}
+                                    </div>
+
+                                    {/* Mode Select (only if selected QR is NOT a URL) */}
+                                    {(() => {
+                                       const selectedQr = (backendQrs || []).find(q => String(q.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(q => q.is_active);
+                                       const isUrl = selectedQr?.upi_id.startsWith('http://') || selectedQr?.upi_id.startsWith('https://') || selectedQr?.upi_id.startsWith('upi://');
+
+                                       if (selectedQr && !isUrl) {
+                                          return (
+                                             <div className="space-y-2">
+                                                <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">QR Print Settings</label>
+                                                <div className="flex gap-2">
+                                                   {['dynamic', 'static'].map(mode => (
+                                                      <button
+                                                         key={mode}
+                                                         type="button"
+                                                         onClick={() => setPosSettings(prev => ({ ...prev, qrMode: mode }))}
+                                                         className={`flex-1 py-2 px-3 rounded-xl text-[9px] font-black uppercase tracking-wider border transition-all ${
+                                                            posSettings.qrMode === mode
+                                                               ? 'bg-[#238636] text-white border-[#238636]'
+                                                               : isDark ? 'bg-[#161b22] border-[#30363d] text-gray-400 hover:border-gray-500' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-400'
+                                                         }`}
+                                                      >
+                                                         {mode === 'dynamic' ? '⚡ Dynamic QR (Bill Amount)' : '📌 Static QR (Fixed VPA)'}
+                                                      </button>
+                                                   ))}
+                                                </div>
+                                             </div>
+                                          );
+                                       } else if (selectedQr && isUrl) {
+                                          return (
+                                             <div className={`p-2.5 rounded-xl text-[8.5px] font-bold ${isDark ? 'bg-indigo-900/20 text-indigo-300' : 'bg-indigo-50 text-indigo-700'}`}>
+                                                📌 Selected QR code will print the exact payment URL. No billing amount modifier will be applied.
+                                             </div>
+                                          );
+                                       }
+                                       return null;
+                                    })()}
+
+                                    {/* Integration Mode */}
+                                    <div className="flex flex-col gap-1.5">
+                                       <label className="text-[9px] font-black uppercase tracking-wider text-[#8b949e] ml-1">Integration Mode</label>
+                                       <select
+                                          value={posSettings.upiPaymentMethod || 'direct'}
+                                          onChange={e => setPosSettings(prev => ({ ...prev, upiPaymentMethod: e.target.value }))}
+                                          className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold transition-all ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                                       >
+                                          <option value="direct">Direct UPI (Manual Settle)</option>
+                                          <option value="gateway" disabled>Payment Gateway (Coming Soon)</option>
+                                       </select>
+                                    </div>
                                  </div>
                               </div>
 

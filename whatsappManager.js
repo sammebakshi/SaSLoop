@@ -1170,15 +1170,51 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        if (lower === 'pay_mode_upi' || lower === '1' || lower === 'upi' || lower === 'prepaid upi') {
+            session.context.selectedPayMode = 'UPI';
+            if (session.context.pendingFulfillment === 'PICKUP') {
+                lower = 'mode_pickup';
+            } else {
+                lower = 'confirm_delivery_order';
+            }
+        } else if (lower === 'pay_mode_cod' || lower === '2' || lower === 'cod' || lower === 'cash on delivery') {
+            session.context.selectedPayMode = 'COD';
+            if (session.context.pendingFulfillment === 'PICKUP') {
+                lower = 'mode_pickup';
+            } else {
+                lower = 'confirm_delivery_order';
+            }
+        }
+
         if (lower === 'mode_pickup') {
+            const allowedMode = biz.settings?.whatsapp_payment_modes || 'BOTH';
+            if (!session.context.selectedPayMode) {
+                if (allowedMode === 'COD') {
+                    session.context.selectedPayMode = 'COD';
+                } else if (allowedMode === 'UPI') {
+                    session.context.selectedPayMode = 'UPI';
+                } else {
+                    session.context.pendingFulfillment = 'PICKUP';
+                    await updateSession(userId, cleanNum, 'AWAITING_PAYMENT_METHOD', session.context);
+                    const buttons = [
+                        { id: 'pay_mode_upi', title: '💳 Prepaid UPI' },
+                        { id: 'pay_mode_cod', title: '💵 Cash on Delivery' }
+                    ];
+                    await sendButtons(customerNumber, `💳 *Select Payment Method for your order:*`, buttons, userId);
+                    return;
+                }
+            }
+
+            const isCOD = session.context.selectedPayMode === 'COD';
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
             const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
 
-            const initialStatus = 'AWAITING_PAYMENT'; // Assuming online for now or checking payment method if added to AI later
+            const initialStatus = isCOD ? 'PENDING' : 'AWAITING_PAYMENT';
+            const payMethod = isCOD ? 'COD' : 'UPI';
 
             await pool.query(
                 "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)",
-                [userId, biz.id || null, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, 'UPI', session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
+                [userId, biz.id || null, customerName, cleanNum, 'Pickup', JSON.stringify(cart), total, orderRef, initialStatus, payMethod, session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
             );
 
             if (session.context.redeemedPoints) {
@@ -1191,17 +1227,24 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'PICKUP', total, items: cart, customer: { name: customerName, phone: cleanNum } });
 
-            // 🚨 STAFF NOTIFICATION
+            // 🚨 STAFF NOTIFICATION & KOT
             const staffNums = biz.notification_numbers || [];
-            const staffMsg = `🔔 *New Pickup Order!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n💰 *Total:* ${symbol}${total.toFixed(2)}\n📄 *Items:* \n${cart.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
+            const staffMsg = `🔔 *New Pickup Order (${payMethod})!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n💳 *Payment:* ${isCOD ? 'Cash on Delivery' : 'Prepaid UPI'}\n💰 *Total:* ${symbol}${total.toFixed(2)}\n📄 *Items:* \n${cart.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
             for (let num of staffNums) {
                 await sendOfficialMessage(num, staffMsg, userId);
             }
 
             await deductInventory(userId, cart);
 
-            // Skip immediate KOT for online payment orders
-            // if (isCOD) { ... }
+            if (isCOD) {
+                try {
+                    await notifyKitchenAndStaff(
+                        userId, orderRef, customerName, cleanNum, cart,
+                        total, total, 0, 0, 0, 0, symbol,
+                        'online', 'Pickup', '0'
+                    );
+                } catch (kotErr) { console.error("KOT error for COD:", kotErr); }
+            }
 
             // 🏆 Update CRM (With Safety Guard)
             try {
@@ -1219,7 +1262,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             const receiptRows = [
                 `✅ *Pickup Order Confirmed!*`,
-                ``,
+                `Ref: ${orderRef}`,
+                `───────────────`,
                 cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
                 `───────────────`,
                 `Subtotal: ${symbol}${subtotal.toFixed(2)}`
@@ -1231,14 +1275,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
             }
 
-            const baseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
-            const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
-
             receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
-            receiptRows.push(`Ref: ${orderRef}`);
+            receiptRows.push(`💵 *Payment Method:* ${isCOD ? 'Cash on Delivery / Pay on Pickup' : 'Prepaid UPI'}`);
             receiptRows.push(``);
-            receiptRows.push(`💳 *Pay Online:* ${paymentLink}`);
-            receiptRows.push(``);
+
+            if (!isCOD) {
+                const baseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
+                const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
+                receiptRows.push(`💳 *Pay Online:* ${paymentLink}`);
+                receiptRows.push(``);
+            }
+
             receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
 
             const receipt = receiptRows.join("\n");
@@ -1259,11 +1306,32 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const pending = session.context.pendingOrder;
             if (!pending) return;
 
+            const allowedMode = biz.settings?.whatsapp_payment_modes || 'BOTH';
+            if (!session.context.selectedPayMode) {
+                if (allowedMode === 'COD') {
+                    session.context.selectedPayMode = 'COD';
+                } else if (allowedMode === 'UPI') {
+                    session.context.selectedPayMode = 'UPI';
+                } else {
+                    session.context.pendingFulfillment = 'DELIVERY';
+                    await updateSession(userId, cleanNum, 'AWAITING_PAYMENT_METHOD', session.context);
+                    const buttons = [
+                        { id: 'pay_mode_upi', title: '💳 Prepaid UPI' },
+                        { id: 'pay_mode_cod', title: '💵 Cash on Delivery' }
+                    ];
+                    await sendButtons(customerNumber, `💳 *Select Payment Method for your order:*`, buttons, userId);
+                    return;
+                }
+            }
+
+            const isCOD = session.context.selectedPayMode === 'COD';
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
+            const initialStatus = isCOD ? 'PENDING' : 'AWAITING_PAYMENT';
+            const payMethod = isCOD ? 'COD' : 'UPI';
             
             await pool.query(
                 "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
-                [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, 'AWAITING_PAYMENT', pending.deliveryCharge, 'UPI', session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
+                [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, initialStatus, pending.deliveryCharge, payMethod, session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
             );
 
             if (session.context.redeemedPoints) {
@@ -1276,32 +1344,46 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', total: pending.total, items: pending.items, address: pending.address, customer: { name: customerName, phone: cleanNum } });
 
-            // 🚨 STAFF NOTIFICATION
+            // 🚨 STAFF NOTIFICATION & KOT
             const staffNums = biz.notification_numbers || [];
-            const staffMsg = `🔔 *New Delivery Order!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n📍 *Address:* ${pending.address}\n💰 *Total:* ${symbol}${pending.total.toFixed(2)}\n📄 *Items:* \n${pending.items.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
+            const staffMsg = `🔔 *New Delivery Order (${payMethod})!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n📍 *Address:* ${pending.address}\n💳 *Payment:* ${isCOD ? 'Cash on Delivery' : 'Prepaid UPI'}\n💰 *Total:* ${symbol}${pending.total.toFixed(2)}\n📄 *Items:* \n${pending.items.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
             for (let num of staffNums) {
                 await sendOfficialMessage(num, staffMsg, userId);
             }
 
             await deductInventory(userId, pending.items);
 
-            // Skip immediate KOT for online payment orders
-            // try { ... }
+            if (isCOD) {
+                try {
+                    await notifyKitchenAndStaff(
+                        userId, orderRef, customerName, cleanNum, pending.items,
+                        pending.total, pending.total, 0, 0, 0, 0, symbol,
+                        'online', pending.address, '0'
+                    );
+                } catch (kotErr) { console.error("KOT error for COD delivery:", kotErr); }
+            }
 
             const frontendBaseUrl = process.env.FRONTEND_URL || 'https://backend.sasloop.in';
             const backendBaseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
             const trackingLink = `${frontendBaseUrl}/track/${orderRef}`;
             const paymentLink = `${backendBaseUrl}/api/public/payment-redirect/${orderRef}`;
 
-            const receipt = [
-                `✅ *Order Confirmed!*`,
+            const receiptRows = [
+                `✅ *Delivery Order Confirmed!*`,
                 `Ref: ${orderRef}`,
                 `───────────────`,
-                `💳 *Pay Now:* ${paymentLink}`,
-                `📍 *Live Tracking:* ${trackingLink}`,
-                `───────────────`,
-                `Your order is being sent to the kitchen after you click pay. Thank you! 🎉`
-            ].join("\n");
+                `💵 *Payment Method:* ${isCOD ? 'Cash on Delivery (COD)' : 'Prepaid UPI'}`
+            ];
+
+            if (!isCOD) {
+                receiptRows.push(`💳 *Pay Now:* ${paymentLink}`);
+            }
+
+            receiptRows.push(`📍 *Live Tracking:* ${trackingLink}`);
+            receiptRows.push(`───────────────`);
+            receiptRows.push(isCOD ? `Your order is being sent to the kitchen now. Thank you! 🎉` : `Your order is being sent to the kitchen after payment. Thank you! 🎉`);
+
+            const receipt = receiptRows.join("\n");
 
             await sendOfficialMessage(customerNumber, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });

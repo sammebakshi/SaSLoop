@@ -236,7 +236,10 @@ function App() {
         {/* Public Routes (No Layout) */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/menu/:bizId" element={<CustomerMenu />} />
         <Route path="/menu/:bizId/:tableId" element={<CustomerMenu />} />
+        <Route path="/:bizId" element={<CustomerMenu />} />
+        <Route path="/:bizId/:tableId" element={<CustomerMenu />} />
         <Route path="/order/:bizId" element={<OnlineOrder />} />
         <Route path="/track/:orderRef" element={<TrackOrder />} />
         <Route path="/rider/:riderId" element={<RiderPortal />} />

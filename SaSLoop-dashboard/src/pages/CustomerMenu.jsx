@@ -80,16 +80,43 @@ function CustomerMenu() {
   useEffect(() => {
     const savedName = localStorage.getItem(`sasloop_name_${bizId}`);
     const savedPhone = localStorage.getItem(`sasloop_phone_${bizId}`);
-    if (savedName) setCustomerName(savedName);
-    if (savedPhone) {
-      setCustomerPhone(savedPhone);
-      setView("menu"); // Skip auth if already identified
+    const savedLoginTime = localStorage.getItem(`sasloop_login_time_${bizId}`);
+
+    if (savedPhone && savedLoginTime) {
+      const elapsed = Date.now() - parseInt(savedLoginTime);
+      if (elapsed < 5 * 60 * 1000) {
+        if (savedName) setCustomerName(savedName);
+        setCustomerPhone(savedPhone);
+        setView("menu");
+      } else {
+        handleLogout();
+      }
+    } else {
+      setView("auth"); // Force initial WhatsApp OTP login
     }
   }, [bizId]);
+
+  // ⏱️ 5-MINUTE AUTO-LOGOUT TIMER
+  useEffect(() => {
+    if (view === "menu" || view === "confirmed") {
+      const interval = setInterval(() => {
+        const savedLoginTime = localStorage.getItem(`sasloop_login_time_${bizId}`);
+        if (savedLoginTime) {
+          const elapsed = Date.now() - parseInt(savedLoginTime);
+          if (elapsed >= 5 * 60 * 1000) {
+            handleLogout();
+            alert("⏱️ Session Expired: Your 5-minute guest session has ended. Please log in with WhatsApp again.");
+          }
+        }
+      }, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [view, bizId]);
 
   const saveSession = (name, phone) => {
     localStorage.setItem(`sasloop_name_${bizId}`, name);
     localStorage.setItem(`sasloop_phone_${bizId}`, phone);
+    localStorage.setItem(`sasloop_login_time_${bizId}`, Date.now().toString());
   };
 
   const getStandardPhone = React.useCallback((p) => {
@@ -101,7 +128,14 @@ function CustomerMenu() {
   }, [countryCode]);
 
   const biz = data?.business;
-  const symbol = biz?.currency_code === 'USD' ? '$' : '\u20B9';
+  const bizSettings = useMemo(() => {
+    if (!biz?.settings) return {};
+    return typeof biz.settings === 'string' ? JSON.parse(biz.settings) : biz.settings;
+  }, [biz]);
+  const openingTime = bizSettings?.openingTime || biz?.opening_time || "10:00 AM";
+  const closingTime = bizSettings?.closingTime || biz?.closing_time || "10:00 PM";
+
+  const symbol = biz?.currency_code === 'USD' ? '$' : '₹';
   const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
   const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
 
@@ -181,7 +215,8 @@ function CustomerMenu() {
   }, [customerPhone, bizId, getStandardPhone]);
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/public/menu/${bizId}?menuType=pos`).then(r => r.json()).then(d => { 
+    const targetMenuType = (tableId && tableId !== "0") ? 'pos' : 'digital';
+    fetch(`${API_BASE}/api/public/menu/${bizId}?menuType=${targetMenuType}`).then(r => r.json()).then(d => { 
         const surge = d.business?.current_surge_multiplier || 1.0;
         const optimizedItems = (d.items || []).map(item => ({
           ...item,
@@ -426,99 +461,96 @@ function CustomerMenu() {
     );
   }
 
-  // 2. Auth View (Lagoon Landing UI - Matches User Screenshot visually)
+  // 2. Auth View (Zomato Red Theme UI)
   if (view === "auth") {
     return (
-      <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-950 overflow-hidden font-sans">
-        {/* PREMIUM DARK FOOD COLLAGE BACKGROUND (AS SEEN IN SCREENSHOT) */}
-        <div className="absolute inset-0 z-0 scale-105">
-          <img 
-            src="https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=2000" 
-            className="w-full h-full object-cover" 
-            alt="Food background" 
-          />
-          <div className="absolute inset-0 bg-black/40" />
-        </div>
+      <div className="min-h-screen relative flex flex-col items-center justify-center p-4 bg-slate-100 overflow-hidden font-sans">
+        {/* Zomato Top Banner & Background */}
+        <div className="absolute inset-x-0 top-0 h-64 bg-gradient-to-br from-rose-600 via-rose-700 to-red-700 rounded-b-[3rem] shadow-lg" />
 
-        <div className="relative z-10 w-full max-w-[540px] animate-in fade-in zoom-in duration-500">
-          <div className="bg-black/60 backdrop-blur-md px-6 sm:px-10 py-10 rounded-[2rem] border border-white/10 shadow-2xl text-center">
+        <div className="relative z-10 w-full max-w-[460px] animate-in fade-in zoom-in duration-300">
+          <div className="bg-white px-6 sm:px-8 py-8 rounded-[2.5rem] border border-rose-100 shadow-2xl text-center">
             {/* Centered Circular Logo */}
-            <div className="w-20 h-20 bg-blue-900/90 p-2.5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl border border-white/10">
+            <div className="w-20 h-20 bg-rose-50 p-2.5 rounded-full flex items-center justify-center mx-auto mb-4 shadow-md border-2 border-rose-200">
               {logoUrl ? (
                 <img src={logoUrl} className="w-full h-full object-contain rounded-full" alt="logo" />
               ) : (
-                <Utensils className="w-8 h-8 text-white" />
+                <Utensils className="w-8 h-8 text-rose-600" />
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight mb-2">
-              {biz?.name || "The Lagoon Restaurant"}
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight mb-1 font-serif italic">
+              {biz?.name || "Shahe Tehzeeb Restaurant"}
             </h1>
             
-            <p className="text-xs text-slate-300 font-medium mb-2 leading-relaxed">
-              {biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}
+            <p className="text-xs text-slate-500 font-bold mb-2">
+              {biz?.address || "Ganderbal, Jammu and Kashmir"}
             </p>
 
             {/* Open Timing */}
-            <p className="text-[11px] font-bold text-slate-300 mb-6">
-              <span className="text-emerald-500 mr-1.5 font-bold">Open</span>
-              {biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}
-            </p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] font-black text-emerald-700 mb-6">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Open: {openingTime} - {closingTime}</span>
+            </div>
 
-            {/* Fulfillment Options (Outline Pills matching UI exactly) */}
-            <div className="flex justify-center flex-wrap gap-2 mb-8">
+            {/* Fulfillment Options */}
+            <div className="flex justify-center flex-wrap gap-2 mb-6 bg-slate-50 p-1.5 rounded-2xl border border-slate-200">
               {tableId && tableId !== "0" ? (
                 <button 
+                  type="button"
                   onClick={() => setFulfillmentMode("DINEIN")}
-                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                  className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all font-black text-xs ${
                     fulfillmentMode === "DINEIN" 
-                      ? "bg-white/20 border-white text-white font-bold" 
-                      : "border-white/20 text-slate-300 hover:border-white/40"
+                      ? "bg-rose-600 text-white shadow-md" 
+                      : "text-slate-600 hover:text-slate-900"
                   }`}
                 >
-                  <Utensils className="w-4 h-4 text-white" />
-                  <span className="text-xs">Dine-In</span>
+                  <Utensils className="w-4 h-4" />
+                  <span>Dine-In (T-{tableId})</span>
                 </button>
               ) : (
                 <button 
+                  type="button"
                   onClick={() => alert("Please scan a table QR code for Dine-In ordering.")}
-                  className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-white/5 text-slate-500 cursor-not-allowed"
+                  className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl text-slate-400 opacity-60 cursor-not-allowed font-bold text-xs"
                 >
                   <Utensils className="w-4 h-4" />
-                  <span className="text-xs">Dine-In</span>
+                  <span>Dine-In</span>
                 </button>
               )}
 
               <button 
+                type="button"
                 onClick={() => setFulfillmentMode("PICKUP")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all font-black text-xs ${
                   fulfillmentMode === "PICKUP" 
-                    ? "bg-white/20 border-white text-white font-bold" 
-                    : "border-white/20 text-slate-300 hover:border-white/40"
+                    ? "bg-rose-600 text-white shadow-md" 
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <ShoppingBag className="w-4 h-4 text-white" />
-                <span className="text-xs">Pickup</span>
+                <ShoppingBag className="w-4 h-4" />
+                <span>Pickup</span>
               </button>
 
               <button 
+                type="button"
                 onClick={() => setFulfillmentMode("DELIVERY")}
-                className={`flex items-center gap-2 px-4 py-2.5 rounded-full border transition-all ${
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl transition-all font-black text-xs ${
                   fulfillmentMode === "DELIVERY" 
-                    ? "bg-white/20 border-white text-white font-bold" 
-                    : "border-white/20 text-slate-300 hover:border-white/40"
+                    ? "bg-rose-600 text-white shadow-md" 
+                    : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                <MapPin className="w-4 h-4 text-white" />
-                <span className="text-xs">Delivery</span>
+                <MapPin className="w-4 h-4" />
+                <span>Delivery</span>
               </button>
             </div>
 
-            {/* Input Form Details (UX preserved on UI) */}
+            {/* Input Form Details */}
             <div className="space-y-4 text-left">
               <div className="space-y-1 w-full">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
-                  Full Name
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                  Your Full Name
                 </label>
                 <div className="relative flex items-center">
                   <User className="absolute left-4 w-4 h-4 text-slate-400" />
@@ -527,36 +559,36 @@ function CustomerMenu() {
                     value={customerName} 
                     onChange={e => setCustomerName(e.target.value)} 
                     placeholder="Enter your name" 
-                    className="w-full bg-white/5 border border-white/10 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all placeholder:text-white/20"
+                    className="w-full bg-slate-50 border border-slate-200 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-extrabold text-slate-900 outline-none focus:border-rose-500 focus:bg-white transition-all placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               <div className="space-y-1 w-full">
-                <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
-                  Phone Number
+                <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
+                  WhatsApp Phone Number
                 </label>
-                <div className="flex items-center bg-white/5 border border-white/10 rounded-2xl overflow-hidden focus-within:border-emerald-400 transition-all">
+                <div className="flex items-center bg-slate-50 border border-slate-200 rounded-2xl overflow-hidden focus-within:border-rose-500 focus-within:bg-white transition-all">
                   <select 
-                    className="bg-transparent pl-4 pr-1 py-3.5 text-sm font-bold text-white outline-none border-r border-white/10" 
+                    className="bg-transparent pl-3 pr-1 py-3.5 text-xs font-black text-slate-700 outline-none border-r border-slate-200" 
                     value={countryCode} 
                     onChange={e => setCountryCode(e.target.value)}
                   >
-                    {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-slate-900 text-white">+{c.code}</option>)}
+                    {countryCodes.map(c => <option key={c.code} value={c.code} className="bg-white text-slate-900">+{c.code}</option>)}
                   </select>
                   <input 
                     type="tel" 
                     value={customerPhone} 
                     onChange={e => setCustomerPhone(e.target.value)} 
-                    placeholder="Enter mobile number" 
-                    className="flex-1 bg-transparent px-4 py-3.5 text-sm font-bold text-white outline-none placeholder:text-white/20" 
+                    placeholder="Mobile number" 
+                    className="flex-1 bg-transparent px-4 py-3.5 text-sm font-extrabold text-slate-900 outline-none placeholder:text-slate-400" 
                   />
                 </div>
               </div>
 
               {fulfillmentMode === "DELIVERY" && (
                 <div className="space-y-1 w-full animate-in slide-in-from-top duration-300">
-                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-4">
+                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest ml-1">
                     Delivery Address
                   </label>
                   <div className="relative flex items-center">
@@ -566,53 +598,59 @@ function CustomerMenu() {
                       value={customerAddress} 
                       onChange={e => setCustomerAddress(e.target.value)} 
                       placeholder="Street, Building, Flat No." 
-                      className="w-full bg-white/5 border border-white/10 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-bold text-white outline-none focus:border-emerald-400 transition-all placeholder:text-white/20"
+                      className="w-full bg-slate-50 border border-slate-200 pl-11 pr-5 py-3.5 rounded-2xl text-sm font-extrabold text-slate-900 outline-none focus:border-rose-500 focus:bg-white transition-all placeholder:text-slate-400"
                     />
                   </div>
                 </div>
               )}
 
               {authStatus === "PENDING" ? (
-                <div className="py-6 text-center animate-pulse bg-black/40 rounded-2xl border border-white/5 mt-4">
-                  <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-500/20">
-                    <RefreshCw className="animate-spin w-5 h-5 text-emerald-400" />
+                <div className="py-6 text-center animate-pulse bg-rose-50 rounded-2xl border border-rose-200 mt-4">
+                  <div className="w-12 h-12 bg-rose-600/10 rounded-full flex items-center justify-center mx-auto mb-3 border border-rose-200">
+                    <RefreshCw className="animate-spin w-5 h-5 text-rose-600" />
                   </div>
-                  <p className="text-[11px] font-black text-white uppercase tracking-widest">
+                  <p className="text-xs font-black text-rose-700 uppercase tracking-widest">
                     Verifying via WhatsApp...
                   </p>
-                  <p className="text-[9px] font-bold text-slate-400 mt-2 uppercase">
-                    Please send the generated message in WhatsApp
+                  <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">
+                    Please send the generated message in WhatsApp to confirm your number
                   </p>
                   <button 
+                    type="button"
                     onClick={() => setAuthStatus("IDLE")} 
-                    className="mt-4 text-[9px] font-black text-rose-400 uppercase tracking-widest underline"
+                    className="mt-3 text-[10px] font-black text-rose-600 uppercase tracking-widest underline"
                   >
                     Cancel
                   </button>
                 </div>
               ) : (
-                <div className="space-y-3 pt-4">
+                <div className="space-y-3 pt-3">
                   <button 
+                    type="button"
                     onClick={() => {
                       if (!customerName.trim() || customerPhone.length < 5) {
                         return alert("Please enter your name and valid phone number");
                       }
+                      handleRequestAuth();
+                    }}
+                    className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-2"
+                  >
+                    <MessageCircle className="w-5 h-5" /> Verify via WhatsApp & Enter Menu
+                  </button>
+
+                  <button 
+                    type="button"
+                    onClick={() => {
+                      if (!customerName.trim() || customerPhone.length < 5) {
+                        return alert("Please enter your name and phone number");
+                      }
                       saveSession(customerName, customerPhone);
                       setView("menu");
                     }}
-                    className="w-full bg-white hover:bg-slate-100 text-slate-950 font-black py-4 rounded-2xl text-xs uppercase tracking-[0.2em] shadow-xl active:scale-[0.97] transition-all flex items-center justify-center gap-3"
+                    className="w-full bg-slate-100 hover:bg-slate-200 text-slate-700 font-extrabold py-3 rounded-2xl text-[11px] uppercase tracking-wider transition-all"
                   >
-                    Continue to Menu <ChevronRight className="w-4 h-4 text-slate-950" />
+                    Direct Guest Login &rarr;
                   </button>
-
-                  {loyaltyPoints >= (biz?.min_redeem_points || 300) && !isVerified && (
-                    <button 
-                      onClick={handleRequestAuth}
-                      className="w-full py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-black uppercase tracking-widest shadow-xl transition-all flex items-center justify-center gap-3"
-                    >
-                      <MessageCircle className="w-5 h-5 text-white" /> Verify via WhatsApp to Redeem
-                    </button>
-                  )}
                 </div>
               )}
             </div>
@@ -685,7 +723,7 @@ function CustomerMenu() {
               <div className="flex items-center gap-1.5 mt-0.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
                 <span className="text-[10px] font-bold text-slate-500">
-                  Open {biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}
+                  Open {openingTime} - {closingTime}
                 </span>
               </div>
             </div>
@@ -697,11 +735,11 @@ function CustomerMenu() {
                 <div className="space-y-2.5 text-xs text-slate-600">
                   <div className="flex gap-2">
                     <MapPin className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>{biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}</span>
+                    <span>{biz?.address || "Jammu and Kashmir, India"}</span>
                   </div>
                   <div className="flex gap-2">
                     <Clock className="w-4 h-4 text-slate-400 shrink-0" />
-                    <span>{biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}</span>
+                    <span>{openingTime} - {closingTime}</span>
                   </div>
                   <div className="flex gap-2">
                     <MessageCircle className="w-4 h-4 text-slate-400 shrink-0" />
@@ -712,8 +750,30 @@ function CustomerMenu() {
             )}
           </div>
           
-          {/* Middle/Right Section: Search box, language icon, cart icon, and hamburger */}
+          {/* Middle/Right Section: Book a Table, Search box, language icon, cart icon, and hamburger */}
           <div className="flex items-center gap-3">
+            {/* Book a Table button for Online Ordering */}
+            {(!tableId || tableId === "0") && (
+              <button
+                type="button"
+                onClick={() => setShowReservationModal(true)}
+                className="hidden sm:flex items-center gap-1.5 px-3 py-2 bg-emerald-50 border border-emerald-200 text-emerald-700 hover:bg-emerald-100 rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-sm active:scale-95"
+              >
+                <Clock className="w-3.5 h-3.5" /> Book a Table
+              </button>
+            )}
+
+            {/* Call Waiter button for Table QR */}
+            {tableId && tableId !== "0" && (
+              <button
+                type="button"
+                onClick={callWaiter}
+                className="flex items-center gap-1.5 px-3 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-md animate-bounce active:scale-95"
+              >
+                <BellRing className="w-3.5 h-3.5" /> Call Waiter
+              </button>
+            )}
+
             {/* Desktop/Tablet Search Input */}
             <div className="hidden md:flex relative w-48 lg:w-60">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -898,17 +958,20 @@ function CustomerMenu() {
       {/* Main Single Column Layout Container */}
       <div className="max-w-4xl mx-auto px-4 py-6 font-sans">
         
-        {/* 1. TOP BANNERS SECTION (Matches Lagoon styling exactly) */}
+        {/* 1. DYNAMIC TOP BANNERS FROM DIGITAL ORDER SETTINGS */}
         <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth mb-8 py-1">
-          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
-            <img src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Chicken Feast" />
-          </div>
-          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
-            <img src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Healthy Salmon" />
-          </div>
-          <div className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300">
-            <img src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Lagoon Veg Salmon Bowl" />
-          </div>
+          {((biz?.settings?.banners && biz.settings.banners.length > 0) 
+            ? biz.settings.banners.map(b => b.startsWith("http") ? b : `${API_BASE}${b}`)
+            : [
+                "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800",
+                "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800",
+                "https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&q=80&w=800"
+              ]
+          ).map((bannerSrc, bIdx) => (
+            <div key={bIdx} className="min-w-[85%] sm:min-w-[48%] md:min-w-[32%] aspect-[16/10] rounded-[2rem] overflow-hidden shadow-md hover:scale-[1.01] transition-transform duration-300 border border-rose-100">
+              <img src={bannerSrc} className="w-full h-full object-cover" alt={`Banner ${bIdx + 1}`} />
+            </div>
+          ))}
         </div>
 
         {/* 2. PROMOTIONS & OFFERS (Dashed cards shown dynamically only if database has active discounts) */}
@@ -1022,8 +1085,8 @@ function CustomerMenu() {
                 }}
                 className={`px-5 py-2.5 rounded-full text-[10px] font-black uppercase tracking-wider shrink-0 transition-all ${
                   activeCategory === cat 
-                    ? 'bg-emerald-600 text-white shadow-md font-bold' 
-                    : 'bg-white text-slate-550 border border-slate-200 hover:text-slate-900'
+                    ? 'bg-rose-600 text-white shadow-md font-bold' 
+                    : 'bg-white text-slate-600 border border-slate-200 hover:text-rose-600'
                 }`}
               >
                 {cat}
@@ -1061,29 +1124,29 @@ function CustomerMenu() {
                           </div>
                         )}
 
-                        {/* Veg/Non-Veg Icon Badge */}
-                        {item.food_type && (
-                          <div className="absolute top-2 left-2 px-1.5 py-1 rounded bg-white/95 border border-slate-100 flex items-center justify-center shadow-sm">
-                            <div className={`w-2.5 h-2.5 rounded-full ${item.is_veg ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+                        {/* Zomato Style Veg/Non-Veg Icon Badge */}
+                        <div className="absolute top-2 left-2 p-1 rounded bg-white/95 shadow-sm border border-slate-100 flex items-center justify-center">
+                          <div className={`w-3.5 h-3.5 border rounded-xs flex items-center justify-center p-0.5 ${item.is_veg !== false ? 'border-emerald-600' : 'border-rose-600'}`}>
+                            <div className={`w-1.5 h-1.5 rounded-full ${item.is_veg !== false ? 'bg-emerald-600' : 'bg-rose-600'}`} />
                           </div>
-                        )}
+                        </div>
 
                         {/* Recommended Indicator Badge */}
                         {item.recommended === 1 && (
-                          <div className="absolute top-2 right-2 px-2 py-1 rounded bg-amber-400 text-slate-950 text-[7px] font-black uppercase tracking-wider flex items-center gap-1 shadow-sm">
-                            <Star className="w-2.5 h-2.5 fill-slate-950" /> Recommended
+                          <div className="absolute top-2 right-2 px-2 py-1 rounded-full bg-rose-600 text-white text-[7px] font-black uppercase tracking-wider flex items-center gap-1 shadow-md">
+                            <Star className="w-2.5 h-2.5 fill-white" /> Bestseller
                           </div>
                         )}
 
                         {/* Float Price Tag */}
-                        <div className="absolute bottom-2 right-2 px-3 py-1.5 bg-white/95 border border-slate-150 rounded-xl text-xs font-black text-slate-900 font-mono shadow-sm">
+                        <div className="absolute bottom-2 right-2 px-2.5 py-1 bg-white/95 border border-slate-150 rounded-xl text-xs font-black text-rose-600 font-mono shadow-sm">
                           {symbol}{item.price}
                         </div>
 
                         {/* AR PREVIEW BUTTON */}
                         <button 
-                          onClick={(e) => { e.stopPropagation(); alert("✨ Reality Engine Initializing... \n\n This feature allows customers to see a 3D AR model of " + item.product_name + " on their table. (Premium Demo Mode)"); }}
-                          className="absolute top-2 left-9 w-7 h-7 bg-white/85 backdrop-blur-md rounded-lg flex items-center justify-center text-slate-800 border border-slate-200 hover:bg-slate-900 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-md"
+                          onClick={(e) => { e.stopPropagation(); alert("✨ Reality Engine Initializing... \n\n This feature allows customers to see a 3D AR model of " + item.product_name + " on their table."); }}
+                          className="absolute top-2 left-9 w-7 h-7 bg-white/85 backdrop-blur-md rounded-lg flex items-center justify-center text-slate-800 border border-slate-200 hover:bg-rose-600 hover:text-white transition-all opacity-0 group-hover:opacity-100 shadow-md"
                         >
                           <Scan className="w-4 h-4" />
                         </button>
@@ -1095,33 +1158,33 @@ function CustomerMenu() {
                             {item.product_name}
                           </h4>
                           <p className="text-[9px] sm:text-[10px] text-slate-500 font-medium line-clamp-2 leading-relaxed mb-3">
-                            {item.description || "Freshly cooked culinary delight prepared with finest selection of authentic handpicked ingredients."}
+                            {item.description || "Freshly prepared with handpicked ingredients."}
                           </p>
                         </div>
 
                         <div className="mt-auto">
                           {inCart ? (
-                            <div className="flex items-center justify-between bg-white text-slate-900 rounded-xl p-1 h-9 border border-slate-200 shadow-sm">
+                            <div className="flex items-center justify-between bg-rose-50 text-rose-700 rounded-xl p-1 h-9 border border-rose-200 shadow-sm font-bold">
                               <button 
                                 onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} 
-                                className="w-7 h-full flex items-center justify-center hover:bg-slate-100 rounded-lg transition-all"
+                                className="w-7 h-full flex items-center justify-center hover:bg-rose-100 rounded-lg transition-all"
                               >
-                                <Minus className="w-3 h-3 text-slate-500" />
+                                <Minus className="w-3.5 h-3.5 text-rose-600" />
                               </button>
-                              <span className="text-[11px] font-black font-mono w-6 text-center text-slate-900">{inCart.qty}</span>
+                              <span className="text-[12px] font-black font-mono w-6 text-center text-rose-700">{inCart.qty}</span>
                               <button 
                                 onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} 
-                                className="w-7 h-full flex items-center justify-center hover:bg-slate-100 rounded-lg transition-all"
+                                className="w-7 h-full flex items-center justify-center hover:bg-rose-100 rounded-lg transition-all"
                               >
-                                <Plus className="w-3 h-3 text-slate-500" />
+                                <Plus className="w-3.5 h-3.5 text-rose-600" />
                               </button>
                             </div>
                           ) : (
                             <button 
                               onClick={() => setCart([...cart, { ...item, qty: 1 }])} 
-                              className="w-full bg-slate-50 text-slate-650 py-2 rounded-xl font-black text-[9px] uppercase tracking-widest border border-slate-150 transition-all hover:bg-emerald-600 hover:text-white hover:border-transparent shadow-sm flex items-center justify-center gap-1 active:scale-95"
+                              className="w-full bg-white text-rose-600 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest border border-rose-200 transition-all hover:bg-rose-600 hover:text-white shadow-sm flex items-center justify-center gap-1 active:scale-95"
                             >
-                              Add <Plus className="w-3 h-3" />
+                              ADD <Plus className="w-3 h-3 text-rose-600 group-hover:text-white" />
                             </button>
                           )}
                         </div>
@@ -1157,11 +1220,11 @@ function CustomerMenu() {
             <div className="space-y-3 text-xs text-slate-600">
               <div className="flex gap-3">
                 <MapPin className="w-4.5 h-4.5 text-slate-400 shrink-0" />
-                <span>{biz?.address || "28 Floor, 4 Al-Soor St, Kuwait City, Kuwait"}</span>
+                <span>{biz?.address || "Jammu and Kashmir, India"}</span>
               </div>
               <div className="flex gap-3">
                 <Clock className="w-4.5 h-4.5 text-slate-400 shrink-0" />
-                <span>{biz?.opening_time || "07:05 AM"} - {biz?.closing_time || "11:59 PM"}</span>
+                <span>{openingTime} - {closingTime}</span>
               </div>
               <div className="flex gap-3">
                 <MessageCircle className="w-4.5 h-4.5 text-slate-400 shrink-0" />

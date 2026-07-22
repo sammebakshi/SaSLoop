@@ -11,8 +11,8 @@ $TIMESTAMP = Get-Date -Format "yyyyMMddHHmmss"
 $SYNC_FILE = "backend_sync_$TIMESTAMP.tar.gz"
 Write-Host "-> Compressing backoffice files ($SYNC_FILE)..." -ForegroundColor Gray
 
-# Create tar archive of only backend files and folders
-tar -czf $SYNC_FILE server.js db.js dbInit.js package.json package-lock.json ecosystem.config.js whatsappManager.js routes middleware utils google-key.json nodemon.json
+# Create tar archive of backend files and compiled dashboard build
+tar -czf $SYNC_FILE server.js db.js dbInit.js package.json package-lock.json ecosystem.config.js whatsappManager.js routes middleware utils google-key.json nodemon.json dist SaSLoop-dashboard/dist
 
 # 2. Upload to Oracle Cloud
 Write-Host "-> Uploading to Oracle Cloud ($IP)..." -ForegroundColor Blue
