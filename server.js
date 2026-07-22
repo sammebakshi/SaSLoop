@@ -204,21 +204,15 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // 🎨 DESIGN & ASSETS (Prioritized)
 // ======================
 // Resolve build path relative to server.js
-let buildPath = path.join(__dirname, "SaSLoop-dashboard", "dist");
-if (!fs.existsSync(buildPath)) {
-    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
-}
-if (!fs.existsSync(buildPath)) {
-    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build_new");
-}
-if (!fs.existsSync(buildPath)) {
-    const altPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
-    if (fs.existsSync(altPath)) buildPath = altPath;
-}
-if (!fs.existsSync(buildPath)) {
-    const rootDistPath = path.join(__dirname, "dist");
-    if (fs.existsSync(rootDistPath)) buildPath = rootDistPath;
-}
+let candidatePaths = [
+    path.join(__dirname, "SaSLoop-dashboard", "build"),
+    path.join(__dirname, "SaSLoop-dashboard", "dist"),
+    path.join(__dirname, "SaSLoop-dashboard", "build_new"),
+    path.join(__dirname, "..", "SaSLoop-dashboard", "build"),
+    path.join(__dirname, "dist")
+];
+
+let buildPath = candidatePaths.find(p => fs.existsSync(path.join(p, "index.html"))) || candidatePaths[0];
 
 console.log("🚀 FINAL FRONTEND PATH:", buildPath);
 
