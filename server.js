@@ -207,7 +207,6 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 let candidatePaths = [
     path.join(__dirname, "SaSLoop-dashboard", "build"),
     path.join(__dirname, "SaSLoop-dashboard", "dist"),
-    path.join(__dirname, "SaSLoop-dashboard", "build_new"),
     path.join(__dirname, "..", "SaSLoop-dashboard", "build"),
     path.join(__dirname, "dist")
 ];
