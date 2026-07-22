@@ -225,6 +225,9 @@ function CustomerMenu() {
         setData({ ...d, items: optimizedItems }); 
         setLoading(false); 
         if (optimizedItems.length > 0) setActiveCategory(optimizedItems[0].category || "General"); 
+    }).catch(err => {
+        console.error("Menu fetch error:", err);
+        setLoading(false);
     });
 
     // ✅ CHECK TABLE AVAILABILITY
