@@ -13,6 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { posService, authService, API_BASE, updateApiBaseUrl } from './services/api';
 import WhatsAppMarketing from './components/WhatsAppMarketing';
+import { playNewMessageSound } from './utils/soundHelper';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import QRCode from 'qrcode';
@@ -424,9 +425,16 @@ const TransitionSplashScreen = ({ username }) => {
 
 // --- HELPER COMPONENTS ---
 
-const SidebarIcon = ({ icon, active, onClick, label, id, isDark }) => (
+const SidebarIcon = ({ icon, active, onClick, label, id, isDark, badge }) => (
   <button id={id} onClick={onClick} className={`w-full h-[58px] flex flex-col items-center justify-center transition-all relative border-b group ${isDark ? 'border-[#30363d]' : 'border-slate-100'} ${active ? (isDark ? 'bg-[#21262d] text-white' : 'bg-[#ccebe1] text-[#2f3542]') : (isDark ? 'text-[#c9d1d9] hover:bg-white/5 hover:text-white' : 'text-[#2f3542] hover:bg-slate-100')}`}>
-    <div className={`${active ? 'scale-105 text-current' : 'scale-100 text-current'} transition-all flex items-center justify-center [&>svg]:w-[28px] [&>svg]:h-[28px] [&>div.relative]:w-7 [&>div.relative]:h-7`}>{icon}</div>
+    <div className={`relative ${active ? 'scale-105 text-current' : 'scale-100 text-current'} transition-all flex items-center justify-center [&>svg]:w-[28px] [&>svg]:h-[28px] [&>div.relative]:w-7 [&>div.relative]:h-7`}>
+      {icon}
+      {typeof badge === 'number' && badge > 0 && (
+        <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-white text-[9px] font-black min-w-[17px] h-[17px] px-1 rounded-full flex items-center justify-center shadow-md animate-pulse z-20 border border-white dark:border-slate-900">
+          {badge > 99 ? '99+' : badge}
+        </span>
+      )}
+    </div>
     {/* Tooltip on Hover */}
     <div className={`absolute left-full ml-2 px-2 py-1 rounded text-[10px] font-bold uppercase whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 ${isDark ? 'bg-[#21262d] text-white border border-[#30363d]' : 'bg-white text-slate-700 border border-slate-200 shadow-md'}`}>
       {label}
@@ -1848,6 +1856,7 @@ const UniversalPOS = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [showInitialSplash, setShowInitialSplash] = useState(false);
   const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);
+  const [waUnreadCount, setWaUnreadCount] = useState(0);
   const [activeTab, setActiveTab] = useState('home');
   const [config, setConfig] = useState({ currency: 'Rs', tax_rate: 0, business_type: 'RESTAURANT' });
   const [business, setBusiness] = useState(() => {
@@ -4495,6 +4504,19 @@ const UniversalPOS = () => {
           }
         }
       }
+    } else if (tabId === 'whatsapp') {
+      if (access.WhatsApp?.visible === false) {
+        toast.error("WhatsApp Suite is restricted.");
+        return;
+      }
+      if (access.WhatsApp?.visible_passcode === true) {
+        const pin = prompt("Enter Manager PIN to access WhatsApp Suite:");
+        if (pin === null) return;
+        if (!verifyManagerPin(pin)) {
+          toast.error("Invalid Manager PIN/Passcode!");
+          return;
+        }
+      }
     } else if (tabId === 'expenses') {
       if (access.ExpenseManagement?.visible === false) {
         toast.error("Expense Management is restricted.");
@@ -5204,6 +5226,7 @@ const UniversalPOS = () => {
           live: access.OrderWindow?.live_order_tracking !== false,
           digital: access.OnlineOrder?.visible !== false,
           receipts: access.Receipts?.visible !== false,
+          whatsapp: access.WhatsApp?.visible !== false,
           expenses: access.ExpenseManagement?.visible !== false,
           analytics: access.Reports?.visible !== false,
           config: access.OperationManagement?.visible !== false,
@@ -11401,7 +11424,9 @@ const UniversalPOS = () => {
           {getStaffPermissions()?.pos_access?.Receipts?.visible !== false && (
             <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => handleTabClick('receipts', () => setActiveTab('receipts'))} label="Receipt" />
           )}
-          <SidebarIcon id="whatsappIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => setActiveTab('whatsapp')} label="WhatsApp" />
+          {getStaffPermissions()?.pos_access?.WhatsApp?.visible !== false && (
+            <SidebarIcon id="whatsappIcon" isDark={isDark} badge={waUnreadCount} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => handleTabClick('whatsapp', () => setActiveTab('whatsapp'))} label="WhatsApp" />
+          )}
           {getStaffPermissions()?.pos_access?.ExpenseManagement?.visible !== false && (
             <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => handleTabClick('expenses', () => { setActiveTab('expenses'); setIsExpenseModalOpen(true); })} label="Expense" />
           )}
@@ -18551,10 +18576,10 @@ const UniversalPOS = () => {
 
                                     let rawOptImg = o.image_url || o.image;
 
-                                    if (!rawOptImg && (o.item_id || o.id)) {
-                                       const targetOptId = String(o.item_id || o.id);
-                                       const matchedById = allCatItems.find(ci => String(ci.id) === targetOptId) ||
-                                                           allMgItems.find(mi => String(mi.id) === targetOptId);
+                                    if (!rawOptImg && o.item_id) {
+                                       const targetOptId = String(o.item_id);
+                                       const matchedById = allCatItems.find(ci => String(ci.id) === targetOptId || String(ci.item_id) === targetOptId) ||
+                                                           allMgItems.find(mi => String(mi.id) === targetOptId || String(mi.item_id) === targetOptId);
                                        rawOptImg = matchedById?.image_url || matchedById?.image;
                                     }
 

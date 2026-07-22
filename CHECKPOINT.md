@@ -6,27 +6,21 @@
 ---
 
 ## Last Updated
-- **Date**: 2026-07-18 12:30 IST
-- **Conversation**: `33a62668-6911-44f4-b317-17997cf098d6`
+- **Date**: 2026-07-21 23:55 IST
+- **Conversation**: `1bb9e4d7-4176-4906-bfc9-9b827ff84195`
 
 ## Current State
 - App is **built and deployed** to https://backend.sasloop.in
 - PM2 processes: `server` + `start-tunnel` are online
-- Version: `1.0.1`
-- Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`) to keep the main project history clean.
+- POS Desktop Version: `1.0.2` (`sasloop-master-pos-v1.0.2 Setup 1.0.2.exe`)
+- Auto-backup runs every 5 minutes via Windows Task Scheduler (`SaSLoop-AutoBackup`) to a local Shadow Git repository (`C:\Users\Sajad\Desktop\SaSLoop_Backups`).
 
 ## Recently Completed
-- Custom styled splash screen window in Electron with rounded corners (`24px`), dynamic titlebar matching the POS branding layout, and window-close controls via IPC.
-- Re-compiled Electron desktop executable containing the splash screen design changes (`sasloop-terminal-pos-v1.0.1 Setup 1.0.1.exe`).
-- Added active table/cart safety check block (prevents POS data clearing on logout if tables are busy or active carts exist, prompting the user with a notification).
-- Fixed POS data restoring on login after logout (added sync of empty active state to backend server before clearing token, preventing the server from feeding the old session's active bills and tables back to the client upon next login).
-- Fixed POS local data clearing on logout (resolved key skipping due to index shifting by gathering all localStorage keys first, and added complete reset of in-memory lists/metadata states to prevent memory leakage between sessions).
-- Designed full pictured slideshow with zoom/crossfade transitions on the login page (using 5 high-fidelity mockups: Billing, KDS, Floor Plans, Receipts, and Reports)
-- Increased login page custom titlebar height to h-11 and made window control buttons span the full height with larger icons
-- Added dashboard support hotline numbers absolutely centered on the login page titlebar
-- Replaced login title text with a styled "SaSLoop POS" brand title
-- Removed legacy animated background lines and FeatureShowcase layout from login page
-- Electron build repackaged successfully with updated windows desktop installer (sasloop-pos-v1.0.1 Setup 1.0.1.exe)
+- **WhatsApp Sidebar Navigation**: Fixed bug where clicking WhatsApp icon forced `activeTab` back to `'home'` (Dashboard). Added `whatsapp` to `tabCheck` inside [App.jsx](file:///c:/Users/Sajad/Desktop/SaSLoop/pos-app/src/App.jsx) `useEffect`, added permission / passcode handling to `handleTabClick`, and wrapped sidebar icon with permission checks. Verified build cleanly compiled.
+- **Unified Master Menu (POS + Digital + Custom)**: Replaced SQL parameter binding with `"m.id = $" + params.length` in `routes/brandRoutes.js` and `pos-app/server/routes/brandRoutes.js`. Verified selecting any registered menu (`pos menu`, `DIGI MENU`, `S MENU`, or custom menus) loads all items instantly.
+- **WhatsApp Sidebar & Audio**: Fixed sidebar WhatsApp icon click handler to properly use `handleTabClick('whatsapp', ...)`. Added unread message bubble badge counter (`waUnreadCount`) over the sidebar icon and connected `playNewMessageSound()` from `./utils/soundHelper`.
+- **Bill Settlement (Online vs Offline)**: Fixed PostgreSQL 500 error `invalid input syntax for type date: ""` in `routes/orderRoutes.js` by converting empty date strings `""` to `null`. Allowed order settlements to sync live instantly with **`Payment Settled & Synced Live!`**.
+- **Builds & Deployments**: Built and deployed backend/dashboard changes live to https://backend.sasloop.in (`fast-deploy.ps1`). Built latest Electron POS desktop executable installer (`pos-app/release-v2/sasloop-master-pos-v1.0.2 Setup 1.0.2.exe`, 118.1 MB).
 
 ## In Progress
 - Nothing currently in progress
