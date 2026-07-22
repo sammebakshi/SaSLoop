@@ -250,7 +250,8 @@ app.get(/.*/, (req, res, next) => {
     }
 
     // 3. Otherwise, serve index.html for all other routes (SPA)
-    const indexPath = path.join(buildPath, 'index.html');
+    const activeBuildPath = candidatePaths.find(p => fs.existsSync(path.join(p, "index.html"))) || buildPath;
+    const indexPath = path.resolve(activeBuildPath, 'index.html');
     if (fs.existsSync(indexPath)) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
