@@ -206,6 +206,7 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // Resolve build path relative to server.js
 let candidatePaths = [
     path.resolve(__dirname, "SaSLoop-dashboard", "build"),
+    path.resolve(__dirname, "SaSLoop-dashboard", "SaSLoop-dashboard", "build"),
     path.resolve(__dirname, "SaSLoop-dashboard", "dist"),
     path.resolve(__dirname, "build"),
     path.resolve(__dirname, "dist")
@@ -246,8 +247,14 @@ app.get(/.*/, (req, res, next) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
-        res.sendFile(indexPath);
+        return res.sendFile(indexPath, (err) => {
+            if (err && !res.headersSent) {
+                console.error("❌ SPA sendFile Error:", err);
+                res.status(500).send("Dashboard build missing. Please run: npm run build-frontend");
+            }
+        });
     } else {
+        console.error("❌ index.html NOT FOUND AT:", indexPath);
         res.status(500).send("Dashboard build missing. Please run: npm run build-frontend");
     }
 });
