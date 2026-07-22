@@ -16,21 +16,7 @@ router.post("/login", async (req, res) => {
         return res.status(400).json({ error: "Email/Username and password are required" });
     }
 
-    let queryStr = "SELECT * FROM app_users WHERE email = $1";
-    
-    try {
-      // Check if username column exists dynamically to support email/username login
-      const colCheck = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='app_users' AND column_name='username'");
-      if (colCheck.rows.length > 0) {
-        queryStr = "SELECT * FROM app_users WHERE email = $1 OR username = $1";
-      } else {
-        // Fallback to first_name if the username column isn't created yet
-        queryStr = "SELECT * FROM app_users WHERE email = $1 OR first_name = $1";
-      }
-    } catch (e) {
-      console.warn("Could not check for username column schema.");
-    }
-
+    let queryStr = "SELECT * FROM app_users WHERE LOWER(email) = LOWER($1) OR username = $1 OR phone = $1 OR first_name = $1";
     const result = await pool.query(queryStr, [identifier]);
 
     console.log("DB RESULT:", result.rows);
