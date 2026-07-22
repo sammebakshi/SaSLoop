@@ -270,7 +270,7 @@ app.listen(PORT, async () => {
     if (!fs.existsSync(path.join(__dirname, "uploads"))) {
         fs.mkdirSync(path.join(__dirname, "uploads"));
     }
-    await initializeDatabase();
+    initializeDatabase().catch(err => console.error("Database init error:", err));
     
     // Start Cron Jobs
     whatsappManager.startCartRecoveryCron();
