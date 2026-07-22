@@ -226,7 +226,7 @@ router.post("/", authMiddleware, async (req, res) => {
               coupon_code || null,
               rider_id || null,
               parseInt(points_redeemed) || 0,
-              created_at || null
+              (created_at && created_at !== '') ? created_at : null
             ]
           );
 
@@ -402,12 +402,12 @@ router.post("/", authMiddleware, async (req, res) => {
         finalPaidAmount, finalCreditAmount, waiter_id || null,
         charge_details ? JSON.stringify(charge_details) : '[]',
         deviceId,
-        pre_order_scheduled_date || null,
-        pre_order_scheduled_time || null,
+        (pre_order_scheduled_date && pre_order_scheduled_date !== '') ? pre_order_scheduled_date : null,
+        (pre_order_scheduled_time && pre_order_scheduled_time !== '') ? pre_order_scheduled_time : null,
         coupon_code || null,
         rider_id || null,
         parseInt(points_redeemed) || 0,
-        created_at || null
+        (created_at && created_at !== '') ? created_at : null
       ]
     );
 
@@ -631,8 +631,8 @@ router.put("/:id", authMiddleware, async (req, res) => {
         finalPaidAmount, finalCreditAmount, waiter_id || null,
         charge_details ? JSON.stringify(charge_details) : '[]',
         id, userId,
-        pre_order_scheduled_date || null,
-        pre_order_scheduled_time || null,
+        (pre_order_scheduled_date && pre_order_scheduled_date !== '') ? pre_order_scheduled_date : null,
+        (pre_order_scheduled_time && pre_order_scheduled_time !== '') ? pre_order_scheduled_time : null,
         coupon_code || null,
         rider_id || null,
         parseInt(points_redeemed) || 0

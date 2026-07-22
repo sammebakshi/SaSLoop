@@ -427,11 +427,14 @@ router.get("/notif-counts", authMiddleware, async (req, res) => {
     const userId = req.user.id;
     const bizId = req.user.bizId || req.user.id;
     const chatCount = await pool.query(
-      "SELECT COUNT(*) FROM chat_messages WHERE user_id = $1 AND role = 'customer' AND is_read = false",
+      `SELECT COUNT(*) FROM chat_messages 
+       WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1) OR user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1)) 
+         AND role = 'customer' 
+         AND (is_read = false OR is_read IS NULL)`,
       [bizId]
     );
     const systemCount = await pool.query(
-      "SELECT COUNT(*) FROM system_notifications WHERE user_id = $1 AND is_read = false",
+      "SELECT COUNT(*) FROM system_notifications WHERE user_id = $1 AND (is_read = false OR is_read IS NULL)",
       [userId]
     );
     res.json({
@@ -450,9 +453,18 @@ router.post("/mark-read", authMiddleware, async (req, res) => {
     const bizId = req.user.bizId || req.user.id;
     if (type === 'chats') {
       if (customerNumber) {
-        await pool.query("UPDATE chat_messages SET is_read = true WHERE user_id = $1 AND customer_number = $2", [bizId, customerNumber]);
+        await pool.query(
+          `UPDATE chat_messages SET is_read = true 
+           WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1) OR user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1)) 
+             AND customer_number = $2`, 
+          [bizId, customerNumber]
+        );
       } else {
-        await pool.query("UPDATE chat_messages SET is_read = true WHERE user_id = $1", [bizId]);
+        await pool.query(
+          `UPDATE chat_messages SET is_read = true 
+           WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1) OR user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1))`, 
+          [bizId]
+        );
       }
     } else {
       await pool.query("UPDATE system_notifications SET is_read = true WHERE user_id = $1", [userId]);

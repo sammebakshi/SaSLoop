@@ -74,7 +74,8 @@ export const posService = {
     getRiders: () => api.get('/api/waiters/riders'),
     getDiscounts: () => api.get('/api/discounts'),
     getAdditionalCharges: () => api.get('/api/additional-charges'),
-    getTaxes: (outletId) => api.get('/api/brand/tax-groups', { params: { outlet_id: outletId } }),
+    getTaxes: (outletId) => api.get('/api/brand/taxes', { params: { outlet_id: outletId } }),
+    updateTax: (id, payload) => api.put(`/api/brand/taxes/${id}`, payload),
     getPaymentModes: (outletId) => api.get('/api/pos/payment-modes', { params: { outlet_id: outletId } }),
     getQRs: () => api.get('/api/pos/qrs'),
     getActiveState: () => api.get('/api/pos/active-state'),
@@ -91,7 +92,27 @@ export const posService = {
         balance: payload.balance
     }),
     adjustCustomer: (payload) => api.post('/api/crm/customers/adjust', payload),
-    payCustomerDue: (payload) => api.post('/api/crm/customers/pay-due', payload)
+    payCustomerDue: (payload) => api.post('/api/crm/customers/pay-due', payload),
+
+    // Order management
+    updateOrder: (id, order) => api.put(`/api/orders/${id}`, order),
+    updateOrderPaymentStatus: (id, status) => api.put(`/api/orders/${id}/payment-status`, { payment_status: status }),
+
+    // Pre-order management
+    createPreOrder: (data) => api.post('/api/pre-orders', data),
+    getPreOrders: () => api.get('/api/pre-orders'),
+    updatePreOrder: (id, data) => api.put(`/api/pre-orders/${id}`, data),
+    updatePreOrderStatus: (id, status) => api.put(`/api/pre-orders/${id}/status`, { status }),
+
+    // Category management
+    updateCategory: (id, data) => api.put(`/api/brand/categories/${id}`, data),
+
+    // Table management
+    updateTableStatus: (tableName, status) => api.put(`/api/pos/tables/${encodeURIComponent(tableName)}/status`, { status }),
+
+    // WhatsApp E-Bill & messaging
+    sendWhatsAppMessage: (phone, message) => api.post('/api/whatsapp/chat/send', { to: phone, text: message }),
+    sendWhatsAppPdf: (phone, base64Pdf, fileName) => api.post('/api/whatsapp/chat/send-pdf', { to: phone, pdfBase64: base64Pdf, filename: fileName }),
 };
 
 export default api;

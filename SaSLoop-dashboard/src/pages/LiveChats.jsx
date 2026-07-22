@@ -1,30 +1,12 @@
 import React, { useState, useEffect, useLayoutEffect, useRef } from "react";
 import API_BASE, { isMobileDevice } from "../config";
 import { MessageSquare, Bot, User as UserIcon, Activity, RefreshCw, Send, PauseCircle, PlayCircle, ShieldAlert, ChevronLeft, Bell, BellOff, ChevronDown } from "lucide-react";
+import { playConfiguredWaSound } from "../utils/waSoundHelper";
 
-// ── Web Audio API notification ping ────────
-let chatAudioCtx = null;
-function ensureChatAudio() {
-  if (!chatAudioCtx) chatAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (chatAudioCtx.state === "suspended") chatAudioCtx.resume();
-  return chatAudioCtx;
-}
 function playMessagePing() {
-  try {
-    const ctx = ensureChatAudio();
-    const now = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.type = "sine";
-    osc.frequency.setValueAtTime(1200, now);
-    osc.frequency.exponentialRampToValueAtTime(800, now + 0.3);
-    gain.gain.setValueAtTime(0.6, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
-    osc.connect(gain).connect(ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.5);
-  } catch (e) { console.error("Chat audio error", e); }
+  playConfiguredWaSound();
 }
+
 
 function LiveChats() {
   const [chats, setChats] = useState([]);
@@ -250,16 +232,16 @@ function LiveChats() {
                           {norm.substring(0, 2)}
                       </div>
                       <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className="flex justify-between items-center mb-1">
-                             <p className={`font-black tracking-tight text-[12px] uppercase italic ${lastMsg?.role === 'customer' && !lastMsg?.is_read ? 'text-indigo-600' : 'text-slate-900'}`}>
-                                {contactsMap[norm] || contactsMap[rawNum] || norm}
-                             </p>
-                             <span className="text-[9px] font-black text-slate-300">{lastMsg ? new Date(lastMsg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
-                          </div>
-                          <div className="flex justify-between items-center gap-2">
-                             <p className={`text-[11px] truncate font-bold ${lastMsg?.role === 'customer' && !lastMsg?.is_read ? 'text-slate-900' : 'text-slate-400'}`}>{lastMsg?.text || '...'}</p>
-                             {lastMsg?.role === 'customer' && !lastMsg?.is_read && <div className="w-2 h-2 bg-indigo-600 rounded-full shrink-0 shadow-lg shadow-indigo-200"></div>}
-                          </div>
+                           <div className="flex justify-between items-center mb-1">
+                              <p className={`font-black tracking-tight text-[12px] uppercase italic ${lastMsg?.role === 'customer' && !lastMsg?.is_read ? 'text-red-600 font-extrabold' : 'text-slate-900'}`}>
+                                 {contactsMap[norm] || contactsMap[rawNum] || norm}
+                              </p>
+                              <span className="text-[9px] font-black text-slate-300">{lastMsg ? new Date(lastMsg.time).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                           </div>
+                           <div className="flex justify-between items-center gap-2">
+                              <p className={`text-[11px] truncate font-bold ${lastMsg?.role === 'customer' && !lastMsg?.is_read ? 'text-slate-900' : 'text-slate-400'}`}>{lastMsg?.text || '...'}</p>
+                              {lastMsg?.role === 'customer' && !lastMsg?.is_read && <div className="w-3 h-3 bg-red-600 rounded-full shrink-0 shadow-lg shadow-red-500/50 animate-pulse"></div>}
+                           </div>
                       </div>
                     </button>
                 )

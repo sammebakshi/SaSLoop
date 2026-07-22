@@ -8,12 +8,14 @@ import {
   Calendar, Check, AlertCircle, Eye, Sliders, Play, Pause,
   Bot, ShieldAlert, Sparkles, FileText, Send, User, CheckCheck,
   Wifi, WifiOff, LayoutDashboard, Megaphone,
-  Activity, XCircle, Users
+  Activity, XCircle, Users, Volume2, VolumeX, Settings
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { playConfiguredWaSound, playNewMessageSound, getWaSoundSettings, setWaSoundSettings } from "../utils/soundHelper";
 
-const WhatsAppMarketing = ({ isDark, t, customerDb = {}, config = {} }) => {
-  const [activeSubTab, setActiveSubTab] = useState("dashboard"); // dashboard, campaigns, chats
+
+const WhatsAppMarketing = ({ isDark, t, customerDb = {}, config = {}, initialSubTab = "chats" }) => {
+  const [activeSubTab, setActiveSubTab] = useState(initialSubTab); // chats, dashboard, campaigns, settings
   const API_BASE = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
       ? "http://localhost:5000"
       : "https://backend.sasloop.in";
@@ -37,9 +39,10 @@ const WhatsAppMarketing = ({ isDark, t, customerDb = {}, config = {} }) => {
         {/* Tab switchers */}
         <div className="flex items-center gap-1 bg-slate-100 dark:bg-[#0d1117] p-0.5 rounded-lg">
           {[
+            { id: "chats", label: "Chats", icon: MessageSquare },
             { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
             { id: "campaigns", label: "Campaigns", icon: Megaphone },
-            { id: "chats", label: "Chats", icon: MessageSquare }
+            { id: "settings", label: "Sound Settings", icon: Settings }
           ].map(tab => {
             const Icon = tab.icon;
             const isActive = activeSubTab === tab.id;
@@ -114,7 +117,135 @@ const WhatsAppMarketing = ({ isDark, t, customerDb = {}, config = {} }) => {
               />
             </motion.div>
           )}
+
+          {activeSubTab === "settings" && (
+            <motion.div 
+              key="settings" 
+              initial={{ opacity: 0, y: 10 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              exit={{ opacity: 0, y: -10 }}
+              className="h-full overflow-y-auto p-6 space-y-6 no-scrollbar"
+            >
+              <SoundSettingsView isDark={isDark} />
+            </motion.div>
+          )}
         </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+/* ========================================================================= */
+/* ⚙️ SOUND SETTINGS SUB-VIEW                                                */
+/* ========================================================================= */
+const SoundSettingsView = ({ isDark }) => {
+  const [soundSettings, setSoundSettingsState] = useState(() => getWaSoundSettings());
+  const [testPlaying, setTestPlaying] = useState(false);
+
+  const handleToggleEnable = (e) => {
+    const newEnabled = e.target.checked;
+    setWaSoundSettings(newEnabled, soundSettings.soundType);
+    setSoundSettingsState(prev => ({ ...prev, enabled: newEnabled }));
+  };
+
+  const handleSelectSoundType = (type) => {
+    setWaSoundSettings(soundSettings.enabled, type);
+    setSoundSettingsState(prev => ({ ...prev, soundType: type }));
+    playNewMessageSound(type);
+  };
+
+  const handleTestSound = () => {
+    playNewMessageSound(soundSettings.soundType);
+    setTestPlaying(true);
+    setTimeout(() => setTestPlaying(false), 1500);
+  };
+
+  const soundOptions = [
+    { id: 'default', label: 'Default Chime', desc: 'Classic double-tone notification chime' },
+    { id: 'bell', label: 'Crystal Bell', desc: 'Sustained 880Hz high bell ring' },
+    { id: 'ping', label: 'Quick Ping', desc: 'Short crisp 1046Hz alert ping' },
+    { id: 'pop', label: 'Pop Alert', desc: 'Snappy frequency sweep pop tone' }
+  ];
+
+  return (
+    <div className="max-w-3xl mx-auto p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-800 dark:text-white uppercase tracking-tight">WhatsApp Notification Settings</h2>
+          <p className="text-[10px] text-slate-450 dark:text-slate-400 uppercase font-black tracking-widest mt-0.5">Customize or disable notification sound alerts for incoming messages</p>
+        </div>
+      </div>
+
+      {/* Main Sound Switch Card */}
+      <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-6 rounded-2xl shadow-sm space-y-6">
+        <div className="flex items-center justify-between pb-6 border-b border-slate-100 dark:border-[#30363d]">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${soundSettings.enabled ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+              {soundSettings.enabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
+            </div>
+            <div>
+              <h3 className="text-xs font-black uppercase text-slate-800 dark:text-white tracking-wider">Incoming Message Sound Alert</h3>
+              <p className="text-[10px] text-slate-400 font-medium">Play sound chime when a new customer WhatsApp message arrives</p>
+            </div>
+          </div>
+
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              checked={soundSettings.enabled} 
+              onChange={handleToggleEnable} 
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+          </label>
+        </div>
+
+        {/* Sound Selection Options */}
+        {soundSettings.enabled ? (
+          <div className="space-y-4 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <label className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400">Select Sound Alert Tone</label>
+              <button 
+                onClick={handleTestSound}
+                className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
+              >
+                <Volume2 className="w-3.5 h-3.5" />
+                {testPlaying ? "Playing Chime..." : "🔊 Test Sound"}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              {soundOptions.map(opt => {
+                const isSelected = soundSettings.soundType === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => handleSelectSoundType(opt.id)}
+                    className={`p-4 rounded-xl border text-left transition-all flex flex-col justify-between cursor-pointer ${
+                      isSelected
+                        ? "border-emerald-500 bg-emerald-50/20 dark:bg-emerald-500/10 shadow-sm"
+                        : "border-slate-200 dark:border-[#30363d] hover:border-slate-300 dark:hover:border-slate-600"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-[12px] font-bold ${isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-white'}`}>
+                        {opt.label}
+                      </span>
+                      {isSelected && (
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-sm" />
+                      )}
+                    </div>
+                    <p className="text-[9.5px] text-slate-400 font-medium mt-1">{opt.desc}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/5 border border-slate-200 dark:border-white/5 text-center text-slate-400 text-xs font-bold uppercase tracking-wider">
+            🔇 Sound notifications are currently disabled
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1057,7 +1188,7 @@ const CampaignsView = ({ API_BASE, getHeaders, customerDb, isDark }) => {
 /* ========================================================================= */
 /* 💬 CHATS SUB-VIEW                                                         */
 /* ========================================================================= */
-const ChatsView = ({ API_BASE, getHeaders, isDark }) => {
+const ChatsView = ({ API_BASE, getHeaders, isDark, onUnreadCountChange }) => {
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
   const [chatMessages, setChatMessages] = useState({});
@@ -1074,8 +1205,11 @@ const ChatsView = ({ API_BASE, getHeaders, isDark }) => {
   const [approvedTemplates, setApprovedTemplates] = useState([]);
 
   const messagesEndRef = useRef(null);
+  const prevUnreadTotalRef = useRef(-1);
+  const isFirstFetchRef = useRef(true);
 
   const fetchChats = async () => {
+
     try {
       const headers = getHeaders();
       let crmCustomers = [];
@@ -1157,6 +1291,18 @@ const ChatsView = ({ API_BASE, getHeaders, isDark }) => {
         setChats(contactList);
         setChatMessages(threadsMap);
 
+        const totalUnreadCount = contactList.reduce((acc, c) => acc + (c.unread || 0), 0);
+        if (typeof onUnreadCountChange === 'function') {
+          onUnreadCountChange(totalUnreadCount);
+        }
+
+        if (!isFirstFetchRef.current && prevUnreadTotalRef.current !== -1 && totalUnreadCount > prevUnreadTotalRef.current) {
+          playConfiguredWaSound();
+        }
+        prevUnreadTotalRef.current = totalUnreadCount;
+        isFirstFetchRef.current = false;
+
+
         if (contactList.length > 0) {
           setSelectedChat(prevSelected => {
             const nextVal = (() => {
@@ -1219,7 +1365,14 @@ const ChatsView = ({ API_BASE, getHeaders, isDark }) => {
             headers,
             body: JSON.stringify({ type: "chats", customerNumber: selectedChat.phone })
           });
-          setChats(prev => prev.map(c => c.phone === selectedChat.phone ? { ...c, unread: 0 } : c));
+          setChats(prev => {
+            const updated = prev.map(c => c.phone === selectedChat.phone ? { ...c, unread: 0 } : c);
+            const newTotal = updated.reduce((acc, c) => acc + (c.unread || 0), 0);
+            if (typeof onUnreadCountChange === 'function') {
+              onUnreadCountChange(newTotal);
+            }
+            return updated;
+          });
           setSelectedChat(prev => prev && prev.phone === selectedChat.phone ? { ...prev, unread: 0 } : prev);
         } catch (e) {
           console.error("Failed to mark chat as read:", e);
@@ -1405,7 +1558,7 @@ const ChatsView = ({ API_BASE, getHeaders, isDark }) => {
                         </span>
                       )}
                       {chat.unread > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[8px] font-black flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-red-600 shadow-md shadow-red-500/50 text-white text-[9px] font-black flex items-center justify-center animate-pulse">
                           {chat.unread}
                         </span>
                       )}

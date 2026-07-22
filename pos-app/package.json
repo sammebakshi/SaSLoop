@@ -17,7 +17,8 @@
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        "nsis"
+        "nsis",
+        "dir"
       ]
     },
     "nsis": {
@@ -27,7 +28,8 @@
       "createStartMenuShortcut": true,
       "shortcutName": "SaSLoop POS Master",
       "installerIcon": "build/icon.ico",
-      "uninstallerIcon": "build/icon.ico"
+      "uninstallerIcon": "build/icon.ico",
+      "artifactName": "Master-POS-Setup-v1.0.2.exe"
     }
   },
   "scripts": {

@@ -1,21 +1,20 @@
-const { Pool } = require('pg');
-const pool = new Pool({
-  user: 'postgres',
-  host: '127.0.0.1',
-  database: 'sasloop_db',
-  password: 'Admin@123',
-  port: 5432
-});
+const pool = require('../db');
 
-async function main() {
-  try {
-    const res = await pool.query("SELECT id, user_id, name, loyalty_enabled, points_per_100, loyalty_bill_amount_threshold, loyalty_points_earned, loyalty_points_dinein, loyalty_points_pickup, loyalty_points_delivery FROM restaurants");
-    console.table(res.rows);
-  } catch (err) {
-    console.error(err);
-  } finally {
-    await pool.end();
-  }
+async function testRestaurantsTable() {
+    try {
+        console.log("=== RESTAURANTS TABLE IN DB ===");
+        const res = await pool.query(`SELECT id, user_id, name, currency_code FROM restaurants`);
+        console.table(res.rows);
+
+        console.log("=== ORDERS TABLE COLUMNS AND CONSTRAINTS ===");
+        const cols = await pool.query(`SELECT column_name, data_type, is_nullable FROM information_schema.columns WHERE table_name = 'orders'`);
+        console.table(cols.rows);
+
+        process.exit(0);
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
+    }
 }
 
-main();
+testRestaurantsTable();

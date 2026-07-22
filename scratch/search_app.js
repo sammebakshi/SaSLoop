@@ -1,11 +1,9 @@
 const fs = require('fs');
-const path = require('path');
+const content = fs.readFileSync('./pos-app/src/App.jsx', 'utf8');
 
-const filePath = path.join('c:', 'Users', 'Sajad', 'Desktop', 'SaSLoop', 'pos-app', 'src', 'App.jsx');
-const content = fs.readFileSync(filePath, 'utf8');
 const lines = content.split('\n');
 lines.forEach((line, idx) => {
-  if (line.toLowerCase().includes('change') && line.includes('amount')) {
-    console.log(`Line ${idx + 1}: ${line.trim()}`);
-  }
+    if (line.toLowerCase().includes('whatsapp') || line.includes('activeTab') || line.includes('MessageSquare')) {
+        console.log(`${idx + 1}: ${line}`);
+    }
 });

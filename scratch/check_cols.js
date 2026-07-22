@@ -1,27 +1,13 @@
-const { Pool } = require('pg');
-const pool = new Pool({ connectionString: 'postgres://postgres:Admin@123@localhost:5432/sasloop_db' });
+const pool = require('../db');
 
-async function run() {
+async function main() {
     try {
-        const mcCols = await pool.query(`
-            SELECT column_name, data_type, is_nullable, column_default 
-            FROM information_schema.columns 
-            WHERE table_name = 'marketing_contacts'
-        `);
-        console.log("marketing_contacts columns:");
-        console.table(mcCols.rows);
-
-        const custCols = await pool.query(`
-            SELECT column_name, data_type, is_nullable, column_default 
-            FROM information_schema.columns 
-            WHERE table_name = 'customers'
-        `);
-        console.log("customers columns:");
-        console.table(custCols.rows);
-    } catch(e) {
-        console.error(e);
+        const res = await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='app_users'");
+        console.log("APP USERS COLUMNS:", res.rows.map(r => r.column_name));
+    } catch (e) {
+        console.error("Error:", e);
     } finally {
-        pool.end();
+        process.exit(0);
     }
 }
-run();
+main();

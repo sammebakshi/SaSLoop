@@ -13,7 +13,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import { posService, authService, API_BASE, updateApiBaseUrl } from './services/api';
 import WhatsAppMarketing from './components/WhatsAppMarketing';
-import { playNewMessageSound } from './utils/soundHelper';
+import { playNewMessageSound, playConfiguredWaSound } from './utils/soundHelper';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import QRCode from 'qrcode';
@@ -430,7 +430,7 @@ const SidebarIcon = ({ icon, active, onClick, label, id, isDark, badge }) => (
     <div className={`relative ${active ? 'scale-105 text-current' : 'scale-100 text-current'} transition-all flex items-center justify-center [&>svg]:w-[28px] [&>svg]:h-[28px] [&>div.relative]:w-7 [&>div.relative]:h-7`}>
       {icon}
       {typeof badge === 'number' && badge > 0 && (
-        <span className="absolute -top-1.5 -right-2 bg-emerald-500 text-white text-[9px] font-black min-w-[17px] h-[17px] px-1 rounded-full flex items-center justify-center shadow-md animate-pulse z-20 border border-white dark:border-slate-900">
+        <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black min-w-[17px] h-[17px] px-1 rounded-full flex items-center justify-center shadow-md animate-pulse z-20 border border-white dark:border-slate-900">
           {badge > 99 ? '99+' : badge}
         </span>
       )}
@@ -1842,7 +1842,9 @@ const UniversalPOS = () => {
           return {
             ...o,
             name: oName,
-            price_override: price
+            price_override: price,
+            image_url: o.image_url || o.image || matchedOptionItem?.image_url || matchedOptionItem?.image || null,
+            item_id: o.item_id || matchedOptionItem?.id || null
           };
         })
       };
@@ -1857,6 +1859,44 @@ const UniversalPOS = () => {
   const [showInitialSplash, setShowInitialSplash] = useState(false);
   const [isTransitioningToDashboard, setIsTransitioningToDashboard] = useState(false);
   const [waUnreadCount, setWaUnreadCount] = useState(0);
+  const lastWaChatCount = useRef(0);
+  const isInitialWaFetch = useRef(true);
+
+  // Poll WhatsApp unread count & trigger sound notification on new incoming message
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    let isMounted = true;
+    const checkWaUnread = async () => {
+      try {
+        const token = localStorage.getItem('pos_token') || localStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/whatsapp/notif-counts`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!isMounted) return;
+
+        const count = parseInt(data.chats) || 0;
+        setWaUnreadCount(count);
+
+        if (!isInitialWaFetch.current && count > lastWaChatCount.current) {
+          playConfiguredWaSound();
+        }
+        isInitialWaFetch.current = false;
+        lastWaChatCount.current = count;
+      } catch (err) {
+        // silent catch
+      }
+    };
+
+    checkWaUnread();
+    const interval = setInterval(checkWaUnread, 5000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isAuthenticated]);
   const [activeTab, setActiveTab] = useState('home');
   const [config, setConfig] = useState({ currency: 'Rs', tax_rate: 0, business_type: 'RESTAURANT' });
   const [business, setBusiness] = useState(() => {
@@ -9037,16 +9077,16 @@ const UniversalPOS = () => {
           setRecentOrders(prev => prev.map(o => o.id === editingOrder.id ? serverOrder : o));
           toast.success(`Invoice Updated & Synced!`);
           if (type === 'SAVE') {
-            triggerEbill(serverOrder, fullPhone);
+            triggerEbill(serverOrder, fullPhone, true);
           } else if (type === 'SETTLE') {
-            triggerSettlementNotification(serverOrder, fullPhone);
+            triggerSettlementNotification(serverOrder, fullPhone, true);
           }
         } else {
           toast.success(`Invoice Updated & Synced!`);
           if (type === 'SAVE') {
-            triggerEbill(newOrder, fullPhone);
+            triggerEbill(newOrder, fullPhone, true);
           } else if (type === 'SETTLE') {
-            triggerSettlementNotification(newOrder, fullPhone);
+            triggerSettlementNotification(newOrder, fullPhone, true);
           }
         }
       } else {
@@ -9081,9 +9121,9 @@ const UniversalPOS = () => {
           }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
           if (type === 'SAVE') {
-            triggerEbill(serverOrder, fullPhone);
+            triggerEbill(serverOrder, fullPhone, true);
           } else if (type === 'SETTLE') {
-            triggerSettlementNotification(serverOrder, fullPhone);
+            triggerSettlementNotification(serverOrder, fullPhone, true);
           }
         } else {
           const syncedOrder = { ...newOrder, synced: true };
@@ -9093,9 +9133,9 @@ const UniversalPOS = () => {
           }
           toast.success(`${type === 'SAVE' ? "Saved" : "Settled"} & Synced!`);
           if (type === 'SAVE') {
-            triggerEbill(syncedOrder, fullPhone);
+            triggerEbill(syncedOrder, fullPhone, true);
           } else if (type === 'SETTLE') {
-            triggerSettlementNotification(syncedOrder, fullPhone);
+            triggerSettlementNotification(syncedOrder, fullPhone, true);
           }
         }
       }
@@ -9111,9 +9151,9 @@ const UniversalPOS = () => {
     } catch (err) {
       toast.error("Offline Mode: Saved Locally Only");
       if (type === 'SAVE') {
-        triggerEbill(newOrder, fullPhone);
+        triggerEbill(newOrder, fullPhone, true);
       } else if (type === 'SETTLE') {
-        triggerSettlementNotification(newOrder, fullPhone);
+        triggerSettlementNotification(newOrder, fullPhone, true);
       }
     }
 
@@ -9562,7 +9602,7 @@ const UniversalPOS = () => {
     });
   };
 
-  const generateEbillText = (order) => {
+  const generateEbillText = (order, isNewCheckout = false) => {
     const lines = [];
     const header = posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
     const address = posSettings.address || '';
@@ -9616,7 +9656,7 @@ const UniversalPOS = () => {
     return lines.join('\n');
   };
 
-  const generateThermalReceiptHtml = async (order) => {
+  const generateThermalReceiptHtml = async (order, isNewCheckout = false) => {
     // Normalize fields to support both a POS Order and a Pre-Order DB object
     const orderItems = Array.isArray(order.items) ? order.items : JSON.parse(order.items || '[]');
 
@@ -10135,11 +10175,17 @@ const UniversalPOS = () => {
               change = -parseFloat(order.total_price || 0);
             } else if (payMethod === 'SPLIT') {
               change = -parseFloat(order.credit_amount || 0);
-            } else if (order.save_change_to_balance) {
-              change = parseFloat(order.paid_amount || 0) - parseFloat(order.total_price || 0);
+            } else {
+              const paid = parseFloat(order.paid_amount !== undefined ? order.paid_amount : order.total_price || 0);
+              const total = parseFloat(order.total_price || 0);
+              if (paid > total) {
+                change = paid - total;
+              } else if (order.save_change_to_balance) {
+                change = paid - total;
+              }
             }
 
-            const isReprint = recentOrders.some(o => o.id === order.id);
+            const isReprint = !isNewCheckout;
             let prevBal = 0;
             let netBal = 0;
             if (isReprint) {
@@ -10250,7 +10296,7 @@ const UniversalPOS = () => {
     return null;
   };
 
-  const triggerEbill = async (order, targetPhone) => {
+  const triggerEbill = async (order, targetPhone, isNewCheckout = false) => {
     if (!posSettings.enableEbill) return;
     if (!ebillEnabled) return; // Only send when ebill checkbox is checked
     
@@ -10275,7 +10321,7 @@ const UniversalPOS = () => {
     // --- PDF E-Bill path ---
     if (posSettings.enableEbillPdf) {
       try {
-        const pdfHtml = await generateThermalReceiptHtml(order);
+        const pdfHtml = await generateThermalReceiptHtml(order, isNewCheckout);
         const billFileName = `Bill_${order.bill_no || order.id}.pdf`;
         const userHome = window.require ? window.require('os').homedir() : '';
         const saveFolderPath = userHome ? window.require('path').join(userHome, 'Desktop', 'SaSLoop-Bills') : null;
@@ -10286,7 +10332,7 @@ const UniversalPOS = () => {
         if (!pdfResult || !pdfResult.base64) {
           toast.error("Failed to generate PDF. Sending text E-Bill instead...");
           // Fallback to text
-          const text = generateEbillText(order);
+          const text = generateEbillText(order, isNewCheckout);
           if (posSettings.ebillMethod === 'AUTOMATION') {
             await posService.sendWhatsAppMessage(cleanPhone, text);
           } else {
@@ -10323,7 +10369,7 @@ const UniversalPOS = () => {
         console.error("PDF E-Bill error:", err);
         toast.error("PDF E-Bill failed. Falling back to text E-Bill...");
         // Fallback to text
-        const text = generateEbillText(order);
+        const text = generateEbillText(order, isNewCheckout);
         const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(text)}`;
         window.open(directUrl, '_blank');
       }
@@ -10331,7 +10377,7 @@ const UniversalPOS = () => {
     }
 
     // --- Text E-Bill path (original) ---
-    const text = generateEbillText(order);
+    const text = generateEbillText(order, isNewCheckout);
 
     if (posSettings.ebillMethod === 'AUTOMATION') {
       try {
@@ -10351,7 +10397,7 @@ const UniversalPOS = () => {
     }
   };
 
-  const triggerSettlementNotification = async (order, targetPhone) => {
+  const triggerSettlementNotification = async (order, targetPhone, isNewCheckout = false) => {
     if (!posSettings.enableEbill) return;
     if (!ebillEnabled) return; // Only send when ebill checkbox is checked
 
@@ -10404,11 +10450,17 @@ const UniversalPOS = () => {
         change = -parseFloat(order.total_price || 0);
       } else if (payMethodUpper === 'SPLIT') {
         change = -parseFloat(order.credit_amount || 0);
-      } else if (order.save_change_to_balance) {
-        change = parseFloat(order.paid_amount || 0) - parseFloat(order.total_price || 0);
+      } else {
+        const paid = parseFloat(order.paid_amount !== undefined ? order.paid_amount : order.total_price || 0);
+        const total = parseFloat(order.total_price || 0);
+        if (paid > total) {
+          change = paid - total;
+        } else if (order.save_change_to_balance) {
+          change = paid - total;
+        }
       }
 
-      const isReprint = recentOrders.some(o => o.id === order.id);
+      const isReprint = !isNewCheckout;
       let prevBal = 0;
       let netBal = 0;
       if (isReprint) {
@@ -11425,7 +11477,7 @@ const UniversalPOS = () => {
             <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => handleTabClick('receipts', () => setActiveTab('receipts'))} label="Receipt" />
           )}
           {getStaffPermissions()?.pos_access?.WhatsApp?.visible !== false && (
-            <SidebarIcon id="whatsappIcon" isDark={isDark} badge={waUnreadCount} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => handleTabClick('whatsapp', () => setActiveTab('whatsapp'))} label="WhatsApp" />
+            <SidebarIcon id="whatsappIcon" isDark={isDark} badge={waUnreadCount} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-5.5 h-5.5"><path d="M12.012 2C6.48 2 2 6.48 2 12.012c0 1.764.462 3.42 1.272 4.872L2 22l5.286-1.392c1.398.762 2.994 1.194 4.722 1.194 5.532 0 10.014-4.482 10.014-10.014C22.022 6.48 17.544 2 12.012 2zm6.072 14.238c-.246.696-1.428 1.368-1.956 1.422-.486.054-1.026.078-3.084-.774-2.634-1.086-4.326-3.762-4.458-3.936-.132-.18-1.062-1.41-1.062-2.694 0-1.284.666-1.914.906-2.172.24-.258.528-.324.708-.324.18 0 .36 0 .522.006.168.006.396-.066.618.474.228.558.78 1.902.846 2.04.066.138.108.3.018.48-.09.18-.198.312-.294.426-.096.114-.204.24-.294.342-.09.108-.186.222-.078.402.108.18.48.792 1.026 1.278.702.624 1.296.816 1.482.906.18.09.288.078.396-.048.108-.126.462-.54.588-.726.12-.186.246-.156.414-.096.168.06 1.068.504 1.248.594.18.09.3.138.342.216.042.078.042.444-.204 1.14z"/></svg>} active={activeTab === 'whatsapp'} onClick={() => handleTabClick('whatsapp', () => { setActiveTab('whatsapp'); setWaUnreadCount(0); lastWaChatCount.current = 0; const token = localStorage.getItem('pos_token') || localStorage.getItem('token'); if (token) { fetch(`${API_BASE}/api/whatsapp/mark-read`, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ type: 'chats' }) }).catch(() => {}); } })} label="WhatsApp" />
           )}
           {getStaffPermissions()?.pos_access?.ExpenseManagement?.visible !== false && (
             <SidebarIcon id="expensesIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M5 20h14v-2H5V5H3v15c0 1.1.9 2 2 2zM7 9h10v2H7V9zm0 4h10v2H7v-2z"/></svg>} active={activeTab === 'expenses'} onClick={() => handleTabClick('expenses', () => { setActiveTab('expenses'); setIsExpenseModalOpen(true); })} label="Expense" />
@@ -18586,9 +18638,13 @@ const UniversalPOS = () => {
                                     if (!rawOptImg) {
                                        const matchedOptItem = allCatItems.find(ci => {
                                           const n = (ci.product_name || ci.item_name || '').trim().toLowerCase();
+                                          const p = (ci.parent_item_name || '').trim().toLowerCase();
+                                          if (n === optionName && (!p || p === mainItemName)) return true;
                                           return n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}` || n === `${mainItemName} (${optionName})`;
                                        }) || allMgItems.find(mi => {
                                           const n = (mi.product_name || mi.item_name || '').trim().toLowerCase();
+                                          const p = (mi.parent_item_name || '').trim().toLowerCase();
+                                          if (n === optionName && (!p || p === mainItemName)) return true;
                                           return n === `${mainItemName} ${optionName}` || n === `${optionName} ${mainItemName}` || n === `${mainItemName} (${optionName})`;
                                        });
 
@@ -20115,7 +20171,7 @@ const UniversalPOS = () => {
                              if (isNaN(amt) || amt <= 0) return toast.error("Enter a valid payment amount.");
                              try {
                                 const res = await posService.payCustomerDue({
-                                   phone: trayFullPhone,
+                                 phone: trayFullPhone,
                                    amount: amt,
                                    paymentMethod: payDueMethod,
                                    reason: payDueNotes || `Due payment of ${config.currency} ${amt.toFixed(2)} via ${payDueMethod}`
@@ -20133,7 +20189,60 @@ const UniversalPOS = () => {
                                        localStorage.setItem('pos_customer_db', JSON.stringify(nextDb));
                                        return nextDb;
                                     });
+
+                                   // Update selectedCustomer to reflect balance update instantly in the tray!
+                                   setSelectedCustomer(prev => {
+                                      if (prev && (prev.phone === trayFullPhone || prev.number === trayFullPhone)) {
+                                         return {
+                                            ...prev,
+                                            balance: newBal
+                                         };
+                                      }
+                                      return prev;
+                                   });
+
                                    toast.success(`Payment of ${config.currency} ${amt.toFixed(2)} recorded!`);
+
+                                   // Send WhatsApp confirmation if E-Bill is enabled
+                                   if (posSettings.enableEbill) {
+                                      try {
+                                         let cleanPhone = trayFullPhone.replace(/\D/g, '');
+                                         if (cleanPhone.length === 10) {
+                                            cleanPhone = (customerCountryCode || '+91').replace(/\+/g, '') + cleanPhone;
+                                         }
+                                         const prevBal = newBal - amt; // Balance before payment (subtract payment amount to find previous value)
+                                         const prevBalStr = prevBal >= 0 ? `Rs ${prevBal.toFixed(2)} (Adv)` : `Rs ${Math.abs(prevBal).toFixed(2)} (Due)`;
+                                         const newBalStr = newBal >= 0 ? `Rs ${newBal.toFixed(2)} (Adv)` : `Rs ${Math.abs(newBal).toFixed(2)} (Due)`;
+                                         
+                                         const lines = [
+                                            `✅ *Payment Received (Account Credit)*`,
+                                            `━━━━━━━━━━━━━━━━━━━━`,
+                                            `Dear customer, we have successfully recorded your payment of *Rs ${amt.toFixed(2)}* towards your account balance.`,
+                                            ``,
+                                            `*Payment Details:*`,
+                                            `• Amount Paid: Rs ${amt.toFixed(2)}`,
+                                            `• Payment Mode: ${payDueMethod}`,
+                                            `• Notes: ${payDueNotes || 'Account payment'}`,
+                                            `━━━━━━━━━━━━━━━━━━━━`,
+                                            `*Previous Balance:* ${prevBalStr}`,
+                                            `*Current Balance:* ${newBalStr}`,
+                                            `━━━━━━━━━━━━━━━━━━━━`,
+                                            `Thank you for your payment! 🙏`
+                                         ];
+                                         const waMsg = lines.join('\n');
+                                         if (posSettings.ebillMethod === 'AUTOMATION') {
+                                            posService.sendWhatsAppMessage(cleanPhone, waMsg).catch(err => {
+                                               console.error("Failed to send WhatsApp automation due payment confirmation:", err);
+                                            });
+                                         } else {
+                                            const directUrl = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(waMsg)}`;
+                                            window.open(directUrl, '_blank');
+                                         }
+                                      } catch (waErr) {
+                                         console.error("WhatsApp due payment confirmation failed:", waErr);
+                                      }
+                                   }
+
                                    if (historyCustomerPhone === trayFullPhone) {
                                       refreshCustomerHistory(trayFullPhone);
                                    }

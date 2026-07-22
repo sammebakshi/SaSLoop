@@ -6,6 +6,7 @@ import {
   X, CheckCircle, Database, ShieldAlert, Sparkles, LayoutGrid, FileText
 } from "lucide-react";
 import API_BASE from "../config";
+import { playConfiguredWaSound } from "../utils/waSoundHelper";
 
 const WhatsAppChat = () => {
   const [chats, setChats] = useState([]);
@@ -24,6 +25,9 @@ const WhatsAppChat = () => {
   const [approvedTemplates, setApprovedTemplates] = useState([]);
 
   const messagesEndRef = useRef(null);
+  const prevUnreadTotalRef = useRef(-1);
+  const isFirstFetchRef = useRef(true);
+
 
   const fetchChats = async () => {
     setLoading(true);
@@ -128,6 +132,14 @@ const WhatsAppChat = () => {
 
         setChats(contactList);
         setChatMessages(threadsMap);
+
+        const currentUnreadTotal = contactList.reduce((sum, c) => sum + (c.unread || 0), 0);
+        if (!isFirstFetchRef.current && prevUnreadTotalRef.current !== -1 && currentUnreadTotal > prevUnreadTotalRef.current) {
+          playConfiguredWaSound();
+        }
+        prevUnreadTotalRef.current = currentUnreadTotal;
+        isFirstFetchRef.current = false;
+
 
         // Auto-select or preserve selected chat
         if (contactList.length > 0) {
@@ -472,7 +484,7 @@ const WhatsAppChat = () => {
                         </span>
                       )}
                       {chat.unread > 0 && (
-                        <span className="w-4 h-4 rounded-full bg-emerald-500 text-white text-[8px] font-black flex items-center justify-center">
+                        <span className="w-5 h-5 rounded-full bg-red-600 shadow-md shadow-red-500/50 text-white text-[9px] font-black flex items-center justify-center animate-pulse">
                           {chat.unread}
                         </span>
                       )}

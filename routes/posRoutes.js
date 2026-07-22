@@ -100,34 +100,35 @@ router.get("/option-groups", authMiddleware, async (req, res) => {
                 console.warn(`[POS] Skipping group '${group.name}' (ID: ${group.id}) because it has no valid item link.`);
                 continue;
             }
-            // Fetch options for the group directly from options_list
+            // Fetch options for the group directly from options_list, joining outlet_menu_items for price, image_url, and item_id
             const optionsRes = await pool.query(
-              "SELECT id, name, price_override, sorting_order FROM options_list WHERE group_id = $1 AND is_active = true ORDER BY sorting_order ASC",
-              [group.id]
+              `SELECT DISTINCT ON (ol.id) 
+                      ol.id, ol.name, ol.price_override, ol.sorting_order,
+                      omi.id as matched_item_id, omi.image_url, omi.base_price as item_base_price
+               FROM options_list ol
+               LEFT JOIN outlet_menu_items omi 
+                 ON omi.menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $1)
+                AND omi.item_name ILIKE ol.name
+                AND omi.id >= $1
+               WHERE ol.group_id = $2 AND ol.is_active = true 
+               ORDER BY ol.id, omi.id ASC`,
+              [menuItemId, group.id]
             );
 
-            // Resolve prices: use price_override if set, otherwise look up base_price from outlet_menu_items by matching option name
+            // Resolve prices and images from outlet_menu_items
             const resolvedOptions = [];
             for (const o of optionsRes.rows) {
                 let price = parseFloat(o.price_override || 0);
+                let imgUrl = o.image_url || null;
+                let optItemId = o.matched_item_id || null;
 
                 if (price === 0) {
-                    // Attempt A: Match option name to item_name within the same menu, starting after the main item
-                    const matchInMenu = await pool.query(
-                      `SELECT base_price FROM outlet_menu_items
-                       WHERE menu_id = (SELECT menu_id FROM outlet_menu_items WHERE id = $1)
-                         AND item_name ILIKE $2
-                         AND COALESCE(NULLIF(base_price::text, ''), '0')::numeric > 0
-                       ORDER BY id ASC LIMIT 1`,
-                      [menuItemId, o.name]
-                    );
-
-                    if (matchInMenu.rows.length > 0) {
-                        price = parseFloat(matchInMenu.rows[0].base_price);
+                    if (o.item_base_price && parseFloat(o.item_base_price) > 0) {
+                        price = parseFloat(o.item_base_price);
                     } else {
                         // Attempt B: Match option name globally across all menus for this outlet
                         const matchGlobal = await pool.query(
-                          `SELECT base_price FROM outlet_menu_items
+                          `SELECT id, base_price, image_url FROM outlet_menu_items
                            WHERE item_name ILIKE $1
                              AND COALESCE(NULLIF(base_price::text, ''), '0')::numeric > 0
                            ORDER BY id ASC LIMIT 1`,
@@ -135,6 +136,8 @@ router.get("/option-groups", authMiddleware, async (req, res) => {
                         );
                         if (matchGlobal.rows.length > 0) {
                             price = parseFloat(matchGlobal.rows[0].base_price);
+                            if (!imgUrl) imgUrl = matchGlobal.rows[0].image_url;
+                            if (!optItemId) optItemId = matchGlobal.rows[0].id;
                         }
                     }
                 }
@@ -142,7 +145,9 @@ router.get("/option-groups", authMiddleware, async (req, res) => {
                 resolvedOptions.push({
                     id: o.id,
                     name: o.name,
-                    price_override: price > 0 ? String(price) : '0.00'
+                    price_override: price > 0 ? String(price) : '0.00',
+                    image_url: imgUrl,
+                    item_id: optItemId
                 });
             }
 
@@ -225,17 +230,30 @@ router.delete("/tables/:id", authMiddleware, async (req, res) => {
 router.get("/payment-modes", authMiddleware, async (req, res) => {
     try {
         const { target_user_id } = req.query;
-        let userId = req.user.bizId;
+        let userId = req.user.bizId || req.user.id;
 
         // Impersonation support for admins/brand owners
         if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
             userId = target_user_id;
         }
 
-        const result = await pool.query(
-            "SELECT * FROM outlet_payment_modes WHERE user_id = $1 AND is_active = true ORDER BY created_at DESC",
+        let result = await pool.query(
+            "SELECT * FROM outlet_payment_modes WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1)) AND is_active = true ORDER BY created_at DESC",
             [userId]
         );
+
+        if (result.rows.length === 0) {
+            result = await pool.query(
+                "SELECT method_name as payment_mode, method_name FROM master_payment_modes WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1)) ORDER BY created_at ASC",
+                [userId]
+            );
+        }
+
+        if (result.rows.length === 0) {
+            const defaults = ['CASH', 'UPI', 'CARD', 'SWIGGY', 'ZOMATO', 'DUE / CREDIT'];
+            return res.json(defaults.map(m => ({ method_name: m, payment_mode: m, is_active: true })));
+        }
+
         res.json(result.rows);
     } catch (err) {
         console.error(err);

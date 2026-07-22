@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
   Bell, Phone, Users, Plus, Trash2, Save, 
-  HelpCircle, ShieldCheck, MessageSquare, Utensils
+  HelpCircle, ShieldCheck, MessageSquare, Utensils,
+  Volume2, VolumeX, Music, Upload, Play
 } from "lucide-react";
 import API_BASE from "../config";
+import { playWhatsAppNotificationSound, getWaSoundSettings } from "../utils/waSoundHelper";
 
 const NotificationSettings = () => {
     const [kitchenNumber, setKitchenNumber] = useState("");
@@ -11,6 +13,12 @@ const NotificationSettings = () => {
     const [newStaffNumber, setNewStaffNumber] = useState("");
     const [loading, setLoading] = useState(true);
     const [message, setMessage] = useState(null);
+
+    // WhatsApp Message Notification Sound settings
+    const [soundEnabled, setSoundEnabled] = useState(() => localStorage.getItem("wa_sound_enabled") !== "false");
+    const [soundType, setSoundType] = useState(() => localStorage.getItem("wa_sound_type") || "default");
+    const [customSoundName, setCustomSoundName] = useState(() => localStorage.getItem("wa_custom_sound_name") || "");
+
 
     const fetchNotificationSettings = async () => {
         setLoading(true);
@@ -68,6 +76,66 @@ const NotificationSettings = () => {
     const handleRemoveStaffNumber = (indexToRemove) => {
         setStaffNumbers(prev => prev.filter((_, idx) => idx !== indexToRemove));
     };
+
+    const handleToggleSound = (e) => {
+        const val = e.target.checked;
+        setSoundEnabled(val);
+        localStorage.setItem("wa_sound_enabled", val ? "true" : "false");
+        showToast("success", val ? "WhatsApp notification sound enabled!" : "WhatsApp notification sound muted.");
+    };
+
+    const handleChangeSoundType = (newType) => {
+        setSoundType(newType);
+        localStorage.setItem("wa_sound_type", newType);
+        if (newType !== "custom") {
+            playWhatsAppNotificationSound(newType);
+        } else {
+            const customUrl = localStorage.getItem("wa_custom_sound") || "";
+            playWhatsAppNotificationSound("custom", customUrl);
+        }
+    };
+
+    const handleSelectCustomSoundFile = () => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "audio/*";
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                showToast("error", "Audio file size must be under 2MB.");
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const dataUrl = event.target.result;
+                    localStorage.setItem("wa_custom_sound", dataUrl);
+                    localStorage.setItem("wa_custom_sound_name", file.name);
+                    localStorage.setItem("wa_sound_type", "custom");
+                    setCustomSoundName(file.name);
+                    setSoundType("custom");
+                    showToast("success", `Saved custom sound: ${file.name}`);
+                    playWhatsAppNotificationSound("custom", dataUrl);
+                } catch (err) {
+                    console.error("Failed to save custom audio file:", err);
+                    showToast("error", "Failed to save custom audio file.");
+                }
+            };
+            reader.readAsDataURL(file);
+        };
+        input.click();
+    };
+
+    const handleTestSound = () => {
+        if (soundType === "custom") {
+            const customUrl = localStorage.getItem("wa_custom_sound") || "";
+            playWhatsAppNotificationSound("custom", customUrl);
+        } else {
+            playWhatsAppNotificationSound(soundType);
+        }
+    };
+
 
     const handleSave = async (e) => {
         if (e) e.preventDefault();
@@ -186,6 +254,73 @@ const NotificationSettings = () => {
                 <div className="lg:col-span-8">
                     <form onSubmit={handleSave} className="bg-white dark:bg-[#1e2129] border border-slate-200 dark:border-white/5 rounded-xl p-8 shadow-xl space-y-6 h-full flex flex-col">
                         
+                        {/* 0. WhatsApp Message Notification Sound */}
+                        <div className="bg-slate-50/70 dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-xl p-5 space-y-4">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">
+                                    <Volume2 className="w-4 h-4 text-emerald-500" /> WhatsApp Message Notification Sound
+                                </h3>
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                    <input 
+                                        type="checkbox"
+                                        checked={soundEnabled}
+                                        onChange={handleToggleSound}
+                                        className="w-4 h-4 rounded accent-emerald-500 cursor-pointer"
+                                    />
+                                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase">
+                                        {soundEnabled ? "Sound Active" : "Muted"}
+                                    </span>
+                                </label>
+                            </div>
+
+                            <p className="text-[8.5px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                Play an audible chime tone or custom sound when a new WhatsApp message is received.
+                            </p>
+
+                            {soundEnabled && (
+                                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center pt-1">
+                                    <div className="sm:col-span-6 space-y-1">
+                                        <label className="block text-[9px] font-black uppercase text-slate-500 dark:text-slate-400">
+                                            Sound Tone Preset
+                                        </label>
+                                        <select
+                                            value={soundType}
+                                            onChange={(e) => handleChangeSoundType(e.target.value)}
+                                            className="w-full h-10 px-3 bg-white dark:bg-[#161b22] border border-slate-200 dark:border-white/10 rounded-lg text-xs font-bold text-slate-800 dark:text-white outline-none focus:border-emerald-500 cursor-pointer"
+                                        >
+                                            <option value="default">Default Chime (Double Tone Chord)</option>
+                                            <option value="bell">Crystal Bell</option>
+                                            <option value="ping">Percussive Ping</option>
+                                            <option value="pop">Bouncy Pop</option>
+                                            <option value="custom">Custom Audio File (Uploaded)</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="sm:col-span-6 flex items-center gap-2 pt-4 sm:pt-0">
+                                        <button
+                                            type="button"
+                                            onClick={handleSelectCustomSoundFile}
+                                            className="flex-1 h-10 px-3 bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/15 text-slate-800 dark:text-white rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 truncate"
+                                            title="Upload custom sound (MP3/WAV, max 2MB)"
+                                        >
+                                            <Upload className="w-3.5 h-3.5 shrink-0" />
+                                            <span className="truncate">{soundType === "custom" && customSoundName ? customSoundName : "Upload Custom Sound"}</span>
+                                        </button>
+
+                                        <button
+                                            type="button"
+                                            onClick={handleTestSound}
+                                            className="h-10 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[9.5px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shrink-0 shadow-sm"
+                                        >
+                                            <Play className="w-3.5 h-3.5 fill-current" /> Test
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="w-full border-t border-slate-100 dark:border-white/5 my-1" />
+
                         {/* 1. Kitchen Alert Number */}
                         <div className="space-y-3">
                             <h3 className="text-[11px] font-black text-slate-800 dark:text-white uppercase tracking-wider flex items-center gap-2">

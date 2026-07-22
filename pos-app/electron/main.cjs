@@ -141,7 +141,10 @@ ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName }) => {
         const pdfBuffer = await pdfWin.webContents.printToPDF({
           printBackground: true,
           preferCSSPageSize: false,
-          pageSize: { width: 3.15, height: heightInInches },
+          pageSize: { 
+            width: 3.15, 
+            height: heightInInches 
+          },
           margins: { marginType: 'none' }
         });
 

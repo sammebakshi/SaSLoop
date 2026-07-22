@@ -1,36 +1,34 @@
-const axios = require('axios');
+const pool = require('../db');
 
 async function testOutletAllItems() {
-  try {
-    const loginRes = await axios.post('http://localhost:5000/api/auth/login', {
-      identifier: 'shahetehzeeb',
-      password: '1234'
-    });
-    const token = loginRes.data.token;
-    console.log("Logged in successfully. User ID:", loginRes.data.id);
+    try {
+        console.log("=== CHECK ALL OUTLET MENUS ===");
+        const menus = await pool.query(`SELECT * FROM outlet_menus`);
+        console.table(menus.rows);
 
-    const itemsRes = await axios.get('http://localhost:5000/api/brand/outlet-all-items?outlet_id=55', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log("outlet-all-items (outlet_id=55) count:", itemsRes.data.length);
-    if (itemsRes.data.length > 0) {
-      console.log("Sample item:", itemsRes.data[0]);
+        console.log("=== CHECK ITEMS FOR USER 8 (SHAHE TEHZEEB OWNER) ===");
+        const user8Res = await pool.query(`
+          SELECT omi.id, omi.item_name, omi.base_price, m.menu_name, m.outlet_id, m.user_id
+          FROM outlet_menu_items omi
+          JOIN outlet_menus m ON omi.menu_id = m.id
+          WHERE m.user_id = 8 OR m.outlet_id = 8
+        `);
+        console.log(`User 8 Items Count: ${user8Res.rows.length}`);
+        console.table(user8Res.rows.slice(0, 10));
+
+        console.log("=== CHECK ITEMS FOR ALL USERS/OUTLETS ===");
+        const allRes = await pool.query(`
+          SELECT omi.id, omi.item_name, omi.base_price, m.menu_name, m.outlet_id, m.user_id
+          FROM outlet_menu_items omi
+          JOIN outlet_menus m ON omi.menu_id = m.id
+        `);
+        console.log(`Total Items Count across all menus: ${allRes.rows.length}`);
+
+        process.exit(0);
+    } catch (err) {
+        console.error(err);
+        process.exit(1);
     }
-
-    const itemsResNoOutlet = await axios.get('http://localhost:5000/api/brand/outlet-all-items', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log("outlet-all-items (no outlet_id) count:", itemsResNoOutlet.data.length);
-
-    const menusRes = await axios.get('http://localhost:5000/api/brand/outlet-menus?outlet_id=55', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    console.log("outlet-menus count:", menusRes.data.length);
-    console.log("Menus:", menusRes.data);
-
-  } catch (err) {
-    console.error("Test Error:", err.response?.data || err.message);
-  }
 }
 
 testOutletAllItems();

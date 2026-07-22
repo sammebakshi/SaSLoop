@@ -282,9 +282,11 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 const getItemOptions = async (itemId, userId) => {
     try {
-        // Find menu ID for this user/outlet
         const menuRes = await pool.query(
-            "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1",
+            `SELECT id FROM outlet_menus 
+             WHERE (outlet_id = $1 OR user_id = $1) 
+               AND (is_digital = true OR is_digital_default = true OR LOWER(menu_name) LIKE '%digi%') 
+             ORDER BY is_digital_default DESC, is_digital DESC, id DESC LIMIT 1`,
             [userId]
         );
         let menuId = menuRes.rows[0]?.id;
@@ -579,7 +581,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         let allItems = [];
         const menuRes = await pool.query(
             `SELECT id FROM outlet_menus 
-             WHERE (outlet_id = $1 OR user_id = $1) AND is_digital_default = true LIMIT 1`,
+             WHERE (outlet_id = $1 OR user_id = $1) 
+               AND (is_digital = true OR is_digital_default = true OR LOWER(menu_name) LIKE '%digi%') 
+             ORDER BY is_digital_default DESC, is_digital DESC, id DESC LIMIT 1`,
             [userId]
         );
         
@@ -1352,10 +1356,19 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        if (lower === 'loyalty' || lower === 'loyalty_check') {
-            const loyaltyRes = await pool.query("SELECT points FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+        if (lower === 'loyalty' || lower === 'loyalty_check' || lower === 'balance' || lower === 'due' || lower === 'outstanding' || lower === 'points') {
+            const loyaltyRes = await pool.query("SELECT points, balance FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
             const points = loyaltyRes.rows[0]?.points || 0;
-            const text = `🎁 *Your Rewards*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\n\n✨ *How to Redeem:* \nJust click "Redeem via WhatsApp" on our digital menu and send the pre-filled message! No more OTPs needed. 🎊`;
+            const rawBalance = parseFloat(loyaltyRes.rows[0]?.balance || 0);
+            
+            let balStr = "Rs 0.00";
+            if (rawBalance > 0) {
+                balStr = `Rs ${rawBalance.toFixed(2)} (Advance)`;
+            } else if (rawBalance < 0) {
+                balStr = `Rs ${Math.abs(rawBalance).toFixed(2)} (Due)`;
+            }
+
+            const text = `🎁 *Your Rewards & Balance*\n━━━━━━━━━━━━━━\n\nTotal Points Available: *${points} pts*\nLedger Balance: *${balStr}*\n\n✨ *How to Redeem:* \nJust click "Redeem via WhatsApp" on our digital menu and send the pre-filled message! No more OTPs needed. 🎊`;
             await sendButtons(customerNumber, text, [
                 { id: 'place_order', title: '🛍️ Place an Order' },
                 { id: 'view_menu', title: '📜 View Menu' }

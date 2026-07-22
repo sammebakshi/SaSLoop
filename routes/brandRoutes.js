@@ -1534,12 +1534,16 @@ router.post("/outlet-menu-items", authMiddleware, async (req, res) => {
 });
 
 router.get("/outlet-all-items", authMiddleware, async (req, res) => {
-  let { outlet_id } = req.query;
+  let { outlet_id, menu_id, include_all } = req.query;
   const ownerId = req.user.bizId || req.user.id;
+  const userRole = req.user.role || '';
 
-  if ((!outlet_id || outlet_id === 'null' || outlet_id === 'undefined' || outlet_id === 'global') && req.user.role === "user") {
+  if ((!outlet_id || outlet_id === 'null' || outlet_id === 'undefined' || outlet_id === 'global') && userRole === "user") {
     outlet_id = req.user.id;
   }
+
+  const targetId = (outlet_id && outlet_id !== 'global' && outlet_id !== 'null' && outlet_id !== 'undefined') ? parseInt(outlet_id) : ownerId;
+  const isMaster = userRole === 'master_admin' || userRole === 'admin' || userRole === 'superadmin';
 
   try {
     let query = `
@@ -1563,6 +1567,9 @@ router.get("/outlet-all-items", authMiddleware, async (req, res) => {
              c.name as category,
              pc.name as parent_category,
              m.menu_name,
+             m.is_pos_default,
+             m.is_digital,
+             m.is_digital_default,
              (
                SELECT o2.item_name 
                FROM options_list ol 
@@ -1577,19 +1584,38 @@ router.get("/outlet-all-items", authMiddleware, async (req, res) => {
       LEFT JOIN categories c ON omi.category_id = c.id
       LEFT JOIN categories pc ON c.parent_id = pc.id
     `;
-    const params = [];
-    if (outlet_id && outlet_id !== 'global' && outlet_id !== 'null' && outlet_id !== 'undefined') {
-      query += " WHERE (m.outlet_id = $1 OR m.user_id = $1) AND m.is_pos_default = true";
-      params.push(outlet_id);
-    } else {
-      query += " WHERE m.user_id = $1 AND m.is_pos_default = true";
-      params.push(ownerId);
+    const params = [isMaster && (!outlet_id || outlet_id === 'global'), targetId];
+    const conditions = [`(
+      $1 = true OR
+      m.outlet_id = $2 OR 
+      m.user_id = $2 OR 
+      m.user_id = (SELECT parent_user_id FROM app_users WHERE id = $2) OR 
+      m.user_id IN (SELECT id FROM app_users WHERE parent_user_id = $2) OR
+      m.outlet_id IN (SELECT id FROM app_users WHERE parent_user_id = $2)
+    )`];
+
+    if (menu_id && menu_id !== 'all') {
+      if (menu_id === 'digital_only' || menu_id === 'digital') {
+        conditions.push(`(m.is_digital = true OR m.is_digital_default = true OR LOWER(m.menu_name) LIKE '%digi%')`);
+      } else if (menu_id === 'pos_only' || menu_id === 'pos') {
+        conditions.push(`(m.is_pos_default = true OR LOWER(m.menu_name) LIKE '%pos%')`);
+      } else if (!isNaN(parseInt(menu_id))) {
+        params.push(parseInt(menu_id));
+        conditions.push("m.id = $" + params.length);
+      }
+    } else if (include_all !== 'true' && include_all !== true) {
+      conditions.push(`(m.is_pos_default = true OR m.is_pos_default IS NULL)`);
     }
-    query += " ORDER BY omi.id ASC";
+
+    query += " WHERE " + conditions.join(" AND ");
+    query += " ORDER BY m.is_pos_default DESC, omi.id ASC";
 
     const result = await pool.query(query, params);
     res.json(result.rows);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) { 
+    console.error("[GET /outlet-all-items] Error:", err.message);
+    res.status(500).json({ error: err.message }); 
+  }
 });
 
 router.put("/outlet-menu-items/:id", authMiddleware, async (req, res) => {

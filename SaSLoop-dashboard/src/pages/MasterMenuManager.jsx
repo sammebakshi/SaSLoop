@@ -11,11 +11,11 @@ import API_BASE from "../config";
 const MasterMenuManager = () => {
     const getOutletId = () => {
         const user = JSON.parse(localStorage.getItem("user") || "{}");
-        const freshId = sessionStorage.getItem("impersonate_id");
+        const freshId = sessionStorage.getItem("impersonate_id") || sessionStorage.getItem("selected_outlet_id") || localStorage.getItem("selected_outlet_id") || user.outlet_id || user.bizId || user.id;
         if (user.role === 'user' && (!freshId || freshId === 'global')) {
             return user.id;
         }
-        return freshId;
+        return (freshId && freshId !== 'global') ? freshId : (user.bizId || user.id);
     };
 
     const [data, setData] = useState([]);
@@ -37,13 +37,38 @@ const MasterMenuManager = () => {
     });
 
     const [categories, setCategories] = useState([]);
+    const [menus, setMenus] = useState([]);
+    const [selectedMenuFilter, setSelectedMenuFilter] = useState('all');
+    const [selectedCategoryFilter, setSelectedCategoryFilter] = useState('all');
+    const [selectedStatusFilter, setSelectedStatusFilter] = useState('all');
+    const [searchTerm, setSearchTerm] = useState('');
 
-    const fetchData = async () => {
+    const fetchMenus = async () => {
         try {
             const token = localStorage.getItem("token");
             const freshId = getOutletId();
             const isValidId = freshId && !isNaN(freshId) && freshId !== "global";
-            const url = `${API_BASE}/api/brand/outlet-all-items${isValidId ? `?outlet_id=${freshId}` : ''}`;
+            const url = `${API_BASE}/api/brand/outlet-menus${isValidId ? `?outlet_id=${freshId}` : ''}`;
+            const res = await fetch(url, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if (res.ok) {
+                setMenus(await res.json());
+            }
+        } catch (e) { console.error(e); }
+    };
+
+    const fetchData = async (menuFilterOverride) => {
+        try {
+            setLoading(true);
+            const token = localStorage.getItem("token");
+            const freshId = getOutletId();
+            const isValidId = freshId && !isNaN(freshId) && freshId !== "global";
+            const targetMenu = menuFilterOverride !== undefined ? menuFilterOverride : selectedMenuFilter;
+            let url = `${API_BASE}/api/brand/outlet-all-items?include_all=true${isValidId ? `&outlet_id=${freshId}` : ''}`;
+            if (targetMenu && targetMenu !== 'all') {
+                url += `&menu_id=${targetMenu}`;
+            }
 
             const res = await fetch(url, {
                 headers: { "Authorization": `Bearer ${token}` }
@@ -212,7 +237,7 @@ const MasterMenuManager = () => {
         }
     };
 
-    useEffect(() => { fetchData(); fetchCategories(); }, []);
+    useEffect(() => { fetchData(); fetchCategories(); fetchMenus(); }, []);
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -242,24 +267,61 @@ const MasterMenuManager = () => {
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-4 bg-slate-50/30">
                     <div className="flex items-center gap-3 flex-1 bg-white border border-slate-200 rounded-md px-3 py-2">
                         <Search className="w-4 h-4 text-slate-400" />
-                        <input type="text" placeholder="Search items by name or code..." className="bg-transparent text-[11px] font-bold text-slate-600 outline-none w-full uppercase placeholder:text-slate-300" />
+                        <input
+                            type="text"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Search items by name or code..."
+                            className="bg-transparent text-[11px] font-bold text-slate-600 outline-none w-full uppercase placeholder:text-slate-300"
+                        />
                     </div>
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-2">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">Menu</span>
+                            <select
+                                value={selectedMenuFilter}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setSelectedMenuFilter(val);
+                                    fetchData(val);
+                                }}
+                                className="bg-transparent text-[10px] font-bold text-indigo-600 uppercase outline-none min-w-[170px]"
+                            >
+                                <option value="all">All Menus (POS + Digital)</option>
+                                {menus.map(m => (
+                                    <option key={m.id} value={m.id}>
+                                        {m.menu_name} ({m.is_pos_default ? 'POS Default' : m.is_digital_default || m.is_digital ? 'Digital Default' : 'Custom Menu'})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-2">
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">Category</span>
-                            <select className="bg-transparent text-[10px] font-bold text-slate-600 uppercase outline-none min-w-[120px]">
-                                <option>All Categories</option>
+                            <select
+                                value={selectedCategoryFilter}
+                                onChange={(e) => setSelectedCategoryFilter(e.target.value)}
+                                className="bg-transparent text-[10px] font-bold text-slate-600 uppercase outline-none min-w-[120px]"
+                            >
+                                <option value="all">All Categories</option>
+                                {categories.map(cat => (
+                                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                                ))}
                             </select>
                         </div>
                         <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-md px-3 py-2">
                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest border-r border-slate-100 pr-3">Status</span>
-                            <select className="bg-transparent text-[10px] font-bold text-slate-600 uppercase outline-none min-w-[100px]">
-                                <option>Status: All</option>
+                            <select
+                                value={selectedStatusFilter}
+                                onChange={(e) => setSelectedStatusFilter(e.target.value)}
+                                className="bg-transparent text-[10px] font-bold text-slate-600 uppercase outline-none min-w-[100px]"
+                            >
+                                <option value="all">Status: All</option>
+                                <option value="active">Active Only</option>
+                                <option value="inactive">Inactive Only</option>
                             </select>
                         </div>
-                        <button className="p-2 hover:bg-white rounded-md text-slate-400 border border-transparent hover:border-slate-200 transition-all"><Filter className="w-4 h-4" /></button>
-                        <button onClick={fetchData} className="p-2 hover:bg-white rounded-md text-slate-400 border border-transparent hover:border-slate-200 transition-all"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
+                        <button onClick={() => { fetchData(); fetchMenus(); }} className="p-2 hover:bg-white rounded-md text-slate-400 border border-transparent hover:border-slate-200 transition-all"><RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} /></button>
                     </div>
                 </div>
 
@@ -279,13 +341,18 @@ const MasterMenuManager = () => {
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Category</th>
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-center">Active</th>
                                 <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Item Type</th>
-                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Outlet Name</th>
+                                <th className="px-4 py-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Menu Source</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {loading ? (
                                 <tr><td colSpan="13" className="py-24 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">Syncing Global Catalog Hub...</td></tr>
-                            ) : data.length === 0 ? (
+                            ) : data.filter(item => {
+                                const matchesSearch = !searchTerm || (item.product_name && item.product_name.toLowerCase().includes(searchTerm.toLowerCase())) || (item.code && item.code.toLowerCase().includes(searchTerm.toLowerCase()));
+                                const matchesCategory = selectedCategoryFilter === 'all' || item.category === selectedCategoryFilter;
+                                const matchesStatus = selectedStatusFilter === 'all' || (selectedStatusFilter === 'active' ? item.availability : !item.availability);
+                                return matchesSearch && matchesCategory && matchesStatus;
+                            }).length === 0 ? (
                                 <tr>
                                     <td colSpan="13" className="py-24 text-center">
                                         <div className="flex flex-col items-center gap-3 opacity-20">
@@ -296,7 +363,12 @@ const MasterMenuManager = () => {
                                         </div>
                                     </td>
                                 </tr>
-                            ) : data.map((item, index) => {
+                            ) : data.filter(item => {
+                                const matchesSearch = !searchTerm || (item.product_name && item.product_name.toLowerCase().includes(searchTerm.toLowerCase())) || (item.code && item.code.toLowerCase().includes(searchTerm.toLowerCase()));
+                                const matchesCategory = selectedCategoryFilter === 'all' || item.category === selectedCategoryFilter;
+                                const matchesStatus = selectedStatusFilter === 'all' || (selectedStatusFilter === 'active' ? item.availability : !item.availability);
+                                return matchesSearch && matchesCategory && matchesStatus;
+                            }).map((item, index) => {
                                 const isOption = item.item_type === 1 || item.item_type === '1' || item.item_type === 'option';
                                 return (
                                     <tr key={item.id} className={`group hover:bg-slate-50/50 transition-colors ${isOption ? 'bg-slate-50/30' : ''}`}>
@@ -342,7 +414,11 @@ const MasterMenuManager = () => {
                                                 <span className="text-slate-500">{item.item_type === 0 || item.item_type === '0' ? 'Main Item' : (item.item_type || 'Standard')}</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-4 text-[11px] font-bold text-slate-400 uppercase">-</td>
+                                        <td className="px-4 py-4 text-[11px] font-bold text-indigo-600 uppercase">
+       <span className="px-2 py-0.5 rounded bg-indigo-50 border border-indigo-100 text-[9px]">
+           {item.menu_name || 'Standard Menu'}
+       </span>
+   </td>
                                     </tr>
                                 );
                             })}
