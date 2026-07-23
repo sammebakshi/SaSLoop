@@ -13,18 +13,18 @@
       content="SaSLoop - Universal AI POS & Delivery Ecosystem"
     />
     <script>
-      // 🔒 Instant Force HTTPS Redirect for cached HTTP tabs
-      if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-        window.location.replace(window.location.href.replace('http:', 'https:'));
-      }
-      // 🛡️ Kill any existing service workers to ensure fresh loading on mobile
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(registrations) {
-          for(let registration of registrations) {
-            registration.unregister();
-          }
-        });
-      }
+      try {
+        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+          window.location.replace(window.location.href.replace('http:', 'https:'));
+        }
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistrations().then(function(registrations) {
+            for (var i = 0; i < registrations.length; i++) {
+              registrations[i].unregister();
+            }
+          }).catch(function(){});
+        }
+      } catch (e) {}
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
