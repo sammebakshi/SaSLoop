@@ -7,11 +7,16 @@
     <link rel="shortcut icon" href="%PUBLIC_URL%/logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#4f46e5" />
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
     <meta
       name="description"
       content="SaSLoop - Universal AI POS & Delivery Ecosystem"
     />
     <script>
+      // 🔒 Instant Force HTTPS Redirect for cached HTTP tabs
+      if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+        window.location.replace(window.location.href.replace('http:', 'https:'));
+      }
       // 🛡️ Kill any existing service workers to ensure fresh loading on mobile
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {

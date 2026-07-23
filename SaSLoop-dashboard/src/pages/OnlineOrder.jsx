@@ -97,9 +97,18 @@ function OnlineOrder() {
   }, [biz?.settings]);
   const isDistanceMode = bizSettings?.custDeliveryLimitType === "distance";
 
+  const formatMediaUrl = (url) => {
+    if (!url) return null;
+    let formatted = url.startsWith("http") ? url : `${API_BASE}${url}`;
+    if (formatted.startsWith("http://")) {
+      formatted = formatted.replace("http://", "https://");
+    }
+    return formatted;
+  };
+
   const symbol = '\u20B9';
-  const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
-  const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
+  const logoUrl = formatMediaUrl(biz?.logo_url);
+  const bannerUrl = formatMediaUrl(biz?.banner_url);
 
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
@@ -682,7 +691,7 @@ function OnlineOrder() {
                         const inCart = cart.find(c => c.id === item.id);
                         return (
                           <div key={item.id} className="group flex flex-col bg-white rounded-[2rem] sm:rounded-[3rem] p-3 sm:p-5 transition-all hover:shadow-2xl border border-transparent hover:border-slate-50">
-                            <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">{item.image_url ? <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}<div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-6 sm:py-3 bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div></div>
+                            <div className="relative aspect-square sm:aspect-[16/11] rounded-[1.5rem] sm:rounded-[2.5rem] overflow-hidden bg-slate-50 mb-3 sm:mb-6">{item.image_url ? <img src={formatMediaUrl(item.image_url)} className="w-full h-full object-cover group-hover:scale-110 transition-all duration-1000" alt="p" /> : <div className="w-full h-full flex items-center justify-center opacity-5"><Utensils className="w-12 h-12" /></div>}<div className="absolute bottom-2 right-2 sm:bottom-5 sm:right-5 px-3 py-1.5 sm:px-6 sm:py-3 bg-white/95 backdrop-blur-xl rounded-xl sm:rounded-2xl text-xs sm:text-base font-black text-slate-950 shadow-2xl">{symbol}{item.price}</div></div>
                             <h3 className="px-1 sm:px-4 text-[12px] sm:text-[15px] font-black text-slate-900 leading-tight mb-2 sm:mb-3 uppercase italic tracking-tight line-clamp-2">{item.product_name}</h3>
                             <div className="px-1 sm:px-4 mt-auto">{inCart ? <div className="flex items-center justify-between bg-slate-950 text-white rounded-[1.2rem] sm:rounded-[1.8rem] p-1 h-10 sm:h-14 shadow-2xl"><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty - 1 } : i).filter(i => i.qty > 0))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Minus className="w-3 sm:w-4 h-3 sm:h-4" /></button><span className="text-[11px] sm:text-[13px] font-black w-6 sm:w-8 text-center">{inCart.qty}</span><button onClick={() => setCart(cart.map(i => i.id === item.id ? { ...i, qty: i.qty + 1 } : i))} className="w-8 sm:w-12 h-full flex items-center justify-center hover:bg-white/10 rounded-xl transition-all"><Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button></div> : <button onClick={() => setCart([...cart, { ...item, qty: 1 }])} className="w-full bg-slate-50 text-slate-500 py-3 sm:py-5 rounded-[1.2rem] sm:rounded-[2rem] font-black text-[9px] sm:text-[10px] uppercase tracking-widest transition-all hover:bg-emerald-500 hover:text-white shadow-sm flex items-center justify-center gap-1 sm:gap-2">Add <Plus className="w-3 sm:w-4 h-3 sm:h-4" /></button>}</div>
                           </div>
@@ -859,7 +868,7 @@ function OnlineOrder() {
                         <div key={item.id} className="flex items-center gap-4 animate-in fade-in slide-in-from-right-4">
                            <div className="w-16 h-16 rounded-2xl bg-slate-50 overflow-hidden shrink-0">
                               {item.image_url ? (
-                                 <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover" alt="p" />
+                                 <img src={formatMediaUrl(item.image_url)} className="w-full h-full object-cover" alt="p" />
                               ) : (
                                  <div className="w-full h-full flex items-center justify-center opacity-10"><Utensils className="w-6 h-6" /></div>
                               )}

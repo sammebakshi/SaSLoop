@@ -135,9 +135,18 @@ function CustomerMenu() {
   const openingTime = bizSettings?.openingTime || biz?.opening_time || "10:00 AM";
   const closingTime = bizSettings?.closingTime || biz?.closing_time || "10:00 PM";
 
+  const formatMediaUrl = (url) => {
+    if (!url) return null;
+    let formatted = url.startsWith("http") ? url : `${API_BASE}${url}`;
+    if (formatted.startsWith("http://")) {
+      formatted = formatted.replace("http://", "https://");
+    }
+    return formatted;
+  };
+
   const symbol = biz?.currency_code === 'USD' ? '$' : '₹';
-  const logoUrl = biz?.logo_url ? (biz.logo_url.startsWith("http") ? biz.logo_url : `${API_BASE}${biz.logo_url}`) : null;
-  const bannerUrl = biz?.banner_url ? (biz.banner_url.startsWith("http") ? biz.banner_url : `${API_BASE}${biz.banner_url}`) : null;
+  const logoUrl = formatMediaUrl(biz?.logo_url);
+  const bannerUrl = formatMediaUrl(biz?.banner_url);
 
   const subtotal = cart.reduce((acc, i) => acc + (i.qty * i.price), 0);
   const taxData = useMemo(() => {
@@ -964,7 +973,7 @@ function CustomerMenu() {
         {/* 1. DYNAMIC TOP BANNERS FROM DIGITAL ORDER SETTINGS */}
         <div className="flex gap-4 overflow-x-auto no-scrollbar scroll-smooth mb-8 py-1">
           {((biz?.settings?.banners && biz.settings.banners.length > 0) 
-            ? biz.settings.banners.map(b => b.startsWith("http") ? b : `${API_BASE}${b}`)
+            ? biz.settings.banners.map(b => formatMediaUrl(b))
             : [
                 "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=800",
                 "https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&q=80&w=800",
@@ -1117,7 +1126,7 @@ function CustomerMenu() {
                       <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-50 mb-3 border border-slate-100">
                         {item.image_url ? (
                           <img 
-                            src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} 
+                            src={formatMediaUrl(item.image_url)} 
                             className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-700" 
                             alt="Item media" 
                           />
@@ -1475,7 +1484,7 @@ function CustomerMenu() {
                   <div key={item.id} className="flex items-center gap-3.5 py-1.5 animate-in fade-in slide-in-from-right-4">
                     <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-150 overflow-hidden shrink-0">
                       {item.image_url ? (
-                        <img src={item.image_url.startsWith("http") ? item.image_url : `${API_BASE}${item.image_url}`} className="w-full h-full object-cover" alt="p" />
+                        <img src={formatMediaUrl(item.image_url)} className="w-full h-full object-cover" alt="p" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center opacity-20"><Utensils className="w-5 h-5 text-slate-400" /></div>
                       )}
