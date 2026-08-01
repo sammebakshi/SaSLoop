@@ -108,61 +108,61 @@ const sendOfficialMessage = async (to, content, userId) => {
         return { success: false, error: e.response?.data || e.message };
     }
 };
-const deductInventory = async (userId, cart) => {
+
+const sendPdfDocument = async (to, pdfBuffer, filename, userId, caption = "") => {
     try {
-        const bizRes = await pool.query("SELECT name, notification_numbers, track_inventory FROM restaurants WHERE user_id = $1", [userId]);
-        const biz = bizRes.rows[0];
-        if (!biz || !biz.track_inventory) {
-            console.log(`[INVENTORY] Skipping inventory deduction for User ${userId} (track_inventory is disabled)`);
-            return;
-        }
-        const staffNums = biz?.notification_numbers || [];
+        const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
+        if (token) token = token.trim();
+        if (phoneId) phoneId = phoneId.trim();
+        if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
 
-        for (const item of cart) {
-            const itemName = item.name || item.product_name;
-            const baseItemName = itemName.replace(/\s*\(.*\)$/, '').trim();
-            const res = await pool.query(
-                `UPDATE business_items 
-                 SET stock_count = GREATEST(stock_count - $1, 0),
-                     availability = CASE WHEN GREATEST(stock_count - $1, 0) = 0 THEN false ELSE availability END
-                 WHERE user_id = $2 AND product_name = $3 AND stock_count IS NOT NULL
-                 RETURNING stock_count`,
-                [item.qty || 1, userId, baseItemName]
-            );
+        const FormData = require("form-data");
+        const formData = new FormData();
+        formData.append("file", pdfBuffer, { filename: filename || "Invoice.pdf", contentType: "application/pdf" });
+        formData.append("messaging_product", "whatsapp");
+        formData.append("type", "application/pdf");
 
-            // Deduct from outlet_menu_items
-            if (item.id) {
-                await pool.query(
-                    `UPDATE outlet_menu_items 
-                     SET stock_qty = GREATEST(stock_qty - $1, 0),
-                         is_active = CASE WHEN GREATEST(stock_qty - $1, 0) = 0 THEN false ELSE is_active END
-                     WHERE (item_id = $2 OR id = $2) AND stock_qty IS NOT NULL`,
-                    [item.qty || 1, item.id]
-                );
-            } else {
-                await pool.query(
-                    `UPDATE outlet_menu_items omi
-                     SET stock_qty = GREATEST(stock_qty - $1, 0),
-                         is_active = CASE WHEN GREATEST(stock_qty - $1, 0) = 0 THEN false ELSE is_active END
-                     FROM outlet_menus m
-                     WHERE omi.menu_id = m.id AND (m.outlet_id = $2 OR m.user_id = $2)
-                       AND omi.item_name = $3 AND omi.stock_qty IS NOT NULL`,
-                    [item.qty || 1, userId, itemName]
-                );
+        const uploadRes = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/media`, formData, {
+            headers: { ...formData.getHeaders(), Authorization: `Bearer ${token}` },
+            maxContentLength: Infinity,
+            maxBodyLength: Infinity
+        });
+
+        const mediaId = uploadRes.data?.id;
+        if (!mediaId) return { success: false, error: "Media upload failed" };
+
+        const cleanTo = formatToInter(to);
+        const payload = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: cleanTo,
+            type: "document",
+            document: {
+                id: mediaId,
+                filename: filename || "Invoice.pdf",
+                caption: caption || ""
             }
+        };
 
-            if (res.rows.length > 0) {
-                const newStock = res.rows[0].stock_count;
-                if (newStock < 5 && staffNums.length > 0) {
-                    const alertMsg = `⚠️ *LOW STOCK ALERT!* \n━━━━━━━━━━━━━━\n📦 *Item:* ${itemName}\n📉 *Remaining:* ${newStock} units\n🏢 *Business:* ${biz.name}\n\nPlease restock this item soon!`;
-                    for (const num of staffNums) {
-                        await sendOfficialMessage(num, { text: { body: alertMsg }, skipLog: true }, userId);
-                    }
-                }
-            }
-        }
+        const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        await logChat(userId, cleanTo, 'bot', `[PDF Document: ${filename || 'Invoice.pdf'}]`);
+        return { success: true, data: response.data };
     } catch (e) {
-        console.error("Failed to deduct inventory:", e);
+        console.error(`[PDF-SEND-FAILURE] To: ${to} | Error:`, e.response?.data || e.message);
+        return { success: false, error: e.response?.data || e.message };
+    }
+};
+const { deductInventoryForOrder } = require("./utils/inventoryDeduction");
+
+const deductInventory = async (userId, cart, orderRef = 'WHATSAPP-ORDER') => {
+    try {
+        await deductInventoryForOrder(userId, cart, 'WHATSAPP', orderRef);
+    } catch (e) {
+        console.error("Failed to deduct inventory for WhatsApp order:", e);
     }
 };
 
@@ -227,25 +227,25 @@ const syncBusinessProfileToWhatsApp = async (userId, bizData) => {
 
 const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNumber, cart, subtotal, total, cgst, sgst, cr, sr, symbol, orderType, address, tableNumber, discountAmount = 0) => {
     try {
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1 OR id = $1", [userId]);
         const biz = bizRes.rows[0];
         if (!biz) return;
 
-        const kotItemLines = cart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
-        const staffItemLines = cart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'} — ${symbol}${( (i.qty || i.quantity || 1) * (i.price || 0) ).toFixed(2)}`).join("\n");
+        const safeCart = Array.isArray(cart) ? cart : (typeof cart === 'string' ? JSON.parse(cart) : []);
+        const kotItemLines = safeCart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'}`).join("\n");
+        const staffItemLines = safeCart.map(i => `  • ${i.qty || i.quantity || 1}x ${i.product_name || i.name || 'Item'} — ${symbol}${((i.qty || i.quantity || 1) * (i.price || 0)).toFixed(2)}`).join("\n");
         
         const kot = [
-            `🍽️ *====== KITCHEN ORDER TICKET ======*`,
+            `🍽️ *====== KITCHEN ORDER TICKET (KOT) ======*`,
             `*Ref:* ${orderRef}`,
             `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP' : '🛵 DELIVERY')}`,
             `*Customer:* ${customerName}`,
+            `*Phone:* ${customerNumber}`,
             `*Items:*\n${kotItemLines}`
         ].join("\n");
 
-        // Honor GST visibility setting for staff alerts too if needed, but usually staff need full details.
-        // However, we'll keep it simple for staff.
         const staffMsg = [
-            `🔔 *NEW ${orderType.toUpperCase()} ORDER!*`,
+            `🔔 *NEW ${orderType.toUpperCase()} ORDER RECEIVED!*`,
             `*Ref:* ${orderRef}`,
             `*Customer:* ${customerName} (${customerNumber})`,
             `*Target:* ${tableNumber ? 'TABLE ' + tableNumber : (orderType.toUpperCase() === 'PICKUP' ? '🥡 PICKUP' : '🛵 DELIVERY')}`,
@@ -253,21 +253,31 @@ const notifyKitchenAndStaff = async (userId, orderRef, customerName, customerNum
             `───────────────`,
             staffItemLines,
             `───────────────`,
-            `*Subtotal:* ${symbol}${subtotal.toFixed(2)}`,
-            `*Total: ${symbol}${total.toFixed(2)}*`
+            `*Total: ${symbol}${(total || 0).toFixed(2)}*`,
+            `*Status:* ⏳ PENDING POS CONFIRMATION`
         ].join("\n");
 
-        const kitchenNum = biz.kitchen_number;
-        if (kitchenNum) await sendOfficialMessage(kitchenNum, { text: { body: kot }, skipLog: true }, userId);
- 
-        const staffNums = biz.notification_numbers || [];
+        // 1. Send KOT to Kitchen Number
+        const kitchenNum = biz.kitchen_number || biz.phone || biz.contact_number;
+        if (kitchenNum) {
+            await sendOfficialMessage(kitchenNum, { text: { body: kot }, skipLog: true }, userId);
+        }
+
+        // 2. Send Order Alert to Staff Numbers
+        let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0)
+            ? biz.notification_numbers
+            : [biz.phone, biz.contact_number].filter(Boolean);
+
+        // Remove duplicates
+        staffNums = [...new Set(staffNums)];
+
         for (let num of staffNums) {
             await sendOfficialMessage(num, { text: { body: staffMsg }, skipLog: true }, userId);
         }
 
         // 📦 Deduct stock on successful notification
-        await deductInventory(userId, cart);
-    } catch (e) { console.error("Notify Kitchen Error:", e); }
+        await deductInventory(userId, safeCart);
+    } catch (e) { console.error("Notify Kitchen & Staff Error:", e); }
 };
 const calculateDistance = (lat1, lon1, lat2, lon2) => {
     const R = 6371; // km
@@ -282,114 +292,111 @@ const calculateDistance = (lat1, lon1, lat2, lon2) => {
 
 const getItemOptions = async (itemId, userId) => {
     try {
-        const menuRes = await pool.query(
-            `SELECT id FROM outlet_menus 
-             WHERE (outlet_id = $1 OR user_id = $1) 
-               AND (is_digital = true OR is_digital_default = true OR LOWER(menu_name) LIKE '%digi%') 
-             ORDER BY is_digital_default DESC, is_digital DESC, id DESC LIMIT 1`,
-            [userId]
+        let targetItemName = null;
+        const itemInfoRes = await pool.query(
+            "SELECT id, item_name FROM outlet_menu_items WHERE id = $1 LIMIT 1",
+            [itemId]
         );
-        let menuId = menuRes.rows[0]?.id;
-        if (!menuId) {
-            const posMenuRes = await pool.query(
-                "SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true LIMIT 1",
-                [userId]
-            );
-            menuId = posMenuRes.rows[0]?.id;
+        if (itemInfoRes.rows.length > 0) {
+            targetItemName = itemInfoRes.rows[0].item_name;
         }
-        if (!menuId) return null;
 
-        let resolvedItemId = itemId;
-        // Try to resolve outlet_menu_items.id from business_items.id (itemId)
-        const mapRes = await pool.query(
-            "SELECT id FROM outlet_menu_items WHERE menu_id = $1 AND item_id = $2 LIMIT 1",
-            [menuId, itemId]
+        const candidateIdsRes = await pool.query(
+            `SELECT omi.id, omi.menu_id 
+             FROM outlet_menu_items omi
+             JOIN outlet_menus om ON omi.menu_id = om.id
+             WHERE (om.outlet_id = $1 OR om.user_id = $1)
+               AND (omi.id = $2 OR LOWER(omi.item_name) = LOWER($3))
+             ORDER BY om.is_pos_default DESC, om.is_digital_default DESC`,
+            [userId, itemId, targetItemName || '']
         );
-        if (mapRes.rows.length > 0) {
-            resolvedItemId = mapRes.rows[0].id;
-        } else {
-            // Fallback: match by product_name/item_name
-            const nameRes = await pool.query(
-                `SELECT omi.id FROM outlet_menu_items omi
-                 JOIN business_items bi ON omi.item_name = bi.product_name
-                 WHERE omi.menu_id = $1 AND bi.id = $2 LIMIT 1`,
-                [menuId, itemId]
+        const candidateIds = candidateIdsRes.rows.map(r => r.id);
+
+        if (candidateIds.length > 0) {
+            // 1. Check item_option_groups
+            const ogRes = await pool.query(
+                `SELECT og.id, og.name, og.min_selectable, og.max_selectable
+                 FROM option_groups og
+                 JOIN item_option_groups iog ON og.id = iog.group_id
+                 WHERE iog.item_id = ANY($1) AND og.is_active = true 
+                 ORDER BY og.sorting_order ASC, og.id ASC`,
+                [candidateIds]
             );
-            if (nameRes.rows.length > 0) {
-                resolvedItemId = nameRes.rows[0].id;
+
+            if (ogRes.rows.length > 0) {
+                const og = ogRes.rows[0];
+                const groupIds = ogRes.rows.map(r => r.id);
+
+                const optionsRes = await pool.query(
+                    `SELECT DISTINCT ON (ol.id) 
+                        ol.id, ol.group_id, ol.name, ol.price_override, 
+                        omi.base_price as matched_price,
+                        omi.id as menu_item_id
+                     FROM options_list ol 
+                     LEFT JOIN outlet_menu_items omi ON (omi.menu_id IN (SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $1)) AND (
+                        omi.item_name ILIKE ol.name 
+                        OR omi.item_name ILIKE '%' || ol.name
+                        OR ol.name ILIKE '%' || omi.item_name
+                     ) AND omi.is_active = true
+                     WHERE ol.group_id = ANY($2) AND ol.is_active = true 
+                     ORDER BY ol.id ASC, omi.id ASC`,
+                    [userId, groupIds]
+                );
+
+                if (optionsRes.rows.length > 0) {
+                    const parsedOptions = optionsRes.rows.map(ol => {
+                        const overridePrice = parseFloat(ol.price_override) || 0;
+                        const matchedPrice = parseFloat(ol.matched_price) || 0;
+                        const price = overridePrice > 0 ? overridePrice : matchedPrice;
+                        return {
+                            id: ol.menu_item_id || ol.id,
+                            name: ol.name,
+                            price: price
+                        };
+                    });
+
+                    return {
+                        groupId: og.id,
+                        groupName: og.name,
+                        minSelectable: og.min_selectable,
+                        maxSelectable: og.max_selectable,
+                        options: parsedOptions
+                    };
+                }
+            }
+
+            // 2. Check item_type = '1' sub-items across candidate IDs
+            for (const cand of candidateIdsRes.rows) {
+                const fallbackRes = await pool.query(
+                    `SELECT id, item_name as name, base_price as price
+                     FROM outlet_menu_items
+                     WHERE menu_id = $1
+                       AND item_type = '1'
+                       AND id > $2
+                       AND id < COALESCE(
+                         (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $1 AND id > $2),
+                         99999999
+                       )
+                     ORDER BY id ASC`,
+                    [cand.menu_id, cand.id]
+                );
+                if (fallbackRes.rows.length > 0) {
+                    return {
+                        groupId: cand.id,
+                        groupName: "Size/Portion",
+                        minSelectable: 1,
+                        maxSelectable: 1,
+                        options: fallbackRes.rows.map(o => ({
+                            id: o.id,
+                            name: o.name,
+                            price: parseFloat(o.price) || 0
+                        }))
+                    };
+                }
             }
         }
 
-        const ogRes = await pool.query(
-            `SELECT og.id, og.name, og.min_selectable, og.max_selectable
-             FROM option_groups og
-             JOIN item_option_groups iog ON og.id = iog.group_id
-             WHERE iog.item_id = $1 AND og.is_active = true LIMIT 1`,
-            [resolvedItemId]
-        );
-        if (ogRes.rows.length === 0) {
-            const fallbackRes = await pool.query(
-                `SELECT id, item_name as name, base_price as price
-                 FROM outlet_menu_items
-                 WHERE menu_id = $1
-                   AND item_type = '1'
-                   AND id > $2
-                   AND id < COALESCE(
-                     (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $1 AND id > $2),
-                     99999999
-                   )
-                 ORDER BY id ASC`,
-                [menuId, resolvedItemId]
-            );
-            if (fallbackRes.rows.length > 0) {
-                return {
-                    groupId: resolvedItemId,
-                    groupName: "Size/Portion",
-                    minSelectable: 1,
-                    maxSelectable: 1,
-                    options: fallbackRes.rows.map(o => ({
-                        id: o.id,
-                        name: o.name,
-                        price: parseFloat(o.price) || 0
-                    }))
-                };
-            }
-            return null;
-        }
-        
-        const og = ogRes.rows[0];
-        
-        const optionsRes = await pool.query(
-            `SELECT DISTINCT ON (ol.id) ol.id, ol.name, COALESCE(NULLIF(ol.price_override, 0.00), omi.base_price) as price, omi.id as menu_item_id
-             FROM options_list ol
-             LEFT JOIN outlet_menu_items omi ON ol.name = omi.item_name 
-               AND omi.menu_id = $2
-               AND (
-                 omi.item_type = '1' 
-                 AND omi.id > $1 
-                 AND omi.id < COALESCE(
-                   (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $2 AND id > $1), 
-                   99999999
-                 )
-               )
-             WHERE ol.group_id = $3 AND ol.is_active = true 
-             ORDER BY ol.id, omi.id ASC`,
-            [resolvedItemId, menuId, og.id]
-        );
-        
-        if (optionsRes.rows.length === 0) return null;
-        
-        return {
-            groupId: og.id,
-            groupName: og.name,
-            minSelectable: og.min_selectable,
-            maxSelectable: og.max_selectable,
-            options: optionsRes.rows.map(o => ({
-                id: o.menu_item_id || o.id, // Prefer actual menu_item_id
-                name: o.name,
-                price: parseFloat(o.price) || 0
-            }))
-        };
+        return null;
     } catch (e) {
         console.error("Error fetching item options:", e);
         return null;
@@ -524,6 +531,78 @@ const sendBrandedText = async (to, title, text, userId) => {
     return sendOfficialMessage(to, brandedText, userId);
 };
 
+// Smart helper: uses buttons for ≤3 options, List for 4+ options (WhatsApp button limit = 3)
+// Smart helper: uses buttons for ≤3 short options, List for long options or 4+ options (WhatsApp button limit = 3, max title length = 20)
+const sendOptionsPicker = async (to, bodyText, options, userId, symbol, mainItemName = "") => {
+    // Clean option names if they repeat the main item name prefix (e.g. "CHICKEN KANTI BONELESS 12 Pcs" -> "12 Pcs")
+    const cleanedOptions = options.map(opt => {
+        let cleanName = opt.name;
+        if (mainItemName && cleanName.toLowerCase().startsWith(mainItemName.toLowerCase())) {
+            cleanName = cleanName.substring(mainItemName.length).trim();
+        }
+        if (!cleanName) cleanName = opt.name;
+        return {
+            ...opt,
+            cleanName
+        };
+    });
+
+    const buttonTitles = cleanedOptions.map(opt => `${opt.cleanName} (${symbol}${opt.price})`);
+    const isSuitableForButtons = cleanedOptions.length <= 3 &&
+        buttonTitles.every(t => t.length <= 20) &&
+        new Set(buttonTitles).size === buttonTitles.length;
+
+    if (isSuitableForButtons) {
+        const buttons = cleanedOptions.map(opt => ({
+            id: `opt_${opt.id}`,
+            title: `${opt.cleanName} (${symbol}${opt.price})`
+        }));
+        return sendButtons(to, bodyText, buttons, userId);
+    } else {
+        // Fallback to WhatsApp List message (supports titles up to 24 chars, prices in description)
+        const rows = cleanedOptions.map(opt => ({
+            id: `opt_${opt.id}`,
+            title: opt.cleanName.substring(0, 24),
+            description: `${symbol}${opt.price}`
+        }));
+        const sections = [];
+        for (let i = 0; i < rows.length; i += 10) {
+            sections.push({
+                title: sections.length === 0 ? "📋 Available Options" : "More Options",
+                rows: rows.slice(i, i + 10)
+            });
+        }
+        return sendList(to, "Select Option", bodyText, "✨ View All Options ✨", sections.slice(0, 10), userId);
+    }
+};
+
+const buildGroupRows = async (groupNames, groups, userId, symbol) => {
+    return Promise.all(groupNames.map(async name => {
+        const items = groups[name];
+        let optCount = items.length;
+        let minPrice = Math.min(...items.map(i => i.price));
+
+        if (items.length === 1) {
+            const optData = await getItemOptions(items[0].id, userId);
+            if (optData && optData.options && optData.options.length > 0) {
+                optCount = optData.options.length;
+                const optMinPrice = Math.min(...optData.options.map(o => o.price));
+                if (optMinPrice > 0 && !isNaN(optMinPrice)) {
+                    minPrice = optMinPrice;
+                }
+            }
+        }
+
+        if (isNaN(minPrice) || minPrice === Infinity) minPrice = 0;
+
+        return {
+            id: `group_${name}`,
+            title: name.substring(0, 24),
+            description: `${optCount} option${optCount > 1 ? 's' : ''} — from ${symbol}${minPrice}`
+        };
+    }));
+};
+
 // ----------------------------------------------------------------------------------
 // 🧠 CONVERSATIONAL AI ENGINE
 // ----------------------------------------------------------------------------------
@@ -542,6 +621,67 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         );
         const biz = bizRes.rows[0];
         if (!biz) return;
+
+        // --- 📍 HANDLE WHATSAPP NATIVE GPS LOCATION MESSAGE ---
+        if (isLocation && locationData && locationData.latitude && locationData.longitude) {
+            const session = await getSession(userId, cleanNum);
+            const bizLat = parseFloat(biz.latitude || biz.lat || 0);
+            const bizLng = parseFloat(biz.longitude || biz.lng || 0);
+            
+            function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+                if (!lat1 || !lon1 || !lat2 || !lon2) return null;
+                const R = 6371;
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                return parseFloat((R * c).toFixed(1));
+            }
+
+            const distKm = (bizLat && bizLng) ? calculateDistanceKm(bizLat, bizLng, locationData.latitude, locationData.longitude) : 2.5;
+            const maxRadius = parseFloat(biz.delivery_radius_km || biz.delivery_radius || 10);
+            const isCovered = distKm !== null ? distKm <= maxRadius : true;
+
+            session.context.delivery_lat = locationData.latitude;
+            session.context.delivery_lng = locationData.longitude;
+            session.context.delivery_distance_km = distKm;
+            await updateSession(userId, cleanNum, session.state, session.context);
+
+            let locReply = `📍 *LOCATION RECEIVED & SAVED!*\n━━━━━━━━━━━━━━\n`;
+            if (distKm !== null) {
+                locReply += `📏 *Distance to Kitchen:* ${distKm} KM\n`;
+                locReply += `🚚 *Delivery Status:* ${isCovered ? '✅ Covered (Within Service Zone)' : '⚠️ Outside Regular Delivery Zone'}\n\n`;
+            }
+            locReply += `Your delivery coordinates have been saved to your session context. Tap below or reply to order! 🍔 🥤`;
+            
+            await sendButtons(customerNumber, locReply, [
+                { id: 'place_order', title: '🛍️ Place an Order' },
+                { id: 'view_menu', title: '📜 View Digital Menu' }
+            ], userId);
+            return;
+        }
+
+        // --- ⭐ HANDLE 5-STAR RATING & GOOGLE REVIEW BOOSTER ---
+        if (lower.startsWith('rating_') || (lower.includes('star') && !lower.includes('start'))) {
+            let stars = 5;
+            if (lower.includes('1') || lower.includes('one')) stars = 1;
+            else if (lower.includes('2') || lower.includes('two')) stars = 2;
+            else if (lower.includes('3') || lower.includes('three')) stars = 3;
+            else if (lower.includes('4') || lower.includes('four')) stars = 4;
+            else if (lower.includes('5') || lower.includes('five')) stars = 5;
+
+            if (stars >= 4) {
+                const googleLink = biz.google_review_link || `https://maps.google.com/?q=${encodeURIComponent(biz.name || 'Our Restaurant')}`;
+                const happyMsg = `🌟 *THANK YOU FOR THE ${stars}-STAR RATING!* 🌟\n━━━━━━━━━━━━━━\nWe are delighted you enjoyed your meal! 🙏\n\nIf you have 10 seconds, please share your love on Google Maps:\n👉 ${googleLink}\n\nYour review helps us serve you better! ✨`;
+                await sendOfficialMessage(customerNumber, happyMsg, userId);
+            } else {
+                const apologyMsg = `🙏 *THANK YOU FOR YOUR FEEDBACK*\n━━━━━━━━━━━━━━\nWe are sorry your experience fell short of 5 stars (${stars}/5).\n\nWe have forwarded your feedback directly to our restaurant manager to make things right for your next visit!`;
+                await sendOfficialMessage(customerNumber, apologyMsg, userId);
+            }
+            return;
+        }
 
         // --- 🔐 HANDLE AUTHENTICATION TOKEN (Verify using WhatsApp) ---
         if (lower.includes('verify my number') || lower.includes('sa-') || lower.includes('red-')) {
@@ -582,13 +722,22 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const menuRes = await pool.query(
             `SELECT id FROM outlet_menus 
              WHERE (outlet_id = $1 OR user_id = $1) 
-               AND (is_digital = true OR is_digital_default = true OR LOWER(menu_name) LIKE '%digi%') 
+               AND (is_digital_default = true OR is_digital = true) 
              ORDER BY is_digital_default DESC, is_digital DESC, id DESC LIMIT 1`,
             [userId]
         );
-        
-        if (menuRes.rows.length > 0) {
-            const menuId = menuRes.rows[0].id;
+        let menuId = menuRes.rows[0]?.id;
+        if (!menuId) {
+            const posMenuRes = await pool.query(
+                `SELECT id FROM outlet_menus 
+                 WHERE (outlet_id = $1 OR user_id = $1) AND is_pos_default = true 
+                 ORDER BY id DESC LIMIT 1`,
+                [userId]
+            );
+            menuId = posMenuRes.rows[0]?.id;
+        }
+
+        if (menuId) {
             const itemsRes = await pool.query(
                 `SELECT omi.id, 
                         omi.item_name AS product_name, 
@@ -613,7 +762,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 category: item.category
             }));
         } else {
-            const itemsRes = await pool.query(
+            const itemsResFallback = await pool.query(
                 `SELECT id, product_name, price, availability, stock_count 
                  FROM business_items 
                  WHERE user_id = $1 AND availability = true
@@ -621,7 +770,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                  ORDER BY id ASC`,
                 [userId]
             );
-            allItems = itemsRes.rows.map(item => ({
+            allItems = itemsResFallback.rows.map(item => ({
                 id: item.id,
                 product_name: item.product_name,
                 price: parseFloat(item.price),
@@ -663,25 +812,174 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        // --- 🛑 WHATSAPP CUSTOMER ORDER CANCELLATION COMMAND ---
+        if (lower === 'cancel' || lower === 'cancel order' || lower.startsWith('cancel_order_') || lower === 'cancel_order') {
+            const tenDigits = cleanNum.slice(-10);
+            const activeOrderRes = await pool.query(
+                `SELECT * FROM orders 
+                 WHERE user_id = $1 
+                   AND RIGHT(regexp_replace(customer_number, '\\D', '', 'g'), 10) = $2
+                   AND status IN ('PENDING', 'AWAITING_PAYMENT')
+                 ORDER BY created_at DESC LIMIT 1`,
+                [userId, tenDigits]
+            );
+
+            if (activeOrderRes.rows.length > 0) {
+                const ordToCancel = activeOrderRes.rows[0];
+                await pool.query(
+                    "UPDATE orders SET status = 'CANCELLED', rejection_reason = 'Cancelled by customer via WhatsApp' WHERE id = $1",
+                    [ordToCancel.id]
+                );
+
+                await sendOfficialMessage(customerNumber, `❌ *Order Cancelled:* Your order *${ordToCancel.order_reference || ordToCancel.id}* has been cancelled successfully.`, userId);
+
+                // Notify Staff and Kitchen via WhatsApp
+                try {
+                    const bizRow = biz;
+                    let staffList = [];
+                    const rawStaff = bizRow?.notification_numbers;
+                    if (Array.isArray(rawStaff)) staffList = rawStaff;
+                    else if (typeof rawStaff === 'string') {
+                        try { const p = JSON.parse(rawStaff); staffList = Array.isArray(p) ? p : [rawStaff]; } catch(e) { staffList = [rawStaff]; }
+                    }
+                    if (bizRow?.phone) staffList.push(bizRow.phone);
+                    if (bizRow?.contact_number) staffList.push(bizRow.contact_number);
+                    const kitchenNum = bizRow?.kitchen_number || bizRow?.kitchen_phone;
+
+                    const notifyTargets = new Set();
+                    if (kitchenNum) { const c = String(kitchenNum).replace(/[^0-9+]/g, ''); if (c.length >= 10) notifyTargets.add(c); }
+                    staffList.forEach(n => { if (n && typeof n === 'string') { const c = n.replace(/[^0-9+]/g, ''); if (c.length >= 10) notifyTargets.add(c); } });
+
+                    const cancelAlert = `🛑 *CUSTOMER CANCELLED ORDER VIA WHATSAPP!*\n━━━━━━━━━━━━━━\nOrder Ref: *${ordToCancel.order_reference || ordToCancel.id}*\nCustomer: ${ordToCancel.customer_name || 'Customer'} (${ordToCancel.customer_number || ''})\nTotal Amount: ₹${parseFloat(ordToCancel.total_price || 0).toFixed(2)}\nReason: Cancelled by customer via WhatsApp\n\nPlease STOP preparation immediately! 🚫`;
+
+                    for (let targetNum of notifyTargets) {
+                        await sendOfficialMessage(targetNum, cancelAlert, userId);
+                    }
+                } catch (sErr) { console.error("WhatsApp cancel alert error:", sErr); }
+
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+                return;
+            } else {
+                await sendOfficialMessage(customerNumber, `ℹ️ You don't have any active pending orders to cancel right now.`, userId);
+                return;
+            }
+        }
+
+        // --- 💳 HANDLE CUSTOMER PAYMENT COMPLETED CLAIM IN WHATSAPP ---
+        if (
+            lower.includes('completed payment') || 
+            lower.includes('payment done') || 
+            lower === 'i have completed payment' || 
+            lower === 'paid' || 
+            lower.includes('paid online') ||
+            lower.startsWith('payment_completed_')
+        ) {
+            const tenDigits = cleanNum.slice(-10);
+            const activeOrderRes = await pool.query(
+                `SELECT * FROM orders 
+                 WHERE user_id = $1 
+                   AND RIGHT(regexp_replace(customer_number, '\\D', '', 'g'), 10) = $2
+                   AND status NOT IN ('CANCELLED', 'REJECTED')
+                 ORDER BY created_at DESC LIMIT 1`,
+                [userId, tenDigits]
+            );
+
+            if (activeOrderRes.rows.length > 0) {
+                const ordToUpdate = activeOrderRes.rows[0];
+                await pool.query(
+                    "UPDATE orders SET payment_status = 'CUSTOMER_CONFIRMED' WHERE id = $1",
+                    [ordToUpdate.id]
+                );
+
+                await sendOfficialMessage(customerNumber, `💳 *Payment Claim Received!* \n\nThank you! We have marked your order *${ordToUpdate.order_reference || ordToUpdate.id}* as *Payment Verification Pending*. The restaurant team will verify your payment and start preparation! 🍽️`, userId);
+                return;
+            } else {
+                await sendOfficialMessage(customerNumber, `ℹ️ We couldn't find a recent active order for your phone number. If you placed an order, please provide your Order Reference ID.`, userId);
+                return;
+            }
+        }
+
         // --- 🏠 HARDCODED GREETING (Save AI Tokens & Promote VIP) ---
-        const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab'];
+        const greetings = ['hi', 'hello', 'hey', 'hi there', 'greetings', 'namaste', 'asalam', 'adaab', 'menu', 'start', 'reset', 'bot'];
+        
+        // --- 💳 WALLET & REWARDS BALANCE CHECK COMMAND ---
+        if (
+            lower === 'loyalty_check' || 
+            lower === 'loyalty' || 
+            lower === 'balance' || 
+            lower === 'my balance' || 
+            lower === 'wallet' || 
+            lower === 'my wallet' || 
+            lower === 'points' || 
+            lower === 'my points' || 
+            lower === 'rewards'
+        ) {
+            const tenDigits = cleanNum.slice(-10);
+            const loyRes = await pool.query(
+                `SELECT balance, points, total_spent, name FROM customer_loyalty 
+                 WHERE (user_id = $1 OR user_id = 2 OR user_id IS NOT NULL) 
+                 AND RIGHT(regexp_replace(customer_number, '\\D', '', 'g'), 10) = $2
+                 ORDER BY id DESC LIMIT 1`,
+                [userId, tenDigits]
+            );
+
+            const loy = loyRes.rows[0] || { balance: 0, points: 0, total_spent: 0 };
+            const balVal = parseFloat(loy.balance || 0).toFixed(2);
+            const ptsVal = parseInt(loy.points || 0);
+            const spentVal = parseFloat(loy.total_spent || 0).toFixed(2);
+
+            const profileMsg = `💳 *YOUR WALLET & REWARDS ACCOUNT*\n━━━━━━━━━━━━━━━━\n` +
+                `👤 *Customer:* ${loy.name || customerName || 'Valued Guest'}\n` +
+                `📱 *Phone:* ${cleanNum}\n` +
+                `💰 *Wallet Balance:* ${symbol}${balVal}\n` +
+                `💎 *Reward Points:* ${ptsVal} Points\n` +
+                `🛍️ *Total Spent:* ${symbol}${spentVal}\n` +
+                `━━━━━━━━━━━━━━━━\n` +
+                `You can use your wallet balance and reward points on online & WhatsApp orders! 🎉`;
+
+            await sendButtons(customerNumber, profileMsg, [
+                { id: 'place_order', title: '🛍️ Order Now' },
+                { id: 'view_menu', title: "📜 View Digital Menu" }
+            ], userId);
+            return;
+        }
+
         if (greetings.includes(lower)) {
             const bizName = biz.name || "our restaurant";
             
+            // Always unpause AI when user sends explicit greeting/reset command
+            try {
+                await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            } catch (pErr) {}
+
             // Check if customer exists in loyalty
-            const customerRes = await pool.query("SELECT * FROM customer_loyalty WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
+            const tenDigits = cleanNum.slice(-10);
+            const customerRes = await pool.query(
+                `SELECT * FROM customer_loyalty 
+                 WHERE (user_id = $1 OR user_id = 2 OR user_id IS NOT NULL) 
+                 AND RIGHT(regexp_replace(customer_number, '\\D', '', 'g'), 10) = $2
+                 ORDER BY id DESC LIMIT 1`,
+                [userId, tenDigits]
+            );
             const existing = customerRes.rows[0];
+            const userBalance = parseFloat(existing?.balance || 0).toFixed(2);
+            const userPoints = parseInt(existing?.points || 0);
 
             if (existing) {
-                // EXISTING CUSTOMER: Show "Welcome Back" + List
-                const welcomeText = `🏠 *Welcome back to ${bizName}!*\n\nHello ${existing.name || 'friend'}, how may I assist you today? 🌟\n\nYou can explore our menu or place an order using the options below. 👇`;
+                // EXISTING CUSTOMER: Show "Welcome Back" + Balance + List
+                let balanceLine = `💰 *Wallet Balance:* ${symbol}${userBalance}`;
+                if (userPoints > 0) balanceLine += ` | 💎 *Rewards:* ${userPoints} pts`;
+
+                const welcomeText = `🏠 *Welcome back to ${bizName}!*\n\nHello ${existing.name || customerName || 'friend'}! 👋\n${balanceLine}\n\nHow may I assist you today? You can explore our menu, place an order, check your wallet, or book a table below. 👇`;
                 
                 const sections = [
                     {
-                        title: "🛒 Ordering Options",
+                        title: "🛒 Ordering & Booking",
                         rows: [
                             { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔 🥤" },
-                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕 🍰" }
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕 🍰" },
+                            { id: "table_reservation", title: "🍽️ Table Reservation", description: "Reserve a table & select seating area 🪑" }
                         ]
                     },
                     {
@@ -694,21 +992,45 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     }
                 ];
 
-                await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                const listRes = await sendList(customerNumber, "How can we help? ✨", welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                if (!listRes || !listRes.success) {
+                    console.warn("⚠️ sendList failed, attempting text fallback greeting:", listRes?.error);
+                    const plainWelcome = `${welcomeText}\n\n1️⃣ Reply *1* or *order* to Place an Order\n2️⃣ Reply *2* or *menu* to View Digital Menu\n3️⃣ Reply *3* or *table* for Table Reservation\n4️⃣ Reply *4* or *support* for Staff Support`;
+                    await sendOfficialMessage(customerNumber, plainWelcome, userId);
+                }
             } else {
-                // NEW CUSTOMER: Show VIP Offer + Buttons
+                // NEW CUSTOMER: Show VIP Offer + Full Menu List
                 const joiningPoints = parseInt(biz.loyalty_joining_points) || 0;
                 let pointsPromo = "";
                 if (joiningPoints > 0) {
                     pointsPromo = ` and get *${joiningPoints} Free Points* instantly`;
                 }
-                const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, or answer questions about our food.\n\n🎁 Join our *VIP Club* today${pointsPromo} to start tracking your purchases and earn loyalty rewards! 🎊\n\n*What would you like to do today?*`;
+                const welcomeText = `👋 *Hello! Welcome to ${bizName}* 🍽️\n\nI am your AI assistant. I can help you view our menu, place an order, book a table, or answer questions.\n\n🎁 Join our *VIP Club* today${pointsPromo} to start tracking your purchases and earn loyalty rewards! 🎊\n\n*What would you like to do today?*`;
                 
-                await sendButtons(customerNumber, welcomeText, [
-                    { id: 'join_loyalty', title: joiningPoints > 0 ? `🎁 Claim ${joiningPoints} Pts` : '🎁 Join VIP Club' },
-                    { id: 'view_menu', title: '📜 View Menu' },
-                    { id: 'place_order', title: '🛍️ Place Order' }
-                ], userId);
+                const sections = [
+                    {
+                        title: "🛒 Dining & Orders",
+                        rows: [
+                            { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔 🥤" },
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕 🍰" },
+                            { id: "table_reservation", title: "🍽️ Table Reservation", description: "Reserve a table & select seating area 🪑" }
+                        ]
+                    },
+                    {
+                        title: "💎 VIP & Support",
+                        rows: [
+                            { id: "join_loyalty", title: joiningPoints > 0 ? `🎁 Claim ${joiningPoints} Pts` : '🎁 Join VIP Club', description: "Earn points & member deals 🌟" },
+                            { id: "support", title: "📞 Contact Support", description: "Speak with our friendly team 👷" }
+                        ]
+                    }
+                ];
+
+                const listRes = await sendList(customerNumber, `${bizName} ✨`, welcomeText, "✨ Open Main Menu ✨", sections, userId);
+                if (!listRes || !listRes.success) {
+                    console.warn("⚠️ sendList failed, attempting text fallback greeting:", listRes?.error);
+                    const plainWelcome = `${welcomeText}\n\n1️⃣ Reply *1* or *order* to Place an Order\n2️⃣ Reply *2* or *menu* to View Digital Menu\n3️⃣ Reply *3* or *table* for Table Reservation\n4️⃣ Reply *4* or *support* for Staff Support`;
+                    await sendOfficialMessage(customerNumber, plainWelcome, userId);
+                }
             }
             return;
         }
@@ -724,13 +1046,46 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 const groupName = msgText.substring(6); // Remove 'group_'
                 const variants = pending.groups[groupName];
                 if (variants) {
-                    const rows = variants.map(v => ({
+                    // If group has only 1 item, skip the intermediate list and go directly to options/cart
+                    if (variants.length === 1) {
+                        const item = variants[0];
+                        const optData = await getItemOptions(item.id, userId);
+                        if (optData) {
+                            const body = `✨ *${item.product_name}* Selected!\n━━━━━━━━━━━━━━\nPlease choose your preferred option:`;
+                            await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
+                            
+                            session.context.pending_option_selection = {
+                                mainItem: { id: item.id, name: item.product_name },
+                                options: optData.options,
+                                qty: pending.qty || 1
+                            };
+                            delete session.context.pending_selection;
+                            await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                        } else {
+                            const text = `✨ *${item.product_name}* — ${symbol}${item.price}\n\nHow many would you like?`;
+                            await sendBrandedText(customerNumber, biz.name, text, userId);
+                            session.context.pending_item = { id: item.id, name: item.product_name, price: item.price };
+                            delete session.context.pending_selection;
+                            await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
+                        }
+                        return;
+                    }
+
+                    // Multiple variants — show the full list
+                    const allRows = variants.map(v => ({
                         id: v.product_name,
                         title: v.product_name.substring(0, 24),
                         description: `${symbol}${v.price}`
                     }));
+                    const sections = [];
+                    for (let i = 0; i < allRows.length; i += 10) {
+                        sections.push({
+                            title: sections.length === 0 ? "Available Sizes" : "More Sizes",
+                            rows: allRows.slice(i, i + 10)
+                        });
+                    }
                     const body = `✨ *${groupName}* Selected!\n━━━━━━━━━━━━━━\nWhich size or portion would you like? 👇`;
-                    await sendList(customerNumber, "Select Size", body, "✨ View Sizes ✨", [{ title: "Available Sizes", rows }], userId);
+                    await sendList(customerNumber, "Select Size", body, "✨ View Sizes ✨", sections.slice(0, 10), userId);
                     
                     // Update state: No longer a group, now just waiting for the final variant
                     session.context.pending_selection = { keyword: pending.keyword, qty: pending.qty };
@@ -746,12 +1101,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 // Check if item has option groups
                 const optData = await getItemOptions(selection.id, userId);
                 if (optData) {
-                    const buttons = optData.options.map(opt => ({
-                        id: `opt_${opt.id}`,
-                        title: `${opt.name} (${symbol}${opt.price})`
-                    }));
                     const body = `😋 *Choose size/option for ${selection.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
-                    await sendButtons(customerNumber, body, buttons, userId);
+                    await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, selection.product_name);
                     
                     session.context.pending_option_selection = {
                         mainItem: { id: selection.id, name: selection.product_name },
@@ -780,15 +1131,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                         const optData = nextAmb.optData;
                         const nextQty = nextAmb.qty || 1;
                         
-                        const buttons = optData.options.map(opt => ({
-                            id: `opt_${opt.id}`,
-                            title: `${opt.name} (${symbol}${opt.price})`
-                        }));
-                        
                         let body = `✅ *Added: ${qty}x ${selection.product_name}*\n\n`;
                         body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
                         
-                        await sendButtons(customerNumber, body, buttons, userId);
+                        await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
                         
                         session.context.pending_option_selection = {
                             mainItem: { id: item.id, name: item.product_name },
@@ -830,7 +1176,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             await updateSession(userId, cleanNum, 'IDLE', session.context);
         }
         
-        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'enquiry', 'loyalty', 'loyalty_check', 'support'];
+        const botCommands = ['place_order', 'place an order', 'order now', 'view_menu', 'table_reservation', 'table reservation', 'book table', 'reserve table', 'reservation', 'enquiry', 'loyalty', 'loyalty_check', 'support'];
         if (session.is_paused) {
             if (botCommands.includes(lower)) {
                 await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
@@ -893,15 +1239,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                         const optData = nextAmb.optData;
                         const nextQty = nextAmb.qty || 1;
                         
-                        const buttons = optData.options.map(opt => ({
-                            id: `opt_${opt.id}`,
-                            title: `${opt.name} (${symbol}${opt.price})`
-                        }));
-                        
                         let body = `✅ *Added: ${qty}x ${itemName}*\n\n`;
                         body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
                         
-                        await sendButtons(customerNumber, body, buttons, userId);
+                        await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
                         
                         session.context.pending_option_selection = {
                             mainItem: { id: item.id, name: item.product_name },
@@ -965,14 +1306,97 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     await updateSession(userId, cleanNum, 'IDLE', session.context);
                     // Let it fall through to normal AI/flow processing
                 } else {
-                    const buttons = pending.options.map(opt => ({
-                        id: `opt_${opt.id}`,
-                        title: `${opt.name} (${symbol}${opt.price})`
-                    }));
                     const body = `⚠️ *Invalid selection.* Please choose one of the options for *${pending.mainItem.name}*:`;
-                    await sendButtons(customerNumber, body, buttons, userId);
+                    await sendOptionsPicker(customerNumber, body, pending.options, userId, symbol, pending.mainItem.name);
                     return;
                 }
+            }
+        }
+
+        // --- 📅 HANDLE AWAITING RESERVATION DETAILS ---
+        if (session.state === 'AWAITING_RESERVATION_DETAILS' && session.context.pending_reservation) {
+            const isGreeting = greetings.includes(lower);
+            const isCommand = botCommands.includes(lower) || ['checkout', 'mode_pickup', 'mode_delivery'].includes(lower);
+
+            if (isGreeting || isCommand) {
+                delete session.context.pending_reservation;
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+            } else {
+                const detailsText = msgText.trim();
+                const pendingRes = session.context.pending_reservation;
+
+                const guestMatch = detailsText.match(/(\d+)\s*(guest|person|people|pax|p)/i) || detailsText.match(/(\d+)/);
+                const guestsCount = guestMatch ? parseInt(guestMatch[1]) : 2;
+
+                let defaultSeating = pendingRes.seatingArea;
+                if (!defaultSeating) {
+                    try {
+                        const seatRes = await pool.query(
+                            `SELECT department_name FROM table_departments 
+                             WHERE (user_id = $1 OR outlet_id = $1 OR user_id = 2 OR outlet_id = 2) AND is_active = true 
+                             ORDER BY department_name ASC LIMIT 1`,
+                            [userId]
+                        );
+                        if (seatRes.rows.length > 0 && seatRes.rows[0].department_name) {
+                            defaultSeating = seatRes.rows[0].department_name;
+                        }
+                    } catch (e) {}
+                }
+                const seatingPref = defaultSeating || 'Dining';
+                const todayStr = new Date().toISOString().split('T')[0];
+                const randomRef = `RES-${Math.floor(100000 + Math.random() * 900000)}`;
+
+                await pool.query(
+                    `INSERT INTO table_reservations 
+                     (user_id, outlet_id, reservation_ref, customer_name, customer_phone, guests_count, reservation_date, reservation_time, seating_preference, special_notes, status, created_at)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'PENDING', NOW())`,
+                    [userId, biz.id || userId, randomRef, customerName || "WhatsApp Guest", cleanNum, guestsCount, todayStr, detailsText, seatingPref, 'Booked via WhatsApp Bot']
+                );
+
+                delete session.context.pending_reservation;
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                // Notify Customer
+                const custMsg = `🍽️ *TABLE RESERVATION RECEIVED!*\n━━━━━━━━━━━━━━━━\n` +
+                    `*Booking Ref:* ${randomRef}\n` +
+                    `*Restaurant:* ${biz.name || "Our Restaurant"}\n` +
+                    `*Name:* ${customerName || "Guest"}\n` +
+                    `*Guests:* ${guestsCount} Guests\n` +
+                    `*Seating Area:* ${seatingPref}\n` +
+                    `*Details:* ${detailsText}\n` +
+                    `━━━━━━━━━━━━━━━━\n` +
+                    `*Status:* ⏳ *PENDING CONFIRMATION*\n` +
+                    `Our manager will confirm your table shortly. Thank you! 🙏`;
+
+                await sendOfficialMessage(customerNumber, custMsg, userId);
+
+                // Notify Staff
+                try {
+                    let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0)
+                        ? biz.notification_numbers
+                        : [biz.phone, biz.contact_number].filter(Boolean);
+                    staffNums = [...new Set(staffNums)];
+
+                    const staffBookingMsg = `📅 *NEW TABLE RESERVATION RECEIVED! (Pending)*\n━━━━━━━━━━━━━━━━\n` +
+                        `*Booking Ref:* ${randomRef}\n` +
+                        `*Customer Name:* ${customerName || 'WhatsApp Guest'}\n` +
+                        `*Phone:* ${cleanNum}\n` +
+                        `*Guests:* ${guestsCount} Guests\n` +
+                        `*Seating Area:* ${seatingPref}\n` +
+                        `*Details:* ${detailsText}\n` +
+                        `*Source:* WhatsApp Bot\n` +
+                        `━━━━━━━━━━━━━━━━\n` +
+                        `*Action Required:* Open POS > Bookings to Accept or Reject! 🚀`;
+
+                    for (let num of staffNums) {
+                        await sendOfficialMessage(num, staffBookingMsg, userId);
+                    }
+                } catch (sErr) {
+                    console.error("Staff reservation notification error:", sErr);
+                }
+                return;
             }
         }
 
@@ -1012,8 +1436,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
             const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
             
-            // Calculate bill but DO NOT finalize yet (Wait for confirmation)
-            const customerAddress = `Location [${cLat}, ${cLon}]`;
+            // Format exact Google Maps navigation URL
+            const googleMapsUrl = `https://maps.google.com/?q=${cLat.toFixed(6)},${cLon.toFixed(6)}`;
+            const customerAddress = `GPS Pin: ${googleMapsUrl}`;
             const pendingBill = [
                 `📋 *ORDER SUMMARY*`,
                 ``,
@@ -1227,24 +1652,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'PICKUP', total, items: cart, customer: { name: customerName, phone: cleanNum } });
 
-            // 🚨 STAFF NOTIFICATION & KOT
-            const staffNums = biz.notification_numbers || [];
-            const staffMsg = `🔔 *New Pickup Order (${payMethod})!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n💳 *Payment:* ${isCOD ? 'Cash on Delivery' : 'Prepaid UPI'}\n💰 *Total:* ${symbol}${total.toFixed(2)}\n📄 *Items:* \n${cart.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
-            for (let num of staffNums) {
-                await sendOfficialMessage(num, staffMsg, userId);
-            }
-
+            // 🚨 KOT & STAFF NOTIFICATION (always send, regardless of payment method)
             await deductInventory(userId, cart);
 
-            if (isCOD) {
-                try {
-                    await notifyKitchenAndStaff(
-                        userId, orderRef, customerName, cleanNum, cart,
-                        total, total, 0, 0, 0, 0, symbol,
-                        'online', 'Pickup', '0'
-                    );
-                } catch (kotErr) { console.error("KOT error for COD:", kotErr); }
-            }
+            try {
+                await notifyKitchenAndStaff(
+                    userId, orderRef, customerName, cleanNum, cart,
+                    total, total, 0, 0, 0, 0, symbol,
+                    'online', 'Pickup', '0'
+                );
+            } catch (kotErr) { console.error("KOT error for pickup order:", kotErr); }
 
             // 🏆 Update CRM (With Safety Guard)
             try {
@@ -1261,7 +1678,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
             const receiptRows = [
-                `✅ *Pickup Order Confirmed!*`,
+                `⏳ *Pickup Order Placed!*`,
                 `Ref: ${orderRef}`,
                 `───────────────`,
                 cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
@@ -1277,6 +1694,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
             receiptRows.push(`💵 *Payment Method:* ${isCOD ? 'Cash on Delivery / Pay on Pickup' : 'Prepaid UPI'}`);
+            receiptRows.push(`📋 *Status:* Pending for POS Confirmation`);
             receiptRows.push(``);
 
             if (!isCOD) {
@@ -1331,7 +1749,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             
             await pool.query(
                 "INSERT INTO orders (user_id, restaurant_id, customer_name, customer_number, address, items, total_price, order_reference, status, delivery_charge, payment_method, redeemed_points, discount_amount, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)",
-                [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, initialStatus, pending.deliveryCharge, payMethod, session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'WHATSAPP']
+                [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, pending.address, JSON.stringify(pending.items), pending.total, orderRef, initialStatus, pending.deliveryCharge, payMethod, session.context.redeemedPoints || 0, discountAmount, 'WHATSAPP', 'DELIVERY']
             );
 
             if (session.context.redeemedPoints) {
@@ -1344,32 +1762,23 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             // 🔥 WEBHOOK TRIGGER
             triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', total: pending.total, items: pending.items, address: pending.address, customer: { name: customerName, phone: cleanNum } });
 
-            // 🚨 STAFF NOTIFICATION & KOT
-            const staffNums = biz.notification_numbers || [];
-            const staffMsg = `🔔 *New Delivery Order (${payMethod})!*\n━━━━━━━━━━━━━━\n👤 *Customer:* ${customerName || 'Guest'}\n📞 *Phone:* ${cleanNum}\n📍 *Address:* ${pending.address}\n💳 *Payment:* ${isCOD ? 'Cash on Delivery' : 'Prepaid UPI'}\n💰 *Total:* ${symbol}${pending.total.toFixed(2)}\n📄 *Items:* \n${pending.items.map(i => `• ${i.qty}x ${i.name}`).join("\n")}\n\nCheck dashboard for details! 🚀`;
-            for (let num of staffNums) {
-                await sendOfficialMessage(num, staffMsg, userId);
-            }
-
+            // 🚨 KOT & STAFF NOTIFICATION (always send, regardless of payment method)
             await deductInventory(userId, pending.items);
 
-            if (isCOD) {
-                try {
-                    await notifyKitchenAndStaff(
-                        userId, orderRef, customerName, cleanNum, pending.items,
-                        pending.total, pending.total, 0, 0, 0, 0, symbol,
-                        'online', pending.address, '0'
-                    );
-                } catch (kotErr) { console.error("KOT error for COD delivery:", kotErr); }
-            }
+            try {
+                await notifyKitchenAndStaff(
+                    userId, orderRef, customerName, cleanNum, pending.items,
+                    pending.total, pending.total, 0, 0, 0, 0, symbol,
+                    'online', pending.address, '0'
+                );
+            } catch (kotErr) { console.error("KOT error for delivery order:", kotErr); }
 
             const frontendBaseUrl = process.env.FRONTEND_URL || 'https://backend.sasloop.in';
             const backendBaseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
-            const trackingLink = `${frontendBaseUrl}/track/${orderRef}`;
             const paymentLink = `${backendBaseUrl}/api/public/payment-redirect/${orderRef}`;
 
             const receiptRows = [
-                `✅ *Delivery Order Confirmed!*`,
+                `⏳ *Delivery Order Placed!*`,
                 `Ref: ${orderRef}`,
                 `───────────────`,
                 `💵 *Payment Method:* ${isCOD ? 'Cash on Delivery (COD)' : 'Prepaid UPI'}`
@@ -1377,15 +1786,28 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             if (!isCOD) {
                 receiptRows.push(`💳 *Pay Now:* ${paymentLink}`);
+                receiptRows.push(`⚠️ *NOTE:* Please complete payment first so we can accept and prepare your order!`);
+                receiptRows.push(`👉 *After paying, click the button below or reply "I HAVE COMPLETED PAYMENT".*`);
             }
 
-            receiptRows.push(`📍 *Live Tracking:* ${trackingLink}`);
+            receiptRows.push(`📋 *Status:* Pending Payment Verification`);
             receiptRows.push(`───────────────`);
-            receiptRows.push(isCOD ? `Your order is being sent to the kitchen now. Thank you! 🎉` : `Your order is being sent to the kitchen after payment. Thank you! 🎉`);
+            receiptRows.push(isCOD ? `Your order will be sent to the kitchen once confirmed. Thank you! 🎉` : `Your order will be accepted and sent to the kitchen after payment verification. Thank you! 🎉`);
 
             const receipt = receiptRows.join("\n");
 
             await sendOfficialMessage(customerNumber, receipt, userId);
+
+            if (!isCOD) {
+                try {
+                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Completed Payment" }
+                    ], userId);
+                } catch (btnErr) {
+                    console.error("Payment button error:", btnErr);
+                }
+            }
+
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             return;
         }
@@ -1430,10 +1852,70 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 if (linkMatch) menuLink = linkMatch[0];
             }
             
-            const baseUrl = process.env.FRONTEND_URL || 'https://comply-lagged-concave.ngrok-free.dev';
+            const baseUrl = process.env.FRONTEND_URL || 'https://menu.sasloop.in';
             if (!menuLink) menuLink = `${baseUrl}/menu/${biz.id}`;
 
             const text = `📜 *Our Digital Menu*\n━━━━━━━━━━━━━━\n\nYou can browse our full catalog and see all the latest flavors here:\n\n🔗 ${menuLink}\n\nAnything else I can help you with?`;
+            await sendOfficialMessage(customerNumber, text, userId);
+            return;
+        }
+
+        // --- 🍽️ HANDLE TABLE RESERVATION ---
+        if (lower === 'table_reservation' || lower === 'table reservation' || lower === 'book table' || lower === 'reserve table' || lower === 'reservation') {
+            const seatingRes = await pool.query(
+                `SELECT id, department_name AS name 
+                 FROM table_departments 
+                 WHERE (user_id = $1 OR outlet_id = $1 OR user_id = 2 OR outlet_id = 2) AND is_active = true 
+                 ORDER BY department_name ASC`,
+                [userId]
+            );
+            let seatingAreas = seatingRes.rows.map(r => r.name);
+            if (seatingAreas.length === 0) {
+                seatingAreas = ["Indoor", "Outdoor", "Rooftop", "VIP Section"];
+            }
+
+            const headerText = `🍽️ *Table Reservation*\n━━━━━━━━━━━━━━\nWelcome! Please select your preferred *Seating Area* for your visit:`;
+
+            if (seatingAreas.length <= 3) {
+                const buttons = seatingAreas.map(area => ({
+                    id: `seat_${area.replace(/\s+/g, '_').toLowerCase()}`,
+                    title: area.substring(0, 20)
+                }));
+                await sendButtons(customerNumber, headerText, buttons, userId);
+            } else {
+                const rows = seatingAreas.slice(0, 10).map(area => ({
+                    id: `seat_${area.replace(/\s+/g, '_').toLowerCase()}`,
+                    title: area.substring(0, 24),
+                    description: `Reserve table in ${area}`
+                }));
+                await sendList(customerNumber, "Seating Areas 🪑", headerText, "✨ Select Area ✨", [{ title: "Available Seating Areas", rows }], userId);
+            }
+            return;
+        }
+
+        if (lower.startsWith('seat_')) {
+            const areaSlug = lower.replace(/^seat_/, '');
+            const seatingRes = await pool.query(
+                `SELECT department_name AS name 
+                 FROM table_departments 
+                 WHERE (user_id = $1 OR outlet_id = $1 OR user_id = 2 OR outlet_id = 2) AND is_active = true 
+                 ORDER BY department_name ASC`,
+                [userId]
+            );
+            let seatingAreas = seatingRes.rows.map(r => r.name);
+            if (seatingAreas.length === 0) {
+                seatingAreas = ["Indoor", "Outdoor", "Rooftop", "VIP Section"];
+            }
+            const matchedArea = seatingAreas.find(a => a.replace(/\s+/g, '_').toLowerCase() === areaSlug) || areaSlug.replace(/_/g, ' ').toUpperCase();
+
+            session.context.pending_reservation = { seatingArea: matchedArea };
+            await updateSession(userId, cleanNum, 'AWAITING_RESERVATION_DETAILS', session.context);
+
+            let menuLink = biz.settings?.menuLink || biz.social_website;
+            const baseUrl = process.env.FRONTEND_URL || 'https://menu.sasloop.in';
+            if (!menuLink) menuLink = `${baseUrl}/menu/${biz.id}`;
+
+            const text = `🪑 *Seating Area Selected:* ${matchedArea}\n━━━━━━━━━━━━━━\n\nPlease reply with your reservation details:\n\n*Date, Time, Number of Guests*\n\n*Example:* Tomorrow 7:30 PM, 4 guests\n\nOr complete your booking online: 🔗 ${menuLink}`;
             await sendOfficialMessage(customerNumber, text, userId);
             return;
         }
@@ -1480,9 +1962,22 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
-        // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords) ---
-        const simpleLower = lower.trim();
-        
+        // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords & direct quantity items) ---
+        let simpleLower = lower.trim();
+        let extractedQty = null;
+
+        // Extract trailing or leading quantity (e.g., "rista 2", "2 rista", "kabab 3")
+        const trailingQtyMatch = simpleLower.match(/^(.+?)\s+(\d+)$/);
+        const leadingQtyMatch = simpleLower.match(/^(\d+)\s+(.+?)$/);
+
+        if (trailingQtyMatch) {
+            simpleLower = trailingQtyMatch[1].trim();
+            extractedQty = parseInt(trailingQtyMatch[2]);
+        } else if (leadingQtyMatch) {
+            simpleLower = leadingQtyMatch[2].trim();
+            extractedQty = parseInt(leadingQtyMatch[1]);
+        }
+
         // Skip keyword search if it's a simple greeting or too short
         const isGreeting = greetings.includes(simpleLower);
         const isTooShort = simpleLower.length < 3;
@@ -1491,7 +1986,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             i.product_name.toLowerCase() === simpleLower || 
             (i.category && i.category.toLowerCase() === simpleLower) || 
             (i.sub_category && i.sub_category.toLowerCase() === simpleLower) ||
-            (simpleLower.length >= 3 && i.product_name.toLowerCase().includes(simpleLower))
+            (simpleLower.length >= 3 && (i.product_name.toLowerCase().includes(simpleLower) || simpleLower.includes(i.product_name.toLowerCase())))
         );
 
         // Deduplicate direct matches by product_name
@@ -1514,12 +2009,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 const item = exactMatchItem || directMatches[0];
                 const optData = await getItemOptions(item.id, userId);
                 if (optData) {
-                    const buttons = optData.options.map(opt => ({
-                        id: `opt_${opt.id}`,
-                        title: `${opt.name} (${symbol}${opt.price})`
-                    }));
                     const body = `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
-                    await sendButtons(customerNumber, body, buttons, userId);
+                    await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
                     
                     session.context.pending_option_selection = {
                         mainItem: { id: item.id, name: item.product_name },
@@ -1528,45 +2019,89 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     };
                     await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
                 } else {
-                    const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
-                    await sendBrandedText(customerNumber, biz.name, text, userId);
-                    session.context.pending_item = { id: item.id, name: item.product_name, price: item.price };
-                    await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
-                }
-            } else {
-                if (directMatches.length > 10) {
-                    const groups = {};
-                    directMatches.forEach(m => {
-                        const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
-                        if (!groups[base]) groups[base] = [];
-                        groups[base].push(m);
-                    });
-
-                    const groupNames = Object.keys(groups);
-                    if (groupNames.length > 1) {
-                        const rows = groupNames.slice(0, 10).map(name => ({
-                            id: `group_${name}`,
-                            title: name.substring(0, 24),
-                            description: `See ${groups[name].length} sizes available`
-                        }));
-                        const body = `🍕 *Which flavor of ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
-                        await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
+                    if (extractedQty && extractedQty > 0) {
+                        const cart = session.context.cart || [];
+                        const existing = cart.find(c => c.name === item.product_name);
+                        if (existing) existing.qty += extractedQty;
+                        else cart.push({ id: item.id, name: item.product_name, qty: extractedQty, price: item.price });
                         
-                        session.context.pending_selection = { keyword: simpleLower, qty: 1, is_group: true, groups };
+                        session.context.cart = cart;
                         await updateSession(userId, cleanNum, 'IDLE', session.context);
-                        return;
+                        
+                        const cartSummaryLines = cart.map(i => `• ${i.qty}x *${i.name}*`).join('\n');
+                        const cartTotal = cart.reduce((sum, i) => sum + (i.qty * i.price), 0);
+                        
+                        const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
+                        await sendButtons(customerNumber, msg, [
+                            { id: 'checkout', title: '🛒 Checkout Now' },
+                            { id: 'place_order', title: '➕ Add More' }
+                        ], userId);
+                    } else {
+                        const text = `Excellent choice! The *${item.product_name}* is priced at ${symbol}${item.price}.\n\nHow many would you like me to add for you?`;
+                        await sendBrandedText(customerNumber, biz.name, text, userId);
+                        session.context.pending_item = { id: item.id, name: item.product_name, price: item.price };
+                        await updateSession(userId, cleanNum, 'AWAITING_QUANTITY', session.context);
                     }
                 }
+            } else {
+                // --- SMART GROUPING: Group items by base name (strip size/portion words) ---
+                const groups = {};
+                directMatches.forEach(m => {
+                    const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega|Mini|XL|XXL|Jumbo|King|Extra)\b/gi, '').trim();
+                    if (!groups[base]) groups[base] = [];
+                    groups[base].push(m);
+                });
 
-                const matches = directMatches.slice(0, 10);
-                const rows = matches.map(m => ({
+                const groupNames = Object.keys(groups);
+
+                // If we have multiple distinct groups (e.g. Margherita Pizza, Pepperoni Pizza, etc.)
+                // Show a group picker so user picks flavor first, then sees sizes
+                if (groupNames.length > 1 && directMatches.length > 3) {
+                    // Use multiple sections if groups > 10 (WhatsApp allows up to 10 sections x 10 rows)
+                    const allRows = await buildGroupRows(groupNames, groups, userId, symbol);
+
+                    // Split rows into sections of 10
+                    const sections = [];
+                    for (let i = 0; i < allRows.length; i += 10) {
+                        const chunk = allRows.slice(i, i + 10);
+                        sections.push({
+                            title: sections.length === 0 ? `🍕 ${simpleLower} Varieties` : `More ${simpleLower}`,
+                            rows: chunk
+                        });
+                    }
+                    // WhatsApp allows max 10 sections
+                    const finalSections = sections.slice(0, 10);
+
+                    const body = `🍕 *Which type of ${simpleLower} would you like?*\n━━━━━━━━━━━━━━\nWe found *${directMatches.length}* items across *${groupNames.length}* varieties! 👇`;
+                    await sendList(customerNumber, "Select Type", body, "✨ View All Types ✨", finalSections, userId);
+                    
+                    session.context.pending_selection = { keyword: simpleLower, qty: 1, is_group: true, groups };
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+                    return;
+                }
+
+                // If only 1 group or few items — show ALL items directly using multi-section list
+                const allRows = directMatches.map(m => ({
                     id: m.product_name,
                     title: m.product_name.substring(0, 24),
                     description: `${symbol}${m.price}`
                 }));
 
-                const body = `🤔 *Which ${simpleLower} did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
-                await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                // Split into sections of 10 rows each
+                const sections = [];
+                for (let i = 0; i < allRows.length; i += 10) {
+                    const chunk = allRows.slice(i, i + 10);
+                    sections.push({
+                        title: sections.length === 0 ? `🔍 ${simpleLower} Items` : `More ${simpleLower} Items`,
+                        rows: chunk
+                    });
+                }
+                // WhatsApp allows max 10 sections (= 100 items max)
+                const finalSections = sections.slice(0, 10);
+
+                const totalShown = finalSections.reduce((sum, s) => sum + s.rows.length, 0);
+                const body = `🤔 *Which ${simpleLower} did you mean?*\n━━━━━━━━━━━━━━\nShowing *${totalShown}* matching items. Select from the list below. 👇`;
+                await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", finalSections, userId);
                 
                 session.context.pending_selection = { keyword: simpleLower, qty: 1 };
                 await updateSession(userId, cleanNum, 'IDLE', session.context);
@@ -1636,13 +2171,25 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
         const cartSummary = cart.length > 0 ? cart.map(i => `${i.qty}x ${i.name}`).join(", ") : "Empty";
         
+        // Fetch customer balance for AI context
+        const custBalRes = await pool.query(
+            `SELECT balance, points FROM customer_loyalty 
+             WHERE (user_id = $1 OR user_id = 2 OR user_id IS NOT NULL) 
+             AND RIGHT(regexp_replace(customer_number, '\\D', '', 'g'), 10) = $2
+             ORDER BY id DESC LIMIT 1`,
+            [userId, cleanNum.slice(-10)]
+        );
+        const aiCustBal = custBalRes.rows[0] || { balance: 0, points: 0 };
+        
         const systemPrompt = `
 You are the Master Sales Executive for ${biz.name}.
 CONTEXT:
+- Customer Wallet Balance: ${symbol}${parseFloat(aiCustBal.balance || 0).toFixed(2)}
+- Customer Reward Points: ${parseInt(aiCustBal.points || 0)} Points
 - Cart: ${cartSummary}
 - Menu: ${menuContext}
 - Extra Info: ${biz.bot_knowledge || 'No specific info.'}
-- Loyalty Program: Customers can redeem points by clicking "Redeem via WhatsApp" on the digital menu. This sends a unique token (RED-XXXXXX). Once they send it, the discount is applied automatically in their browser. NO OTPs are used.
+- Loyalty Program: Customers can redeem points by clicking "Redeem via WhatsApp" on the digital menu. This sends a unique token (RED-XXXXXX). Once they send it, the discount is applied automatically in their browser. NO OTPs are used. If customer asks for their balance, wallet, points, or ledger, inform them warmy with their exact wallet balance and points.
 
 YOUR MISSION: Extract items, quantities, and intent. Match items against the menu list.
 ⚠️ CRITICAL MENU GATING: You can ONLY suggest, confirm, or upsell items that are explicitly listed in the "- Menu:" context above. If the user asks for a dish that is NOT in the Menu context (even if you know it is a common item or matches the restaurant style), do NOT assume we have it and do NOT say you will add it. Instead, politely inform them it is currently unavailable or out of stock, suggest they view the menu, and prompt them to select something else.
@@ -1727,12 +2274,13 @@ RETURN ONLY JSON:
                 }
 
                 // Standard Professional List Menu
-                await sendList(customerNumber, "How can we help? ✨", `🏠 *Welcome back to ${biz.name}!* \n\nHello ${customerName}, how may I assist you today? 🌟 \n\nYou can explore our menu or place an order using the options below. 👇`, "✨ Open Main Menu ✨", [
+                await sendList(customerNumber, "How can we help? ✨", `🏠 *Welcome back to ${biz.name}!* \n\nHello ${customerName}, how may I assist you today? 🌟 \n\nYou can explore our menu, place an order, or book a table below. 👇`, "✨ Open Main Menu ✨", [
                     {
-                        title: "🛒 Ordering Options",
+                        title: "🛒 Ordering & Booking",
                         rows: [
-                            { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔🥤" },
-                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕🍰" }
+                            { id: "place_order", title: "🛍️ Place an Order", description: "Quick selection of your favorites 🍔 computational" },
+                            { id: "view_menu", title: "📜 View Digital Menu", description: "Browse our full catalog & deals 🍕🍰" },
+                            { id: "table_reservation", title: "🍽️ Table Reservation", description: "Reserve a table & select seating area 🪑" }
                         ]
                     },
                     {
@@ -1770,19 +2318,29 @@ RETURN ONLY JSON:
 
             if (result.intent === 'CANCEL_ORDER') {
                 const activeOrders = await pool.query(
-                    "SELECT order_reference, status FROM orders WHERE user_id = $1 AND customer_number = $2 AND status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY created_at DESC LIMIT 1",
+                    "SELECT id, order_reference, status FROM orders WHERE user_id = $1 AND customer_number = $2 AND status NOT IN ('COMPLETED', 'CANCELLED') ORDER BY created_at DESC LIMIT 1",
                     [userId, cleanNum]
                 );
 
                 if (activeOrders.rows.length > 0) {
                     const order = activeOrders.rows[0];
-                    const msg = `⚠️ *Cancellation Request Received*\n━━━━━━━━━━━━━━\n\nI've notified our team about your request to cancel order *${order.order_reference}*. \n\nSince it's already in the *${order.status}* stage, a member of our staff will assist you shortly to confirm the cancellation. 🙏`;
+                    const msg = `🛑 *Order Cancellation Requested*\n━━━━━━━━━━━━━━\n\nYour cancellation request for order *${order.order_reference || order.id}* has been sent to our kitchen team immediately. 🙏`;
                     await sendOfficialMessage(customerNumber, msg, userId);
 
-                    // Notify staff
-                    const staffNums = biz.notification_numbers || [];
-                    for (let num of staffNums) {
-                        await sendOfficialMessage(num, `🚨 *URGENT: CANCELLATION REQUEST!*\nCustomer ${customerName || customerNumber} wants to cancel order *${order.order_reference}* (Status: ${order.status}). Please check the dashboard!`, userId);
+                    // Notify staff & kitchen number
+                    const staffNums = Array.isArray(biz.notification_numbers) ? biz.notification_numbers : (biz.notification_numbers ? [biz.notification_numbers] : []);
+                    const kitchenNum = biz.kitchen_notification_number || biz.kitchen_phone;
+
+                    const notifyTargets = new Set();
+                    staffNums.forEach(n => notifyTargets.add(n));
+                    if (kitchenNum) notifyTargets.add(kitchenNum);
+
+                    const cancelText = `🚨 *URGENT: ORDER CANCELLED BY CUSTOMER!*\n━━━━━━━━━━━━━━\nOrder Ref: *${order.order_reference || order.id}*\nCustomer: ${customerName || customerNumber} (${cleanNum})\nPrevious Status: ${order.status}\n\nPlease stop preparing this order immediately!`;
+
+                    for (let targetNum of notifyTargets) {
+                        if (targetNum) {
+                            await sendOfficialMessage(targetNum, cancelText, userId);
+                        }
                     }
                 } else {
                     await sendOfficialMessage(customerNumber, "I couldn't find any active orders for you to cancel. If you have any concerns, please type 'support' to talk to us! 😊", userId);
@@ -1792,11 +2350,26 @@ RETURN ONLY JSON:
 
             if (result.intent === 'RESERVATION') {
                 if (result.reservation && result.reservation.date && result.reservation.time && result.reservation.guests) {
+                    const randomRef = `RES-${Math.floor(100000 + Math.random() * 900000)}`;
+                    let defaultSeating = 'Dining';
+                    try {
+                        const seatRes = await pool.query(
+                            `SELECT department_name FROM table_departments 
+                             WHERE (user_id = $1 OR outlet_id = $1 OR user_id = 2 OR outlet_id = 2) AND is_active = true 
+                             ORDER BY department_name ASC LIMIT 1`,
+                            [userId]
+                        );
+                        if (seatRes.rows.length > 0 && seatRes.rows[0].department_name) {
+                            defaultSeating = seatRes.rows[0].department_name;
+                        }
+                    } catch (e) {}
                     await pool.query(
-                        "INSERT INTO reservations (user_id, customer_name, customer_number, guests, reservation_date, reservation_time) VALUES ($1, $2, $3, $4, $5, $6)", 
-                        [userId, customerName || "Customer", cleanNum, result.reservation.guests, result.reservation.date, result.reservation.time]
+                        `INSERT INTO table_reservations 
+                         (user_id, outlet_id, reservation_ref, customer_name, customer_phone, guests_count, reservation_date, reservation_time, seating_preference, special_notes, status, created_at)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'PENDING', NOW())`,
+                        [userId, biz.id || userId, randomRef, customerName || "Customer", cleanNum, result.reservation.guests, result.reservation.date, result.reservation.time, defaultSeating, 'Booked via AI Chat']
                     );
-                    const msg = `✅ *Table Reserved!*\n━━━━━━━━━━━━━━\n\nWe have booked a table for *${result.reservation.guests} guests* on *${result.reservation.date}* at *${result.reservation.time}*.\n\nWe look forward to hosting you!`;
+                    const msg = `✅ *Table Reserved! (Pending Confirmation)*\n━━━━━━━━━━━━━━\n\nWe have received your reservation request for *${result.reservation.guests} guests* on *${result.reservation.date}* at *${result.reservation.time}* (Ref: ${randomRef}).\n\nOur team will confirm your table shortly!`;
                     await sendOfficialMessage(customerNumber, msg, userId);
                 } else {
                     await sendOfficialMessage(customerNumber, result.human_reply || "I'd love to help book a table. For what date, time, and how many guests?", userId);
@@ -1804,16 +2377,21 @@ RETURN ONLY JSON:
                 return;
             }
 
-            if (result.intent === 'ORDER_ITEM' && result.items && result.items.length > 0) {
+            const isOrderItem = result.intent === 'ORDER_ITEM' || 
+                                (result.intent && result.intent.toLowerCase().includes('order')) || 
+                                (result.items && Array.isArray(result.items) && result.items.length > 0);
+
+            if (isOrderItem && result.items && result.items.length > 0) {
                 let addedSummary = [];
                 let newCart = [...cart];
                 let ambiguousItems = [];
 
                 for (const aiItem of result.items) {
-                    if (!aiItem || !aiItem.name) continue; // Skip malformed items
+                    const itemName = aiItem.name || aiItem.item_name || aiItem.product_name || aiItem.item;
+                    if (!aiItem || !itemName) continue; // Skip malformed items
                     
                     // Step 1: Try exact match first
-                    const exactMatch = menu.find(i => i.product_name && i.product_name.toLowerCase() === aiItem.name.toLowerCase());
+                    const exactMatch = menu.find(i => i.product_name && i.product_name.toLowerCase() === itemName.toLowerCase());
                     
                     if (exactMatch) {
                         const qty = aiItem.quantity || aiItem.qty || 1;
@@ -1834,10 +2412,10 @@ RETURN ONLY JSON:
                     } else {
                         // Step 2: Find ALL fuzzy matches (Check name, category, or sub-category)
                         const rawFuzzyMatches = menu.filter(i => 
-                            i.product_name.toLowerCase().includes(aiItem.name.toLowerCase()) ||
-                            aiItem.name.toLowerCase().includes(i.product_name.toLowerCase()) ||
-                            (i.category && i.category.toLowerCase() === aiItem.name.toLowerCase()) ||
-                            (i.sub_category && i.sub_category.toLowerCase() === aiItem.name.toLowerCase())
+                            i.product_name.toLowerCase().includes(itemName.toLowerCase()) ||
+                            itemName.toLowerCase().includes(i.product_name.toLowerCase()) ||
+                            (i.category && i.category.toLowerCase() === itemName.toLowerCase()) ||
+                            (i.sub_category && i.sub_category.toLowerCase() === itemName.toLowerCase())
                         );
                         
                         // Deduplicate fuzzy matches by product_name
@@ -1887,18 +2465,13 @@ RETURN ONLY JSON:
                         const optData = amb.optData;
                         const qty = amb.qty;
                         
-                        const buttons = optData.options.map(opt => ({
-                            id: `opt_${opt.id}`,
-                            title: `${opt.name} (${symbol}${opt.price})`
-                        }));
-                        
                         let body = "";
                         if (addedSummary.length > 0) {
                             body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
                         }
                         body += `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
                         
-                        await sendButtons(customerNumber, body, buttons, userId);
+                        await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
                         
                         session.context.pending_option_selection = {
                             mainItem: { id: item.id, name: item.product_name },
@@ -1908,48 +2481,50 @@ RETURN ONLY JSON:
                         await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
                         return;
                     } else {
-                        // 🔥 SMART GROUPING: If > 10 matches, group by flavor
-                        if (amb.matches.length > 10) {
-                            const groups = {};
-                            amb.matches.forEach(m => {
-                                // Extract base name by removing Small/Medium/Large/Full/Half/Regular/etc
-                                const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega)\b/gi, '').trim();
-                                if (!groups[base]) groups[base] = [];
-                                groups[base].push(m);
-                            });
+                        // 🔥 SMART GROUPING: Group by base name (strip size words)
+                        const groups = {};
+                        amb.matches.forEach(m => {
+                            const base = m.product_name.replace(/\s(Small|Medium|Large|Full|Half|Regular|Personal|Monster|1kg|500g|250g|Quarter|Single|Double|Triple|Family|Party|Mega|Mini|XL|XXL|Jumbo|King|Extra)\b/gi, '').trim();
+                            if (!groups[base]) groups[base] = [];
+                            groups[base].push(m);
+                        });
 
-                            const groupNames = Object.keys(groups);
-                            if (groupNames.length > 1) {
-                                // Show Flavor List
-                                const rows = groupNames.slice(0, 10).map(name => ({
-                                    id: `group_${name}`,
-                                    title: name.substring(0, 24),
-                                    description: `See ${groups[name].length} sizes available`
-                                }));
-                                const body = `🍕 *Which flavor of ${amb.keyword} would you like?*\n━━━━━━━━━━━━━━\nWe have multiple sizes available for each! 👇`;
-                                await sendList(customerNumber, "Select Flavor", body, "✨ View Flavors ✨", [{ title: "Available Flavors", rows }], userId);
-                                
-                                session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty, is_group: true, groups };
-                                await updateSession(userId, cleanNum, 'IDLE', session.context);
-                                return;
+                        const groupNames = Object.keys(groups);
+                        if (groupNames.length > 1 && amb.matches.length > 3) {
+                            // Show Flavor/Type List with multi-section support
+                            const allGroupRows = await buildGroupRows(groupNames, groups, userId, symbol);
+                            const gSections = [];
+                            for (let i = 0; i < allGroupRows.length; i += 10) {
+                                gSections.push({ title: gSections.length === 0 ? `🍕 ${amb.keyword} Varieties` : `More Varieties`, rows: allGroupRows.slice(i, i + 10) });
                             }
+                            const body = `🍕 *Which type of ${amb.keyword} would you like?*\n━━━━━━━━━━━━━━\nWe found *${amb.matches.length}* items across *${groupNames.length}* varieties! 👇`;
+                            await sendList(customerNumber, "Select Type", body, "✨ View All Types ✨", gSections.slice(0, 10), userId);
+                            
+                            session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty, is_group: true, groups };
+                            await updateSession(userId, cleanNum, 'IDLE', session.context);
+                            return;
                         }
 
-                        // Standard 1-level list if <= 10 or grouping not possible
+                        // Show ALL items directly using multi-section list
                         session.context.pending_selection = { keyword: amb.keyword, qty: amb.qty };
                         await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                        const rows = amb.matches.slice(0, 10).map(m => ({
+                        const allRows = amb.matches.map(m => ({
                             id: m.product_name, 
                             title: m.product_name.substring(0, 24),
                             description: `${symbol}${m.price}`
                         }));
+                        const sections = [];
+                        for (let i = 0; i < allRows.length; i += 10) {
+                            sections.push({ title: sections.length === 0 ? `🔍 ${amb.keyword} Items` : `More Items`, rows: allRows.slice(i, i + 10) });
+                        }
 
                         let body = "";
                         if (addedSummary.length > 0) body += `✅ *Added to Bag:*\n${addedSummary.join('\n')}\n\n`;
-                        body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nPlease select the exact item from the list below. 👇`;
+                        const totalShown = sections.slice(0, 10).reduce((sum, s) => sum + s.rows.length, 0);
+                        body += `🤔 *Which "${amb.keyword}" did you mean?*\n━━━━━━━━━━━━━━\nShowing *${totalShown}* matching items. Select from the list below. 👇`;
                         
-                        await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", [{ title: "Available Options", rows }], userId);
+                        await sendList(customerNumber, "Select Item", body, "✨ View Options ✨", sections.slice(0, 10), userId);
                         return;
                     }
                 }
@@ -2059,12 +2634,28 @@ const handleMetaWebhook = async (body) => {
                              LIMIT 1`,
                             [metaPhoneId]
                         );
-                    if (userRes.rows.length === 0) {
-                        console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
-                        return;
-                    }
-                    const userId = userRes.rows[0].id;
-                    console.log(`👤 Found UserID: ${userId} for this webhook.`);
+
+                        let userId = userRes.rows[0]?.id;
+
+                        // Fallback: If exact meta_phone_id is not mapped, map to primary restaurant owner
+                        if (!userId) {
+                            console.warn(`⚠️ NO EXACT MATCH FOR metaPhoneId "${metaPhoneId}". Mapping to primary active restaurant account...`);
+                            const fallbackRes = await pool.query(
+                                `SELECT id FROM app_users WHERE meta_phone_id IS NOT NULL OR role IN ('user', 'brand_owner', 'master_admin') ORDER BY id ASC LIMIT 1`
+                            );
+                            userId = fallbackRes.rows[0]?.id;
+
+                            if (userId && metaPhoneId) {
+                                await pool.query("UPDATE app_users SET meta_phone_id = $1 WHERE id = $2 AND (meta_phone_id IS NULL OR meta_phone_id = '')", [metaPhoneId, userId]);
+                                console.log(`✅ Auto-linked metaPhoneId "${metaPhoneId}" to User ID ${userId}`);
+                            }
+                        }
+
+                        if (!userId) {
+                            console.error(`❌ NO USER FOUND for PhoneID: ${metaPhoneId}`);
+                            return;
+                        }
+                        console.log(`👤 Found UserID: ${userId} for this webhook.`);
 
                     // Trigger typing indicator immediately to simulate human-like behavior
                     if (message.id) {
@@ -2185,22 +2776,91 @@ const startAutoFollowupCron = () => {
     }, 60000);
 };
 
+const startWinBackCron = () => {
+    console.log("⏰ 30-Day Inactive Customer Win-Back Cron Started");
+    setInterval(async () => {
+        try {
+            const res = await pool.query(`
+                SELECT c.id, c.user_id, c.phone_number, c.name, c.last_order_at, u.business_name
+                FROM marketing_contacts c
+                JOIN app_users u ON c.user_id = u.id
+                WHERE c.is_blocked = false
+                  AND (c.last_winback_sent_at IS NULL OR c.last_winback_sent_at < NOW() - INTERVAL '30 days')
+                  AND (c.last_order_at < NOW() - INTERVAL '30 days' OR (c.last_order_at IS NULL AND c.created_at < NOW() - INTERVAL '14 days'))
+                LIMIT 5
+            `);
+
+            for (const c of res.rows) {
+                const nameStr = c.name ? ` ${c.name}` : '';
+                const bizName = c.business_name || 'SaSLoop';
+                const msg = `🎁 *We miss you at ${bizName}!*${nameStr} 👋\n━━━━━━━━━━━━━━\nIt's been a while since your last meal with us!\n\nHere is a special *15% OFF* voucher for your next order:\n🎟️ Use Code: *WELCOME15*\n\nTap *View Digital Menu* or reply to order now! 🍔 🥤`;
+                
+                await sendButtons(c.phone_number, msg, [
+                    { id: 'view_menu', title: '📜 View Digital Menu' },
+                    { id: 'place_order', title: '🛍️ Order Now' }
+                ], c.user_id);
+
+                await pool.query("UPDATE marketing_contacts SET last_winback_sent_at = NOW() WHERE id = $1", [c.id]);
+            }
+        } catch (e) { console.error("Win-Back Cron Error:", e.message); }
+    }, 6 * 60 * 60 * 1000);
+};
+
+const startReservationReminderCron = () => {
+    console.log("⏰ Reservation 1-Hour Advance Reminder Cron Started");
+    setInterval(async () => {
+        try {
+            const res = await pool.query(`
+                SELECT r.id, r.user_id, r.customer_name, r.customer_phone, r.customer_number, r.reservation_ref, r.reservation_date, r.reservation_time, r.guests_count, r.guests, u.business_name
+                FROM table_reservations r
+                JOIN app_users u ON r.user_id = u.id
+                WHERE r.status IN ('CONFIRMED', 'PENDING')
+                  AND (r.reminder_sent IS NULL OR r.reminder_sent = false)
+                  AND (r.reservation_date = CURRENT_DATE OR r.reservation_date::text = CURRENT_DATE::text)
+                  AND (r.created_at < NOW() - INTERVAL '5 minutes')
+                LIMIT 5
+            `);
+
+            for (const r of res.rows) {
+                const targetPhone = r.customer_phone || r.customer_number;
+                if (!targetPhone) continue;
+
+                const refStr = r.reservation_ref || `RES-${r.id}`;
+                const guests = r.guests_count || r.guests || 2;
+                const bizName = r.business_name || 'Restaurant';
+
+                const reminderMsg = `⏰ *TABLE RESERVATION REMINDER*\n━━━━━━━━━━━━━━\nHi ${r.customer_name || 'Guest'}! Your table reservation at *${bizName}* is coming up today!\n\n📋 *Ref:* ${refStr}\n🕒 *Time:* ${r.reservation_time || 'Soon'}\n👥 *Guests:* ${guests} People\n\nWe look forward to hosting you! Tap below if you need directions or support. 🙏`;
+
+                await sendButtons(targetPhone, reminderMsg, [
+                    { id: 'support', title: '📞 Contact Outlet' },
+                    { id: 'view_menu', title: '📜 View Menu' }
+                ], r.user_id);
+
+                await pool.query("UPDATE table_reservations SET reminder_sent = true WHERE id = $1", [r.id]);
+            }
+        } catch (e) { console.error("Reservation Reminder Cron Error:", e.message); }
+    }, 15 * 60 * 1000);
+};
+
 const startBackupCron = () => {
-    const cron = require("node-cron");
-    const { exec } = require("child_process");
-    cron.schedule('0 3 * * *', () => {
-        const scriptPath = path.join(__dirname, "scripts", "auto_backup.js");
-        exec(`node "${scriptPath}"`, (error, stdout) => {
-            if (error) console.error(`❌ [CRON] Backup Error: ${error.message}`);
-            else console.log(`✅ [CRON] Backup Output: ${stdout}`);
+    try {
+        const cron = require("node-cron");
+        const { exec } = require("child_process");
+        cron.schedule('0 3 * * *', () => {
+            const scriptPath = path.join(__dirname, "scripts", "auto_backup.js");
+            exec(`node "${scriptPath}"`, (error, stdout) => {
+                if (error) console.error(`❌ [CRON] Backup Error: ${error.message}`);
+                else console.log(`✅ [CRON] Backup Output: ${stdout}`);
+            });
         });
-    });
-    console.log("⏰ Database Backup Cron Scheduled (Daily 3:00 AM)");
+        console.log("⏰ Database Backup Cron Scheduled (Daily 3:00 AM)");
+    } catch (e) { console.error("Backup Cron Init Error:", e.message); }
 };
 
 module.exports = {
     handleMetaWebhook,
     sendOfficialMessage,
+    sendPdfDocument,
     sendButtons,
     sendList,
     getRecentChats,
@@ -2211,6 +2871,8 @@ module.exports = {
     startCartRecoveryCron,
     startAutoFollowupCron,
     startBackupCron,
+    startWinBackCron,
+    startReservationReminderCron,
     getWalletCredits,
     deductWalletCredits
 };

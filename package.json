@@ -8,7 +8,7 @@
         "tunnel": "node start-tunnel.js",
         "dev": "concurrently \"nodemon server.js\" \"node start-tunnel.js\"",
         "build": "npm run build-frontend",
-        "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && set \"NODE_OPTIONS=--max-old-space-size=4096\" && npm run build && cd .. && if exist dist rd /s /q dist && xcopy /E /I /Y SaSLoop-dashboard\\dist dist\\",
+        "build-frontend": "cd SaSLoop-dashboard && npm install --legacy-peer-deps && set \"NODE_OPTIONS=--max-old-space-size=4096\" && npm run build && cd .. && if exist dist rd /s /q dist && if exist SaSLoop-dashboard\\build xcopy /E /I /Y SaSLoop-dashboard\\build dist\\",
         "update-live": "git pull origin main && npm install && npm run build-frontend && pm2 restart SaSLoop-Backend && pm2 save",
         "test": "echo \"Error: no test specified\" && exit 1",
         "dev:local": "nodemon server.js"
@@ -36,6 +36,7 @@
         "jsonwebtoken": "^9.0.3",
         "node-cron": "^4.2.1",
         "nodemailer": "^9.0.1",
+        "pdfkit": "^0.19.1",
         "pg": "^8.20.0",
         "puppeteer": "^24.40.0",
         "qrcode": "^1.5.4",

@@ -6,6 +6,7 @@ const authMiddleware = require("../middleware/authMiddleware");
 const whatsappManager = require("../whatsappManager");
 const { triggerWebhook } = require("../utils/webhookUtils");
 const { Tag, tagsToBase64, ZATCA_TAGS } = require("../utils/zatcaUtils");
+const { deductInventoryForOrder } = require("../utils/inventoryDeduction");
 
 // Helper function to extract all possible variations of a phone number
 function getPhoneVariations(phone) {
@@ -127,8 +128,8 @@ async function awardLoyaltyPoints(order, userId) {
         // Log transaction
         await pool.query(
           `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
-           VALUES ($1, $2, 'POINTS_EARNED', 0.00, $3, $4, NOW())`,
-          [userId, targetPhone, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference}`]
+           VALUES ($1, $2, 'POINTS_EARNED', $3, $4, $5, NOW())`,
+          [userId, targetPhone, parseFloat(order.total_price) || 0.00, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference || order.id}`]
         );
       }
     }
@@ -495,31 +496,8 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    // --- HIGH-TECH: AUTOMATIC STOCK DEDUCTION (BOM) ---
-    try {
-        const parsedItems = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
-        for (const item of parsedItems) {
-            // Find recipe for this item
-            const recipeRes = await pool.query("SELECT raw_item_id, quantity FROM recipes WHERE menu_item_id = $1", [item.id]);
-            if (recipeRes.rows.length > 0) {
-                for (const ingredient of recipeRes.rows) {
-                    const deductQty = ingredient.quantity * (item.qty || 1);
-                    // Deduct from raw stock
-                    await pool.query(
-                        "UPDATE inventory_raw SET current_stock = current_stock - $1, updated_at = NOW() WHERE id = $2 AND business_id = $3",
-                        [deductQty, ingredient.raw_item_id, userId]
-                    );
-                    // Log the movement
-                    await pool.query(
-                        "INSERT INTO inventory_logs (raw_item_id, change_amount, type, reference, created_at) VALUES ($1, $2, $3, $4, NOW())",
-                        [ingredient.raw_item_id, -deductQty, 'SALE', `Order ${orderRef}`]
-                    );
-                }
-            }
-        }
-    } catch (stockErr) {
-        console.error("Stock Deduction Failed:", stockErr);
-    }
+    // --- AUTOMATIC STOCK DEDUCTION BASED ON CHANNEL SETTINGS ---
+    await deductInventoryForOrder(userId, items, source || order_type || 'POS', orderRef);
 
     // 🔥 Trigger KOT and Staff Notifications
     try {
@@ -825,6 +803,19 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
+// 🧹 DELETE ALL ORDERS FOR LOGGED IN BUSINESS
+router.delete("/clear-all", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.bizId;
+    const deleteRes = await pool.query("DELETE FROM orders WHERE user_id = $1 RETURNING id", [userId]);
+    console.log(`🧹 Cleared all ${deleteRes.rows.length} orders for user ${userId}`);
+    res.json({ message: `Successfully deleted ${deleteRes.rows.length} old orders.`, count: deleteRes.rows.length });
+  } catch (err) {
+    console.error("🔥 CLEAR ALL ORDERS ERROR:", err);
+    res.status(500).json({ error: "Failed to clear orders" });
+  }
+});
+
 // ✅ GET RECENT ORDERS (LIMIT 50)
 router.get("/recent", authMiddleware, async (req, res) => {
   try {
@@ -966,16 +957,81 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
         } else if (status === 'COMPLETED') {
             // 🏆 AWARD LOYALTY POINTS ON COMPLETION
             const pointsSummary = await awardLoyaltyPoints(order, userId);
+            const bizRow = bizRes.rows[0];
 
-            const isTable = order.table_number ? true : false;
-            if (isTable) {
-                updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5)!`;
-            } else {
-                updateMsg = `🏁 *Delivered:* Your order *${ref}* was successful. Enjoy!${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5) and any comments!`;
+            try {
+                const { generatePdfBuffer } = require('../utils/pdfGenerator');
+
+                // Send Official PDF Document Invoice via WhatsApp
+                const pdfBuffer = await generatePdfBuffer(order, bizRow);
+                const pdfFilename = `Invoice_${order.order_reference || order.bill_no || id}.pdf`;
+                await whatsappManager.sendPdfDocument(
+                    customerNumber,
+                    pdfBuffer,
+                    pdfFilename,
+                    userId,
+                    `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${ref}\nThank you for dining with us! 🙏✨`
+                );
+            } catch (rErr) {
+                console.error("PDF WhatsApp generation error:", rErr);
+            }
+
+            updateMsg = `⭐ *How was your experience today?*\nTap a rating below to let us know!`;
+
+            try {
+                await whatsappManager.sendButtons(customerNumber, updateMsg, [
+                    { id: 'rating_5', title: '⭐ 5 Stars (Great!)' },
+                    { id: 'rating_4', title: '⭐ 4 Stars' },
+                    { id: 'rating_3', title: '⭐ 1-3 Stars (Issue)' }
+                ], userId);
+                updateMsg = ""; // Handled via sendButtons
+            } catch (btnErr) {
+                console.warn("Failed to send rating buttons, fallback to text:", btnErr.message);
             }
         } else if (status === 'CANCELLED') {
             const finalReason = rejection_reason || order.rejection_reason;
             updateMsg = `❌ *Cancelled:* Your order *${ref}* has been cancelled.${finalReason ? `\nReason: *${finalReason}*` : ''}`;
+            
+            // 🔥 Notify kitchen & staff numbers that order has been cancelled
+            try {
+                const bizRow = bizRes.rows[0];
+                let staffList = [];
+                const rawStaff = bizRow?.notification_numbers;
+                if (Array.isArray(rawStaff)) {
+                    staffList = rawStaff;
+                } else if (typeof rawStaff === 'string') {
+                    try {
+                        const parsed = JSON.parse(rawStaff);
+                        staffList = Array.isArray(parsed) ? parsed : [rawStaff];
+                    } catch (e) {
+                        staffList = [rawStaff];
+                    }
+                }
+                if (bizRow?.phone) staffList.push(bizRow.phone);
+                if (bizRow?.contact_number) staffList.push(bizRow.contact_number);
+
+                const kitchenNum = bizRow?.kitchen_number || bizRow?.kitchen_phone;
+
+                const notifyTargets = new Set();
+                if (kitchenNum) {
+                    const cleanK = String(kitchenNum).replace(/[^0-9+]/g, '');
+                    if (cleanK.length >= 10) notifyTargets.add(cleanK);
+                }
+                staffList.forEach(n => {
+                    if (n && typeof n === 'string') {
+                        const clean = n.replace(/[^0-9+]/g, '');
+                        if (clean.length >= 10) notifyTargets.add(clean);
+                    }
+                });
+
+                const cancelAlert = `🛑 *ORDER CANCELLED!*\n━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nCustomer: ${order.customer_name || 'Customer'} (${order.customer_number || ''})\nReason: ${finalReason || 'Cancelled by Staff/Customer'}\n\nPlease stop preparation immediately! 🚫`;
+
+                for (let targetNum of notifyTargets) {
+                    await whatsappManager.sendOfficialMessage(targetNum, cancelAlert, userId);
+                }
+            } catch (staffCancelErr) {
+                console.error("Staff/Kitchen Cancellation Alert Error:", staffCancelErr);
+            }
             
             // 🔄 REFUND CREDIT ON CANCELLATION
             const creditRefundAmount = (String(order.payment_method).toUpperCase() === 'CREDIT')
@@ -1089,25 +1145,77 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ UPDATE PAYMENT STATUS
-router.put("/:id/payment", authMiddleware, async (req, res) => {
+// 🧹 DELETE ALL ORDERS FOR LOGGED IN BUSINESS
+router.delete("/clear-all", authMiddleware, async (req, res) => {
   try {
-    const { id } = req.params;
-    const { payment_status } = req.body;
     const userId = req.user.bizId;
-
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
-    if (checkRes.rows.length === 0) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [payment_status, id]);
-    res.json({ message: "Payment status updated" });
+    const deleteRes = await pool.query("DELETE FROM orders WHERE user_id = $1 RETURNING id", [userId]);
+    console.log(`🧹 Cleared all ${deleteRes.rows.length} orders for user ${userId}`);
+    res.json({ message: `Successfully deleted ${deleteRes.rows.length} old orders.`, count: deleteRes.rows.length });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: "Server error" });
+    console.error("🔥 CLEAR ALL ORDERS ERROR:", err);
+    res.status(500).json({ error: "Failed to clear orders" });
   }
 });
+
+// ✅ UPDATE PAYMENT STATUS (Received vs Not Received verification)
+const handlePaymentStatusUpdate = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { payment_status, paymentStatus } = req.body;
+    const targetStatus = String(payment_status || paymentStatus || 'RECEIVED').toUpperCase();
+    const userId = req.user?.bizId || req.user?.id;
+
+    // Support both numeric id AND string order_reference (e.g. "ONL-AQ8EOS" or 123)
+    let checkRes = await pool.query(
+      "SELECT * FROM orders WHERE (id::text = $1 OR order_reference = $1) AND (user_id = $2 OR user_id IS NOT NULL)",
+      [String(id), userId]
+    );
+
+    if (checkRes.rows.length === 0) {
+      checkRes = await pool.query(
+        "SELECT * FROM orders WHERE (id::text = $1 OR order_reference = $1) ORDER BY id DESC LIMIT 1",
+        [String(id)]
+      );
+    }
+
+    if (checkRes.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = checkRes.rows[0];
+
+    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [targetStatus, order.id]);
+
+    // Send customer WhatsApp notification if customer phone exists
+    try {
+      const custPhone = order.customer_number || order.customer_phone;
+      if (custPhone) {
+        const ref = order.order_reference || `#${order.id}`;
+        let payNotifMsg = "";
+        if (targetStatus === 'RECEIVED' || targetStatus === 'PAID' || targetStatus === 'VERIFIED') {
+          payNotifMsg = `✅ *Payment Verified!* Your online payment for Order *${ref}* has been received and verified. Thank you! 🍽️`;
+        } else if (targetStatus === 'NOT_RECEIVED' || targetStatus === 'UNPAID') {
+          payNotifMsg = `⚠️ *Payment Alert:* The restaurant was unable to verify your payment for Order *${ref}*. Please contact staff if you have paid.`;
+        }
+
+        if (payNotifMsg) {
+          await whatsappManager.sendOfficialMessage(custPhone, payNotifMsg, userId || order.user_id, `PAYMENT_${order.id}_${targetStatus}`);
+        }
+      }
+    } catch (notifErr) {
+      console.error("Payment status WhatsApp notification error:", notifErr);
+    }
+
+    res.json({ message: "Payment status updated", payment_status: targetStatus, order_id: order.id });
+  } catch (err) {
+    console.error("Payment status update error:", err);
+    res.status(500).json({ error: err.message || "Server error updating payment status" });
+  }
+};
+
+router.put("/:id/payment", authMiddleware, handlePaymentStatusUpdate);
+router.put("/:id/payment-status", authMiddleware, handlePaymentStatusUpdate);
 
 // 💸 ADD CHARGES TO ORDER (Dynamic Update)
 router.patch("/:id/charges", authMiddleware, async (req, res) => {

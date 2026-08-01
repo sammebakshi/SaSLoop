@@ -207,10 +207,18 @@ router.post("/config", authMiddleware, requireWhatsAppAccess, async (req, res) =
   try {
     const { meta_access_token, meta_phone_id, meta_account_id, target_user_id } = req.body;
     const targetId = target_user_id || req.user.bizId || req.user.id;
-    await pool.query(
-      "UPDATE app_users SET meta_access_token = $1, meta_phone_id = $2, meta_account_id = $3 WHERE id = $4",
-      [meta_access_token, meta_phone_id, meta_account_id || null, targetId]
-    );
+    
+    if (req.user.role === 'master_admin') {
+      await pool.query(
+        "UPDATE app_users SET meta_access_token = $1, meta_phone_id = $2, meta_account_id = $3",
+        [meta_access_token, meta_phone_id, meta_account_id || null]
+      );
+    } else {
+      await pool.query(
+        "UPDATE app_users SET meta_access_token = $1, meta_phone_id = $2, meta_account_id = $3 WHERE id = $4",
+        [meta_access_token, meta_phone_id, meta_account_id || null, targetId]
+      );
+    }
     res.json({ success: true, message: "Configuration saved successfully" });
   } catch(e) {
     res.status(500).json({ error: e.message });
