@@ -2292,35 +2292,47 @@ router.get("/analytics/z-report", authMiddleware, async (req, res) => {
 // ============================================
 
 router.get("/analytics/item-report", authMiddleware, async (req, res) => {
-  const { outlet_ids, from_date, to_date, category_id, order_type, top_n } = req.query;
+  const { outlet_ids, outlet_id, from_date, to_date, category_id, order_type, top_n } = req.query;
 
   try {
-    let query = `
-      SELECT 
-        item->>'name' as item_name,
-        AVG((item->>'price')::DECIMAL) as average_price,
-        SUM((item->>'quantity')::DECIMAL) as quantity,
-        SUM((item->>'price')::DECIMAL * (item->>'quantity')::DECIMAL) as total,
-        item->>'category' as parent_category
-      FROM orders o,
-      jsonb_array_elements(o.items) item
-      WHERE (o.user_id = $1 OR o.user_id = $2 OR o.restaurant_id IN (SELECT id FROM restaurants WHERE user_id = $1 OR user_id = $2 OR user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1 OR parent_user_id = $2)))
-    `;
-    
+    const targetOutlet = outlet_ids || outlet_id;
+    let outletCond = "";
     const params = [req.user.id, req.user.bizId];
     let pIdx = 3;
 
-    if (from_date) { query += ` AND o.created_at >= $${pIdx++}`; params.push(from_date); }
-    if (to_date) { query += ` AND o.created_at <= $${pIdx++}`; params.push(to_date); }
-    if (outlet_ids && outlet_ids !== 'All') {
-        const ids = outlet_ids.split(',');
-        query += ` AND o.restaurant_id = ANY($${pIdx++}::int[])`;
+    if (targetOutlet && targetOutlet !== 'All') {
+        const ids = targetOutlet.split(',');
+        outletCond = ` AND o.restaurant_id = ANY($${pIdx++}::int[])`;
         params.push(ids);
     }
 
-    query += ` GROUP BY item->>'name', item->>'category' ORDER BY quantity DESC`;
-    
-    if (top_n) { query += ` LIMIT $${pIdx++}`; params.push(top_n); }
+    let dateCond = "";
+    if (from_date) { dateCond += ` AND o.created_at >= $${pIdx++}`; params.push(from_date); }
+    if (to_date) { dateCond += ` AND o.created_at <= $${pIdx++}`; params.push(to_date); }
+
+    let limitCond = "";
+    if (top_n && !isNaN(parseInt(top_n))) {
+        limitCond = ` LIMIT $${pIdx++}`;
+        params.push(parseInt(top_n));
+    }
+
+    const query = `
+      SELECT 
+        COALESCE(NULLIF(item->>'product_name', ''), NULLIF(item->>'name', ''), NULLIF(item->>'item_name', ''), 'Unknown Item') as item_name,
+        AVG(COALESCE(NULLIF(item->>'price', ''), NULLIF(item->>'rate', ''), NULLIF(item->>'base_price', ''), '0')::DECIMAL) as average_price,
+        SUM(COALESCE(NULLIF(item->>'quantity', ''), NULLIF(item->>'qty', ''), '0')::DECIMAL) as quantity,
+        SUM(COALESCE(NULLIF(item->>'price', ''), NULLIF(item->>'rate', ''), NULLIF(item->>'base_price', ''), '0')::DECIMAL * COALESCE(NULLIF(item->>'quantity', ''), NULLIF(item->>'qty', ''), '0')::DECIMAL) as total,
+        COALESCE(NULLIF(item->>'category', ''), NULLIF(item->>'category_name', ''), 'General') as parent_category
+      FROM orders o,
+      jsonb_array_elements(o.items) item
+      WHERE (o.user_id = $1 OR o.user_id = $2 OR o.restaurant_id IN (SELECT id FROM restaurants WHERE user_id = $1 OR user_id = $2 OR user_id IN (SELECT id FROM app_users WHERE parent_user_id = $1 OR parent_user_id = $2)))
+      AND o.status NOT IN ('CANCELLED', 'DELETED', 'REFUNDED')
+      ${outletCond}
+      ${dateCond}
+      GROUP BY COALESCE(NULLIF(item->>'product_name', ''), NULLIF(item->>'name', ''), NULLIF(item->>'item_name', ''), 'Unknown Item'), COALESCE(NULLIF(item->>'category', ''), NULLIF(item->>'category_name', ''), 'General')
+      ORDER BY quantity DESC
+      ${limitCond}
+    `;
 
     const result = await pool.query(query, params);
     res.json(result.rows);
