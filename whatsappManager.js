@@ -1965,7 +1965,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- ⚡ MULTI-LINE ORDER FAST-TRACK PARSER ---
         if (lower.includes('\n')) {
             const lines = lower.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-            const batchItems = [];
+            const noOptionItems = [];
+            let optionItemToPick = null;
 
             for (const rawLine of lines) {
                 const lineMatch = rawLine.match(/^(.+?)\s+(\d+)$/) || rawLine.match(/^(\d+)\s+(.+?)$/);
@@ -1985,29 +1986,48 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 });
 
                 if (matchedItem) {
-                    batchItems.push({ item: matchedItem, qty: qtyPart });
+                    const optData = await getItemOptions(matchedItem.id, userId);
+                    if (optData && !optionItemToPick) {
+                        optionItemToPick = { item: matchedItem, optData, qty: qtyPart };
+                    } else {
+                        noOptionItems.push({ item: matchedItem, qty: qtyPart });
+                    }
                 }
             }
 
-            if (batchItems.length > 0) {
+            if (noOptionItems.length > 0 || optionItemToPick) {
                 const cart = session.context.cart || [];
-                for (const b of batchItems) {
+                for (const b of noOptionItems) {
                     const existing = cart.find(c => c.name === b.item.product_name);
                     if (existing) existing.qty += b.qty;
                     else cart.push({ id: b.item.id, name: b.item.product_name, qty: b.qty, price: b.item.price });
                 }
 
                 session.context.cart = cart;
-                await updateSession(userId, cleanNum, 'IDLE', session.context);
 
-                const cartSummaryLines = cart.map(i => `• ${i.qty}x *${i.name}*`).join('\n');
-                const cartTotal = cart.reduce((sum, i) => sum + (i.qty * i.price), 0);
+                if (optionItemToPick) {
+                    const { item, optData, qty } = optionItemToPick;
+                    const body = `😋 *Choose size/option for ${item.product_name}:*\n━━━━━━━━━━━━━━\nPlease select one of the sizes below:`;
+                    await sendOptionsPicker(customerNumber, body, optData.options, userId, symbol, item.product_name);
 
-                const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
-                await sendButtons(customerNumber, msg, [
-                    { id: 'checkout', title: '🛒 Checkout Now' },
-                    { id: 'place_order', title: '➕ Add More' }
-                ], userId);
+                    session.context.pending_option_selection = {
+                        mainItem: { id: item.id, name: item.product_name },
+                        options: optData.options,
+                        qty: qty
+                    };
+                    await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
+                } else {
+                    await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                    const cartSummaryLines = cart.map(i => `• ${i.qty}x *${i.name}*`).join('\n');
+                    const cartTotal = cart.reduce((sum, i) => sum + (i.qty * i.price), 0);
+
+                    const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
+                    await sendButtons(customerNumber, msg, [
+                        { id: 'checkout', title: '🛒 Checkout Now' },
+                        { id: 'place_order', title: '➕ Add More' }
+                    ], userId);
+                }
                 return;
             }
         }
@@ -2065,7 +2085,7 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     session.context.pending_option_selection = {
                         mainItem: { id: item.id, name: item.product_name },
                         options: optData.options,
-                        qty: 1
+                        qty: extractedQty || 1
                     };
                     await updateSession(userId, cleanNum, 'AWAITING_OPTION_SELECTION', session.context);
                 } else {
