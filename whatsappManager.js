@@ -1962,6 +1962,56 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             return;
         }
 
+        // --- ⚡ MULTI-LINE ORDER FAST-TRACK PARSER ---
+        if (lower.includes('\n')) {
+            const lines = lower.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+            const batchItems = [];
+
+            for (const rawLine of lines) {
+                const lineMatch = rawLine.match(/^(.+?)\s+(\d+)$/) || rawLine.match(/^(\d+)\s+(.+?)$/);
+                if (!lineMatch) continue;
+
+                const isTrailing = !!rawLine.match(/^(.+?)\s+(\d+)$/);
+                const namePart = (isTrailing ? lineMatch[1] : lineMatch[2]).trim().toLowerCase();
+                const qtyPart = parseInt(isTrailing ? lineMatch[2] : lineMatch[1]);
+
+                if (!namePart || isNaN(qtyPart) || qtyPart <= 0) continue;
+
+                const words = namePart.split(/\s+/);
+                const matchedItem = menu.find(i => {
+                    const pName = i.product_name.toLowerCase();
+                    return pName === namePart || pName.includes(namePart) || namePart.includes(pName) ||
+                           words.some(w => w.length >= 3 && pName.includes(w));
+                });
+
+                if (matchedItem) {
+                    batchItems.push({ item: matchedItem, qty: qtyPart });
+                }
+            }
+
+            if (batchItems.length > 0) {
+                const cart = session.context.cart || [];
+                for (const b of batchItems) {
+                    const existing = cart.find(c => c.name === b.item.product_name);
+                    if (existing) existing.qty += b.qty;
+                    else cart.push({ id: b.item.id, name: b.item.product_name, qty: b.qty, price: b.item.price });
+                }
+
+                session.context.cart = cart;
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
+
+                const cartSummaryLines = cart.map(i => `• ${i.qty}x *${i.name}*`).join('\n');
+                const cartTotal = cart.reduce((sum, i) => sum + (i.qty * i.price), 0);
+
+                const msg = `✅ *Added to Bag!*\n\n${cartSummaryLines}\n\n💰 *Total Bag: ${symbol}${cartTotal.toFixed(2)}*`;
+                await sendButtons(customerNumber, msg, [
+                    { id: 'checkout', title: '🛒 Checkout Now' },
+                    { id: 'place_order', title: '➕ Add More' }
+                ], userId);
+                return;
+            }
+        }
+
         // --- ⚡ FAST-TRACK MATCHING (Bypass AI for simple keywords & direct quantity items) ---
         let simpleLower = lower.trim();
         let extractedQty = null;

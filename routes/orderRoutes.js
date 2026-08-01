@@ -516,22 +516,15 @@ router.post("/", authMiddleware, async (req, res) => {
             triggerWebhook(biz, 'order.created', newOrder);
         }
 
-        // 🧾 Send Official PDF Document Invoice via WhatsApp if customer number present or ebill requested
+        // 🧾 Send Official Thermal Text Receipt via WhatsApp if customer number present or ebill requested
         const targetPhone = newOrder.customer_number || req.body.customer_phone || req.body.phone;
         if (targetPhone) {
             try {
-                const { generatePdfBuffer } = require('../utils/pdfGenerator');
-                const pdfBuffer = await generatePdfBuffer(newOrder, biz);
-                const pdfFilename = `Invoice_${newOrder.order_reference || newOrder.bill_no || newOrder.id}.pdf`;
-                await whatsappManager.sendPdfDocument(
-                    targetPhone,
-                    pdfBuffer,
-                    pdfFilename,
-                    userId,
-                    `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${newOrder.order_reference || '#' + newOrder.id}\nThank you for dining with us! 🙏✨`
-                );
+                const { generateTextReceipt } = require('../utils/pdfGenerator');
+                const receiptText = generateTextReceipt(newOrder, biz);
+                await whatsappManager.sendOfficialMessage(targetPhone, receiptText, userId);
             } catch (pErr) {
-                console.error("POS Order eBill PDF WhatsApp Error:", pErr);
+                console.error("POS Order eBill WhatsApp Error:", pErr);
             }
         }
     } catch (err) {
@@ -545,7 +538,7 @@ router.post("/", authMiddleware, async (req, res) => {
   }
 });
 
-// 📱 SEND WHATSAPP PDF EBILL ON DEMAND
+// 📱 SEND WHATSAPP EBILL ON DEMAND
 router.post("/:id/send-ebill", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
@@ -567,19 +560,12 @@ router.post("/:id/send-ebill", authMiddleware, async (req, res) => {
     const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
     const biz = bizRes.rows[0];
 
-    const { generatePdfBuffer } = require('../utils/pdfGenerator');
-    const pdfBuffer = await generatePdfBuffer(order, biz);
-    const pdfFilename = `Invoice_${order.order_reference || order.bill_no || id}.pdf`;
+    const { generateTextReceipt } = require('../utils/pdfGenerator');
+    const receiptText = generateTextReceipt(order, biz);
 
-    await whatsappManager.sendPdfDocument(
-      phone,
-      pdfBuffer,
-      pdfFilename,
-      userId,
-      `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${order.order_reference || '#' + id}\nThank you for dining with us! 🙏✨`
-    );
+    await whatsappManager.sendOfficialMessage(phone, receiptText, userId);
 
-    res.json({ success: true, message: "PDF eBill sent via WhatsApp successfully" });
+    res.json({ success: true, message: "Thermal text eBill sent via WhatsApp successfully" });
   } catch (err) {
     console.error("Failed to send WhatsApp eBill:", err);
     res.status(500).json({ error: err.message });
@@ -1020,20 +1006,13 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
             const bizRow = bizRes.rows[0];
 
             try {
-                const { generatePdfBuffer } = require('../utils/pdfGenerator');
+                const { generateTextReceipt } = require('../utils/pdfGenerator');
 
-                // Send Official PDF Document Invoice via WhatsApp
-                const pdfBuffer = await generatePdfBuffer(order, bizRow);
-                const pdfFilename = `Invoice_${order.order_reference || order.bill_no || id}.pdf`;
-                await whatsappManager.sendPdfDocument(
-                    customerNumber,
-                    pdfBuffer,
-                    pdfFilename,
-                    userId,
-                    `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${ref}\nThank you for dining with us! 🙏✨`
-                );
+                // Send Official Thermal Text Receipt via WhatsApp
+                const receiptText = generateTextReceipt(order, bizRow);
+                await whatsappManager.sendOfficialMessage(customerNumber, receiptText, userId);
             } catch (rErr) {
-                console.error("PDF WhatsApp generation error:", rErr);
+                console.error("WhatsApp Receipt generation error:", rErr);
             }
 
             updateMsg = `⭐ *How was your experience today?*\nTap a rating below to let us know!`;
