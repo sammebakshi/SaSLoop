@@ -515,6 +515,25 @@ router.post("/", authMiddleware, async (req, res) => {
         if (biz) {
             triggerWebhook(biz, 'order.created', newOrder);
         }
+
+        // 🧾 Send Official PDF Document Invoice via WhatsApp if customer number present or ebill requested
+        const targetPhone = newOrder.customer_number || req.body.customer_phone || req.body.phone;
+        if (targetPhone) {
+            try {
+                const { generatePdfBuffer } = require('../utils/pdfGenerator');
+                const pdfBuffer = await generatePdfBuffer(newOrder, biz);
+                const pdfFilename = `Invoice_${newOrder.order_reference || newOrder.bill_no || newOrder.id}.pdf`;
+                await whatsappManager.sendPdfDocument(
+                    targetPhone,
+                    pdfBuffer,
+                    pdfFilename,
+                    userId,
+                    `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${newOrder.order_reference || '#' + newOrder.id}\nThank you for dining with us! 🙏✨`
+                );
+            } catch (pErr) {
+                console.error("POS Order eBill PDF WhatsApp Error:", pErr);
+            }
+        }
     } catch (err) {
         console.error("POS Order Notification Error:", err);
     }
@@ -523,6 +542,47 @@ router.post("/", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("🔥 POS ORDER CREATE ERROR:", err);
     res.status(500).json({ error: "Failed to create POS order" });
+  }
+});
+
+// 📱 SEND WHATSAPP PDF EBILL ON DEMAND
+router.post("/:id/send-ebill", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.bizId;
+    const { target_phone } = req.body;
+
+    const orderRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
+    if (orderRes.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found" });
+    }
+
+    const order = orderRes.rows[0];
+    const phone = target_phone || order.customer_number;
+
+    if (!phone) {
+      return res.status(400).json({ error: "Customer phone number is required to send eBill" });
+    }
+
+    const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+    const biz = bizRes.rows[0];
+
+    const { generatePdfBuffer } = require('../utils/pdfGenerator');
+    const pdfBuffer = await generatePdfBuffer(order, biz);
+    const pdfFilename = `Invoice_${order.order_reference || order.bill_no || id}.pdf`;
+
+    await whatsappManager.sendPdfDocument(
+      phone,
+      pdfBuffer,
+      pdfFilename,
+      userId,
+      `🧾 *Official Tax Invoice & Receipt*\nOrder Ref: ${order.order_reference || '#' + id}\nThank you for dining with us! 🙏✨`
+    );
+
+    res.json({ success: true, message: "PDF eBill sent via WhatsApp successfully" });
+  } catch (err) {
+    console.error("Failed to send WhatsApp eBill:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
