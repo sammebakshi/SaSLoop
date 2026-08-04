@@ -1038,9 +1038,9 @@ const PublicOutletMenu = () => {
                   setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your logged-in number (${savedPhone}) does not match.`);
                 }
               } else {
-                // Table occupied without customer phone attached -> Allow logged-in customer access!
-                setIsTableAccessBlocked(false);
-                setIsTableLoginModalOpen(false);
+                // Table occupied without customer phone in POS -> Access Blocked!
+                setIsTableAccessBlocked(true);
+                setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied, but no customer mobile number is attached to this table in POS. Please ask the waiter for assistance.`);
               }
             } else {
               // Table AVAILABLE -> Access Granted!
@@ -1119,16 +1119,21 @@ const PublicOutletMenu = () => {
 
       if (statusData && statusData.status === "OCCUPIED") {
         const occupiedPhone = (statusData.customer_number || statusData.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
-        if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone !== cleanPhone) {
+        if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone === cleanPhone) {
+          // Same phone -> Access Granted!
+          setIsTableLoginModalOpen(false);
+          setIsTableAccessBlocked(false);
+          showToast(`✅ Welcome back! Table ${selectedTableNumber} verified.`);
+        } else if (occupiedPhone && occupiedPhone.length >= 10) {
           // Different phone -> Access Blocked!
           setTableLoginStep("BLOCKED");
           setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your mobile number (${cleanPhone}) does not match.`);
           setIsTableAccessBlocked(true);
         } else {
-          // Same phone OR no phone registered on table -> Access Granted!
-          setIsTableLoginModalOpen(false);
-          setIsTableAccessBlocked(false);
-          showToast(`✅ Welcome back! Table ${selectedTableNumber} verified.`);
+          // Table occupied without phone in POS -> Access Blocked!
+          setTableLoginStep("BLOCKED");
+          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied in POS, but no customer mobile number is attached to this table. Please ask the waiter for assistance.`);
+          setIsTableAccessBlocked(true);
         }
       } else {
         // Table available -> Access Granted!

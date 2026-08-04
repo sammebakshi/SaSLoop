@@ -464,42 +464,45 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
         let isOccupiedInState = false;
         let activeItemsInState = [];
         let stateCustomerNumber = null;
-
-        // Check global active_pos_state as well as device-specific active_pos_state keys
-        const posStateCandidates = [settings.active_pos_state];
-        Object.keys(settings).forEach(k => {
-            if (k.startsWith('active_pos_state_') && settings[k]) {
-                posStateCandidates.push(settings[k]);
-            }
-        });
-
-        for (const activePosState of posStateCandidates) {
-            if (!activePosState) continue;
-
+        const activePosState = settings.active_pos_state;
+        if (activePosState) {
             const tableBills = activePosState.tableBills || {};
             const tableStatuses = activePosState.tableStatuses || {};
-            const tableCustomers = activePosState.tableCustomers || activePosState.tableCustomerPhone || activePosState.tableCustomerNumbers || activePosState.tableCustomerData || {};
-            
-            // Check keys (e.g. "1" or "Table 1" or "table1")
-            const matchedKey = Object.keys(tableBills).find(k => String(k).replace(/^Table\s+/i, '').replace(/\s+/g, '').toLowerCase() === cleanTable.toLowerCase());
-            if (matchedKey && Array.isArray(tableBills[matchedKey]) && tableBills[matchedKey].length > 0) {
+            const tableCustomers = activePosState.tableCustomers || activePosState.tableCustomerPhone || {};
+            const posTables = Array.isArray(activePosState.tables) ? activePosState.tables : [];
+
+            // Find matching table object from posTables array (by table_name or name)
+            const matchedTableObj = posTables.find(t => String(t.table_name || t.name || t.id || '').replace(/^Table\s+/i, '').trim().toLowerCase() === cleanTable.toLowerCase());
+            const matchedTableId = matchedTableObj ? String(matchedTableObj.id) : null;
+
+            const isMatchingKey = (k) => {
+                if (!k) return false;
+                const str = String(k).trim();
+                if (str.replace(/^Table\s+/i, '').trim().toLowerCase() === cleanTable.toLowerCase()) return true;
+                if (matchedTableId && str.toLowerCase() === matchedTableId.toLowerCase()) return true;
+                return false;
+            };
+
+            // Check tableBills
+            const matchedBillKey = Object.keys(tableBills).find(k => isMatchingKey(k));
+            if (matchedBillKey && Array.isArray(tableBills[matchedBillKey]) && tableBills[matchedBillKey].length > 0) {
                 isOccupiedInState = true;
-                activeItemsInState = tableBills[matchedKey];
+                activeItemsInState = tableBills[matchedBillKey];
             }
-            
-            const matchedStatusKey = Object.keys(tableStatuses).find(k => String(k).replace(/^Table\s+/i, '').replace(/\s+/g, '').toLowerCase() === cleanTable.toLowerCase());
+
+            // Check tableStatuses
+            const matchedStatusKey = Object.keys(tableStatuses).find(k => isMatchingKey(k));
             if (matchedStatusKey && ['SAVED', 'OCCUPIED', 'RUNNING', 'BILL_PRINTED'].includes(String(tableStatuses[matchedStatusKey]).toUpperCase())) {
                 isOccupiedInState = true;
             }
 
-            const matchedCustKey = Object.keys(tableCustomers).find(k => String(k).replace(/^Table\s+/i, '').replace(/\s+/g, '').toLowerCase() === cleanTable.toLowerCase());
+            // Check tableCustomers
+            const matchedCustKey = Object.keys(tableCustomers).find(k => isMatchingKey(k));
             if (matchedCustKey) {
                 const val = tableCustomers[matchedCustKey];
-                if (typeof val === 'object' && val !== null) {
-                    stateCustomerNumber = val.phone || val.customer_number || val.mobile || val.customerPhone || val.customer_phone || val.number || null;
-                } else if (val) {
-                    stateCustomerNumber = String(val);
-                }
+                stateCustomerNumber = typeof val === 'object' 
+                    ? (val.customerPhone || val.phone || val.customer_number || val.number || val.mobile) 
+                    : String(val);
             }
         }
 
