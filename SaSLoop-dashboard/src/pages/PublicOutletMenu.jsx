@@ -1000,11 +1000,25 @@ const PublicOutletMenu = () => {
       .finally(() => setIsLoadingProfileData(false));
   }, [isProfileOpen, profile.phone, userSession?.phone, selectedOutletId]);
 
-  // 🪑 Table Status Check & Access Control on QR Scan
+  // 🪑 Table Status Check & WhatsApp OTP Gate on QR Scan
   useEffect(() => {
     if (selectedTableNumber && selectedOutletId) {
       setFulfillmentMode("DINE_IN");
 
+      const savedSession = userSession;
+      const savedPhone = (savedSession?.phone || profile?.phone || "").replace(/\D/g, "").slice(-10);
+
+      // 1. Force WhatsApp OTP login if user is not logged in
+      if (!savedSession?.isLoggedIn || savedPhone.length < 10) {
+        setIsTableLoginModalOpen(true);
+        setTableLoginStep("PHONE");
+        setTableLoginPhone("");
+        setTableLoginOtp("");
+        setTableLoginError("");
+        return;
+      }
+
+      // 2. User is logged in — auto-verify phone against table status
       fetch(`${API_BASE}/api/public/table-status/${selectedOutletId}/${encodeURIComponent(selectedTableNumber)}`)
         .then((r) => r.json())
         .then((data) => {
@@ -1012,24 +1026,32 @@ const PublicOutletMenu = () => {
             setTableStatusData(data);
             if (data.status === "OCCUPIED") {
               const occupiedPhone = (data.customer_number || data.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
-              const savedPhone = (userSession?.phone || profile?.phone || "").replace(/\D/g, "").slice(-10);
 
-              // Only block if table is registered under a DIFFERENT phone number
-              if (occupiedPhone && occupiedPhone.length >= 10 && savedPhone && savedPhone.length >= 10 && occupiedPhone !== savedPhone) {
-                setIsTableAccessBlocked(true);
-                setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}.`);
+              if (occupiedPhone && occupiedPhone.length >= 10) {
+                if (occupiedPhone === savedPhone) {
+                  // Phone MATCH -> Access Granted!
+                  setIsTableAccessBlocked(false);
+                  setIsTableLoginModalOpen(false);
+                } else {
+                  // Different phone -> Access Blocked!
+                  setIsTableAccessBlocked(true);
+                  setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your logged-in number (${savedPhone}) does not match.`);
+                }
               } else {
-                // Table has no phone in POS OR phone matches OR guest -> Allow direct menu access
-                setIsTableAccessBlocked(false);
+                // Table occupied without customer phone in POS -> Access Blocked!
+                setIsTableAccessBlocked(true);
+                setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied, but no customer mobile number is attached to this table in POS. Please ask the waiter for assistance.`);
               }
             } else {
+              // Table AVAILABLE -> Access Granted!
               setIsTableAccessBlocked(false);
+              setIsTableLoginModalOpen(false);
             }
           }
         })
         .catch((err) => console.error("Table status check error:", err));
     }
-  }, [selectedTableNumber, selectedOutletId, userSession?.phone, profile?.phone]);
+  }, [selectedTableNumber, selectedOutletId, userSession?.isLoggedIn, userSession?.phone, profile?.phone]);
 
   // 📲 Send WhatsApp OTP for Table Login
   const handleTableSendOtp = async () => {
@@ -1090,26 +1112,31 @@ const PublicOutletMenu = () => {
       setProfile(updatedProfile);
       localStorage.setItem("customer_profile", JSON.stringify(updatedProfile));
 
-      // Now check table status
+      // Now check table status against newly verified phone
       const statusRes = await fetch(`${API_BASE}/api/public/table-status/${selectedOutletId}/${encodeURIComponent(selectedTableNumber)}`);
       const statusData = await statusRes.json();
       setTableStatusData(statusData);
 
       if (statusData && statusData.status === "OCCUPIED") {
         const occupiedPhone = (statusData.customer_number || statusData.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
-        if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone !== cleanPhone) {
-          // Different phone — block
-          setTableLoginStep("BLOCKED");
-          setTableBlockedReason(`This table is currently occupied by another customer (phone ending in ****${occupiedPhone.slice(-4)}). You cannot place orders on this table.`);
-          setIsTableAccessBlocked(true);
-        } else {
-          // Same phone OR no phone registered on table -> Allow access!
+        if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone === cleanPhone) {
+          // Same phone -> Access Granted!
           setIsTableLoginModalOpen(false);
           setIsTableAccessBlocked(false);
-          showToast(`✅ Logged in! You can now order on Table ${selectedTableNumber}.`);
+          showToast(`✅ Welcome back! Table ${selectedTableNumber} verified.`);
+        } else if (occupiedPhone && occupiedPhone.length >= 10) {
+          // Different phone -> Access Blocked!
+          setTableLoginStep("BLOCKED");
+          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your mobile number (${cleanPhone}) does not match.`);
+          setIsTableAccessBlocked(true);
+        } else {
+          // Table occupied without phone in POS -> Access Blocked!
+          setTableLoginStep("BLOCKED");
+          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied in POS, but no customer mobile number is attached to this table. Please ask the waiter for assistance.`);
+          setIsTableAccessBlocked(true);
         }
       } else {
-        // Table available — allow access
+        // Table available -> Access Granted!
         setIsTableLoginModalOpen(false);
         setIsTableAccessBlocked(false);
         showToast(`✅ Logged in! You can now order on Table ${selectedTableNumber}.`);
