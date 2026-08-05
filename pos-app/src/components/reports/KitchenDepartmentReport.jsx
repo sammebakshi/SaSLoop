@@ -3,7 +3,7 @@ import {
   ChefHat, Search, Filter, Download, BarChart3, TrendingUp,
   Zap, CheckCircle2, RefreshCw, ChevronDown, Monitor, 
   Truck, Smartphone, Globe, Database, ListTree, Settings2, 
-  ShieldCheck, UtensilsCrossed, Flame, Clock, Scissors, ChevronRight
+  ShieldCheck, UtensilsCrossed, Flame, Clock, Scissors, ChevronRight, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
@@ -20,32 +20,154 @@ const KitchenDepartmentReport = () => {
         with_details: false
     });
 
-    const fetchData = async () => {
-        if (!filters.outlet_id) return;
+    const fetchData = () => {
         setLoading(true);
         try {
-            const q = new URLSearchParams(filters).toString();
-            const res = await fetch(`${API_BASE}/api/brand/analytics/kitchen-report?${q}`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            setData(await res.json());
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            const localOrdersRaw = localStorage.getItem('pos_local_orders');
+            const localOrders = localOrdersRaw ? JSON.parse(localOrdersRaw) : [];
+
+            const fromTime = filters.from_date ? new Date(filters.from_date + " 00:00:00").getTime() : 0;
+            const toTime = filters.to_date ? new Date(filters.to_date + " 23:59:59").getTime() : Infinity;
+
+            const deptMap = new Map();
+
+            if (Array.isArray(localOrders)) {
+                localOrders.forEach(order => {
+                    if (order.status === 'CANCELLED' || order.status === 'DELETED' || order.status === 'REFUNDED') return;
+                    const orderTime = order.created_at ? new Date(order.created_at).getTime() : Date.now();
+                    if (orderTime >= fromTime && orderTime <= toTime) {
+                        const items = Array.isArray(order.items) ? order.items : (typeof order.items === 'string' ? JSON.parse(order.items) : []);
+                        items.forEach(it => {
+                            if (it.isCancelled) return;
+                            const dept = it.kot_category || it.kitchen_department || 'Main Kitchen';
+                            const cat = it.category || it.category_name || 'General';
+                            const qty = parseFloat(it.quantity || it.qty || 1);
+                            const price = parseFloat(it.price || it.rate || it.base_price || 0);
+                            const total = qty * price;
+
+                            const key = `${dept}_${cat}`;
+                            if (deptMap.has(key)) {
+                                const curr = deptMap.get(key);
+                                curr.total_sold_items += qty;
+                                curr.total_amount += total;
+                                curr.item_level_total_charges += total;
+                            } else {
+                                deptMap.set(key, {
+                                    kitchen_department: dept,
+                                    category_name: cat,
+                                    total_sold_items: qty,
+                                    total_amount: total,
+                                    item_level_discount: 0,
+                                    item_level_total_charges: total
+                                });
+                            }
+                        });
+                    }
+                });
+            }
+
+            const list = Array.from(deptMap.values());
+            list.sort((a, b) => b.total_amount - a.total_amount);
+            setData(list);
+        } catch (e) {
+            console.error("Error calculating local kitchen report:", e);
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        const loadOutlets = async () => {
-            const res = await fetch(`${API_BASE}/api/brand/outlets`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            const d = await res.json();
-            setOutlets(d);
-            if (d.length > 0) setFilters(prev => ({ ...prev, outlet_id: d[0].id }));
-        };
-        loadOutlets();
-    }, []);
+        fetchData();
+    }, [filters.from_date, filters.to_date]);
 
-    useEffect(() => { fetchData(); }, [filters.outlet_id]);
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+        const totalItems = data.reduce((a, b) => a + parseFloat(b.total_sold_items || 0), 0);
+        const totalAmount = data.reduce((a, b) => a + parseFloat(b.total_amount || 0), 0);
+
+        const deptRows = data.map(k => `
+            <div class="flex-between">
+                <span class="bold" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(k.category_name || 'GENERAL').toUpperCase()}</span>
+                <span>x${parseFloat(k.total_sold_items || 0).toFixed(0)}</span>
+                <span class="bold">₹${parseFloat(k.total_amount || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Kitchen Department Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">KITCHEN REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>CATEGORY</span>
+                    <span>QTY</span>
+                    <span>AMOUNT</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${deptRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL ITEMS:</span>
+                    <span>${totalItems.toFixed(0)}</span>
+                </div>
+                <div class="flex-between bold">
+                    <span>TOTAL AMOUNT:</span>
+                    <span>₹${totalAmount.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -61,6 +183,13 @@ const KitchenDepartmentReport = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={data.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
+                    </button>
                     <button className="px-4 py-2 bg-orange-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-orange-500 transition-all flex items-center gap-2 shadow-md shadow-orange-600/10">
                         <Download className="w-3.5 h-3.5" /> Export Manifest
                     </button>

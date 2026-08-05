@@ -1,7 +1,0 @@
-{
-  "step_index": 2376,
-  "tool": "replace_file_content",
-  "description": "\"Display orderType in billing header if selectedTable is null.\"",
-  "instruction": "\"Change selectedTable?.tableName ?: \\\"Table\\\" to selectedTable?.tableName ?: orderType.\"",
-  "chunks": "\"                                        Text(\\n                                            text = selectedTable?.tableName ?: orderType,\\n                                            color = Color.White,\\n                                            fontWeight = FontWeight.ExtraBold,\\n                                            fontSize = 15.sp,\\n                                            textAlign = TextAlign.End,\\n                                            modifier = Modifier.weight(1f)\\n                                        )\""
-}

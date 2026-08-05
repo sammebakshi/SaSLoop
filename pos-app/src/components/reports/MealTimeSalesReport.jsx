@@ -3,7 +3,7 @@ import {
   Coffee, Utensils, Pizza, Moon, Clock, Search, Filter, 
   Download, BarChart3, TrendingUp, IndianRupee, Tag,
   CheckCircle2, RefreshCw, ChevronDown, Monitor, Truck, 
-  Smartphone, Globe, Database, ListTree, Settings2, ShieldCheck, Zap, X
+  Smartphone, Globe, Database, ListTree, Settings2, ShieldCheck, Zap, X, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
@@ -18,32 +18,152 @@ const MealTimeSalesReport = () => {
         to_date: new Date().toISOString().split('T')[0]
     });
 
-    const fetchData = async () => {
-        if (!filters.outlet_id) return;
+    const fetchData = () => {
         setLoading(true);
         try {
-            const q = new URLSearchParams(filters).toString();
-            const res = await fetch(`${API_BASE}/api/brand/analytics/meal-time-sales?${q}`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            setData(await res.json());
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            const localOrdersRaw = localStorage.getItem('pos_local_orders');
+            const localOrders = localOrdersRaw ? JSON.parse(localOrdersRaw) : [];
+
+            const fromTime = filters.from_date ? new Date(filters.from_date + " 00:00:00").getTime() : 0;
+            const toTime = filters.to_date ? new Date(filters.to_date + " 23:59:59").getTime() : Infinity;
+
+            const slots = {
+                'Breakfast': { total_orders: 0, total_revenue: 0 },
+                'Lunch': { total_orders: 0, total_revenue: 0 },
+                'Snacks': { total_orders: 0, total_revenue: 0 },
+                'Dinner': { total_orders: 0, total_revenue: 0 },
+                'Late Night': { total_orders: 0, total_revenue: 0 }
+            };
+
+            if (Array.isArray(localOrders)) {
+                localOrders.forEach(order => {
+                    if (order.status === 'CANCELLED' || order.status === 'DELETED' || order.status === 'REFUNDED') return;
+                    const d = order.created_at ? new Date(order.created_at) : new Date();
+                    const orderTime = d.getTime();
+                    if (orderTime >= fromTime && orderTime <= toTime) {
+                        const hr = d.getHours();
+                        let slotName = 'Late Night';
+                        if (hr >= 6 && hr <= 10) slotName = 'Breakfast';
+                        else if (hr >= 11 && hr <= 15) slotName = 'Lunch';
+                        else if (hr >= 16 && hr <= 18) slotName = 'Snacks';
+                        else if (hr >= 19 && hr <= 23) slotName = 'Dinner';
+
+                        const amount = parseFloat(order.total_price || 0);
+                        slots[slotName].total_orders += 1;
+                        slots[slotName].total_revenue += amount;
+                    }
+                });
+            }
+
+            const list = Object.entries(slots)
+                .filter(([_, v]) => v.total_orders > 0)
+                .map(([meal_slot_name, v]) => ({
+                    meal_slot_name,
+                    total_orders: v.total_orders,
+                    total_revenue: v.total_revenue,
+                    avg_order_value: v.total_orders > 0 ? (v.total_revenue / v.total_orders) : 0
+                }));
+
+            setData(list);
+        } catch (e) {
+            console.error("Error calculating local meal-time sales report:", e);
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        const loadOutlets = async () => {
-            const res = await fetch(`${API_BASE}/api/brand/outlets`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            const d = await res.json();
-            setOutlets(d);
-            if (d.length > 0) setFilters(prev => ({ ...prev, outlet_id: d[0].id }));
-        };
-        loadOutlets();
-    }, []);
+        fetchData();
+    }, [filters.from_date, filters.to_date]);
 
-    useEffect(() => { fetchData(); }, [filters.outlet_id]);
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+        const totalOrders = data.reduce((acc, curr) => acc + parseInt(curr.total_orders || 0), 0);
+        const totalRevenue = data.reduce((acc, curr) => acc + parseFloat(curr.total_revenue || 0), 0);
+
+        const slotRows = data.map(s => `
+            <div class="flex-between">
+                <span class="bold">${(s.meal_slot_name || 'SLOT').toUpperCase()}</span>
+                <span>${s.total_orders} orders</span>
+                <span class="bold">₹${parseFloat(s.total_revenue || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Meal-Slot Sales Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">MEAL-SLOT SALES REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>SLOT</span>
+                    <span>ORDERS</span>
+                    <span>REVENUE</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${slotRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL ORDERS:</span>
+                    <span>${totalOrders}</span>
+                </div>
+                <div class="flex-between bold">
+                    <span>TOTAL REVENUE:</span>
+                    <span>₹${totalRevenue.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
 
     return (
         <div className="space-y-6">
@@ -77,6 +197,13 @@ const MealTimeSalesReport = () => {
                          <input type="date" className="bg-transparent text-[10px] font-bold text-slate-700 outline-none" value={filters.to_date} onChange={e => setFilters({...filters, to_date: e.target.value})} />
                       </div>
                    </div>
+                   <button 
+                       onClick={handlePrintThermalReport}
+                       disabled={data.length === 0}
+                       className="h-9 px-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm flex items-center gap-2 disabled:opacity-50"
+                   >
+                       <Printer className="w-3.5 h-3.5" /> Print Thermal
+                   </button>
                    <button onClick={fetchData} className="h-9 px-6 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest transition-all shadow-sm">Sync Matrix</button>
                 </div>
             </div>

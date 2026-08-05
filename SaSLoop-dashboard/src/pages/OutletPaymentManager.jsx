@@ -571,6 +571,88 @@ const OutletPaymentManager = () => {
                     </div>
                 </div>
 
+                {/* Online Menu Order Payment Settings Sub-Card */}
+                <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-xl p-4 mb-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                            <span className="text-indigo-500 text-[14px]">🌐</span>
+                            <div>
+                                <h4 className="text-[12px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">Online Menu Order Payment Settings</h4>
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400">Configure the UPI ID used for online menu orders (menu.sasloop.in). Choose to use a dedicated UPI or the same one from your POS QR registry.</p>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={async () => {
+                                try {
+                                    const token = localStorage.getItem("token");
+                                    const impersonateId = sessionStorage.getItem("impersonate_id");
+                                    const target_user_id = (impersonateId && impersonateId !== "global") ? impersonateId : null;
+                                    const res = await fetch(`${API_BASE}/api/business/setup`, {
+                                        method: "POST",
+                                        headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+                                        body: JSON.stringify({
+                                            target_user_id,
+                                            settings: {
+                                                ...bizSettings,
+                                                online_order_upi_id: bizSettings.online_order_upi_id || '',
+                                                online_order_upi_source: bizSettings.online_order_upi_source || 'pos_qr'
+                                            }
+                                        })
+                                    });
+                                    if (res.ok) {
+                                        alert("Online Menu Payment Settings saved successfully!");
+                                        fetchBusinessStatus();
+                                    } else {
+                                        alert("Failed to update Online Menu payment settings");
+                                    }
+                                } catch (err) {
+                                    console.error("Failed to save online order UPI settings:", err);
+                                }
+                            }}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-[10px] font-black uppercase tracking-wider hover:bg-indigo-700 transition-all shadow-sm"
+                        >
+                            Save Online Order Settings
+                        </button>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">UPI Source for Online Menu Orders</label>
+                            <select
+                                value={bizSettings.online_order_upi_source || 'pos_qr'}
+                                onChange={e => setBizSettings(prev => ({ ...prev, online_order_upi_source: e.target.value }))}
+                                className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#161b22] text-[11px] font-bold text-slate-800 dark:text-white outline-none focus:border-indigo-500"
+                            >
+                                <option value="pos_qr">Use Same UPI from POS QR Registry (First Active QR)</option>
+                                <option value="dedicated">Use a Dedicated / Separate UPI ID for Online Orders</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                                {(bizSettings.online_order_upi_source === 'dedicated') ? 'Dedicated Online Order UPI ID / VPA' : 'Active POS QR UPI (Read Only)'}
+                            </label>
+                            {(bizSettings.online_order_upi_source === 'dedicated') ? (
+                                <input
+                                    type="text"
+                                    placeholder="e.g. onlineorders@upi or merchant@okaxis"
+                                    value={bizSettings.online_order_upi_id || ''}
+                                    onChange={e => setBizSettings(prev => ({ ...prev, online_order_upi_id: e.target.value }))}
+                                    className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 bg-white dark:bg-[#161b22] text-[11px] font-mono text-slate-800 dark:text-white outline-none focus:border-indigo-500"
+                                />
+                            ) : (
+                                <div className="h-10 px-3 rounded-lg border border-slate-200 dark:border-white/10 bg-slate-100 dark:bg-white/5 text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center">
+                                    {outletQrs.find(q => q.is_active)?.upi_id || 'No active POS QR found — add one above'}
+                                </div>
+                            )}
+                            <span className="text-[8.5px] text-slate-400">
+                                {(bizSettings.online_order_upi_source === 'dedicated') 
+                                    ? 'Online menu QR codes and "Open UPI App" will use this separate UPI ID.' 
+                                    : 'Online menu will automatically use the first active QR from your POS QR registry above.'}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
                 {/* WhatsApp Ordering Payment Settings Sub-Card */}
                 <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-4 mb-6 space-y-4">
                     <div className="flex items-center justify-between">

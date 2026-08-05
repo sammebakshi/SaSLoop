@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Monitor, Smartphone, Globe, Layers, 
   Plus, Search, RefreshCw, Filter, 
   Settings2, ShieldCheck, Database, Layout, ChevronRight,
   Wrench, Edit3, Trash2, Truck, Check, X, AlertTriangle, Info,
-  Image, MapPin, Palette, Coins, Clock
+  Image, MapPin, Palette, Coins, Clock, LayoutGrid
 } from "lucide-react";
 import API_BASE from "../config";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
@@ -132,6 +133,7 @@ const DEFAULT_SETTINGS = {
   // Payment Gateway Settings
   pgPayUSuccessUrl: "",
   pgPayUFailureUrl: "",
+  whatsapp_payment_modes: "BOTH",
   pgDineInCash: true,
   pgDineInCod: false,
   pgDineInPayLater: false,
@@ -302,6 +304,7 @@ const Toggle = ({ checked, onChange, disabled }) => (
 );
 
 const DigitalOrderSettings = () => {
+    const navigate = useNavigate();
     const [bizInfo, setBizInfo] = useState(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -1091,6 +1094,13 @@ const DigitalOrderSettings = () => {
                 </div>
                 <div className="flex items-center gap-2">
                     <button 
+                        onClick={() => navigate("/home-page-settings")}
+                        className="px-4 py-2 bg-slate-100 text-slate-700 hover:bg-slate-200 rounded-md font-bold text-[10px] uppercase tracking-widest transition-all flex items-center gap-2 border border-slate-200"
+                    >
+                        <LayoutGrid className="w-3.5 h-3.5 text-emerald-600" /> Home Page & Themes
+                    </button>
+
+                    <button 
                         onClick={() => setIsModalOpen(true)}
                         className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10"
                     >
@@ -1157,10 +1167,10 @@ const DigitalOrderSettings = () => {
                                             </button>
 
 
-                                            {/* 4. Palette */}
+                                            {/* 4. Palette - Home Page & Themes */}
                                             <button 
-                                                onClick={handleOpenThemeModal}
-                                                title="Branding & Themes"
+                                                onClick={() => navigate("/home-page-settings")}
+                                                title="Home Page & Theme Settings"
                                                 className="hover:text-emerald-400 transition-colors focus:outline-none"
                                             >
                                                 <Palette className="w-4 h-4" />
@@ -2138,6 +2148,25 @@ const DigitalOrderSettings = () => {
                                         </div>
                                     </div>
 
+                                    {/* WhatsApp Bot Payment Mode Setting */}
+                                    <div className="border-2 border-emerald-500/30 bg-emerald-50/20 rounded-lg p-4 space-y-3">
+                                        <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
+                                            <div>
+                                                <p className="text-[11px] font-bold text-emerald-900 uppercase tracking-wider">💬 WhatsApp Ordering Payment Mode</p>
+                                                <p className="text-[9px] text-slate-500 font-medium">Choose allowed payment methods when customers order via WhatsApp bot</p>
+                                            </div>
+                                        </div>
+                                        <select
+                                            value={settingsForm.whatsapp_payment_modes || 'BOTH'}
+                                            onChange={(e) => setSettingsForm({ ...settingsForm, whatsapp_payment_modes: e.target.value })}
+                                            className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-[11px] font-extrabold text-slate-800 outline-none focus:border-emerald-500 transition-all cursor-pointer"
+                                        >
+                                            <option value="BOTH">💳 BOTH (Allow Prepaid UPI & Cash on Delivery)</option>
+                                            <option value="UPI">🔒 PREPAID ONLY (Require Online UPI Payment First)</option>
+                                            <option value="COD">💵 CASH ON DELIVERY ONLY</option>
+                                        </select>
+                                    </div>
+
                                     {/* PG Dine In */}
                                     <div className="border border-slate-100 rounded-lg p-4 space-y-3">
                                         <div className="flex items-center justify-between border-b border-slate-100 pb-2">
@@ -3046,7 +3075,7 @@ const DigitalOrderSettings = () => {
                                             <button
                                                 type="button"
                                                 onClick={handleResetLandingColor}
-                                                className="px-2.5 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-[9px] uppercase tracking-wider transition-colors shrink-0"
+                                                className="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 border border-slate-200 rounded-lg font-bold text-[9px] uppercase tracking-wider transition-colors shrink-0"
                                             >
                                                 Reset Color
                                             </button>
@@ -3065,52 +3094,50 @@ const DigitalOrderSettings = () => {
                                     {/* Landing Page Background Image */}
                                     <div className="flex flex-col space-y-1.5">
                                         <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Landing Page Background Image</label>
-                                        <div className="flex flex-col gap-2">
-                                            <div className="flex items-center gap-2">
-                                                <div className="flex-1 px-3 py-2 border border-slate-200 rounded-lg text-slate-500 text-[11px] font-semibold bg-white min-h-[38px] flex items-center justify-between overflow-hidden">
-                                                    <span className="truncate">
-                                                        {themeForm.landingPageBgImage ? themeForm.landingPageBgImage.split('/').pop() : "Choose a file or drop it here..."}
-                                                    </span>
-                                                    {themeForm.landingPageBgImage && (
-                                                        <button 
-                                                            type="button" 
-                                                            onClick={handleClearThemeBgImage}
-                                                            className="text-slate-400 hover:text-rose-600 transition-colors"
-                                                        >
-                                                            <X className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => themeBgFileInputRef.current?.click()}
-                                                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-[10px] font-bold uppercase tracking-wider rounded-lg transition-colors border border-slate-200 shrink-0"
-                                                >
-                                                    Browse
-                                                </button>
+                                        <div className="flex items-center gap-2">
+                                            <div className="flex-1 min-w-0 px-3 py-2 border border-slate-200 rounded-lg text-slate-500 text-[11px] font-semibold bg-slate-50 h-[38px] flex items-center justify-between overflow-hidden">
+                                                <span className="truncate min-w-0 block">
+                                                    {themeForm.landingPageBgImage ? themeForm.landingPageBgImage.split('/').pop() : "Choose a file or drop..."}
+                                                </span>
+                                                {themeForm.landingPageBgImage && (
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={handleClearThemeBgImage}
+                                                        className="text-slate-400 hover:text-rose-600 transition-colors ml-1 shrink-0"
+                                                    >
+                                                        <X className="w-3.5 h-3.5" />
+                                                    </button>
+                                                )}
                                             </div>
-                                            
-                                            {/* Thumbnail Preview */}
-                                            {themeForm.landingPageBgImage && (
-                                                <div className="relative w-20 h-20 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 group">
-                                                    <img 
-                                                        src={themeForm.landingPageBgImage.startsWith('http') ? themeForm.landingPageBgImage : `${API_BASE}${themeForm.landingPageBgImage}`} 
-                                                        alt="Theme BG Preview" 
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                    <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                                        <button
-                                                            type="button"
-                                                            onClick={handleClearThemeBgImage}
-                                                            className="p-1 bg-white/90 hover:bg-white text-rose-600 rounded-full shadow"
-                                                            title="Remove Image"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            <button 
+                                                type="button"
+                                                onClick={() => themeBgFileInputRef.current && themeBgFileInputRef.current.click()}
+                                                disabled={uploadingThemeBg}
+                                                className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-lg font-bold text-[9px] uppercase tracking-wider transition-colors shrink-0 flex items-center justify-center gap-1 h-[38px]"
+                                            >
+                                                {uploadingThemeBg ? <RefreshCw className="w-3 h-3 animate-spin" /> : "Browse"}
+                                            </button>
                                         </div>
+                                        {/* Thumbnail Preview */}
+                                        {themeForm.landingPageBgImage && (
+                                            <div className="relative w-20 h-20 rounded-lg border border-slate-200 overflow-hidden bg-slate-50 group mt-2">
+                                                <img 
+                                                    src={themeForm.landingPageBgImage.startsWith('http') ? themeForm.landingPageBgImage : `${API_BASE}${themeForm.landingPageBgImage}`} 
+                                                    alt="Theme BG Preview" 
+                                                    className="w-full h-full object-cover"
+                                                />
+                                                <div className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleClearThemeBgImage}
+                                                        className="p-1 bg-white/90 hover:bg-white text-rose-600 rounded-full shadow"
+                                                        title="Remove Image"
+                                                    >
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -1,8 +1,0 @@
-{
-  "Description": "\"Add the countAdvanceInSales setting (default OFF) and editingPreOrder state for tracking pre-order fulfillment context during checkout.\"",
-  "Instruction": "\"1) Add countAdvanceInSales to the posSettings default object. 2) Add editingPreOrder state after the other pre-order states.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":1349,\"ReplacementContent\":\"      activeStaticUpiId: '',\\n      countAdvanceInSales: false\\n    };\",\"StartLine\":1348,\"TargetContent\":\"      activeStaticUpiId: ''\\n    };\"},{\"AllowMultiple\":false,\"EndLine\":608,\"ReplacementContent\":\"  const [showPreOrderList, setShowPreOrderList] = useState(false);\\n  const [editingPreOrder, setEditingPreOrder] = useState(null);\",\"StartLine\":608,\"TargetContent\":\"  const [showPreOrderList, setShowPreOrderList] = useState(false);\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Adding setting and state\"",
-  "toolSummary": "\"Settings and state update\""
-}

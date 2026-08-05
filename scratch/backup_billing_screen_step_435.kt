@@ -1,1 +1,0 @@
-"@OptIn(ExperimentalMaterial3Api::class)\n@Composable\nfun BillingScreen(billingViewModel: BillingViewModel, user: com.example.sasloopmanager.data.UserProfile? = null) {"

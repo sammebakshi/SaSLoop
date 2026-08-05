@@ -42,16 +42,17 @@ Remove-Item $SYNC_FILE -Force
 # 5. EXTRACT AND FORCE RESTART
 $REMOTE_CMD = @"
 cd $REMOTE_DIR
-git pull origin main
 # Extract the entire project we just sent
 rm -f .env
 tar -xzf $SYNC_FILE
 rm -f $SYNC_FILE
 
-npm install
-cd SaSLoop-dashboard
+mkdir -p pos-app/server/SaSLoop-dashboard/build
+mkdir -p pos-app/server/SaSLoop-dashboard/build_new
+cp -r SaSLoop-dashboard/build/* pos-app/server/SaSLoop-dashboard/build/
+cp -r SaSLoop-dashboard/build/* pos-app/server/SaSLoop-dashboard/build_new/
+
 npm install --production
-cd ..
 
 # NUCLEAR RESTART
 pm2 delete all

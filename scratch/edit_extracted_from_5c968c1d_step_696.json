@@ -1,8 +1,0 @@
-{
-  "Description": "\"Replace review QR code headings with professional heading RATE YOUR EXPERIENCE in App.jsx\"",
-  "Instruction": "\"Update the Google Review QR headings in both the printed template and receipt preview to \\\"RATE YOUR EXPERIENCE\\\"\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":6555,\"ReplacementContent\":\"             <div style=\\\"font-size: 11.5px; font-weight: bold; margin-bottom: 1mm;\\\">RATE YOUR EXPERIENCE</div>\",\"StartLine\":6548,\"TargetContent\":\"             <div style=\\\"font-size: 11.5px; font-weight: bold; margin-bottom: 1mm;\\\">SCAN TO REVIEW</div>\"},{\"AllowMultiple\":false,\"EndLine\":18045,\"ReplacementContent\":\"                                 <div className=\\\"font-bold text-[8.5px] mb-1 tracking-wide\\\">{previewQrMeta?.upiId === 'google_review' ? 'RATE YOUR EXPERIENCE' : 'SCAN TO PAY'}</div>\",\"StartLine\":18038,\"TargetContent\":\"                                 <div className=\\\"font-bold text-[8.5px] mb-1 tracking-wide\\\">{previewQrMeta?.upiId === 'google_review' ? 'SCAN TO REVIEW' : 'SCAN TO PAY'}</div>\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Replacing SCAN TO REVIEW with professional heading in App.jsx\"",
-  "toolSummary": "\"Edit App.jsx review headings\""
-}

@@ -547,6 +547,13 @@ const Dashboard = () => {
             const res = await fetch(`${url}${queryString}`, {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
             });
+            if (res.status === 401 || res.status === 403) {
+                console.warn("Unauthorized/Expired session detected. Clearing storage...");
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/login";
+                return;
+            }
             const data = await res.json();
             
             if (Array.isArray(data)) {

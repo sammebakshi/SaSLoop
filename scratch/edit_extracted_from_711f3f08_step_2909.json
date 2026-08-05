@@ -1,9 +1,0 @@
-{
-  "ArtifactMetadata": "{\"ArtifactType\":\"task\",\"Summary\":\"Update enclosing function signatures to async in App.jsx.\"}",
-  "Description": "\"Mark handleNewOrder, KOT Save, and KOT Print & Save handlers as async.\"",
-  "Instruction": "\"Mark handleNewOrder, KOT Save, and KOT Print & Save handlers as async.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":6005,\"ReplacementContent\":\"  const handleNewOrder = async () => {\",\"StartLine\":6003,\"TargetContent\":\"  const handleNewOrder = () => {\"},{\"AllowMultiple\":false,\"EndLine\":13953,\"ReplacementContent\":\"                          onClick={async () => {\",\"StartLine\":13951,\"TargetContent\":\"                          onClick={() => {\"},{\"AllowMultiple\":false,\"EndLine\":13991,\"ReplacementContent\":\"                          onClick={async () => {\",\"StartLine\":13989,\"TargetContent\":\"                          onClick={() => {\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Making button handlers async\"",
-  "toolSummary": "\"Modify App.jsx\""
-}

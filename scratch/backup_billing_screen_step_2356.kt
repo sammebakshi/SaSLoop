@@ -1,1 +1,0 @@
-"    // Combine old KOT items + new cart items for billing\n    val billingItems = remember(oldKotItems, cart) {\n        val combined = oldKotItems.toMutableMap()\n        cart.forEach { (item, qty) ->\n            combined[item] = (combined[item] ?: 0) + qty\n        }\n        combined.toMap()\n    }"

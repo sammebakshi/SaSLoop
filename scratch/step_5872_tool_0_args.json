@@ -1,7 +1,0 @@
-{
-  "CommandLine": "\"node -e \\\"\\nconst fs = require('fs');\\nconst readline = require('readline');\\n\\nconst rl = readline.createInterface({\\n  input: fs.createReadStream('C:\\\\\\\\\\\\\\\\Users\\\\\\\\\\\\\\\\Sajad\\\\\\\\\\\\\\\\.gemini\\\\\\\\\\\\\\\\antigravity-ide\\\\\\\\\\\\\\\\brain\\\\\\\\\\\\\\\\832fe37e-cc6a-4502-a268-fc8186b73341\\\\\\\\\\\\\\\\.system_generated\\\\\\\\\\\\\\\\logs\\\\\\\\\\\\\\\\transcript.jsonl'),\\n  output: process.stdout,\\n  terminal: false\\n});\\n\\nlet found = [];\\nlet step = 0;\\nrl.on('line', (line) => {\\n  if (line.includes('isCouponModalOpen') && line.includes('tool_calls')) {\\n    found.push({ step, line });\\n  }\\n  step++;\\n});\\n\\nrl.on('close', () => {\\n  console.log('Found tool call occurrences with isCouponModalOpen:', found.length);\\n  found.forEach(f => {\\n    try {\\n      const parsed = JSON.parse(f.line);\\n      console.log('Step ' + f.step + ' type: ' + parsed.type + ' status: ' + parsed.status);\\n      parsed.tool_calls.forEach(tc => {\\n        console.log('  Tool name:', tc.name);\\n        if (tc.args && tc.args.TargetFile) {\\n          console.log('  TargetFile:', tc.args.TargetFile);\\n        }\\n      });\\n    } catch(e) {}\\n  });\\n});\\n\\\"\"",
-  "Cwd": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\"",
-  "WaitMsBeforeAsync": "5000",
-  "toolAction": "\"Searching tool calls for isCouponModalOpen\"",
-  "toolSummary": "\"Searching tool calls for isCouponModalOpen\""
-}

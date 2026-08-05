@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Shield, ShoppingCart, History, Settings, User, Search, Plus, Trash2, Edit, Pencil, Upload, MessageSquare,
   LogOut, Utensils, Zap, Sun, Moon, Home, TrendingUp, Calendar,
@@ -8,7 +8,7 @@ import {
   Filter, Download, ChevronRight, Eye, ChevronDown, Clock, ArrowRight, ArrowLeft,
   Users, UserPlus, Percent, Tag, Calculator, Mail, Lock, EyeOff, AlertCircle, Gift, Award, Heart,
   Coffee, Wallet, BellRing, DollarSign, Bike, FileX, FileCheck, Coins,
-  Minus, Square, X, Power, VolumeX
+  Minus, Square, X, Power, VolumeX, MapPin, Check
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { posService, authService, API_BASE, updateApiBaseUrl } from './services/api';
@@ -18,6 +18,9 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import QRCode from 'qrcode';
 import * as XLSX from 'xlsx';
+
+// Global helper for deduplicating customer database objects by phone number
+const getUniqueCustomers = (db) => Array.from(new Map(Object.values(db || {}).map(c => [c.phone || c.customer_number || c.number, c])).values());
 
 // Electron window.prompt override fallback for Windows
 if (typeof window !== 'undefined' && window.process && window.process.versions && window.process.versions.electron) {
@@ -1369,6 +1372,17 @@ const formatDateTime = (dateStr) => {
   return `${day}-${month}-${year} ${formattedHours}:${minutes}:${seconds} ${ampm}`;
 };
 
+const getOrderTypeLabel = (rawType) => {
+  if (!rawType) return 'TAKEAWAY';
+  const t = String(rawType).toUpperCase();
+  if (t.includes('DELIVERY')) return 'DELIVERY';
+  if (t.includes('PICKUP') || t.includes('TAKEAWAY') || t.includes('TAKE_AWAY')) return 'TAKEAWAY';
+  if (t.includes('DINE')) return 'DINE IN';
+  if (t.includes('QUICK')) return 'QUICK BILL';
+  if (t.includes('PRE_ORDER') || t.includes('PREORDER')) return 'PRE-ORDER';
+  return t;
+};
+
 const getReceiptSubtotal = (receipt) => {
   if (!receipt) return 0;
   if (parseFloat(receipt.subtotal || 0) > 0) {
@@ -1651,6 +1665,7 @@ try {
 }
 
 const UniversalPOS = () => {
+  const [selectedTable, setSelectedTable] = useState(null);
   const checkPosAccess = (moduleName, permissionName) => {
     if (!business) return true;
     const userRole = String(business?.role || '').toLowerCase();
@@ -2110,6 +2125,7 @@ const UniversalPOS = () => {
   const [cart, setCart] = useState([]);
 
   const [dineInCart, setDineInCart] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return [];
     try {
       const saved = localStorage.getItem('pos_dinein_cart');
       return saved ? JSON.parse(saved) : [];
@@ -2117,6 +2133,7 @@ const UniversalPOS = () => {
   });
 
   const [pickupCart, setPickupCart] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return [];
     try {
       const saved = localStorage.getItem('pos_pickup_cart');
       return saved ? JSON.parse(saved) : [];
@@ -2124,6 +2141,7 @@ const UniversalPOS = () => {
   });
 
   const [quickCart, setQuickCart] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return [];
     try {
       const saved = localStorage.getItem('pos_quick_cart');
       return saved ? JSON.parse(saved) : [];
@@ -2131,6 +2149,7 @@ const UniversalPOS = () => {
   });
 
   const [preOrderCart, setPreOrderCart] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return [];
     try {
       const saved = localStorage.getItem('pos_preorder_cart');
       return saved ? JSON.parse(saved) : [];
@@ -2138,26 +2157,32 @@ const UniversalPOS = () => {
   });
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_tables', JSON.stringify(tables));
   }, [tables]);
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_dinein_cart', JSON.stringify(dineInCart));
   }, [dineInCart]);
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_pickup_cart', JSON.stringify(pickupCart));
   }, [pickupCart]);
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_quick_cart', JSON.stringify(quickCart));
   }, [quickCart]);
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_preorder_cart', JSON.stringify(preOrderCart));
   }, [preOrderCart]);
 
   const [tableCarts, setTableCarts] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return {};
     try {
       const saved = localStorage.getItem('pos_table_carts');
       return saved ? JSON.parse(saved) : {};
@@ -2165,6 +2190,7 @@ const UniversalPOS = () => {
   });
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_table_carts', JSON.stringify(tableCarts));
   }, [tableCarts]);
 
@@ -2199,6 +2225,7 @@ const UniversalPOS = () => {
   };
 
   const [tableStatuses, setTableStatuses] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return {};
     try {
       const saved = localStorage.getItem('pos_table_statuses');
       return saved ? JSON.parse(saved) : {};
@@ -2206,10 +2233,12 @@ const UniversalPOS = () => {
   });
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_table_statuses', JSON.stringify(tableStatuses));
   }, [tableStatuses]);
 
   const [tableBills, setTableBills] = useState(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return {};
     try {
       const saved = localStorage.getItem('pos_table_bills');
       return saved ? JSON.parse(saved) : {};
@@ -2217,8 +2246,32 @@ const UniversalPOS = () => {
   });
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     localStorage.setItem('pos_table_bills', JSON.stringify(tableBills));
   }, [tableBills]);
+
+  // Automatically purge vacant ghost temporary tables (e.g. settled/empty Pickup or Delivery temp tables)
+  useEffect(() => {
+    setTables(prev => {
+      const hasGhostTemp = prev.some(t => {
+        if (!t.is_temporary) return false;
+        if (selectedTable && selectedTable.id === t.id) return false;
+        const hasBillItems = (tableBills[t.id] || []).some(item => !item.isCancelled);
+        const hasCartItems = (tableCarts[t.id] || []).length > 0;
+        return !hasBillItems && !hasCartItems;
+      });
+
+      if (!hasGhostTemp) return prev;
+
+      return prev.filter(t => {
+        if (!t.is_temporary) return true;
+        if (selectedTable && selectedTable.id === t.id) return true;
+        const hasBillItems = (tableBills[t.id] || []).some(item => !item.isCancelled);
+        const hasCartItems = (tableCarts[t.id] || []).length > 0;
+        return hasBillItems || hasCartItems;
+      });
+    });
+  }, [tableBills, tableCarts, selectedTable]);
 
 
 
@@ -2361,6 +2414,7 @@ const UniversalPOS = () => {
   const [inventoryItems, setInventoryItems] = useState([]);
   const [isReservationModalOpen, setIsReservationModalOpen] = useState(false);
   const [reservations, setReservations] = useState([]);
+  const [reservationTabView, setReservationTabView] = useState('active');
   const [isOldKOTModalOpen, setIsOldKOTModalOpen] = useState(false);
   const [printKOT, setPrintKOT] = useState(true);
   const [printCancelledKOT, setPrintCancelledKOT] = useState(true);
@@ -3046,7 +3100,7 @@ const UniversalPOS = () => {
           'Authorization': `Bearer ${localStorage.getItem('pos_token')}`
         }
       })
-      .then(res => res.json())
+      .then(res => (res.ok && res.headers.get("content-type")?.includes("json")) ? res.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
           setInventoryItems(data);
@@ -3056,31 +3110,60 @@ const UniversalPOS = () => {
     }
   }, [isInventoryModalOpen]);
 
-  useEffect(() => {
-    if (isReservationModalOpen) {
-      fetch(`${API_BASE}/api/reservations`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('pos_token')}`
-        }
-      })
-      .then(res => res.json())
+  const isInitialReservationFetchRef = useRef(true);
+  const prevReservationCountRef = useRef(0);
+  const fetchReservations = useCallback(() => {
+    const token = localStorage.getItem('pos_token') || localStorage.getItem('token');
+    if (!token) return;
+
+    fetch(`${API_BASE}/api/reservations`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => (res.ok && res.headers.get("content-type")?.includes("json")) ? res.json() : [])
       .then(data => {
         if (Array.isArray(data)) {
+          const pendingCount = data.filter(r => String(r.status || '').toUpperCase() === 'PENDING').length;
+          
+          if (pendingCount > 0) {
+            if (pendingCount > prevReservationCountRef.current || isInitialReservationFetchRef.current) {
+              try {
+                toast.info(`🍽️ NEW TABLE RESERVATION RECEIVED! (${pendingCount} Pending)`, { autoClose: 10000 });
+                startLoopingSound();
+              } catch (e) {}
+            }
+          }
+
+          isInitialReservationFetchRef.current = false;
+          prevReservationCountRef.current = pendingCount;
           setReservations(data);
         }
       })
       .catch(err => console.error("Failed to fetch reservations:", err));
-    }
-  }, [isReservationModalOpen]);
+  }, []);
+
+  useEffect(() => {
+    fetchReservations();
+    const interval = setInterval(fetchReservations, 5000);
+    return () => clearInterval(interval);
+  }, [fetchReservations]);
 
   const [recentOrders, setRecentOrders] = useState(() => {
+    const clearedAtStr = localStorage.getItem('pos_sales_cleared_at');
+    const clearedAtTime = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
     try {
       const saved = localStorage.getItem('pos_local_orders');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      if (!Array.isArray(parsed)) return [];
+      if (clearedAtTime > 0) {
+        return parsed.filter(o => o && new Date(o.created_at || o.timestamp || 0).getTime() >= clearedAtTime);
+      }
+      return parsed;
     } catch (e) { return []; }
   });
 
   useEffect(() => {
+    if (localStorage.getItem('pos_sales_data_cleared') === 'true') return;
     const seenIds = new Set();
     const seenBillNos = new Set();
     const uniqueOrders = (recentOrders || []).filter(o => {
@@ -3294,30 +3377,46 @@ const UniversalPOS = () => {
   };
 
   // Centralized Receipts & Digital Orders Fetching Function
-  const fetchOrdersForMode = async (mode, start = receiptsStartDate, end = receiptsEndDate) => {
+  const fetchOrdersForMode = async (mode, start = receiptsStartDate, end = receiptsEndDate, isManualRefresh = false) => {
     if (!isAuthenticated) return;
     setFetchingOrders(true);
     try {
       let serverOrders = [];
-      try {
-        const res = await posService.getOrders();
-        if (res && res.data && Array.isArray(res.data)) {
-          serverOrders = res.data;
+      const isSalesCleared = localStorage.getItem('pos_sales_data_cleared') === 'true';
+      const isDigitalMode = mode === 'digital' || activeTab === 'digital';
+
+      if (!isSalesCleared && (isManualRefresh || isDigitalMode)) {
+        try {
+          const res = await posService.getOrders();
+          if (res && res.data && Array.isArray(res.data)) {
+            serverOrders = res.data;
+          }
+        } catch (sErr) {
+          console.warn("Failed to fetch server orders, using local fallback:", sErr);
         }
-      } catch (sErr) {
-        console.warn("Failed to fetch server orders, using local fallback:", sErr);
+      }
+
+      // Filter out any historical orders created prior to clearance timestamp
+      const clearedAtStr = localStorage.getItem('pos_sales_cleared_at');
+      const clearedAtTime = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
+      if (clearedAtTime > 0) {
+        serverOrders = serverOrders.filter(o => o && new Date(o.created_at || o.timestamp || 0).getTime() >= clearedAtTime);
       }
 
       // Merge server orders with local unsynced orders
-      const localUnsynced = (recentOrders || []).filter(o => o.synced === false || String(o.id).startsWith('L-'));
-      const combined = [...serverOrders];
-      const seenIds = new Set(serverOrders.map(o => String(o.id)));
+      const localUnsynced = (recentOrders || []).filter(o => o && (o.synced === false || String(o.id).startsWith('L-')));
+      let combined = (isDigitalMode || isManualRefresh) ? [...serverOrders] : [...(recentOrders || [])];
+      const seenIds = new Set(combined.map(o => String(o.id)));
 
       localUnsynced.forEach(lo => {
         if (!seenIds.has(String(lo.id))) {
           combined.push(lo);
         }
       });
+
+      if (clearedAtTime > 0) {
+        combined = combined.filter(o => o && new Date(o.created_at || o.timestamp || 0).getTime() >= clearedAtTime);
+      }
 
       const sorted = combined.sort((a, b) => new Date(b.created_at || b.timestamp) - new Date(a.created_at || a.timestamp));
       setRecentOrders(sorted);
@@ -3329,28 +3428,19 @@ const UniversalPOS = () => {
     }
   };
 
-  // Auto-fetch hook for Receipts filtering changes & background polling
+  // Auto-fetch hook ONLY for Digital / Online Orders tab background polling (Sales data is NOT fetched on login)
   useEffect(() => {
     let pollInterval;
-    if (isAuthenticated && (activeTab === 'receipts' || activeTab === 'live')) {
-      fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);
-
-      // Poll every 10 seconds for new receipts/live orders
+    if (isAuthenticated && activeTab === 'digital') {
+      fetchOrdersForMode('digital');
       pollInterval = setInterval(() => {
-        fetchOrdersForMode(receiptsDateMode, receiptsStartDate, receiptsEndDate);
-      }, 10000);
+        fetchOrdersForMode('digital');
+      }, 5000);
     }
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [receiptsDateMode, receiptsStartDate, receiptsEndDate, activeTab, isAuthenticated]);
-
-  // Auto-fetch dashboard stats when switching to the home/dashboard tab
-  useEffect(() => {
-    if (isAuthenticated && activeTab === 'home') {
-      fetchDashboardStatsFromServer();
-    }
-  }, [activeTab, isAuthenticated]);
+  }, [digitalDateMode, digitalStartDate, digitalEndDate, activeTab, isAuthenticated]);
 
   // Auto-fetch and poll hook for digital orders
   useEffect(() => {
@@ -4706,7 +4796,6 @@ const UniversalPOS = () => {
   };
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTable, setSelectedTable] = useState(null);
   const [selectedLiveOrderId, setSelectedLiveOrderId] = useState(null);
   const [activeDepartment, setActiveDepartment] = useState('All');
   
@@ -4988,7 +5077,7 @@ const UniversalPOS = () => {
       setPreviewQrMeta(null);
       return;
     }
-    const payeeName = business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
+    const payeeName = business?.business_name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
     const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(e => e.is_active);
 
     if (!activeEntry) {
@@ -5303,9 +5392,9 @@ const UniversalPOS = () => {
     }
   }, [business, isAuthenticated, activeTab]);
 
-  const handleLogoutFlow = async (clearData, force = false) => {
+  const handleLogoutFlow = async (clearData) => {
     if (clearData) {
-      // Check for active carts or busy tables first
+      // 1. Check for active carts, running tables, or pending digital/online orders
       const hasActiveCarts = 
         (dineInCart && dineInCart.length > 0) ||
         (pickupCart && pickupCart.length > 0) ||
@@ -5313,17 +5402,47 @@ const UniversalPOS = () => {
         (preOrderCart && preOrderCart.length > 0) ||
         Object.values(tableCarts || {}).some(c => Array.isArray(c) && c.length > 0);
 
-      const hasBusyTables = Object.values(tableBills || {}).some(bill => {
+      const hasActiveTables = Object.values(tableBills || {}).some(bill => {
         if (!Array.isArray(bill)) return false;
         return bill.some(item => !item.isCancelled);
+      }) || Object.values(tableStatuses || {}).some(status => status && status !== 'AVAILABLE' && status !== 'EMPTY');
+
+      const hasActiveDigitalOrders = (pendingDigitalOrders && pendingDigitalOrders.length > 0) || (recentOrders || []).some(o => {
+        if (!o) return false;
+        const status = String(o.status || '').toUpperCase();
+        const source = String(o.source || '').toUpperCase();
+        const orderTypeStr = String(o.order_type || o.order_mode || '').toUpperCase();
+        const refStr = String(o.order_reference || '');
+
+        const POS_OFFLINE_SOURCES = ['POS_WINDOWS', 'POS_ANDROID', 'POS_MANUAL', 'POS_TERMINAL', 'POS_OFFLINE', 'POS_WINDOWS_OFFLINE'];
+        const ONLINE_ORDER_TYPES = ['DELIVERY', 'PICKUP', 'PRE_ORDER', 'QR_MENU', 'WHATSAPP', 'ONLINE', 'DIGITAL', 'ONLINE_ORDER'];
+
+        const isOnline = 
+          Boolean(o.is_online_order) ||
+          ONLINE_ORDER_TYPES.includes(orderTypeStr) ||
+          !POS_OFFLINE_SOURCES.includes(source) ||
+          (refStr && (refStr.startsWith('ONL-') || refStr.startsWith('QR-') || refStr.startsWith('WA-')));
+
+        const TERMINAL_STATUSES = ['COMPLETED', 'DELIVERED', 'SETTLED', 'SERVED', 'PAID', 'CANCELLED', 'REJECTED'];
+        const isTerminal = TERMINAL_STATUSES.includes(status);
+
+        return isOnline && !isTerminal;
       });
 
-      if ((hasActiveCarts || hasBusyTables) && !force) {
-        setLogoutModalStep('confirm_force_logout');
+      if (hasActiveCarts || hasActiveTables || hasActiveDigitalOrders) {
+        let reasons = [];
+        if (hasActiveCarts) reasons.push("active cart items");
+        if (hasActiveTables) reasons.push("running/occupied tables");
+        if (hasActiveDigitalOrders) reasons.push("active online orders (New/Running/Food Ready)");
+        
+        toast.error(`⚠️ Cannot clear POS data: Please complete, settle, or cancel all ${reasons.join(', ')} first!`, {
+          position: "top-center",
+          autoClose: 7000
+        });
         return;
       }
 
-      // 1. Sync empty active state to the server database first so the backend drops the active state for this session
+      // 2. Reset server active state so server doesn't hold old table bills
       try {
         if (posService && posService.saveActiveState) {
           await posService.saveActiveState({
@@ -5331,34 +5450,67 @@ const UniversalPOS = () => {
             tableStatuses: {},
             tableBillNumbers: {},
             tableActiveTimestamps: {},
-            tables: []
+            tables: (tables || []).map(t => ({
+              id: t.id,
+              table_name: t.table_name,
+              department_name: t.department_name
+            }))
           });
         }
-      } catch (err) {
-        console.error("Failed to clear server active state:", err);
+      } catch (e) {
+        console.warn("Failed to clear server active state on logout:", e);
       }
 
-      // 2. Collect all keys to remove first to avoid index shifting
-      const keysToRemove = [];
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key) {
-          if (
-            key === 'pos_device_id' ||
-            key === 'pos_theme' ||
-            key === 'pos_terminal_settings' ||
-            key === 'pos_business' ||
-            key === 'pos_brand_color' ||
-            key === 'pos_available_printers'
-          ) {
-            continue;
+      // 2. Set persistent clearance timestamp & flag on local PC
+      const clearTimestamp = new Date().toISOString();
+      localStorage.setItem('pos_sales_cleared_at', clearTimestamp);
+      localStorage.setItem('pos_sales_data_cleared', 'true');
+
+      // 3. Purely local PC cache purge
+      const preservedKeys = [
+        'pos_device_id',
+        'pos_theme',
+        'pos_terminal_settings',
+        'pos_business',
+        'pos_brand_color',
+        'pos_available_printers',
+        'pos_sales_data_cleared',
+        'pos_sales_cleared_at'
+      ];
+
+      const purgeLocalKeys = () => {
+        const allKeys = Object.keys(localStorage);
+        allKeys.forEach(key => {
+          if (!preservedKeys.includes(key)) {
+            localStorage.removeItem(key);
           }
-          keysToRemove.push(key);
-        }
-      }
-      keysToRemove.forEach(k => localStorage.removeItem(k));
-      
-      // Additional UI, statistics, dashboard and session states
+        });
+        sessionStorage.clear();
+      };
+
+      purgeLocalKeys();
+
+      // Reset in-memory React states on PC
+      setTableBills({});
+      setTableCarts({});
+      setTableStatuses({});
+      setTableBillNumbers({});
+      setTableActiveTimestamps({});
+      setTableCustomers({});
+      setTableWaiters({});
+      setTableDiscounts({});
+      setTableAdditionalCharges({});
+      setDineInCart([]);
+      setPickupCart([]);
+      setQuickCart([]);
+      setPreOrderCart([]);
+      setCart([]);
+      setCustomerDb({});
+      setRecentOrders([]);
+      setPreOrders([]);
+      setKotHistory([]);
+      setCustomerHistoryData({ orders: [], transactions: [] });
+
       setStats({
         todaySales: 0, todayCount: 0, totalSales: 0, totalCount: 0, monthSales: 0, monthCount: 0,
         offlineSales: 0, offlineCount: 0, onlineSales: 0, onlineCount: 0,
@@ -5376,6 +5528,8 @@ const UniversalPOS = () => {
       });
       setTopItems([]);
       setPieItems([]);
+      setLineData([]);
+      setBarData([]);
       setLineData([]);
       setBarData([]);
       setPieStartDate('');
@@ -5556,11 +5710,17 @@ const UniversalPOS = () => {
       setCart([]);
       setCustomerDb({});
 
+      // Ensure storage remains cleared after React re-renders unmount components
+      setTimeout(() => {
+        purgeLocalKeys();
+      }, 50);
+
       toast.info("Local sales and shift data successfully cleared.");
     }
 
     // 3. Complete standard logout
     localStorage.removeItem('pos_token');
+    localStorage.removeItem('token');
     setIsAuthenticated(false);
     setUsername('');
     setPassword('');
@@ -6071,9 +6231,82 @@ const UniversalPOS = () => {
 
     setTableBillNumbers(prev => ({ ...prev, [tempId]: bNo }));
     const cartWithKotNo = cart.map(i => ({ ...i, kotNo: bNo }));
-    setTableBills(prev => ({ ...prev, [tempId]: mergeBillItems([...cartWithKotNo]) }));
+    const existingBillItems = tableBills[tempId] || [];
+    const mergedKotItems = mergeBillItems([...existingBillItems, ...cartWithKotNo]);
+    setTableBills(prev => ({ ...prev, [tempId]: mergedKotItems }));
     setTableActiveTimestamps(prev => ({ ...prev, [tempId]: Date.now() }));
     setTableStatuses(prev => ({ ...prev, [tempId]: isPrint ? 'PRINTED' : 'SAVED' }));
+
+    const activeWaiter = selectedWaiter || (selectedTable && tableWaiters[selectedTable.id] ? tableWaiters[selectedTable.id] : null);
+    const { subtotal, discountAmt, cgst, sgst, serviceCharge, extraFixed, total } = calculateTotals(mergedKotItems);
+    const fullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
+
+    const kotOrderRecord = {
+      id: `L-${Date.now()}`,
+      source: 'POS_WINDOWS',
+      customer_name: customerName || "POS Guest",
+      customer_phone: fullPhone,
+      customer_number: fullPhone,
+      address: customerAddress || "",
+      waiter_id: activeWaiter ? activeWaiter.id : null,
+      waiter_name: activeWaiter ? activeWaiter.name : null,
+      biller_name: (() => {
+        try {
+          const p = localStorage.getItem('pos_profile');
+          if (p) {
+            const parsed = JSON.parse(p);
+            return parsed.name || parsed.username || "Cashier";
+          }
+        } catch(e) {}
+        return "Cashier";
+      })(),
+      items: mergedKotItems.map(i => ({
+        id: i.id,
+        name: i.priceLabel ? `${i.product_name || i.name} (${i.priceLabel})` : (i.product_name || i.name),
+        qty: i.quantity || i.qty || 1,
+        price: parseFloat(i.price || 0),
+        modifiers: i.modifiers || [],
+        category: i.category || i.category_name || i.parent_category || i.group || "General",
+        kot_category: i.kot_category || "Main Kitchen",
+        isComplementary: i.isComplementary || false,
+        isCancelled: i.isCancelled || false
+      })),
+      subtotal,
+      discount: discountAmt,
+      tax_cgst: cgst,
+      tax_sgst: sgst,
+      delivery_charge: extraFixed,
+      service_charge: serviceCharge,
+      total_price: total,
+      payment_method: 'PENDING',
+      status: 'PENDING',
+      table_id: tempId,
+      table_number: tableName,
+      order_type: origOrderType,
+      created_at: new Date().toISOString(),
+      bill_no: bNo,
+      synced: false
+    };
+
+    setRecentOrders(prev => {
+      const existingIdx = (prev || []).findIndex(o => o && (String(o.bill_no) === String(bNo) || String(o.table_id) === String(tempId)));
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], ...kotOrderRecord, id: updated[existingIdx].id };
+        return updated;
+      }
+      return [kotOrderRecord, ...(prev || [])];
+    });
+
+    try {
+      if (posService.createOrder) {
+        posService.createOrder(kotOrderRecord).then(res => {
+          if (res && res.data) {
+            setRecentOrders(prev => (prev || []).map(o => String(o.bill_no) === String(bNo) ? { ...o, id: res.data.id, synced: true } : o));
+          }
+        }).catch(() => {});
+      }
+    } catch (e) {}
 
     setTableCustomers(prev => ({
       ...prev,
@@ -6306,11 +6539,14 @@ const UniversalPOS = () => {
     };
   };
 
+  const [pendingWaiterRequests, setPendingWaiterRequests] = useState([]);
+  const seenWaiterRequestIdsRef = useRef(new Set());
   const [successSoundName, setSuccessSoundName] = useState(() => localStorage.getItem('pos_success_sound_name') || '');
   const [cancelSoundName, setCancelSoundName] = useState(() => localStorage.getItem('pos_cancel_sound_name') || '');
   const [newOrderSoundName, setNewOrderSoundName] = useState(() => localStorage.getItem('pos_new_order_sound_name') || '');
   const [pendingDigitalOrders, setPendingDigitalOrders] = useState([]);
   const seenOrderIdsRef = useRef(new Set());
+  const seenPaymentConfirmedIdsRef = useRef(new Set());
   const isFirstFetchRef = useRef(true);
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
@@ -6557,22 +6793,50 @@ const UniversalPOS = () => {
     try {
       const res = await posService.getOrders();
       if (res.data && Array.isArray(res.data)) {
-        const currentNewOrders = res.data.filter(order => {
-          let source = order.source;
-          if (!source) {
-            const ordType = String(order.order_type || order.address || '').toUpperCase();
-            const isTable = (order.table_number && order.table_number !== "0" && order.table_number !== "");
-            if (isTable) {
-              source = 'QR_MENU';
-            } else if (ordType === 'WHATSAPP') {
-              source = 'WHATSAPP';
-            } else {
-              source = 'ONLINE_ORDER';
-            }
+        const POS_SOURCES_SET = new Set(['POS_WINDOWS', 'POS_ANDROID', 'POS_MANUAL', 'POS_TERMINAL', 'POS_OFFLINE', 'POS_WINDOWS_OFFLINE']);
+        const clearedAtStr = localStorage.getItem('pos_sales_cleared_at');
+        const clearedAtTime = clearedAtStr ? new Date(clearedAtStr).getTime() : 0;
+        
+        // Merge ALL digital/online orders into recentOrders so accepted/rejected orders remain visible
+        const allDigitalOrders = res.data.filter(o => {
+          const src = String(o.source || '').toUpperCase();
+          if (POS_SOURCES_SET.has(src)) return false;
+          if (clearedAtTime > 0) {
+            const orderTime = new Date(o.created_at || o.timestamp || 0).getTime();
+            if (orderTime < clearedAtTime) return false;
           }
+          return true;
+        });
+
+        if (allDigitalOrders.length > 0) {
+          setRecentOrders(prev => {
+            const map = new Map();
+            (prev || []).forEach(o => {
+              if (o && (o.id || o.order_reference)) {
+                map.set(String(o.order_reference || o.id), o);
+              }
+            });
+            allDigitalOrders.forEach(o => {
+              if (o && (o.id || o.order_reference)) {
+                const key = String(o.order_reference || o.id);
+                const existing = map.get(key);
+                map.set(key, { ...existing, ...o });
+              }
+            });
+            return Array.from(map.values()).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+          });
+        }
+
+        const currentNewOrders = res.data.filter(order => {
+          const source = String(order.source || '').toUpperCase();
+          if (POS_SOURCES_SET.has(source)) return false;
+
+          const refStr = String(order.order_reference || '');
+          const isTargetSource = ['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ONLINE', 'POS_ONLINE'].includes(source) || (refStr && (refStr.startsWith('ONL-') || refStr.startsWith('QR-') || refStr.startsWith('WA-')));
+          if (!isTargetSource && !source) return false;
+
           const status = String(order.status || 'PENDING').toUpperCase();
-          const isTargetSource = ['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP'].includes(source);
-          const isTargetStatus = ['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(status);
+          const isTargetStatus = ['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status);
           return isTargetSource && isTargetStatus;
         });
 
@@ -6624,22 +6888,119 @@ const UniversalPOS = () => {
             }
           });
         }
+
+        // Live alert on POS when customer confirms payment (I've Paid button)
+        res.data.forEach(o => {
+          const isConfirmed = String(o.payment_status || '').toUpperCase() === 'CUSTOMER_CONFIRMED';
+          if (isConfirmed) {
+            const pKey = `pay_${o.id}`;
+            if (!seenPaymentConfirmedIdsRef.current.has(pKey)) {
+              seenPaymentConfirmedIdsRef.current.add(pKey);
+              playNotificationSound('success');
+              toast.success(
+                <div className="flex flex-col gap-1 text-[11px] leading-snug">
+                  <span className="font-bold text-emerald-600 uppercase tracking-wider text-[11px] flex items-center gap-1">
+                    💰 UPI PAYMENT CONFIRMED BY CUSTOMER!
+                  </span>
+                  <span>Order Ref: <strong>#{o.order_reference || o.bill_no || o.id}</strong></span>
+                  <span>Amount: <strong>₹{o.total_price}</strong> ({o.customer_name || 'Customer'})</span>
+                  <span className="text-[9.5px] text-amber-600 font-bold">Please check your UPI app and verify!</span>
+                </div>,
+                {
+                  position: "top-center",
+                  autoClose: 12000,
+                  hideProgressBar: false,
+                  closeOnClick: true,
+                  pauseOnHover: true,
+                  draggable: true,
+                  theme: isDark ? "dark" : "light"
+                }
+              );
+            }
+          }
+        });
       }
     } catch (err) {
       console.warn("Silent poller failed to load orders:", err);
     }
   };
 
+  const checkWaiterRequests = async () => {
+    if (!isAuthenticated) return;
+    try {
+      if (posService.getWaiterRequests) {
+        const res = await posService.getWaiterRequests();
+        if (res.data && Array.isArray(res.data)) {
+          setPendingWaiterRequests(res.data);
+          res.data.forEach(reqItem => {
+            const rId = String(reqItem.id);
+            if (!seenWaiterRequestIdsRef.current.has(rId)) {
+              seenWaiterRequestIdsRef.current.add(rId);
+
+              // 🔊 Play audio chime sound
+              playNotificationSound('new_order');
+
+              const displayTable = reqItem.table_number ? (String(reqItem.table_number).toUpperCase().startsWith('TABLE') ? reqItem.table_number : `Table ${reqItem.table_number}`) : 'Table';
+
+              toast.warning(
+                <div className="flex flex-col gap-1.5 text-xs p-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="animate-ping w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="font-black text-amber-600 uppercase tracking-wider text-[11px]">
+                      🔔 WAITER CALL REQUESTED!
+                    </span>
+                  </div>
+                  <div className="font-bold text-stone-800 text-sm">{displayTable}</div>
+                  <div className="text-[10px] text-stone-500">{reqItem.message || 'Customer is asking for waiter assistance!'}</div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await posService.resolveWaiterRequest({ id: reqItem.id });
+                        setPendingWaiterRequests(prev => prev.filter(r => r.id !== reqItem.id));
+                        toast.success(`Resolved waiter call for ${displayTable}`);
+                      } catch (e) {
+                        console.error("Failed to resolve waiter request:", e);
+                      }
+                    }}
+                    className="mt-1 bg-amber-600 hover:bg-amber-700 text-white font-bold text-[10px] py-1.5 px-3 rounded-lg cursor-pointer transition shadow-xs text-center"
+                  >
+                    Acknowledge & Clear
+                  </button>
+                </div>,
+                {
+                  position: "top-right",
+                  autoClose: 18000,
+                  hideProgressBar: false,
+                  closeOnClick: false,
+                  pauseOnHover: true,
+                  draggable: true,
+                  theme: isDark ? "dark" : "light"
+                }
+              );
+            }
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Silent poller failed to load waiter requests:", err);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       seenOrderIdsRef.current.clear();
+      seenWaiterRequestIdsRef.current.clear();
       isFirstFetchRef.current = true;
       stopLoopingSound();
       return;
     }
 
     checkNewOnlineOrders();
-    const interval = setInterval(checkNewOnlineOrders, 6000);
+    checkWaiterRequests();
+    const interval = setInterval(() => {
+      checkNewOnlineOrders();
+      checkWaiterRequests();
+    }, 4000);
     return () => {
       clearInterval(interval);
       stopLoopingSound();
@@ -6701,7 +7062,7 @@ const UniversalPOS = () => {
           custRes.data.forEach(c => {
             const pKey = c.phone || c.customer_number || c.number;
             if (pKey) {
-              customersMap[pKey] = {
+              const custObj = {
                 name: c.name || c.display_name || 'Customer',
                 phone: pKey,
                 address: c.address || '',
@@ -6710,10 +7071,22 @@ const UniversalPOS = () => {
                 totalSpent: Number(c.total_spent) || 0,
                 balance: Number(c.balance) || 0
               };
+              customersMap[pKey] = custObj;
+              const cleanDigits = String(pKey).replace(/\D/g, '');
+              const clean10 = cleanDigits.slice(-10);
+              if (clean10) {
+                customersMap[clean10] = custObj;
+                customersMap[`+91${clean10}`] = custObj;
+              }
+              if (cleanDigits) {
+                customersMap[`+${cleanDigits}`] = custObj;
+              }
             }
           });
           setCustomerDb(prev => {
-            if (JSON.stringify(prev) !== JSON.stringify(customersMap)) {
+            const prevLen = Object.keys(prev || {}).length;
+            const newLen = Object.keys(customersMap || {}).length;
+            if (prevLen !== newLen || JSON.stringify(Object.keys(prev || {}).slice(0, 10)) !== JSON.stringify(Object.keys(customersMap || {}).slice(0, 10))) {
               localStorage.setItem('pos_customer_db', JSON.stringify(customersMap));
               return customersMap;
             }
@@ -6729,7 +7102,7 @@ const UniversalPOS = () => {
         const profile = await authService.getProfile();
         if (profile && profile.data) {
           setBusiness(prev => {
-            if (JSON.stringify(prev) !== JSON.stringify(profile.data)) {
+            if (!prev || prev.id !== profile.data.id || JSON.stringify(prev.settings) !== JSON.stringify(profile.data.settings)) {
               localStorage.setItem('pos_profile', JSON.stringify(profile.data));
               return profile.data;
             }
@@ -6741,7 +7114,7 @@ const UniversalPOS = () => {
       }
     };
 
-    const syncInterval = setInterval(silentSync, 10000); // Poll every 10 seconds
+    const syncInterval = setInterval(silentSync, 60000); // Poll every 60 seconds to prevent unnecessary refreshes
     return () => clearInterval(syncInterval);
   }, [isAuthenticated]);
 
@@ -6985,7 +7358,10 @@ const UniversalPOS = () => {
   };
 
   const initApp = async () => {
-    // 0. Load everything from cache immediately so the app is instantly active
+    // 0. Consume and remove cleared flag so running session operates normally without wiping sales
+    localStorage.removeItem('pos_sales_data_cleared');
+
+    // 0b. Load everything from cache immediately so the app is instantly active
     let cachedBiz = null;
     try {
       const cachedProfile = localStorage.getItem('pos_profile');
@@ -7195,40 +7571,7 @@ const UniversalPOS = () => {
       console.warn("initApp - Failed to load QRs:", e);
     }
 
-    // 4b. Fetch POS Active State from database (sync Backoffice changes)
-    try {
-      if (posService && posService.getActiveState) {
-        const activeStateRes = await posService.getActiveState();
-        if (activeStateRes && activeStateRes.data) {
-          const stateData = activeStateRes.data;
-          if (stateData.tableBills) {
-            setTableBills(stateData.tableBills);
-            localStorage.setItem('pos_table_bills', JSON.stringify(stateData.tableBills));
-          }
-          if (stateData.tableStatuses) {
-            setTableStatuses(stateData.tableStatuses);
-            localStorage.setItem('pos_table_statuses', JSON.stringify(stateData.tableStatuses));
-          }
-          if (stateData.tableBillNumbers) {
-            setTableBillNumbers(stateData.tableBillNumbers);
-            localStorage.setItem('pos_table_bill_numbers', JSON.stringify(stateData.tableBillNumbers));
-          }
-          if (stateData.tableActiveTimestamps) {
-            setTableActiveTimestamps(stateData.tableActiveTimestamps);
-            localStorage.setItem('pos_table_active_timestamps', JSON.stringify(stateData.tableActiveTimestamps));
-          }
-          if (stateData.tables && stateData.tables.length > 0) {
-            setTables(prev => {
-              const serverTables = prev.filter(t => !t.is_temporary);
-              const localTempTables = stateData.tables.filter(t => t.is_temporary);
-              return [...serverTables, ...localTempTables];
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.warn("initApp - Failed to load POS active state:", e);
-    }
+    // 4b. Skip fetching server sales data on login (Only menu, settings, customers, & customer history are loaded)
 
     const outletIdToPass = biz.user_id || biz.parent_user_id || biz.id;
 
@@ -7314,12 +7657,7 @@ const UniversalPOS = () => {
       console.warn("initApp - Failed to fetch riders:", e);
     }
 
-    // 9. Fetch Orders
-    try {
-      await fetchOrdersForMode(receiptsDateMode);
-    } catch (err) {
-      console.warn("initApp - Failed to load orders from backend:", err);
-    }
+    // 9. Skip fetching sales orders on login (Only menu, settings, customers, & customer history are loaded)
 
     // 10. Fetch CRM Customers
     try {
@@ -7329,7 +7667,7 @@ const UniversalPOS = () => {
         custRes.data.forEach(c => {
           const pKey = c.phone || c.customer_number || c.number;
           if (pKey) {
-            customersMap[pKey] = {
+            const custObj = {
               name: c.name || c.display_name || 'Customer',
               phone: pKey,
               address: c.address || '',
@@ -7338,6 +7676,16 @@ const UniversalPOS = () => {
               totalSpent: Number(c.total_spent) || 0,
               balance: Number(c.balance) || 0
             };
+            customersMap[pKey] = custObj;
+            const cleanDigits = String(pKey).replace(/\D/g, '');
+            const clean10 = cleanDigits.slice(-10);
+            if (clean10) {
+              customersMap[clean10] = custObj;
+              customersMap[`+91${clean10}`] = custObj;
+            }
+            if (cleanDigits) {
+              customersMap[`+${cleanDigits}`] = custObj;
+            }
           }
         });
         setCustomerDb(customersMap);
@@ -8428,6 +8776,7 @@ const UniversalPOS = () => {
       toast.warning("Cart is empty!");
       return;
     }
+    const activeWaiter = selectedWaiter || (selectedTable && tableWaiters[selectedTable.id] ? tableWaiters[selectedTable.id] : null);
     const bNo = (selectedTable && tableBillNumbers[selectedTable.id]) ? tableBillNumbers[selectedTable.id] : nextBillNo;
     const { subtotal, discountAmt, cgst, sgst, serviceCharge, extraFixed, total } = calculateTotals(activeCart);
     const tempOrder = {
@@ -8435,6 +8784,9 @@ const UniversalPOS = () => {
       customer_name: customerName || "POS Guest",
       customer_phone: customerPhone,
       customer_number: customerPhone,
+      waiter_id: activeWaiter ? activeWaiter.id : null,
+      waiter_name: activeWaiter ? activeWaiter.name : null,
+      table_name: selectedTable ? selectedTable.table_name : null,
       items: activeCart.map(i => ({
         id: i.id,
         name: i.priceLabel ? `${i.product_name || i.name} (${i.priceLabel})` : (i.product_name || i.name),
@@ -8546,6 +8898,33 @@ const UniversalPOS = () => {
       reader.readAsText(file);
     };
     fileInput.click();
+  };
+
+  const handleClearAllSalesData = async () => {
+    if (!window.confirm("Are you sure you want to clear the local POS cache on this terminal? Your Back Office sales history and server database will remain completely safe.")) {
+      return;
+    }
+    try {
+      setRecentOrders([]);
+      setTableBills({});
+      setTableStatuses({});
+      setTableWaiters({});
+      setTableBillNumbers({});
+      setNextBillNo(1);
+      setCart([]);
+      
+      const preservedKeys = ['pos_device_id', 'pos_theme', 'pos_terminal_settings', 'pos_business', 'pos_brand_color', 'pos_available_printers'];
+      for (let i = localStorage.length - 1; i >= 0; i--) {
+        const key = localStorage.key(i);
+        if (key && !preservedKeys.includes(key)) {
+          localStorage.removeItem(key);
+        }
+      }
+      toast.success("Local POS terminal cache cleared successfully! Back Office data remains safe.");
+    } catch (err) {
+      console.error("Failed to clear local POS cache:", err);
+      toast.error("Failed to clear local POS cache.");
+    }
   };
 
   const handleFilterTables = () => {
@@ -9013,6 +9392,7 @@ const UniversalPOS = () => {
       }
     }
 
+    const activeWaiter = selectedWaiter || (selectedTable && tableWaiters[selectedTable.id] ? tableWaiters[selectedTable.id] : null);
     const newOrder = {
       id: orderId,
       source: navigator.onLine ? 'POS_WINDOWS' : 'POS_WINDOWS_OFFLINE',
@@ -9020,8 +9400,8 @@ const UniversalPOS = () => {
       customer_phone: fullPhone,
       customer_number: fullPhone,
       address: customerAddress || "",
-      waiter_id: selectedWaiter ? selectedWaiter.id : null,
-      waiter_name: selectedWaiter ? selectedWaiter.name : null,
+      waiter_id: activeWaiter ? activeWaiter.id : null,
+      waiter_name: activeWaiter ? activeWaiter.name : null,
       items: activeCart.map(i => ({
         id: i.id,
         name: i.priceLabel ? `${i.product_name} (${i.priceLabel})` : i.product_name,
@@ -9370,6 +9750,71 @@ const UniversalPOS = () => {
       }
     });
     if (selectedTable) setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'ORDERING' }));
+
+    // Sync to recentOrders for Receipts tab
+    const activeWaiter = selectedWaiter || (selectedTable && tableWaiters[selectedTable.id] ? tableWaiters[selectedTable.id] : null);
+    const bNo = (selectedTable && tableBillNumbers[selectedTable.id]) ? tableBillNumbers[selectedTable.id] : nextBillNo;
+    const currentTableBill = selectedTable ? (tableBills[selectedTable.id] || []) : [];
+    const mergedCartItems = mergeBillItems([...currentTableBill, ...cart]);
+    const { subtotal, discountAmt, cgst, sgst, serviceCharge, extraFixed, total } = calculateTotals(mergedCartItems);
+    const fullPhone = customerPhone ? (customerPhone.startsWith('+') ? customerPhone : customerCountryCode + customerPhone) : '';
+
+    const kotOrderRecord = {
+      id: `L-${Date.now()}`,
+      source: 'POS_WINDOWS',
+      customer_name: customerName || "POS Guest",
+      customer_phone: fullPhone,
+      customer_number: fullPhone,
+      address: customerAddress || "",
+      waiter_id: activeWaiter ? activeWaiter.id : null,
+      waiter_name: activeWaiter ? activeWaiter.name : null,
+      items: mergedCartItems.map(i => ({
+        id: i.id,
+        name: i.priceLabel ? `${i.product_name || i.name} (${i.priceLabel})` : (i.product_name || i.name),
+        qty: i.quantity || i.qty || 1,
+        price: parseFloat(i.price || 0),
+        modifiers: i.modifiers || [],
+        kot_category: i.kot_category || "Main Kitchen",
+        isComplementary: i.isComplementary || false,
+        isCancelled: i.isCancelled || false
+      })),
+      subtotal,
+      discount: discountAmt,
+      tax_cgst: cgst,
+      tax_sgst: sgst,
+      delivery_charge: extraFixed,
+      service_charge: serviceCharge,
+      total_price: total,
+      payment_method: 'PENDING',
+      status: 'PENDING',
+      table_id: selectedTable?.id || null,
+      table_number: selectedTable?.table_name || 'Quick',
+      order_type: selectedTable ? (selectedTable.original_order_type || 'DINE_IN') : orderType,
+      created_at: new Date().toISOString(),
+      bill_no: bNo,
+      synced: false
+    };
+
+    setRecentOrders(prev => {
+      const existingIdx = prev.findIndex(o => o && (String(o.bill_no) === String(bNo) || (selectedTable && String(o.table_id) === String(selectedTable.id))));
+      if (existingIdx !== -1) {
+        const updated = [...prev];
+        updated[existingIdx] = { ...updated[existingIdx], ...kotOrderRecord, id: updated[existingIdx].id };
+        return updated;
+      }
+      return [kotOrderRecord, ...prev];
+    });
+
+    try {
+      if (posService.createOrder) {
+        posService.createOrder(kotOrderRecord).then(res => {
+          if (res && res.data) {
+            setRecentOrders(prev => prev.map(o => String(o.bill_no) === String(bNo) ? { ...o, id: res.data.id, synced: true } : o));
+          }
+        }).catch(() => {});
+      }
+    } catch (e) {}
+
     toast.success(`KOT ${kotId} Sent!`);
   };
 
@@ -9607,24 +10052,38 @@ const UniversalPOS = () => {
 
   const getFilteredDigitalOrders = () => {
     return recentOrders.filter(order => {
-      let source = order.source;
+      let source = String(order.source || '').toUpperCase();
+
+      // ❌ Strictly exclude POS-originated orders from Online/Digital orders tab
+      const POS_SOURCES = ['POS_WINDOWS', 'POS_ANDROID', 'POS_MANUAL', 'POS_TERMINAL', 'POS_OFFLINE', 'POS_WINDOWS_OFFLINE'];
+      if (POS_SOURCES.includes(source)) return false;
+
+      // Auto-detect source for legacy orders with no source field
       if (!source) {
         const ordType = String(order.order_type || order.address || '').toUpperCase();
         const isTable = (order.table_number && order.table_number !== "0" && order.table_number !== "");
+        const hasOnlineRef = order.order_reference && (order.order_reference.startsWith('ONL-') || order.order_reference.startsWith('QR-') || order.order_reference.startsWith('WA-'));
         if (isTable) {
           source = 'QR_MENU';
         } else if (ordType === 'WHATSAPP') {
           source = 'WHATSAPP';
-        } else {
+        } else if (hasOnlineRef) {
           source = 'ONLINE_ORDER';
+        } else {
+          // No source, no online ref — this is a POS order, exclude it
+          return false;
         }
       }
 
-      if (!digitalSelectedPlatforms.includes(source)) return false;
+      const isOnlineOrder = source === 'ONLINE_ORDER' || (order.order_reference && order.order_reference.startsWith('ONL-'));
+      if (Array.isArray(digitalSelectedPlatforms) && digitalSelectedPlatforms.length > 0) {
+        const hasMatch = digitalSelectedPlatforms.includes(source) || (isOnlineOrder && digitalSelectedPlatforms.includes('ONLINE_ORDER'));
+        if (!hasMatch) return false;
+      }
 
       const status = String(order.status || 'PENDING').toUpperCase();
       if (digitalSelectedStateFilter === 'NEW') {
-        if (!['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(status)) return false;
+        if (!['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status)) return false;
       } else if (digitalSelectedStateFilter === 'RUNNING') {
         if (!['PROCESSING', 'PREPARING'].includes(status)) return false;
       } else if (digitalSelectedStateFilter === 'READY') {
@@ -9660,6 +10119,7 @@ const UniversalPOS = () => {
     }
     lines.push(`━━━━━━━━━━━━━━━━━━━━`);
     lines.push(`*Bill No:* #${order.bill_no || order.id}`);
+    lines.push(`*Order Type:* ${getOrderTypeLabel(order.order_type)}`);
     lines.push(`*Date:* ${new Date(order.created_at || Date.now()).toLocaleString()}`);
     if (order.customer_name && order.customer_name !== 'POS Guest') {
       lines.push(`*Customer:* ${order.customer_name}`);
@@ -9758,7 +10218,7 @@ const UniversalPOS = () => {
       const modifiersTotal = (it.modifiers || []).reduce((mAcc, m) => mAcc + parseFloat(m.price || 0), 0);
       calculatedSubtotal += qty * (basePrice + modifiersTotal);
     });
-    const subtotal = order.subtotal !== undefined ? parseFloat(order.subtotal) : calculatedSubtotal;
+    const subtotal = order.subtotal !== undefined && parseFloat(order.subtotal) > 0 ? parseFloat(order.subtotal) : calculatedSubtotal;
     const discountAmt = order.discount !== undefined ? parseFloat(order.discount) : 0;
     const deliveryCharge = order.delivery_charge !== undefined ? parseFloat(order.delivery_charge) : 0;
     const serviceCharge = order.service_charge !== undefined ? parseFloat(order.service_charge) : 0;
@@ -9804,7 +10264,11 @@ const UniversalPOS = () => {
     const tax_cgst = order.tax_cgst !== undefined ? parseFloat(order.tax_cgst) : computedTax / 2;
     const tax_sgst = order.tax_sgst !== undefined ? parseFloat(order.tax_sgst) : computedTax / 2;
 
-    const trueGrandTotal = isPreOrder ? (advancePaid + remainingBalance) : totalAmount;
+    const isTaxActive = taxRate > 0;
+    const computedGrandTotal = (isInclusive || !isTaxActive)
+      ? (subtotal + deliveryCharge + serviceCharge + tipAmount - totalDiscount)
+      : (subtotal + deliveryCharge + serviceCharge + tipAmount + tax_cgst + tax_sgst - totalDiscount);
+    const trueGrandTotal = isPreOrder ? (advancePaid + remainingBalance) : (computedGrandTotal > 0 ? computedGrandTotal : totalAmount);
 
     const tableName = order.table_name || (order.table_number ? `Table ${order.table_number}` : (order.table_id ? `Table ${order.table_id}` : 'Takeaway Order'));
     const billNoDisplay = order.bill_no || (isPreOrder ? `PO-${order.id}` : order.id);
@@ -9826,7 +10290,7 @@ const UniversalPOS = () => {
     const printEnabled = posSettings.printUpiQr !== undefined ? !!posSettings.printUpiQr : !!business?.business_details?.settings?.print_upi_qr;
     if (printEnabled) {
       try {
-        const payeeName = business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
+        const payeeName = business?.business_name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT';
         let upiUri = '';
         const activeEntry = (backendQrs || []).find(e => String(e.id) === String(posSettings.activeStaticUpiId)) || (backendQrs || []).find(e => e.is_active);
         if (activeEntry) {
@@ -9840,7 +10304,7 @@ const UniversalPOS = () => {
             } else if (isSettlement) {
               upiAmount = parseFloat(remainingBalance);
             } else {
-              upiAmount = parseFloat(order.total_price || 0);
+              upiAmount = trueGrandTotal;
             }
             upiUri = `upi://pay?pa=${activeEntry.upi_id}&pn=${encodeURIComponent(payeeName)}&am=${upiAmount.toFixed(2)}&cu=INR`;
           } else {
@@ -9991,7 +10455,7 @@ const UniversalPOS = () => {
         </head>
         <body>
           <div class="center bold text-large" style="margin-bottom: 1.5mm;">
-            ${(business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}
+            ${(business?.business_name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}
           </div>
           ${headerFooterLines}
           <div class="center text-small" style="margin-top: 1mm; margin-bottom: 2mm;">
@@ -10006,15 +10470,25 @@ const UniversalPOS = () => {
 
           <div class="grid-section">
             <div class="grid-col">
-              ${(order.order_type === 'Delivery') ? `
-                <div>Order: DELIVERY</div>
-                <div>Rider: ${riderName || 'None'}</div>
-              ` : (order.order_type === 'Pickup') ? `
-                <div>Order: PICKUP</div>
-              ` : `
-                <div>Table: ${tableName}</div>
-                <div>Waiter: ${order.waiter_name || 'Default'}</div>
-              `}
+              ${(() => {
+                const typeLabel = getOrderTypeLabel(order.order_type);
+                if (typeLabel === 'DELIVERY') {
+                  return `
+                    <div>Order: DELIVERY</div>
+                    ${riderName ? `<div>Rider: ${riderName}</div>` : ''}
+                  `;
+                } else if (typeLabel === 'TAKEAWAY') {
+                  return `
+                    <div>Order: TAKEAWAY</div>
+                  `;
+                } else {
+                  return `
+                    <div>Table: ${tableName}</div>
+                    <div>Order: ${typeLabel}</div>
+                    <div>Waiter: ${order.waiter_name || 'Default'}</div>
+                  `;
+                }
+              })()}
             </div>
             <div class="grid-col text-right">
               <div>Bill: ${billNoDisplay}</div>
@@ -10105,22 +10579,23 @@ const UniversalPOS = () => {
             ` : ''}
             ${(() => {
               const chargeDetails = Array.isArray(order.charge_details) ? order.charge_details : (typeof order.charge_details === 'string' ? JSON.parse(order.charge_details || '[]') : []);
-              if (chargeDetails.length > 0) {
-                return chargeDetails.map(c => `
+              const nonDeliveryCharges = chargeDetails.filter(c => !String(c.name || '').toLowerCase().includes('delivery'));
+              let html = nonDeliveryCharges.map(c => `
+                <div class="summary-row">
+                  <span>${c.name || 'Charge'}:</span>
+                  <span>Rs ${parseFloat(c.amount || c.value || 0).toFixed(2)}</span>
+                </div>
+              `).join('');
+
+              if (deliveryCharge > 0) {
+                html += `
                   <div class="summary-row">
-                    <span>${c.name || 'Charge'}:</span>
-                    <span>Rs ${parseFloat(c.amount || c.value || 0).toFixed(2)}</span>
-                  </div>
-                `).join('');
-              } else if (deliveryCharge) {
-                return `
-                  <div class="summary-row">
-                    <span>Additional Charges:</span>
+                    <span>Delivery Charge:</span>
                     <span>Rs ${parseFloat(deliveryCharge).toFixed(2)}</span>
                   </div>
                 `;
               }
-              return '';
+              return html;
             })()}
             ${serviceCharge ? `
             <div class="summary-row">
@@ -10134,9 +10609,9 @@ const UniversalPOS = () => {
               <span>Rs ${parseFloat(tipAmount).toFixed(2)}</span>
             </div>
             ` : ''}
-            ${!posSettings.hideTaxOnBill ? `
+            ${(!posSettings.hideTaxOnBill && (tax_cgst > 0 || tax_sgst > 0)) ? `
             <div class="summary-row">
-              <span>${posSettings.taxName || 'GST'}:</span>
+              <span>${posSettings.taxName || 'GST'} ${isInclusive ? '(Inclusive)' : ''}:</span>
               <span>(${(posSettings.taxRate || 0).toFixed(1)}%)</span>
             </div>
             <div class="summary-row">
@@ -10187,10 +10662,10 @@ const UniversalPOS = () => {
             ` : `
             <div class="summary-row grand-total">
               <span>Grand Total:</span>
-              <span>Rs ${parseFloat(totalAmount).toFixed(2)}</span>
+              <span>Rs ${parseFloat(trueGrandTotal).toFixed(2)}</span>
             </div>
             <div class="amount-in-words" style="margin-top: 1.5mm; font-size: 9.5px; text-transform: capitalize;">
-              ${numberToWords(totalAmount)} only
+              ${numberToWords(trueGrandTotal)} only
             </div>
             `}
           </div>
@@ -10201,7 +10676,7 @@ const UniversalPOS = () => {
             const numericPhone = customerPhone.replace(/\D/g, '');
             let customerInfo = customerDb[fullPhoneKey];
             if (!customerInfo && customerPhone) {
-              customerInfo = Object.values(customerDb).find(c => {
+              customerInfo = getUniqueCustomers(customerDb).find(c => {
                 if (!c.phone) return false;
                 const cNumeric = c.phone.replace(/\D/g, '');
                 return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
@@ -10474,7 +10949,7 @@ const UniversalPOS = () => {
     let customerInfo = customerDb[fullPhoneKey];
     if (!customerInfo && cleanPhone) {
       const numericPhone = cleanPhone.replace(/\D/g, '');
-      customerInfo = Object.values(customerDb).find(c => {
+      customerInfo = getUniqueCustomers(customerDb).find(c => {
         if (!c.phone) return false;
         const cNumeric = c.phone.replace(/\D/g, '');
         return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
@@ -10687,7 +11162,7 @@ const UniversalPOS = () => {
         <body>
           <div class="dashed-line"></div>
           <div class="center bold text-large" style="margin-bottom: 1mm;">
-            ${(business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}
+            ${(business?.business_name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT').toUpperCase()}
           </div>
           <div class="center" style="font-size: 12px; margin-bottom: 1mm;">
             ${formatDateTime()}
@@ -11427,6 +11902,38 @@ const UniversalPOS = () => {
 
                    {/* Body */}
                    <div className="p-6 space-y-5 bg-[#0d1117]">
+                     {/* Clear data checkbox */}
+                      <div className="p-4 rounded-xl border bg-[#161b22]/50 border-gray-800 space-y-3">
+                        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={clearLocalDataChecked}
+                            onChange={(e) => setClearLocalDataChecked(e.target.checked)}
+                            className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
+                          />
+                          <div className="space-y-0.5">
+                            <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
+                              Clear local POS sales data on logout (PC only)
+                            </span>
+                            <p className="text-[9.5px] leading-relaxed text-gray-500">
+                              Purge local PC cache (bills, active carts) from this device. Server database remains untouched.
+                            </p>
+                          </div>
+                        </label>
+
+                        {clearLocalDataChecked && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
+                          >
+                            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                            <span>
+                              <strong>NOTE:</strong> Ensure all active tables and orders are settled first. This will only clear local PC cache.
+                            </span>
+                          </motion.div>
+                        )}
+                      </div>
                      <div className="space-y-2 text-center">
                        <p className="text-xs font-bold leading-relaxed text-gray-300">
                          Are you sure you want to log out and exit SaSLoop Master POS?
@@ -11435,41 +11942,6 @@ const UniversalPOS = () => {
                          Active shift operations will remain running on the server.
                        </p>
                      </div>
-
-                     {/* Back-office controlled clear data checkbox */}
-                     {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (
-                       <div className="p-4 rounded-xl border bg-[#161b22]/50 border-gray-800 space-y-3">
-                         <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                           <input
-                             type="checkbox"
-                             checked={clearLocalDataChecked}
-                             onChange={(e) => setClearLocalDataChecked(e.target.checked)}
-                             className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
-                           />
-                           <div className="space-y-0.5">
-                             <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
-                               Clear local POS sales data on logout
-                             </span>
-                             <p className="text-[9.5px] leading-relaxed text-gray-500">
-                               Purge local databases (bills, customer lists, local tables, active carts) from this device.
-                             </p>
-                           </div>
-                         </label>
-
-                         {clearLocalDataChecked && (
-                           <motion.div
-                             initial={{ opacity: 0, y: -5 }}
-                             animate={{ opacity: 1, y: 0 }}
-                             className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
-                           >
-                             <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                             <span>
-                               <strong>WARNING:</strong> This action is permanent. All offline history and un-submitted carts on this machine will be lost. Ensure you have synced everything first.
-                             </span>
-                           </motion.div>
-                         )}
-                       </div>
-                     )}
 
                      {/* Actions */}
                      <div className="flex gap-3 justify-end pt-2">
@@ -11510,7 +11982,7 @@ const UniversalPOS = () => {
               <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
             </span>
             <span className="text-[11px] font-black uppercase tracking-wider">
-              🔔 {pendingDigitalOrders.length} New {pendingDigitalOrders[0]?.source === 'WHATSAPP' || String(pendingDigitalOrders[0]?.order_type).toUpperCase() === 'WHATSAPP' ? 'WhatsApp' : 'Digital'} Order Received!
+              🔔 {pendingDigitalOrders.length} New {pendingDigitalOrders[0]?.source === 'WHATSAPP' || String(pendingDigitalOrders[0]?.order_type).toUpperCase() === 'WHATSAPP' ? 'WhatsApp' : 'Online'} Order Received!
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -11537,6 +12009,41 @@ const UniversalPOS = () => {
         </div>
       )}
 
+      {/* Top Floating Notification Banner for Table Reservations */}
+      {reservations.filter(r => String(r.status || '').toUpperCase() === 'PENDING').length > 0 && (
+        <div className={`fixed ${pendingDigitalOrders.length > 0 ? 'top-16' : 'top-3'} left-1/2 -translate-x-1/2 z-[9999] bg-amber-500 text-white px-5 py-2.5 rounded-2xl shadow-2xl flex items-center gap-4 border border-white/20 animate-bounce`}>
+          <div className="flex items-center gap-2.5">
+            <span className="relative flex h-3 w-3">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+            </span>
+            <span className="text-[11px] font-black uppercase tracking-wider">
+              🍽️ {reservations.filter(r => String(r.status || '').toUpperCase() === 'PENDING').length} New Table Reservation Received!
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                setIsReservationModalOpen(true);
+                stopLoopingSound();
+              }}
+              className="bg-white text-amber-600 hover:bg-slate-100 px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+            >
+              <Calendar size={13} /> View & Accept
+            </button>
+            <button
+              type="button"
+              onClick={() => stopLoopingSound()}
+              className="p-1.5 hover:bg-black/20 rounded-lg text-white/90 transition-colors cursor-pointer"
+              title="Mute Alert"
+            >
+              <VolumeX size={14} />
+            </button>
+          </div>
+        </div>
+      )}
+
       <ToastContainer theme={isDark ? 'dark' : 'light'} position="bottom-left" />
       <nav className={`w-[60px] border-r flex flex-col shrink-0 ${t.sidebar} ${isDark ? 'border-[#30363d]' : 'border-slate-100'} z-50`}>
         <div className={`h-[58px] flex items-center justify-center border-b ${isDark ? 'border-[#30363d]' : 'border-slate-100'}`}>
@@ -11553,7 +12060,18 @@ const UniversalPOS = () => {
             <SidebarIcon id="liveTrackingIcon" isDark={isDark} icon={<Activity size={18} fill="none" stroke="currentColor" strokeWidth={3} />} active={activeTab === 'live'} onClick={() => handleTabClick('live', () => setActiveTab('live'))} label="Live" />
           )}
           {getStaffPermissions()?.pos_access?.OnlineOrder?.visible !== false && (
-            <SidebarIcon id="digitalOrdersIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => handleTabClick('digital', () => setActiveTab('digital'))} label="Digital" />
+            <SidebarIcon id="digitalOrdersIcon" isDark={isDark} badge={pendingDigitalOrders.length} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7.06-3.6-7.55-7.55H7c.55 0 1 .45 1 1v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.34c2.93.95 5.17 3.53 5.76 6.69l-1.86.65z"/></svg>} active={activeTab === 'digital'} onClick={() => handleTabClick('digital', () => setActiveTab('digital'))} label="Online" />
+          )}
+          {getStaffPermissions()?.pos_access?.OrderWindow?.table_reservation !== false && (
+            <SidebarIcon 
+              id="reservationsIcon" 
+              isDark={isDark} 
+              badge={reservations.filter(r => String(r.status || '').toUpperCase() === 'PENDING').length} 
+              icon={<Calendar size={20} className="text-current" />} 
+              active={isReservationModalOpen} 
+              onClick={() => handleTabClick('reservations', () => setIsReservationModalOpen(true))} 
+              label="Bookings" 
+            />
           )}
           {getStaffPermissions()?.pos_access?.Receipts?.visible !== false && (
             <SidebarIcon id="receiptIcon" isDark={isDark} icon={<svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6"><path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/></svg>} active={activeTab === 'receipts'} onClick={() => handleTabClick('receipts', () => setActiveTab('receipts'))} label="Receipt" />
@@ -15004,69 +15522,85 @@ const UniversalPOS = () => {
               const elapsedMinutes = activeOrderToView ? Math.max(1, Math.floor((Date.now() - activeOrderToView.timestamp) / 60000)) : 0;
 
               return (
-                <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`h-full p-6 flex flex-col gap-6 overflow-y-auto no-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-slate-50'}`}>
+                <motion.div key="live" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className={`h-full p-6 flex flex-col gap-6 overflow-y-auto udm-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
 
-                  {/* Title & Stats Grid */}
-                  <div className="flex flex-col gap-4 shrink-0">
-                     <div className="flex justify-between items-center">
+                  {/* Header Title Bar — Terminal Settings UI Style */}
+                  <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shrink-0 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                     <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-lg bg-[#18ba60]/10 text-[#18ba60] flex items-center justify-center border border-[#18ba60]/20 shrink-0">
+                           <Activity size={18} className="animate-pulse" />
+                        </div>
                         <div>
-                           <h3 className={`text-2xl font-black uppercase italic tracking-tighter flex items-center gap-3 ${isDark ? 'text-white' : 'text-slate-900'}`}><Activity className="text-emerald-500 animate-pulse"/> Live Order Tracking</h3>
-                           <p className={`text-[10px] font-black uppercase tracking-[0.2em] mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Real-time monitor for active outlet orders</p>
+                           <div className="text-sm font-black uppercase tracking-wider flex items-center gap-1.5">
+                              <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                              <span className="text-[#18ba60]">Live Order Tracking</span>
+                           </div>
+                           <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>
+                              Real-time monitor for active outlet orders
+                           </p>
                         </div>
                      </div>
+                     <div className="flex items-center gap-2">
+                        <span className="px-3 py-1.5 rounded-lg bg-[#18ba60]/10 text-[#18ba60] border border-[#18ba60]/20 text-[10px] font-black uppercase tracking-wider">
+                           {totalActiveOrders} Active Orders
+                        </span>
+                     </div>
+                  </div>
 
-                     <div className="grid grid-cols-4 gap-4">
-                        <div className={`p-4 rounded-2xl border shadow-sm flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                           <div className="w-10 h-10 rounded-full bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
-                              <Utensils size={20} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Dine-In</span>
-                              <span className="text-lg font-black italic tracking-tighter text-emerald-500">{config.currency} {dineInTotal.toFixed(2)} ({occupiedTables.length})</span>
-                           </div>
+                  {/* Telemetry KPI Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 shrink-0">
+                     <div className={`p-4 rounded-xl border shadow-xs flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0 border border-emerald-500/20">
+                           <Utensils size={18} />
                         </div>
-                        <div className={`p-4 rounded-2xl border shadow-sm flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                           <div className="w-10 h-10 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0">
-                              <ShoppingBag size={20} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Pick Up</span>
-                              <span className="text-lg font-black italic tracking-tighter text-amber-500">{config.currency} {pickupTotal.toFixed(2)} ({activePickupOrders.length})</span>
-                           </div>
+                        <div className="flex flex-col">
+                           <span className={`text-[9px] font-black uppercase tracking-wider mb-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Dine-In</span>
+                           <span className="text-base font-black tracking-tight text-emerald-500">{config.currency} {dineInTotal.toFixed(2)} ({occupiedTables.length})</span>
                         </div>
-                        <div className={`p-4 rounded-2xl border shadow-sm flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                           <div className="w-10 h-10 rounded-full bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0">
-                              <Truck size={20} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Delivery</span>
-                              <span className="text-lg font-black italic tracking-tighter text-blue-500">{config.currency} {deliveryTotal.toFixed(2)} ({activeDeliveryOrders.length})</span>
-                           </div>
+                     </div>
+                     <div className={`p-4 rounded-xl border shadow-xs flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center shrink-0 border border-amber-500/20">
+                           <ShoppingBag size={18} />
                         </div>
-                        <div className={`p-4 rounded-2xl border shadow-sm flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                           <div className="w-10 h-10 rounded-full bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0">
-                              <Activity size={20} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className={`text-[9px] font-black uppercase tracking-wider mb-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running KOTs (Active)</span>
-                              <span className="text-lg font-black italic tracking-tighter text-purple-500">{totalActiveOrders} Active</span>
-                           </div>
+                        <div className="flex flex-col">
+                           <span className={`text-[9px] font-black uppercase tracking-wider mb-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Pick Up</span>
+                           <span className="text-base font-black tracking-tight text-amber-500">{config.currency} {pickupTotal.toFixed(2)} ({activePickupOrders.length})</span>
+                        </div>
+                     </div>
+                     <div className={`p-4 rounded-xl border shadow-xs flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="w-10 h-10 rounded-lg bg-blue-500/10 text-blue-500 flex items-center justify-center shrink-0 border border-blue-500/20">
+                           <Truck size={18} />
+                        </div>
+                        <div className="flex flex-col">
+                           <span className={`text-[9px] font-black uppercase tracking-wider mb-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running Delivery</span>
+                           <span className="text-base font-black tracking-tight text-blue-500">{config.currency} {deliveryTotal.toFixed(2)} ({activeDeliveryOrders.length})</span>
+                        </div>
+                     </div>
+                     <div className={`p-4 rounded-xl border shadow-xs flex items-center gap-4 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-500 flex items-center justify-center shrink-0 border border-purple-500/20">
+                           <Activity size={18} />
+                        </div>
+                        <div className="flex flex-col">
+                           <span className={`text-[9px] font-black uppercase tracking-wider mb-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Running KOTs (Active)</span>
+                           <span className="text-base font-black tracking-tight text-purple-500">{totalActiveOrders} Active</span>
                         </div>
                      </div>
                   </div>
 
                   {/* Main Grid */}
-                  <div className="flex-1 flex gap-6 overflow-hidden min-h-[400px]">
+                  <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden min-h-[400px]">
                      {/* Left Area (Table Cards Grid) */}
-                     <div className={`flex-[0.6] rounded-2xl border p-5 flex flex-col overflow-y-auto no-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
-                        <h4 className={`text-xs font-black uppercase italic mb-4 tracking-wider ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>Active Outlets Monitor</h4>
+                     <div className={`flex-[0.6] rounded-xl border p-5 flex flex-col overflow-y-auto udm-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-slate-50 border-slate-200'}`}>
+                        <h4 className={`text-xs font-black uppercase mb-4 tracking-wider flex items-center gap-2 ${isDark ? 'text-[#c9d1d9]' : 'text-slate-800'}`}>
+                           Active Outlets Monitor
+                        </h4>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            {allActiveOrders.map(item => {
                               const isSelected = activeOrderToView?.id === item.id;
-                              let badgeColor = 'bg-emerald-500/10 text-emerald-500';
-                              if (item.type === 'PICKUP') badgeColor = 'bg-amber-500/10 text-amber-500';
-                              if (item.type === 'DELIVERY') badgeColor = 'bg-blue-500/10 text-blue-500';
+                              let badgeColor = 'bg-[#10ac84]/10 text-[#10ac84] border border-[#10ac84]/20';
+                              if (item.type === 'PICKUP') badgeColor = 'bg-amber-500/10 text-amber-500 border border-amber-500/20';
+                              if (item.type === 'DELIVERY') badgeColor = 'bg-blue-500/10 text-blue-500 border border-blue-500/20';
 
                               const elapsed = Math.max(1, Math.floor((Date.now() - item.timestamp) / 60000));
 
@@ -15074,62 +15608,62 @@ const UniversalPOS = () => {
                                  <div
                                     key={item.id}
                                     onClick={() => setSelectedLiveOrderId(item.id)}
-                                    className={`p-4 rounded-xl border cursor-pointer select-none transition-all hover:scale-[1.02] flex flex-col justify-between h-32 ${
+                                    className={`p-4 rounded-xl border cursor-pointer select-none transition-all hover:scale-[1.01] flex flex-col justify-between min-h-[120px] ${
                                        isSelected
-                                          ? 'border-2 border-emerald-500 bg-emerald-500/5'
-                                          : (isDark ? 'bg-[#0d1117] border-[#30363d] text-white hover:bg-[#161b22]' : 'bg-slate-50 border-slate-200 text-slate-800 hover:bg-slate-100')
+                                          ? 'border-2 border-[#10ac84] bg-[#10ac84]/5 shadow-md'
+                                          : (isDark ? 'bg-[#0d1117] border-[#30363d] text-white hover:bg-[#161b22]' : 'bg-white border-slate-200 text-slate-800 hover:bg-slate-50')
                                     }`}
                                  >
-                                    <div className="flex justify-between items-start">
+                                    <div className="flex justify-between items-start gap-2">
                                        <div>
-                                          <div className="font-black text-sm uppercase italic truncate max-w-[140px]">{item.title}</div>
-                                          <div className={`text-[8px] font-black uppercase mt-1 tracking-widest ${isDark ? 'text-gray-400' : 'text-slate-500'}`}>{item.subtitle}</div>
+                                          <div className="font-black text-sm uppercase tracking-tight truncate max-w-[140px]">{item.title}</div>
+                                          <div className={`text-[8px] font-black uppercase mt-1 tracking-widest ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>{item.subtitle}</div>
                                        </div>
-                                       <span className={`px-2 py-0.5 rounded text-[7px] font-black uppercase ${badgeColor}`}>{item.type}</span>
+                                       <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${badgeColor}`}>{item.type}</span>
                                     </div>
-                                    <div className="flex justify-between items-end mt-4">
+                                    <div className="flex justify-between items-end mt-4 pt-2 border-t border-dashed border-slate-200 dark:border-[#30363d]">
                                        <div className={`text-[9px] font-black uppercase flex items-center gap-1 ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>
-                                          <Clock size={10}/> {elapsed} mins ago
+                                          <Clock size={10} className="animate-pulse" /> {elapsed} mins ago
                                        </div>
-                                       <span className="text-sm font-black tracking-tight text-emerald-500">{config.currency} {parseFloat(item.total).toFixed(0)}</span>
+                                       <span className="text-sm font-black tracking-tight text-[#10ac84]">{config.currency} {parseFloat(item.total).toFixed(0)}</span>
                                     </div>
                                  </div>
                               );
                            })}
                            {allActiveOrders.length === 0 && (
-                              <div className="col-span-2 py-20 text-center opacity-30">
-                                 <Activity size={48} className="mx-auto mb-4" />
-                                 <p className="text-[10px] font-black uppercase tracking-widest italic">No active running orders</p>
+                              <div className="col-span-2 py-20 text-center text-slate-400">
+                                 <Activity size={40} className="mx-auto mb-3 opacity-30 animate-pulse" />
+                                 <p className="text-[10px] font-black uppercase tracking-widest">No active running orders</p>
                               </div>
                            )}
                         </div>
                      </div>
 
                      {/* Right Area (Order Details Panel) */}
-                     <div className={`flex-[0.4] rounded-2xl border p-5 flex flex-col justify-between overflow-y-auto no-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                     <div className={`flex-[0.4] rounded-xl border p-5 flex flex-col justify-between overflow-y-auto udm-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>
                         {activeOrderToView ? (
                            <div className="flex-1 flex flex-col justify-between">
                               <div>
-                                 <div className="flex justify-between items-center mb-6">
+                                 <div className="flex justify-between items-center mb-5 pb-3 border-b border-dashed border-slate-200 dark:border-[#30363d]">
                                     <div>
-                                       <h4 className="text-sm font-black uppercase italic">{activeOrderToView.title}</h4>
-                                       <p className="text-[9px] font-bold text-slate-400 mt-0.5">{activeOrderToView.subtitle}</p>
+                                       <h4 className={`text-sm font-black uppercase ${isDark ? 'text-white' : 'text-slate-900'}`}>{activeOrderToView.title}</h4>
+                                       <p className={`text-[9px] font-bold mt-0.5 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>{activeOrderToView.subtitle}</p>
                                     </div>
-                                    <div className="px-3 py-1 bg-amber-500/10 text-amber-500 rounded-lg text-[9px] font-black uppercase flex items-center gap-1">
-                                       <Clock size={10}/> {elapsedMinutes} Mins Active
+                                    <div className="px-2.5 py-1 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-lg text-[9px] font-black uppercase flex items-center gap-1">
+                                       <Clock size={10} className="animate-pulse" /> {elapsedMinutes} Mins Active
                                     </div>
                                  </div>
 
                                  <div className="space-y-3">
-                                    <h5 className="text-[9px] font-black uppercase tracking-wider text-slate-400 border-b pb-1.5">Running Items</h5>
-                                    <div className="space-y-2 max-h-[250px] overflow-y-auto no-scrollbar pr-1">
+                                    <h5 className={`text-[9px] font-black uppercase tracking-widest pb-1 border-b ${isDark ? 'text-[#8b949e] border-[#30363d]' : 'text-slate-400 border-slate-200'}`}>Running Items</h5>
+                                    <div className="space-y-2 max-h-[220px] overflow-y-auto udm-scrollbar pr-1">
                                        {activeOrderToView.items.map((item, idx) => (
-                                          <div key={idx} className="flex justify-between items-center text-[10px] py-1 border-b border-dashed border-slate-700/30">
+                                          <div key={idx} className="flex justify-between items-center text-[10px] py-1.5 border-b border-dashed border-slate-200 dark:border-[#30363d]">
                                              <div className="font-bold">
                                                 <span>{item.product_name || item.name}</span>
-                                                <span className="text-slate-400 font-medium ml-2">x{item.quantity || item.qty}</span>
+                                                <span className={`font-medium ml-2 ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>x{item.quantity || item.qty}</span>
                                              </div>
-                                             <span className="font-black text-emerald-500">{config.currency}{((parseFloat(item.price) || 0) * (item.quantity || item.qty)).toFixed(2)}</span>
+                                             <span className="font-black text-[#10ac84]">{config.currency}{((parseFloat(item.price) || 0) * (item.quantity || item.qty)).toFixed(2)}</span>
                                           </div>
                                        ))}
                                        {activeOrderToView.items.length === 0 && (
@@ -15139,10 +15673,10 @@ const UniversalPOS = () => {
                                  </div>
                               </div>
 
-                              <div className="mt-6 pt-4 border-t border-slate-700/30 space-y-4">
+                              <div className="mt-6 pt-4 border-t border-slate-200 dark:border-[#30363d] space-y-4">
                                  <div className="flex justify-between items-baseline">
-                                    <span className="text-[10px] font-black uppercase text-slate-400">Total Price</span>
-                                    <span className="text-xl font-black italic text-emerald-500">
+                                    <span className={`text-[10px] font-black uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>Total Price</span>
+                                    <span className="text-xl font-black text-[#10ac84]">
                                        {config.currency}{parseFloat(activeOrderToView.total).toFixed(2)}
                                     </span>
                                  </div>
@@ -15152,7 +15686,7 @@ const UniversalPOS = () => {
                                        <>
                                           <button
                                              onClick={() => selectPosTable(activeOrderToView.original)}
-                                             className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+                                             className="flex-1 py-2.5 bg-[#10ac84] hover:bg-[#0e9a75] text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5"
                                           >
                                              Modify Order
                                           </button>
@@ -15167,7 +15701,9 @@ const UniversalPOS = () => {
                                                 setCustomerPaidAmount('');
                                                 setIsPaymentModalOpen(true);
                                              }}
-                                             className="flex-1 py-3 bg-[#1e293b] hover:bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider border border-slate-700/50 active:scale-95 transition-all"
+                                             className={`flex-1 py-2.5 border text-[10px] font-black uppercase tracking-wider rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                                                isDark ? 'bg-[#0d1117] border-[#30363d] text-white hover:bg-[#161b22]' : 'bg-slate-100 border-slate-300 text-slate-800 hover:bg-slate-200'
+                                             }`}
                                           >
                                              Settle Payment
                                           </button>
@@ -15184,7 +15720,7 @@ const UniversalPOS = () => {
                                                    toast.error('Failed to complete order');
                                                 }
                                              }}
-                                             className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+                                             className="flex-1 py-2.5 bg-[#10ac84] hover:bg-[#0e9a75] text-white rounded-lg text-[10px] font-black uppercase tracking-wider shadow-sm transition-all flex items-center justify-center gap-1.5"
                                           >
                                              Complete Order
                                           </button>
@@ -15198,7 +15734,7 @@ const UniversalPOS = () => {
                                                    toast.error('Failed to cancel order');
                                                 }
                                              }}
-                                             className="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-lg active:scale-95 transition-all"
+                                             className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[10px] font-black uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5"
                                           >
                                              Cancel Order
                                           </button>
@@ -15208,9 +15744,9 @@ const UniversalPOS = () => {
                               </div>
                            </div>
                         ) : (
-                           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-20 text-center opacity-30">
-                              <Activity size={48} className="mb-4 animate-pulse"/>
-                              <p className="text-[10px] font-black uppercase tracking-widest italic">No active orders selected</p>
+                           <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-20 text-center">
+                              <Activity size={40} className="mb-3 opacity-30 animate-pulse"/>
+                              <p className="text-[10px] font-black uppercase tracking-widest">No active order selected</p>
                            </div>
                         )}
                      </div>
@@ -15868,7 +16404,7 @@ const UniversalPOS = () => {
                                 <span>-{config.currency} {parseFloat(activeReceipt.discountAmt || activeReceipt.discount || 0).toFixed(2)}</span>
                               </div>
                             )}
-                            {(!posSettings.hideTaxOnBill || parseFloat(activeReceipt.tax_cgst || 0) > 0) && (
+                            {(!posSettings.hideTaxOnBill && (parseFloat(activeReceipt.tax_cgst || 0) > 0 || parseFloat(activeReceipt.tax_sgst || 0) > 0)) && (
                               <>
                                 <div className="flex justify-between text-slate-500">
                                   <span>CGST:</span>
@@ -15974,18 +16510,18 @@ const UniversalPOS = () => {
                 <motion.div key="digital" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full flex overflow-hidden bg-[#0d1117]">
 
                                     {/* Left Filters Sidebar */}
-                                    <div className="w-60 bg-[#161b22] border-r border-[#30363d] flex flex-col p-4 shrink-0 overflow-y-auto no-scrollbar">
+                                    <div className="w-60 bg-slate-50 border-r border-slate-300 flex flex-col p-4 shrink-0 overflow-y-auto no-scrollbar">
                                       {getStaffPermissions()?.pos_access?.OnlineOrder?.StoreSettings?.visible !== false && (
-                                        <button className="w-full py-2.5 mb-6 bg-[#0c1015] border border-[#30363d] text-white text-[10px] font-black uppercase italic rounded-lg tracking-wider hover:border-[#10ac84] hover:text-[#10ac84] transition-all">
+                                        <button className="w-full py-2.5 mb-6 bg-slate-900 border border-slate-800 text-white text-[10px] font-black uppercase italic rounded-lg tracking-wider hover:bg-slate-800 transition-all">
                                           Store Settings
                                         </button>
                                       )}
 
-                    <div className="text-[10px] font-black text-[#8b949e] uppercase tracking-wider mb-4 border-b border-[#30363d] pb-2">Filters</div>
+                    <div className="text-[10px] font-black text-black uppercase tracking-wider mb-4 border-b border-slate-300 pb-2">Filters</div>
 
                     {/* By Order State */}
                     <div className="mb-6">
-                      <h5 className="text-[9px] font-black text-[#8b949e] uppercase tracking-wider mb-2">By Order State:</h5>
+                      <h5 className="text-[9px] font-black text-black uppercase tracking-wider mb-2">By Order State:</h5>
                       <div className="flex flex-col gap-1.5">
                         {[
                           { key: 'NEW', label: 'New' },
@@ -16002,14 +16538,14 @@ const UniversalPOS = () => {
                                 setDigitalSelectedStateFilter(state.key);
                                 setSelectedDigitalOrder(null);
                               }}
-                              className={`flex items-center justify-between px-3 py-2 rounded text-[10px] font-bold tracking-wider uppercase border transition-all ${
+                              className={`flex items-center justify-between px-3 py-2 rounded text-[10px] font-black tracking-wider uppercase border transition-all ${
                                 isActive
-                                  ? 'bg-[#1f2937] text-white border-[#10ac84]'
-                                  : 'bg-[#0d1117] text-[#8b949e] border-[#30363d] hover:text-[#c9d1d9]'
+                                  ? 'bg-slate-900 text-white border-emerald-500'
+                                  : 'bg-white text-black border-slate-300 hover:bg-slate-100'
                               }`}
                             >
                               <span>{state.label}</span>
-                              {isActive && <CheckCircle size={12} className="text-[#10ac84]" />}
+                              {isActive && <CheckCircle size={12} className="text-emerald-400" />}
                             </button>
                           );
                         })}
@@ -16018,7 +16554,7 @@ const UniversalPOS = () => {
 
                     {/* By Platform */}
                     <div>
-                      <h5 className="text-[9px] font-black text-[#8b949e] uppercase tracking-wider mb-2">By Platform:</h5>
+                      <h5 className="text-[9px] font-black text-black uppercase tracking-wider mb-2">By Platform:</h5>
                       <div className="grid grid-cols-2 gap-2">
                         {[
                           { key: 'QR_MENU', label: 'Table QR', icon: <QrCode size={16} />, color: 'emerald' },
@@ -16041,14 +16577,14 @@ const UniversalPOS = () => {
                           // Style based on selected and platform color
                           let activeStyle = '';
                           if (isSelected) {
-                            if (platform.color === 'emerald') activeStyle = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/50';
-                            else if (platform.color === 'blue') activeStyle = 'bg-blue-500/10 text-blue-400 border-blue-500/50';
-                            else if (platform.color === 'green') activeStyle = 'bg-emerald-500/20 text-emerald-500 border-emerald-500/80';
-                            else if (platform.color === 'red') activeStyle = 'bg-red-500/10 text-red-400 border-red-500/50';
-                            else if (platform.color === 'orange') activeStyle = 'bg-orange-500/10 text-orange-400 border-orange-500/50';
-                            else if (platform.color === 'teal') activeStyle = 'bg-teal-500/10 text-teal-400 border-teal-500/50';
+                            if (platform.color === 'emerald') activeStyle = 'bg-emerald-100 text-black font-black border-emerald-500';
+                            else if (platform.color === 'blue') activeStyle = 'bg-blue-100 text-black font-black border-blue-500';
+                            else if (platform.color === 'green') activeStyle = 'bg-emerald-100 text-black font-black border-emerald-600';
+                            else if (platform.color === 'red') activeStyle = 'bg-red-100 text-black font-black border-red-500';
+                            else if (platform.color === 'orange') activeStyle = 'bg-orange-100 text-black font-black border-orange-500';
+                            else if (platform.color === 'teal') activeStyle = 'bg-teal-100 text-black font-black border-teal-500';
                           } else {
-                            activeStyle = 'bg-[#0d1117] text-[#8b949e] border-[#30363d] hover:text-[#c9d1d9]';
+                            activeStyle = 'bg-white text-black border-slate-300 hover:bg-slate-100';
                           }
 
                           return (
@@ -16223,7 +16759,7 @@ const UniversalPOS = () => {
                                     type="time"
                                     value={digitalTempEndTime}
                                     onChange={e => setDigitalTempEndTime(e.target.value)}
-                                    className="w-full h-8 bg-[#0d1117] border border-[#30363d] text-[#c9d1d9] rounded px-2 text-[11px] outline-none focus:border-[#238636]"
+                                    className="w-full h-8 bg-white border border-slate-300 text-black font-black rounded px-2 text-[11px] outline-none focus:border-emerald-600"
                                   />
                                 </div>
                               </div>
@@ -16231,13 +16767,13 @@ const UniversalPOS = () => {
                               <div className="flex justify-end gap-2 mt-2">
                                 <button
                                   onClick={() => setIsDigitalDatePickerOpen(false)}
-                                  className="px-3 py-1.5 bg-black border border-black text-white rounded text-[11px] font-bold hover:bg-neutral-800"
+                                  className="px-3 py-1.5 bg-white border border-slate-300 text-black rounded text-[11px] font-black hover:bg-slate-100"
                                 >
                                   Cancel
                                 </button>
                                 <button
                                   onClick={() => { handleApplyDigitalDateRange(); }}
-                                  className="px-3 py-1.5 bg-black border border-black hover:bg-neutral-800 text-white rounded text-[11px] font-bold"
+                                  className="px-3 py-1.5 bg-black border border-black hover:bg-neutral-800 text-white rounded text-[11px] font-black"
                                 >
                                   Apply Range
                                 </button>
@@ -16251,9 +16787,9 @@ const UniversalPOS = () => {
                     {/* Cards Scroll Container */}
                     <div className="flex-1 p-4 overflow-y-auto no-scrollbar space-y-3">
                       {filteredOrders.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-500 py-12">
+                        <div className="h-full flex flex-col items-center justify-center text-black font-black py-12">
                           <Globe size={40} className="mb-3 opacity-30" />
-                          <p className="text-[10px] font-black uppercase tracking-widest italic">No online orders found matching filters</p>
+                          <p className="text-[10px] font-black uppercase tracking-widest italic text-black">No online orders found matching filters</p>
                         </div>
                       ) : (
                         filteredOrders.map(order => {
@@ -16263,25 +16799,25 @@ const UniversalPOS = () => {
                           // Determine status display
                           const status = String(order.status || 'PENDING').toUpperCase();
                           let statusLabel = 'Placed';
-                          let statusColor = 'text-orange-500 bg-orange-500/10 border-orange-500/20';
+                          let statusColor = 'text-black bg-orange-100 border-orange-300 font-black';
                           if (['PROCESSING', 'PREPARING'].includes(status)) {
                             statusLabel = 'Preparing';
-                            statusColor = 'text-yellow-500 bg-yellow-500/10 border-yellow-500/20';
+                            statusColor = 'text-black bg-yellow-100 border-yellow-300 font-black';
                           } else if (['DISPATCHED', 'READY', 'FOOD READY'].includes(status)) {
                             statusLabel = 'Food Ready';
-                            statusColor = 'text-emerald-500 bg-emerald-500/10 border-emerald-500/20';
+                            statusColor = 'text-black bg-emerald-100 border-emerald-300 font-black';
                           } else if (status === 'COMPLETED') {
                             statusLabel = 'Completed';
-                            statusColor = 'text-green-400 bg-green-500/10 border-green-500/20';
+                            statusColor = 'text-black bg-green-100 border-green-300 font-black';
                           } else if (status === 'CANCELLED') {
                             statusLabel = 'Cancelled';
-                            statusColor = 'text-red-500 bg-red-500/10 border-red-500/20';
+                            statusColor = 'text-black bg-red-100 border-red-300 font-black';
                           }
 
                           // Get source info
                           let sourceLabel = 'Online Order';
                           let sourceIcon = <Globe size={12} />;
-                          let sourceColor = 'text-blue-400';
+                          let sourceColor = 'text-black font-black';
                           let source = order.source;
                           if (!source) {
                             const ordType = String(order.order_type || order.address || '').toUpperCase();
@@ -16294,23 +16830,23 @@ const UniversalPOS = () => {
                           if (source === 'QR_MENU') {
                             sourceLabel = 'QR Table Order';
                             sourceIcon = <QrCode size={12} />;
-                            sourceColor = 'text-emerald-400';
+                            sourceColor = 'text-black font-black';
                           } else if (source === 'WHATSAPP') {
                             sourceLabel = 'WhatsApp Order';
                             sourceIcon = <MessageSquare size={12} />;
-                            sourceColor = 'text-emerald-500';
+                            sourceColor = 'text-black font-black';
                           } else if (source === 'ZOMATO') {
                             sourceLabel = 'Zomato';
                             sourceIcon = <Globe size={12} />;
-                            sourceColor = 'text-red-400';
+                            sourceColor = 'text-black font-black';
                           } else if (source === 'SWIGGY') {
                             sourceLabel = 'Swiggy';
                             sourceIcon = <Globe size={12} />;
-                            sourceColor = 'text-orange-400';
+                            sourceColor = 'text-black font-black';
                           } else if (source === 'ONDC') {
                             sourceLabel = 'ONDC';
                             sourceIcon = <Globe size={12} />;
-                            sourceColor = 'text-teal-400';
+                            sourceColor = 'text-black font-black';
                           }
 
                           // Parse items to display preview
@@ -16327,22 +16863,26 @@ const UniversalPOS = () => {
                               onClick={() => setSelectedDigitalOrder(order)}
                               className={`p-4 rounded-xl border transition-all cursor-pointer ${
                                 isSelected
-                                  ? 'bg-[#161b22] border-[#10ac84] shadow-md shadow-[#10ac84]/5'
-                                  : 'bg-[#161b22] border-[#30363d] hover:border-slate-700'
+                                  ? 'bg-white border-emerald-600 shadow-lg'
+                                  : 'bg-white border-slate-300 hover:border-slate-400'
                               }`}
                             >
                               {/* Store header and order type */}
                               <div className="flex justify-between items-start mb-2.5">
                                 <div>
-                                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                  <span className="text-[10px] font-black uppercase tracking-wider text-black">
                                     {business?.name || 'Sagar Ratna India'}
                                   </span>
-                                  <h4 className="text-xs font-black text-[#c9d1d9] mt-0.5 flex items-center gap-1">
+                                  <h4 className="text-xs font-black text-black mt-0.5 flex items-center gap-1">
                                     Ref: {order.order_reference || order.id}
                                   </h4>
                                 </div>
-                                <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider bg-slate-800 text-slate-300">
-                                  {order.order_type || 'PICKUP'}
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
+                                  (order.order_type || '').toUpperCase() === 'DELIVERY' || (order.address && !order.address.toLowerCase().includes('pickup') && !order.table_number)
+                                    ? 'bg-rose-100 text-black border border-rose-400'
+                                    : 'bg-slate-200 text-black border border-slate-400'
+                                }`}>
+                                  {order.order_type || (order.address && !order.address.toLowerCase().includes('pickup') && !order.table_number ? 'DELIVERY' : 'PICKUP')}
                                 </span>
                               </div>
 
@@ -16352,46 +16892,85 @@ const UniversalPOS = () => {
                                   <span className={`flex items-center gap-1 text-[9px] font-black uppercase italic ${sourceColor}`}>
                                     {sourceIcon} {sourceLabel}
                                   </span>
-                                  <span className="text-slate-500 text-[9px]">•</span>
-                                  <span className="text-slate-500 text-[9px]">{dateFormatted}</span>
+                                  <span className="text-black font-black text-[9px]">•</span>
+                                  <span className="text-black font-black text-[9px]">{dateFormatted}</span>
                                 </div>
                                 <div className="text-[10px] font-black uppercase mt-1.5">
                                   {['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(status) && (
-                                    <span className="text-rose-500">Placed</span>
+                                    <span className="text-black font-black bg-rose-100 px-2 py-0.5 rounded border border-rose-300">Placed</span>
                                   )}
                                   {['PROCESSING', 'PREPARING'].includes(status) && (
-                                    <div className="flex flex-col text-rose-500">
-                                      <span>Acknowledged</span>
-                                      <span className="text-[9px] font-bold mt-0.5 tracking-wide italic">{getPrepTimeLabel(order.created_at)}</span>
+                                    <div className="flex flex-col text-black font-black">
+                                      <span className="bg-yellow-100 px-2 py-0.5 rounded border border-yellow-300 w-max">Acknowledged</span>
+                                      <span className="text-[9px] font-black mt-0.5 tracking-wide italic text-black">{getPrepTimeLabel(order.created_at)}</span>
                                     </div>
                                   )}
                                   {['DISPATCHED', 'READY', 'FOOD READY'].includes(status) && (
-                                    <span className="text-emerald-500">Food Ready</span>
+                                    <span className="text-black font-black bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">Food Ready</span>
                                   )}
                                   {status === 'COMPLETED' && (
-                                    <span className="text-green-400">Completed</span>
+                                    <span className="text-black font-black bg-green-100 px-2 py-0.5 rounded border border-green-300">Completed</span>
                                   )}
                                   {status === 'CANCELLED' && (
-                                    <span className="text-red-500">Cancelled</span>
+                                    <span className="text-black font-black bg-red-100 px-2 py-0.5 rounded border border-red-300">Cancelled</span>
                                   )}
                                 </div>
                               </div>
 
                               {/* Details Summary */}
-                              <div className="space-y-1 mb-4 text-[10px] text-slate-300">
+                              <div className="space-y-1 mb-4 text-[10px] text-black font-black">
                                 <div>
-                                  <span className="text-slate-500 font-bold">Items:</span> {itemNamesPreview || 'No items listed'}
+                                  <span className="text-black font-black">Items:</span> <span className="text-black font-bold">{itemNamesPreview || 'No items listed'}</span>
                                 </div>
                                 <div>
-                                  <span className="text-slate-500 font-bold">Customer:</span> {order.customer_name || 'Guest'} ({order.customer_phone || order.customer_number || 'No Phone'})
+                                  <span className="text-black font-black">Customer:</span> <span className="text-black font-bold">{order.customer_name || 'Guest'} ({order.customer_phone || order.customer_number || 'No Phone'})</span>
                                 </div>
-                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-[#30363d]/50">
-                                  <div className="font-bold text-white text-xs">
-                                    ₹{parseFloat(order.total_price || 0).toFixed(2)}{' '}
-                                    <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">
-                                      ({order.payment_method || 'UPI'})
-                                    </span>
-                                  </div>
+                                {order.address && (() => {
+                                  const mapMatch = String(order.address).match(/(https?:\/\/maps[^\s]+|https?:\/\/[^\s]*q=[^\s]+)/i);
+                                  const mapUrl = mapMatch ? mapMatch[0] : null;
+                                  const cleanAddress = order.address.replace(/📍\s*Pin:\s*https?:\/\/[^\s]+/g, '').trim();
+
+                                  return (
+                                    <div className="text-[10px] text-black font-black flex flex-col gap-1 mt-1 bg-amber-50 p-2 rounded-lg border border-amber-300">
+                                      <div className="flex items-center gap-1.5">
+                                        <MapPin size={12} className="shrink-0 text-black" />
+                                        <span className="truncate text-black font-black"><strong className="text-black font-black uppercase tracking-wider text-[9px]">Location:</strong> {cleanAddress || order.address}</span>
+                                      </div>
+                                      {mapUrl && (
+                                        <a
+                                          href={mapUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          onClick={e => e.stopPropagation()}
+                                          className="inline-flex items-center gap-1 text-[9px] font-black text-black bg-emerald-200 border border-emerald-500 px-2 py-0.5 rounded w-max mt-0.5"
+                                        >
+                                          🗺️ Open Exact Map Pin ↗
+                                        </a>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
+                                <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-300">
+                                  {(() => {
+                                    const cardItems = Array.isArray(order.items) ? order.items : [];
+                                    const cardSub = cardItems.reduce((acc, it) => acc + (parseFloat(it.price || 0) * (it.qty || it.quantity || 1)), 0);
+                                    const cardSubtotal = cardSub > 0 ? cardSub : parseFloat(order.subtotal || 0);
+                                    const cardDel = parseFloat(order.delivery_charge || 0);
+                                    const cardDisc = parseFloat(order.discount_amount || order.discount || 0);
+                                    const cardCgst = parseFloat(order.tax_cgst || 0);
+                                    const cardSgst = parseFloat(order.tax_sgst || 0);
+                                    const cardTotal = cardSubtotal + cardDel + cardCgst + cardSgst - cardDisc;
+                                    const displayCardTotal = cardTotal > 0 ? cardTotal : parseFloat(order.total_price || 0);
+
+                                    return (
+                                      <div className="font-black text-black text-xs">
+                                        ₹{displayCardTotal.toFixed(2)}{' '}
+                                        <span className="text-[9px] font-black text-black uppercase tracking-widest">
+                                          ({order.payment_method || 'UPI'})
+                                        </span>
+                                      </div>
+                                    );
+                                  })()}
                                   <div className={`px-2 py-0.5 rounded text-[8px] font-black uppercase border ${statusColor}`}>
                                     {statusLabel}
                                   </div>
@@ -16416,7 +16995,7 @@ const UniversalPOS = () => {
                                       }}
                                       className="flex-1 py-1.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                     >
-                                      Accept
+                                      Accept & Prepare
                                     </button>
                                     <button
                                       onClick={() => setSelectedDigitalOrder(order)}
@@ -16476,12 +17055,12 @@ const UniversalPOS = () => {
                   </div>
 
                   {/* Right Order Details Pane */}
-                  <div className="w-96 bg-[#161b22] border-l border-[#30363d] flex flex-col overflow-hidden shrink-0">
+                  <div className="w-96 bg-white border-l border-slate-300 flex flex-col overflow-hidden shrink-0">
                     {!selectedDigitalOrder ? (
-                      <div className="h-full flex flex-col items-center justify-center text-slate-500 p-8">
-                        <ShoppingBag size={48} className="mb-4 opacity-30" />
-                        <h4 className="text-xs font-black uppercase italic text-[#c9d1d9] mb-1">No Order Selected</h4>
-                        <p className="text-[9px] font-bold text-center text-slate-500 max-w-[200px]">
+                      <div className="h-full flex flex-col items-center justify-center text-black font-black p-8">
+                        <ShoppingBag size={48} className="mb-4 opacity-30 text-black" />
+                        <h4 className="text-xs font-black uppercase italic text-black mb-1">No Order Selected</h4>
+                        <p className="text-[9px] font-black text-center text-black max-w-[200px]">
                           Select an order from the list to view its items, delivery details, and receipts.
                         </p>
                       </div>
@@ -16490,7 +17069,6 @@ const UniversalPOS = () => {
                       const orderItems = Array.isArray(order.items) ? order.items : [];
 
                       // Calculate subtotals
-                      const totalPrice = parseFloat(order.total_price || 0);
                       const discountAmt = parseFloat(order.discount_amount || order.discount || 0);
                       const cgst = parseFloat(order.tax_cgst || 0);
                       const sgst = parseFloat(order.tax_sgst || 0);
@@ -16499,24 +17077,25 @@ const UniversalPOS = () => {
                       const tipAmount = parseFloat(order.tip_amount || 0);
 
                       const calculatedSub = orderItems.reduce((acc, it) => acc + (parseFloat(it.price || 0) * (it.qty || it.quantity || 1)), 0);
-                      const subtotal = calculatedSub > 0 ? calculatedSub : (totalPrice - cgst - sgst + discountAmt - tipAmount - serviceCharge - deliveryCharge);
+                      const subtotal = calculatedSub > 0 ? calculatedSub : (parseFloat(order.subtotal || 0));
+                      const totalPrice = subtotal + deliveryCharge + serviceCharge + tipAmount + cgst + sgst - discountAmt;
 
                       return (
-                        <div className="h-full flex flex-col overflow-hidden">
+                        <div className="h-full flex flex-col overflow-hidden bg-white text-black">
                           {/* Pane Header */}
-                          <div className="p-4 border-b border-[#30363d] shrink-0 bg-[#0d1117]">
+                          <div className="p-4 border-b border-slate-300 shrink-0 bg-slate-100">
                             <div className="flex justify-between items-start">
                               <div>
-                                <h4 className="text-xs font-black text-[#c9d1d9] uppercase tracking-wider">
+                                <h4 className="text-xs font-black text-black uppercase tracking-wider">
                                   {order.order_reference || `Order #${order.id}`}
                                 </h4>
-                                <p className="text-[9px] text-slate-500 mt-0.5">
+                                <p className="text-[9px] text-black font-black mt-0.5">
                                   {new Date(order.created_at).toLocaleString()}
                                 </p>
                               </div>
                               <button
                                 onClick={() => setSelectedDigitalOrder(null)}
-                                className="text-slate-400 hover:text-white cursor-pointer"
+                                className="text-black hover:text-red-600 font-black cursor-pointer"
                               >
                                 <X size={16} />
                               </button>
@@ -16527,27 +17106,45 @@ const UniversalPOS = () => {
                           <div className="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
 
                             {/* Customer Info Card */}
-                            <div className="bg-[#0d1117] p-3 rounded-lg border border-[#30363d]/80 space-y-2">
-                              <h5 className="text-[9px] font-black uppercase text-emerald-500 tracking-wider">Customer Details</h5>
-                              <div className="text-[10px] space-y-1 text-slate-300">
-                                <div><strong className="text-slate-500">Name:</strong> {order.customer_name || 'Guest'}</div>
-                                <div><strong className="text-slate-500">Phone:</strong> {order.customer_phone || order.customer_number || 'N/A'}</div>
+                            <div className="bg-slate-50 p-3 rounded-lg border border-slate-300 space-y-2">
+                              <h5 className="text-[9px] font-black uppercase text-emerald-700 tracking-wider">Customer Details</h5>
+                              <div className="text-[10px] space-y-1 text-black font-black">
+                                <div><strong className="text-black font-black">Name:</strong> {order.customer_name || 'Guest'}</div>
+                                <div><strong className="text-black font-black">Phone:</strong> {order.customer_phone || order.customer_number || 'N/A'}</div>
                                 {order.table_number && order.table_number !== '0' && (
-                                  <div><strong className="text-slate-500 text-emerald-500">Table:</strong> Table {order.table_number}</div>
+                                  <div><strong className="text-black font-black">Table:</strong> Table {order.table_number}</div>
                                 )}
-                                {order.address && (
-                                  <div><strong className="text-slate-500">Address:</strong> {order.address}</div>
-                                )}
+                                {order.address && (() => {
+                                  const mapMatch = String(order.address).match(/(https?:\/\/maps[^\s]+|https?:\/\/[^\s]*q=[^\s]+)/i);
+                                  const mapUrl = mapMatch ? mapMatch[0] : null;
+                                  const cleanAddress = order.address.replace(/📍\s*Pin:\s*https?:\/\/[^\s]+/g, '').trim();
+
+                                  return (
+                                    <div className="space-y-1 mt-1 pt-1 border-t border-slate-300">
+                                      <div><strong className="text-black font-black">Address:</strong> {cleanAddress || order.address}</div>
+                                      {mapUrl && (
+                                        <a
+                                          href={mapUrl}
+                                          target="_blank"
+                                          rel="noreferrer"
+                                          className="inline-flex items-center gap-1 text-[10px] font-black text-black bg-emerald-200 border border-emerald-500 px-2.5 py-1 rounded-md mt-1"
+                                        >
+                                          🗺️ Open Exact Map Pin in Google Maps ↗
+                                        </a>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             </div>
 
                             {/* Items List Table */}
                             <div>
-                              <h5 className="text-[9px] font-black uppercase text-[#8b949e] tracking-wider mb-2">Order Items</h5>
-                              <div className="border border-[#30363d] rounded-lg overflow-hidden bg-[#0d1117]">
+                              <h5 className="text-[9px] font-black uppercase text-black tracking-wider mb-2">Order Items</h5>
+                              <div className="border border-slate-300 rounded-lg overflow-hidden bg-white">
                                 <table className="w-full text-left text-[10px] border-collapse">
                                   <thead>
-                                    <tr className="bg-[#161b22] border-b border-[#30363d] text-[8px] font-black text-slate-400 uppercase">
+                                    <tr className="bg-slate-100 border-b border-slate-300 text-[8px] font-black text-black uppercase">
                                       <th className="p-2">Item</th>
                                       <th className="p-2 text-center w-10">Qty</th>
                                       <th className="p-2 text-right w-16">Price</th>
@@ -16559,11 +17156,11 @@ const UniversalPOS = () => {
                                       const price = parseFloat(it.price || 0);
                                       const qty = parseInt(it.qty || it.quantity || 1);
                                       return (
-                                        <tr key={idx} className="border-b border-[#30363d]/50 hover:bg-white/5 text-[#c9d1d9]">
-                                          <td className="p-2 font-bold">{it.product_name || it.name}</td>
-                                          <td className="p-2 text-center">{qty}</td>
-                                          <td className="p-2 text-right">₹{price.toFixed(2)}</td>
-                                          <td className="p-2 text-right font-black">₹{(price * qty).toFixed(2)}</td>
+                                        <tr key={idx} className="border-b border-slate-200 hover:bg-slate-50 text-black font-black">
+                                          <td className="p-2 font-black text-black">{it.product_name || it.name}</td>
+                                          <td className="p-2 text-center font-black text-black">{qty}</td>
+                                          <td className="p-2 text-right font-black text-black">₹{price.toFixed(2)}</td>
+                                          <td className="p-2 text-right font-black text-black">₹{(price * qty).toFixed(2)}</td>
                                         </tr>
                                       );
                                     })}
@@ -16573,82 +17170,112 @@ const UniversalPOS = () => {
                             </div>
 
                             {/* Costs Breakdown */}
-                            <div className="space-y-1.5 border-t border-[#30363d] pt-3 text-[10px] text-slate-300">
+                            <div className="space-y-1.5 border-t border-slate-300 pt-3 text-[10px] text-black font-black">
                               <div className="flex justify-between">
-                                <span className="text-slate-500">Subtotal</span>
-                                <span>₹{subtotal.toFixed(2)}</span>
+                                <span className="text-black font-black">Subtotal</span>
+                                <span className="font-black text-black">₹{subtotal.toFixed(2)}</span>
                               </div>
                               {discountAmt > 0 && (
-                                <div className="flex justify-between text-red-400">
+                                <div className="flex justify-between text-red-600 font-black">
                                   <span>Discount</span>
                                   <span>-₹{discountAmt.toFixed(2)}</span>
                                 </div>
                               )}
                               {cgst > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">CGST</span>
-                                  <span>₹{cgst.toFixed(2)}</span>
+                                  <span className="text-black font-black">CGST</span>
+                                  <span className="font-black text-black">₹{cgst.toFixed(2)}</span>
                                 </div>
                               )}
                               {sgst > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">SGST</span>
-                                  <span>₹{sgst.toFixed(2)}</span>
+                                  <span className="text-black font-black">SGST</span>
+                                  <span className="font-black text-black">₹{sgst.toFixed(2)}</span>
                                 </div>
                               )}
                               {serviceCharge > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">Service Charge</span>
-                                  <span>₹{serviceCharge.toFixed(2)}</span>
+                                  <span className="text-black font-black">Service Charge</span>
+                                  <span className="font-black text-black">₹{serviceCharge.toFixed(2)}</span>
                                 </div>
                               )}
-                              {(() => {
-                                const chargeDetails = Array.isArray(order.charge_details) ? order.charge_details : (typeof order.charge_details === 'string' ? JSON.parse(order.charge_details || '[]') : []);
-                                if (chargeDetails.length > 0) {
-                                  return chargeDetails.map((c, idx) => (
-                                    <div key={`charge-${idx}`} className="flex justify-between">
-                                      <span className="text-slate-500">{c.name || 'Charge'}</span>
-                                      <span>₹{parseFloat(c.amount || c.value || 0).toFixed(2)}</span>
-                                    </div>
-                                  ));
-                                } else if (deliveryCharge > 0) {
-                                  return (
-                                    <div className="flex justify-between">
-                                      <span className="text-slate-500">Delivery Charge</span>
-                                      <span>₹{deliveryCharge.toFixed(2)}</span>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })()}
+                              {/* Delivery Charge Interactive Editor (Editable ONLY in NEW tab) */}
+                              <div className="flex justify-between items-center bg-amber-50 p-2 rounded-lg border border-amber-300 my-1">
+                                <div className="flex items-center gap-1.5">
+                                  <Truck size={14} className="text-amber-700" />
+                                  <span className="text-[10px] font-black text-black">Delivery Fee:</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                                    <>
+                                      <span className="text-xs font-black text-black">₹</span>
+                                      <input
+                                        type="number"
+                                        min="0"
+                                        step="5"
+                                        key={`del-fee-${order.id}-${deliveryCharge}`}
+                                        defaultValue={deliveryCharge || 0}
+                                        onBlur={async (e) => {
+                                          const newFee = parseFloat(e.target.value) || 0;
+                                          if (newFee === (deliveryCharge || 0)) return;
+                                          try {
+                                            const newTotal = subtotal + newFee - discountAmt + cgst + sgst;
+                                            const updatedChargeDetails = [{ name: 'Delivery Charge', amount: newFee, value: newFee }];
+                                            await posService.updateOrder(order.id, { 
+                                              ...order,
+                                              delivery_charge: newFee, 
+                                              total_price: newTotal,
+                                              charge_details: updatedChargeDetails 
+                                            });
+                                            toast.success(`Delivery charge updated to ₹${newFee.toFixed(2)}`);
+                                            setSelectedDigitalOrder(prev => prev ? { 
+                                              ...prev, 
+                                              delivery_charge: newFee, 
+                                              total_price: newTotal,
+                                              charge_details: updatedChargeDetails 
+                                            } : null);
+                                            fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
+                                          } catch (err) {
+                                            console.error(err);
+                                            toast.error("Failed to update delivery charge");
+                                          }
+                                        }}
+                                        className="w-16 h-7 px-1.5 bg-white border border-slate-300 text-black font-black text-xs text-right rounded-md outline-none focus:border-amber-500"
+                                      />
+                                    </>
+                                  ) : (
+                                    <span className="text-xs font-black text-black font-mono">₹{(deliveryCharge || 0).toFixed(2)}</span>
+                                  )}
+                                </div>
+                              </div>
                               {tipAmount > 0 && (
                                 <div className="flex justify-between">
-                                  <span className="text-slate-500">Tips</span>
-                                  <span>₹{tipAmount.toFixed(2)}</span>
+                                  <span className="text-black font-black">Tips</span>
+                                  <span className="font-black text-black">₹{tipAmount.toFixed(2)}</span>
                                 </div>
                               )}
-                              <div className="flex justify-between font-black text-white text-xs pt-2 border-t border-[#30363d]/50">
+                              <div className="flex justify-between font-black text-black text-xs pt-2 border-t border-slate-300">
                                 <span>Total Amount</span>
-                                <span>₹{totalPrice.toFixed(2)}</span>
+                                <span className="text-emerald-700">₹{totalPrice.toFixed(2)}</span>
                               </div>
                             </div>
 
                             {/* Horizontal Status Timeline */}
-                            <div className="bg-[#0d1117] p-4 rounded-lg border border-[#30363d]/80 space-y-4">
+                            <div className="bg-slate-50 p-4 rounded-lg border border-slate-300 space-y-4">
                               <div className="flex justify-between items-center">
-                                <h5 className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Status</h5>
-                                <div className="text-[9px] uppercase font-bold text-slate-500">
-                                  Payment: <span className="text-[#10ac84]">{order.payment_status || 'PENDING'}</span>
+                                <h5 className="text-[10px] font-black uppercase text-black tracking-wider">Status</h5>
+                                <div className="text-[9px] uppercase font-black text-black">
+                                  Payment: <span className="text-emerald-700 font-black">{order.payment_status || 'PENDING'}</span>
                                 </div>
                               </div>
 
                               <div className="relative flex items-center justify-between px-2 pt-2 pb-1">
                                 {/* Background Line */}
-                                <div className="absolute left-6 right-6 top-[18px] h-0.5 bg-slate-700 z-0"></div>
+                                <div className="absolute left-6 right-6 top-[18px] h-0.5 bg-slate-300 z-0"></div>
 
                                 {/* Active Progress Line */}
                                 <div
-                                  className="absolute left-6 top-[18px] h-0.5 bg-[#18ba60] transition-all duration-500 z-0"
+                                  className="absolute left-6 top-[18px] h-0.5 bg-emerald-600 transition-all duration-500 z-0"
                                   style={{
                                     width: `${(getStatusStepIndex ? getStatusStepIndex(order.status) : 0) / 3 * 100}%`
                                   }}
@@ -16673,8 +17300,8 @@ const UniversalPOS = () => {
                                       <div
                                         className={`w-7 h-7 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                                           isCompleted
-                                            ? 'bg-[#18ba60] border-[#18ba60] text-white scale-110 shadow-lg shadow-[#18ba60]/20'
-                                            : 'bg-[#161b22] border-[#30363d] text-slate-500'
+                                            ? 'bg-emerald-600 border-emerald-600 text-white scale-110 shadow-lg'
+                                            : 'bg-white border-slate-300 text-black'
                                         }`}
                                       >
                                         {isCompleted ? (
@@ -16688,8 +17315,8 @@ const UniversalPOS = () => {
                                         )}
                                       </div>
                                       <span
-                                        className={`text-[8px] font-bold mt-2.5 whitespace-nowrap uppercase tracking-tight transition-all duration-300 ${
-                                          isCompleted ? 'text-white' : 'text-slate-500'
+                                        className={`text-[8px] font-black mt-2.5 whitespace-nowrap uppercase tracking-tight transition-all duration-300 ${
+                                          isCompleted ? 'text-emerald-700' : 'text-black'
                                         }`}
                                       >
                                         {step.label}
@@ -16700,83 +17327,135 @@ const UniversalPOS = () => {
                               </div>
                             </div>
 
-                            {/* Select Delivery Boy Dropdown */}
+                            {/* Select Delivery Boy (Editable ONLY in NEW order tab) */}
                             {!(order.table_number && order.table_number !== '0') && (
-                              <div className="bg-[#0d1117] p-3 rounded-lg border border-[#30363d]/80 space-y-2">
-                                <label className="text-[9px] font-black uppercase text-slate-400 tracking-wider block">
-                                  Select Delivery Boy
+                              <div className="bg-slate-50 p-3 rounded-lg border border-slate-300 space-y-2">
+                                <label className="text-[9px] font-black uppercase text-black tracking-wider block">
+                                  Delivery Boy
                                 </label>
 
-                                <select
-                                  value={order.rider_id || ''}
-                                  onChange={async (e) => {
-                                    const rId = e.target.value;
-                                    if (!rId) return;
-                                    try {
-                                      await posService.assignRider(order.id, rId);
-                                      toast.success("Rider assigned and order dispatched");
-                                      fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
-                                      setSelectedDigitalOrder(prev => prev ? { ...prev, rider_id: rId, status: 'DISPATCHED' } : null);
-                                    } catch (err) {
-                                      console.error(err);
-                                      toast.error("Failed to assign rider");
-                                    }
-                                  }}
-                                  className="w-full p-2.5 rounded-lg bg-[#161b22] border border-[#30363d] font-bold text-[10px] text-white outline-none focus:border-[#10ac84] cursor-pointer"
-                                >
-                                  <option value="">__Select Delivery Boy_</option>
-                                  {riders.map(r => (
-                                    <option key={r.id} value={r.id}>
-                                      {r.name} ({r.phone})
-                                    </option>
-                                  ))}
-                                </select>
+                                {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                                  <>
+                                    <select
+                                      value={order.rider_id || ''}
+                                      onChange={async (e) => {
+                                        const rId = e.target.value;
+                                        if (!rId) return;
+                                        try {
+                                          await posService.assignRider(order.id, rId);
+                                          toast.success("Rider updated successfully");
+                                          setSelectedDigitalOrder(prev => prev ? { ...prev, rider_id: rId } : null);
+                                          fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
+                                        } catch (err) {
+                                          console.error(err);
+                                          toast.error("Failed to assign rider");
+                                        }
+                                      }}
+                                      className="w-full p-2.5 rounded-lg bg-white border border-slate-300 font-black text-[10px] text-black outline-none focus:border-emerald-500 cursor-pointer"
+                                    >
+                                      <option value="">__Select Delivery Boy_</option>
+                                      {riders.map(r => (
+                                        <option key={r.id} value={r.id}>
+                                          {r.name} ({r.phone})
+                                        </option>
+                                      ))}
+                                    </select>
 
-                                {/* Delivery Person Details */}
-                                {order.rider_id && (() => {
-                                  const activeRider = riders.find(r => String(r.id) === String(order.rider_id));
-                                  if (!activeRider) return null;
-                                  return (
-                                    <div className="mt-2.5 pt-2.5 border-t border-[#30363d]/50 space-y-1">
-                                      <div className="text-[8px] font-black uppercase text-slate-500 tracking-wider">
-                                        Delivery Person Details
-                                      </div>
-                                      <div className="flex items-center gap-2 text-[10px] text-slate-300">
-                                        <div className="w-7 h-7 rounded-full bg-[#18ba60]/10 flex items-center justify-center text-[#18ba60]">
-                                          <User size={14} />
+                                    {/* Delivery Person Details */}
+                                    {order.rider_id && (() => {
+                                      const activeRider = riders.find(r => String(r.id) === String(order.rider_id));
+                                      if (!activeRider) return null;
+                                      return (
+                                        <div className="mt-2.5 pt-2.5 border-t border-slate-300 space-y-1">
+                                          <div className="text-[8px] font-black uppercase text-black tracking-wider">
+                                            Delivery Person Details
+                                          </div>
+                                          <div className="flex items-center gap-2 text-[10px] text-black font-black">
+                                            <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+                                              <User size={14} />
+                                            </div>
+                                            <div>
+                                              <div className="font-black text-black text-[10px]">{activeRider.name}</div>
+                                              <div className="text-black font-bold text-[9px]">{activeRider.phone}</div>
+                                            </div>
+                                          </div>
                                         </div>
-                                        <div>
-                                          <div className="font-bold text-white text-[10px]">{activeRider.name}</div>
-                                          <div className="text-slate-400 text-[9px]">{activeRider.phone}</div>
+                                      );
+                                    })()}
+                                  </>
+                                ) : (
+                                  <div>
+                                    {order.rider_id || order.rider_name ? (() => {
+                                      const activeRider = riders.find(r => String(r.id) === String(order.rider_id));
+                                      const rName = order.rider_name || activeRider?.name || 'Assigned Rider';
+                                      const rPhone = order.rider_phone || activeRider?.phone || '';
+                                      return (
+                                        <div className="flex items-center gap-2 text-[10px] text-black font-black pt-1">
+                                          <div className="w-7 h-7 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700">
+                                            <User size={14} />
+                                          </div>
+                                          <div>
+                                            <div className="font-black text-black text-[10px]">{rName}</div>
+                                            {rPhone && <div className="text-black font-bold text-[9px]">{rPhone}</div>}
+                                          </div>
                                         </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })()}
+                                      );
+                                    })() : (
+                                      <div className="text-xs font-bold text-slate-500 py-1">No Rider Assigned</div>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>
 
                           {/* Footer Actions */}
-                          <div className="p-4 border-t border-[#30363d] bg-[#0d1117] space-y-3 shrink-0">
-                            {order.payment_status !== 'PAID' && (
-                              <button
-                                onClick={async () => {
-                                  try {
-                                    await posService.updateOrderPaymentStatus(order.id, 'PAID');
-                                    toast.success("Payment marked as PAID");
-                                    fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
-                                    setSelectedDigitalOrder(prev => prev ? { ...prev, payment_status: 'PAID' } : null);
-                                  } catch (err) {
-                                    console.error(err);
-                                    toast.error("Failed to update payment status");
-                                  }
-                                }}
-                                className="w-full py-2 bg-blue-900/40 hover:bg-blue-900/60 text-blue-400 border border-blue-800/60 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
-                              >
-                                Update Payment
-                              </button>
-                            )}
+                          <div className="p-4 border-t border-slate-300 bg-slate-100 space-y-3 shrink-0">
+                            {/* Payment Status (Editable ONLY in NEW order tab) */}
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black uppercase text-black tracking-wider block">
+                                Payment Status
+                              </label>
+                              {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                                <select
+                                  value={order.payment_status || 'PENDING'}
+                                  onChange={async (e) => {
+                                    const selectedStatus = e.target.value;
+                                    if (!selectedStatus) return;
+                                    try {
+                                      await posService.updateOrderPaymentStatus(order.id, selectedStatus);
+                                      const statusLabel = selectedStatus === 'RECEIVED' || selectedStatus === 'PAID'
+                                        ? 'PAID & VERIFIED'
+                                        : selectedStatus === 'NOT_RECEIVED'
+                                        ? 'NOT RECEIVED'
+                                        : selectedStatus;
+                                      toast.success(`Payment status updated to ${statusLabel}`);
+                                      fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
+                                      setSelectedDigitalOrder(prev => prev ? { ...prev, payment_status: selectedStatus } : null);
+                                    } catch (err) {
+                                      console.error(err);
+                                      toast.error("Failed to update payment status");
+                                    }
+                                  }}
+                                  className="w-full p-2.5 rounded-lg bg-white border border-blue-400 font-black text-[10px] text-black outline-none focus:border-emerald-500 cursor-pointer"
+                                >
+                                  <option value="PENDING">⏳ PAYMENT PENDING</option>
+                                  <option value="RECEIVED">🟢 ✅ PAYMENT RECEIVED (VERIFIED)</option>
+                                  <option value="NOT_RECEIVED">🔴 ❌ PAYMENT NOT RECEIVED</option>
+                                  <option value="CUSTOMER_CONFIRMED">🟡 💬 CUSTOMER CLAIMED PAID</option>
+                                </select>
+                              ) : (
+                                <div className="w-full p-2.5 rounded-lg bg-slate-200/80 border border-slate-300 font-black text-[10px] text-black">
+                                  {order.payment_status === 'RECEIVED' || order.payment_status === 'PAID'
+                                    ? '🟢 ✅ PAYMENT RECEIVED (VERIFIED)'
+                                    : order.payment_status === 'NOT_RECEIVED'
+                                    ? '🔴 ❌ PAYMENT NOT RECEIVED'
+                                    : order.payment_status === 'CUSTOMER_CONFIRMED'
+                                    ? '🟡 💬 CUSTOMER CLAIMED PAID'
+                                    : '⏳ PAYMENT PENDING'}
+                                </div>
+                              )}
+                            </div>
 
                             <div className="flex gap-2">
                               <button
@@ -16784,14 +17463,14 @@ const UniversalPOS = () => {
                                   fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
                                   toast.success("Orders refreshed");
                                 }}
-                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                className="flex-1 py-2 bg-white hover:bg-slate-100 text-black border border-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                               >
                                 Pull Order
                               </button>
                                                             {getStaffPermissions()?.pos_access?.OnlineOrder?.kot_print !== false && (
                                                               <button
                                                                 onClick={() => handlePrintKOT(orderItems, order.table_number || 'Digital', order.bill_no)}
-                                                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                                                className="flex-1 py-2 bg-white hover:bg-slate-100 text-black border border-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                                               >
                                                                 Print KOT
                                                               </button>
@@ -16799,46 +17478,80 @@ const UniversalPOS = () => {
                                                             {getStaffPermissions()?.pos_access?.OnlineOrder?.print_bill !== false && (
                                                               <button
                                                                 onClick={() => handlePrint(order)}
-                                                                className="flex-1 py-2 bg-[#21262d] hover:bg-[#30363d] text-[#c9d1d9] border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                                                className="flex-1 py-2 bg-white hover:bg-slate-100 text-black border border-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                                               >
                                                                 Print Bill
                                                               </button>
                                                             )}
                             </div>
 
-                            {/* Dynamic State Update Action Button */}
-                            {['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(String(order.status).toUpperCase()) && (
+                            {/* Dynamic State Update Action Buttons for ALL Tabs */}
+                            {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status).toUpperCase()) && (
                               <div className="flex gap-2 w-full">
                                 <button
                                   onClick={() => handleOpenRejectionModal(order.id)}
-                                  className="flex-1 py-2.5 bg-[#21262d] hover:bg-[#30363d] text-red-400 border border-[#30363d] rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                  className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/60 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
                                 >
                                   Reject Order
                                 </button>
                                 <button
                                   onClick={() => handleUpdateOrderStatus(order.id, 'PROCESSING')}
-                                  className="flex-[2] py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                  className="flex-[2] py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-[#10ac84]/20"
                                 >
-                                  Accept Order
+                                  Accept Order (Start Preparing)
                                 </button>
                               </div>
                             )}
 
                             {['PROCESSING', 'PREPARING'].includes(String(order.status).toUpperCase()) && (
+                              <div className="flex gap-2 w-full">
+                                <button
+                                  onClick={() => handleOpenRejectionModal(order.id)}
+                                  className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/60 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                >
+                                  Cancel Order
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateOrderStatus(order.id, 'DISPATCHED')}
+                                  className="flex-[2] py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-[#10ac84]/20"
+                                >
+                                  Mark Food Ready (Dispatch)
+                                </button>
+                              </div>
+                            )}
+
+                            {['DISPATCHED', 'READY', 'FOOD READY'].includes(String(order.status).toUpperCase()) && (
+                              <div className="flex gap-2 w-full">
+                                <button
+                                  onClick={() => handleOpenRejectionModal(order.id)}
+                                  className="flex-1 py-2.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/60 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                >
+                                  Cancel Order
+                                </button>
+                                <button
+                                  onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}
+                                  className="flex-[2] py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer shadow-md shadow-[#10ac84]/20"
+                                >
+                                  Mark Completed (Complete Sale)
+                                </button>
+                              </div>
+                            )}
+
+                            {String(order.status).toUpperCase() === 'COMPLETED' && (
                               <button
-                                onClick={() => handleUpdateOrderStatus(order.id, 'DISPATCHED')}
-                                className="w-full py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                onClick={() => handleUpdateOrderStatus(order.id, 'PROCESSING')}
+                                className="w-full py-2.5 bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 border border-amber-500/50 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                               >
-                                Mark Food Ready (Dispatch)
+                                Re-open Order (Set to Processing)
                               </button>
                             )}
 
-                            {String(order.status).toUpperCase() === 'DISPATCHED' && (
+                            {String(order.status).toUpperCase() === 'CANCELLED' && (
                               <button
-                                onClick={() => handleUpdateOrderStatus(order.id, 'COMPLETED')}
-                                className="w-full py-2.5 bg-[#10ac84] hover:bg-[#0e9874] text-white rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
+                                onClick={() => handleUpdateOrderStatus(order.id, 'PENDING')}
+                                className="w-full py-2.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/50 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all cursor-pointer"
                               >
-                                Mark Completed (Complete Sale)
+                                Re-open Order (Set to Pending)
                               </button>
                             )}
                           </div>
@@ -17737,7 +18450,7 @@ const UniversalPOS = () => {
                                     </tr>
                                  </thead>
                                  <tbody className={`text-xs divide-y ${isDark ? 'divide-[#30363d]' : 'divide-slate-100'}`}>
-                                    {Object.values(customerDb)
+                                    {getUniqueCustomers(customerDb)
                                        .filter(c =>
                                           (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                           (c.phone || '').includes(customerSearchQuery)
@@ -17791,7 +18504,7 @@ const UniversalPOS = () => {
                                              </td>
                                           </tr>
                                        ))}
-                                    {Object.values(customerDb).filter(c =>
+                                    {getUniqueCustomers(customerDb).filter(c =>
                                        (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                        (c.phone || '').includes(customerSearchQuery)
                                     ).length === 0 && (
@@ -17964,7 +18677,7 @@ const UniversalPOS = () => {
                                     </tr>
                                  </thead>
                                  <tbody className={`text-xs divide-y ${isDark ? 'divide-[#30363d]' : 'divide-slate-100'}`}>
-                                    {Object.values(customerDb)
+                                    {getUniqueCustomers(customerDb)
                                        .filter(c =>
                                           (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                           (c.phone || '').includes(customerSearchQuery)
@@ -17989,7 +18702,7 @@ const UniversalPOS = () => {
                                              </td>
                                           </tr>
                                        ))}
-                                    {Object.values(customerDb).filter(c =>
+                                    {getUniqueCustomers(customerDb).filter(c =>
                                        (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                        (c.phone || '').includes(customerSearchQuery)
                                     ).length === 0 && (
@@ -18163,7 +18876,7 @@ const UniversalPOS = () => {
                                     </tr>
                                  </thead>
                                  <tbody className={`text-xs divide-y ${isDark ? 'divide-[#30363d]' : 'divide-slate-100'}`}>
-                                    {Object.values(customerDb)
+                                    {getUniqueCustomers(customerDb)
                                        .filter(c =>
                                           (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                           (c.phone || '').includes(customerSearchQuery)
@@ -18188,7 +18901,7 @@ const UniversalPOS = () => {
                                              </td>
                                           </tr>
                                        ))}
-                                    {Object.values(customerDb).filter(c =>
+                                    {getUniqueCustomers(customerDb).filter(c =>
                                        (c.name || '').toLowerCase().includes(customerSearchQuery.toLowerCase()) ||
                                        (c.phone || '').includes(customerSearchQuery)
                                     ).length === 0 && (
@@ -20598,7 +21311,7 @@ const UniversalPOS = () => {
                     {/* Wide grid of tables */}
                     <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 max-h-[45vh] overflow-y-auto pr-1 no-scrollbar">
                        {tables
-                         .filter(t => t.id !== selectedTable?.id)
+                         .filter(t => t.id !== selectedTable?.id && !t.is_temporary)
                          .map(table => {
                             const isOccupied = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0 || (tableCarts[table.id] || []).length > 0;
                             return (
@@ -20670,7 +21383,7 @@ const UniversalPOS = () => {
                     <p className="text-[11px] font-medium text-[#8b949e] uppercase tracking-widest">Select Target Table:</p>
                     <div className="grid grid-cols-3 gap-3">
                        {tables
-                         .filter(t => t.id !== selectedTable?.id)
+                         .filter(t => t.id !== selectedTable?.id && !t.is_temporary)
                          .map(table => {
                             const isOccupied = (tableBills[table.id] || []).filter(item => !item.isCancelled).length > 0;
                             return (
@@ -22060,76 +22773,209 @@ const UniversalPOS = () => {
 
         {/* TABLE RESERVATIONS MODAL */}
         <AnimatePresence>
-           {isReservationModalOpen && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-[#0f172a]/90 backdrop-blur-md">
-                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className="w-full max-w-6xl bg-[#0d1117] rounded-[2rem] overflow-hidden shadow-2xl border border-[#30363d] flex flex-col h-[85vh]">
-                    <div className={`p-6 border-b flex justify-between items-center shrink-0 ${isDark ? 'bg-[#161b22] border-[#30363d] text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}>
-                        <div>
-                           <h3 className={`text-xl font-black uppercase italic tracking-tighter flex items-center gap-2 ${isDark ? 'text-white' : 'text-slate-900'}`}><Calendar className="text-[#10ac84]" size={22}/> Table Reservations</h3>
-                           <p className={`text-[10px] font-bold uppercase tracking-wider mt-1 ${isDark ? 'text-[#8b949e]' : 'text-slate-500'}`}>Manage table bookings and guests</p>
-                        </div>
-                        <button onClick={() => setIsReservationModalOpen(false)} className={`p-2 hover:bg-white/10 rounded-xl transition-all text-sm ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}>✕</button>
-                     </div>
-
-                    <div className="p-6 border-b border-[#30363d] flex justify-between items-center bg-[#161b22]">
-                       <div className="flex gap-2">
-                          <button className="h-8 px-4 bg-[#10ac84] text-white text-xs font-bold rounded hover:bg-[#0e936f]">Active</button>
-                          <button className="h-8 px-4 bg-[#21262d] text-[#c9d1d9] text-xs font-bold rounded border border-[#30363d] hover:bg-[#30363d]">History</button>
+           {isReservationModalOpen && (() => {
+              const activeReservations = reservations.filter(r => String(r.status || '').toUpperCase() === 'PENDING');
+              const historyReservations = reservations.filter(r => ['CONFIRMED', 'REJECTED', 'CANCELLED'].includes(String(r.status || '').toUpperCase()));
+              const displayedReservations = reservationTabView === 'active' ? activeReservations : historyReservations;
+              return (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                 <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} className={`w-full max-w-5xl rounded-3xl overflow-hidden shadow-2xl border flex flex-col h-[85vh] transition-all ${isDark ? 'bg-[#0d1117] border-[#30363d]' : 'bg-white border-slate-200'}`}>
+                    {/* UDM Title Bar */}
+                    <div className={`h-11 border-b flex items-center justify-between pl-4 pr-0 shrink-0 relative select-none w-full ${isDark ? 'bg-[#0d1117] border-[#30363d] text-white' : 'bg-white border-slate-200 text-slate-800'}`}>
+                       <div className="text-[13px] font-bold tracking-wide flex items-center gap-1.5 select-none">
+                          <Calendar className="text-[#18ba60]" size={14} />
+                          <span className={isDark ? 'text-white' : 'text-slate-900'}>SaSLoop</span>
+                          <span className="text-[#18ba60]">Table Reservations</span>
                        </div>
-                       <div className="flex gap-2">
-                          <button className="h-8 px-4 bg-[#238636] hover:bg-[#2ea043] text-white text-xs font-bold rounded flex items-center gap-1"><Plus size={14}/> Add Reservation</button>
+                       <div className="absolute left-1/2 -translate-x-1/2 text-[10px] font-bold uppercase tracking-wider opacity-60 pointer-events-none hidden lg:block">
+                          Manage table bookings and guests
+                       </div>
+                       <div className="flex items-center h-full">
+                          <button
+                             type="button"
+                             onClick={() => setIsReservationModalOpen(false)}
+                             className={`w-12 h-full flex items-center justify-center transition-colors ${isDark ? 'hover:bg-rose-600 text-slate-400 hover:text-white' : 'hover:bg-rose-600 text-slate-700 hover:text-white'}`}
+                             title="Close"
+                          >
+                             <X size={14} strokeWidth={2.5} />
+                          </button>
                        </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto bg-[#0d1117]">
+                    {/* Tab Bar */}
+                    <div className={`flex border-b shrink-0 ${isDark ? 'border-[#30363d] bg-[#161b22]' : 'bg-slate-50 border-slate-200'}`}>
+                       <button
+                          onClick={() => setReservationTabView('active')}
+                          className={`px-5 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
+                             reservationTabView === 'active'
+                                ? 'border-[#18ba60] text-[#18ba60]'
+                                : `border-transparent ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-500 hover:text-slate-800'}`
+                          }`}
+                       >
+                          <Clock size={13} /> Active
+                          {activeReservations.length > 0 && (
+                             <span className="ml-1 px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-full">{activeReservations.length}</span>
+                          )}
+                       </button>
+                       <button
+                          onClick={() => setReservationTabView('history')}
+                          className={`px-5 py-2.5 text-[11px] font-black uppercase tracking-wider transition-all border-b-2 flex items-center gap-2 ${
+                             reservationTabView === 'history'
+                                ? 'border-[#18ba60] text-[#18ba60]'
+                                : `border-transparent ${isDark ? 'text-[#8b949e] hover:text-white' : 'text-slate-500 hover:text-slate-800'}`
+                          }`}
+                       >
+                          <History size={13} /> History
+                          {historyReservations.length > 0 && (
+                             <span className={`ml-1 px-1.5 py-0.5 text-[9px] font-black rounded-full ${isDark ? 'bg-[#30363d] text-[#8b949e]' : 'bg-slate-200 text-slate-600'}`}>{historyReservations.length}</span>
+                          )}
+                       </button>
+                       <div className="flex-1" />
+                       <div className="flex items-center pr-3">
+                          <button
+                             onClick={() => {
+                                const name = prompt('Customer Name:');
+                                if (!name) return;
+                                const phone = prompt('Customer Phone:');
+                                const guests = prompt('Number of Guests:', '2');
+                                const date = prompt('Reservation Date (YYYY-MM-DD):', new Date().toISOString().split('T')[0]);
+                                const time = prompt('Reservation Time (e.g. 7:00 PM):', '7:00 PM');
+                                if (!date || !time) return;
+                                const token = localStorage.getItem('pos_token') || localStorage.getItem('token');
+                                fetch(`${API_BASE}/api/reservations`, {
+                                   method: 'POST',
+                                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                   body: JSON.stringify({ customer_name: name, customer_number: phone, guests: parseInt(guests) || 2, reservation_date: date, reservation_time: time, seating_preference: 'Indoor' })
+                                }).then(() => { toast.success('✅ Reservation created!'); fetchReservations(); }).catch(() => toast.error('Failed to create reservation'));
+                             }}
+                             className={`h-7 px-3 text-[10px] font-black uppercase tracking-wider rounded-lg flex items-center gap-1.5 transition-all ${isDark ? 'bg-[#238636] hover:bg-[#2ea043] text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}
+                          >
+                             <Plus size={12} /> Add Reservation
+                          </button>
+                       </div>
+                    </div>
+
+                    {/* Table Content */}
+                    <div className={`flex-1 overflow-y-auto ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>
+                       {displayedReservations.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full gap-3 opacity-50">
+                             <Calendar size={40} className={isDark ? 'text-[#30363d]' : 'text-slate-300'} />
+                             <p className={`text-xs font-bold uppercase tracking-wider ${isDark ? 'text-[#8b949e]' : 'text-slate-400'}`}>
+                                {reservationTabView === 'active' ? 'No pending reservations' : 'No reservation history'}
+                             </p>
+                          </div>
+                       ) : (
                        <table className="w-full text-left border-collapse">
-                          <thead className="bg-[#161b22] border-b border-[#30363d] sticky top-0 z-10 text-[10px] font-bold text-[#8b949e]">
+                          <thead className={`sticky top-0 z-10 text-[10px] font-bold ${isDark ? 'bg-[#161b22] border-b border-[#30363d] text-[#8b949e]' : 'bg-slate-50 border-b border-slate-200 text-slate-500'}`}>
                              <tr>
-                                <th className="p-4 w-12">ID</th>
-                                <th className="p-4">Customer Name</th>
-                                <th className="p-4">Phone</th>
-                                <th className="p-4">Guests</th>
-                                <th className="p-4">Date</th>
-                                <th className="p-4">Time</th>
-                                <th className="p-4">Status</th>
-                                <th className="p-4 w-20 text-center">Action</th>
+                                <th className="p-3">Ref / ID</th>
+                                <th className="p-3">Customer Name</th>
+                                <th className="p-3">Phone</th>
+                                <th className="p-3">Guests & Area</th>
+                                <th className="p-3">Date & Time</th>
+                                <th className="p-3">Table #</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3 text-center">Action</th>
                              </tr>
                           </thead>
-                          <tbody className="text-[11px] text-[#c9d1d9]">
-                             {reservations.map((res, idx) => (
-                                <tr key={idx} className="border-b border-[#30363d] hover:bg-[#161b22]/50 transition-colors">
-                                   <td className="p-4 font-medium">{res.id}</td>
-                                   <td className="p-4 font-bold">{res.customer_name}</td>
-                                   <td className="p-4">{res.customer_number}</td>
-                                   <td className="p-4 font-bold text-[#10ac84]">{res.guests}</td>
-                                   <td className="p-4">{new Date(res.reservation_date).toLocaleDateString()}</td>
-                                   <td className="p-4">{res.reservation_time}</td>
-                                   <td className="p-4">
-                                      <span className={`px-2 py-1 rounded-full text-[9px] font-black uppercase ${res.status === 'confirmed' ? 'bg-emerald-500/20 text-emerald-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
-                                         {res.status}
-                                      </span>
-                                   </td>
-                                   <td className="p-4 text-center flex gap-1 justify-center">
-                                      <button className="w-6 h-6 bg-[#21262d] border border-[#30363d] rounded flex items-center justify-center text-[#8b949e] hover:text-white" title="Edit"><Edit size={12}/></button>
-                                      <button className="w-6 h-6 bg-[#21262d] border border-[#30363d] rounded flex items-center justify-center text-red-500 hover:text-white" title="Delete"><Trash2 size={12}/></button>
-                                   </td>
-                                </tr>
-                             ))}
+                          <tbody className={`text-[11px] ${isDark ? 'text-[#c9d1d9]' : 'text-slate-700'}`}>
+                             {displayedReservations.map((res, idx) => {
+                                const status = String(res.status || '').toUpperCase();
+                                const isPending = status === 'PENDING';
+                                const isConfirmed = status === 'CONFIRMED';
+                                const isRejected = status === 'REJECTED' || status === 'CANCELLED';
+                                return (
+                                   <tr key={idx} className={`border-b transition-colors ${isDark ? 'border-[#30363d] hover:bg-[#161b22]/50' : 'border-slate-100 hover:bg-slate-50'}`}>
+                                      <td className={`p-3 font-bold ${isDark ? 'text-amber-400' : 'text-amber-600'}`}>{res.reservation_ref || `#${res.id}`}</td>
+                                      <td className={`p-3 font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{res.customer_name}</td>
+                                      <td className="p-3">{res.customer_number || res.customer_phone}</td>
+                                      <td className={`p-3 font-bold ${isDark ? 'text-[#18ba60]' : 'text-emerald-600'}`}>{res.guests || res.guests_count || 2} ({res.seating_preference || 'Indoor'})</td>
+                                      <td className="p-3">{new Date(res.reservation_date).toLocaleDateString()} @ {res.reservation_time}</td>
+                                      <td className={`p-3 font-extrabold ${isDark ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                                         {res.assigned_table_number ? `Table #${res.assigned_table_number}` : '-'}
+                                      </td>
+                                      <td className="p-3">
+                                         <span className={`px-2 py-0.5 rounded-md text-[9px] font-black uppercase border ${
+                                            isConfirmed ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                                            isPending ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                                            isRejected ? 'bg-rose-500/20 text-rose-400 border-rose-500/30' : 'bg-stone-800 text-stone-300 border-stone-700'
+                                         }`}>
+                                            {res.status}
+                                         </span>
+                                      </td>
+                                      <td className="p-3 text-center">
+                                         <div className="flex items-center justify-center gap-1.5">
+                                         {isPending && (
+                                            <>
+                                            <button 
+                                               onClick={async () => {
+                                                  const tblNum = prompt(`Enter Table Number to assign for ${res.customer_name}:`, '1');
+                                                  if (tblNum === null) return;
+                                                  setReservations(prev => prev.map(item => (String(item.id) === String(res.id) || String(item.reservation_ref) === String(res.reservation_ref)) ? { ...item, status: 'CONFIRMED', assigned_table_number: tblNum } : item));
+                                                  try {
+                                                     const token = localStorage.getItem('pos_token') || localStorage.getItem('token');
+                                                     await fetch(`${API_BASE}/api/reservations/${res.id}/status`, {
+                                                        method: 'PUT',
+                                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                        body: JSON.stringify({ status: 'CONFIRMED', assigned_table_number: tblNum })
+                                                     });
+                                                     toast.success(`✅ Reservation confirmed & Table #${tblNum} assigned!`);
+                                                     fetchReservations();
+                                                  } catch (e) { toast.error('Failed to confirm reservation'); }
+                                               }}
+                                               className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all ${isDark ? 'bg-[#238636] hover:bg-[#2ea043] text-white' : 'bg-emerald-500 hover:bg-emerald-600 text-white'}`}
+                                            >
+                                               <Check size={11} /> Accept
+                                            </button>
+                                            <button 
+                                               onClick={async () => {
+                                                  if (!window.confirm(`Reject reservation for ${res.customer_name}?`)) return;
+                                                  setReservations(prev => prev.map(item => (String(item.id) === String(res.id) || String(item.reservation_ref) === String(res.reservation_ref)) ? { ...item, status: 'REJECTED' } : item));
+                                                  try {
+                                                     const token = localStorage.getItem('pos_token') || localStorage.getItem('token');
+                                                     await fetch(`${API_BASE}/api/reservations/${res.id}/status`, {
+                                                        method: 'PUT',
+                                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                        body: JSON.stringify({ status: 'REJECTED' })
+                                                     });
+                                                     toast.info('Reservation rejected');
+                                                     fetchReservations();
+                                                  } catch (e) { toast.error('Failed to reject reservation'); }
+                                               }}
+                                               className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-wider rounded-lg shadow-sm flex items-center gap-1.5 cursor-pointer transition-all ${isDark ? 'bg-[#da3633] hover:bg-[#f85149] text-white' : 'bg-rose-500 hover:bg-rose-600 text-white'}`}
+                                            >
+                                               <X size={11} /> Reject
+                                            </button>
+                                            </>
+                                         )}
+                                         {!isPending && (
+                                            <span className={`text-[9px] font-bold uppercase tracking-wider ${isDark ? 'text-[#484f58]' : 'text-slate-400'}`}>
+                                               {isConfirmed ? '✅ Accepted' : '❌ Rejected'}
+                                            </span>
+                                         )}
+                                         </div>
+                                      </td>
+                                   </tr>
+                                );
+                             })}
                           </tbody>
                        </table>
+                       )}
                     </div>
 
-                    <div className="p-4 bg-[#161b22] border-t border-[#30363d] flex justify-between items-center shrink-0 text-[10px] font-bold text-[#8b949e]">
-                       <span>Showing {reservations.length} entries</span>
-                       <div className="flex gap-1">
-                          <button className="px-3 py-1 bg-[#21262d] rounded hover:bg-[#30363d]">Previous</button>
-                          <button className="px-3 py-1 bg-[#10ac84] text-white rounded">1</button>
-                          <button className="px-3 py-1 bg-[#21262d] rounded hover:bg-[#30363d]">Next</button>
-                       </div>
+                    {/* Footer */}
+                    <div className={`p-3 border-t flex justify-between items-center shrink-0 text-[10px] font-bold ${isDark ? 'bg-[#161b22] border-[#30363d] text-[#8b949e]' : 'bg-slate-50 border-slate-200 text-slate-500'}`}>
+                       <span>Showing {displayedReservations.length} of {reservations.length} reservations</span>
+                       <span className="flex items-center gap-2">
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-amber-400"></span> Pending: {activeReservations.length}</span>
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-emerald-400"></span> Accepted: {reservations.filter(r => String(r.status || '').toUpperCase() === 'CONFIRMED').length}</span>
+                          <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-rose-400"></span> Rejected: {reservations.filter(r => ['REJECTED','CANCELLED'].includes(String(r.status || '').toUpperCase())).length}</span>
+                       </span>
                     </div>
                  </motion.div>
                </motion.div>
-            )}
+              );
+           })()}
          </AnimatePresence>
 
          {/* SETTINGS MODAL */}
@@ -22282,6 +23128,7 @@ const UniversalPOS = () => {
                                        <button type="button" onClick={handleExportBackup} className="flex-1 py-2 text-[9px] font-black uppercase rounded bg-[#161b22] dark:bg-white/5 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Export</button>
                                        <button type="button" onClick={handleImportBackup} className="flex-1 py-2 text-[9px] font-black uppercase rounded bg-[#161b22] dark:bg-white/5 border border-slate-300 dark:border-gray-700 text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/10 transition-all">Import</button>
                                     </div>
+                                    <button type="button" onClick={handleClearAllSalesData} className="w-full py-1.5 text-[9px] font-black uppercase rounded bg-amber-600/10 border border-amber-500/30 text-amber-500 hover:bg-amber-600 hover:text-white transition-all mt-1" title="Clear local POS device terminal cache (Back Office data remains safe)">Clear Local POS Cache</button>
                                  </div>
 
                                  {/* Theme Selector */}
@@ -23114,7 +23961,7 @@ const UniversalPOS = () => {
                                              type="text"
                                              readOnly
                                              disabled
-                                             value={business?.business_name || business?.name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT'}
+                                             value={business?.business_name || posSettings.receiptHeader || 'SHAHE TEHZEEB RESTAURANT'}
                                              className={`w-full p-2.5 rounded-xl border outline-none text-[10px] font-bold cursor-not-allowed ${isDark ? 'bg-[#161b22]/80 border-[#30363d] text-gray-400' : 'bg-slate-100 border-slate-200 text-slate-500'}`}
                                           />
                                        </div>
@@ -23537,7 +24384,7 @@ const UniversalPOS = () => {
                                  <div className="text-center font-bold text-[8px] text-[#8b949e] tracking-widest uppercase mb-3 border border-dashed border-[#8b949e]/30 py-1 rounded">LIVE RECEIPT PREVIEW</div>
 
                                  {/* Restaurant Header */}
-                                 <div className="text-center font-bold text-[12px] tracking-tight mb-0.5 text-inherit uppercase">{business?.business_name || business?.name || posSettings.receiptHeader || "SHAHE TEHZEEB RESTAURANT"}</div>
+                                 <div className="text-center font-bold text-[12px] tracking-tight mb-0.5 text-inherit uppercase">{business?.business_name || posSettings.receiptHeader || "SHAHE TEHZEEB RESTAURANT"}</div>
 
                                  {/* Address & Contact Details */}
                                  <div className="flex flex-col items-center mb-2">
@@ -24024,7 +24871,7 @@ const UniversalPOS = () => {
 
                         {/* Restaurant Name */}
                         <div className="text-center font-black text-[11px] uppercase tracking-tight mb-1 mt-2">
-                           {(business?.business_name || business?.name || posSettings.receiptHeader || "SHAHE TEHZEEB RESTAURANT").toUpperCase()}
+                           {(business?.business_name || posSettings.receiptHeader || "SHAHE TEHZEEB RESTAURANT").toUpperCase()}
                         </div>
 
                         {/* Address, Contact, GSTIN */}
@@ -24044,9 +24891,27 @@ const UniversalPOS = () => {
                         {/* Info Grid */}
                         <div className="grid grid-cols-2 text-[8px] leading-relaxed mb-2">
                            <div className="flex flex-col">
-                              <span><strong>Table:</strong> {previewReceipt.table_name || (previewReceipt.table_id ? `Table ${previewReceipt.table_id}` : 'Takeaway Order')}</span>
-                              <span><strong>Order:</strong> {previewReceipt.order_type || 'Offline'}</span>
-                              <span><strong>Waiter:</strong> {previewReceipt.waiter_name || 'Default'}</span>
+                              {(() => {
+                                 const typeLabel = getOrderTypeLabel(previewReceipt.order_type);
+                                 if (typeLabel === 'DELIVERY') {
+                                    return (
+                                       <>
+                                          <span><strong>Order:</strong> DELIVERY</span>
+                                          {previewReceipt.rider_name && <span><strong>Rider:</strong> {previewReceipt.rider_name}</span>}
+                                       </>
+                                    );
+                                 } else if (typeLabel === 'TAKEAWAY') {
+                                    return <span><strong>Order:</strong> TAKEAWAY</span>;
+                                 } else {
+                                    return (
+                                       <>
+                                          <span><strong>Table:</strong> {previewReceipt.table_name || (previewReceipt.table_id ? `Table ${previewReceipt.table_id}` : 'Dine In')}</span>
+                                          <span><strong>Order:</strong> {typeLabel}</span>
+                                          <span><strong>Waiter:</strong> {previewReceipt.waiter_name || 'Default'}</span>
+                                       </>
+                                    );
+                                 }
+                              })()}
                            </div>
                            <div className="flex flex-col text-right">
                               <span><strong>Bill:</strong> {previewReceipt.bill_no || previewReceipt.id}</span>
@@ -24226,7 +25091,7 @@ const UniversalPOS = () => {
                           let customerInfo = customerDb[fullPhoneKey];
                           if (!customerInfo && customerPhone) {
                             const numericPhone = customerPhone.replace(/\D/g, '');
-                            customerInfo = Object.values(customerDb).find(c => {
+                            customerInfo = getUniqueCustomers(customerDb).find(c => {
                               if (!c.phone) return false;
                               const cNumeric = c.phone.replace(/\D/g, '');
                               return cNumeric.endsWith(numericPhone) || numericPhone.endsWith(cNumeric);
@@ -25211,42 +26076,40 @@ const UniversalPOS = () => {
                   </p>
                 </div>
 
-                {/* Back-office controlled clear data checkbox */}
-                {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (
-                  <div className={`p-4 rounded-xl border ${
-                    isDark ? 'bg-[#161b22]/50 border-gray-800' : 'bg-slate-50 border-slate-150'
-                  } space-y-3`}>
-                    <label className="flex items-start gap-2.5 cursor-pointer select-none">
-                      <input
-                        type="checkbox"
-                        checked={clearLocalDataChecked}
-                        onChange={(e) => setClearLocalDataChecked(e.target.checked)}
-                        className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
-                      />
-                      <div className="space-y-0.5">
-                        <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
-                          Clear local POS sales data on logout
-                        </span>
-                        <p className={`text-[9.5px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>
-                          Purge local databases (bills, customer lists, local tables, active carts) from this device.
-                        </p>
-                      </div>
-                    </label>
+                {/* Clear data checkbox */}
+                <div className={`p-4 rounded-xl border ${
+                  isDark ? 'bg-[#161b22]/50 border-gray-800' : 'bg-slate-50 border-slate-150'
+                } space-y-3`}>
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={clearLocalDataChecked}
+                      onChange={(e) => setClearLocalDataChecked(e.target.checked)}
+                      className="w-4 h-4 mt-0.5 accent-red-600 rounded cursor-pointer"
+                    />
+                    <div className="space-y-0.5">
+                      <span className="text-[11px] font-bold text-red-500 uppercase tracking-tight">
+                        Clear local POS sales data on logout
+                      </span>
+                      <p className={`text-[9.5px] leading-relaxed ${isDark ? 'text-gray-500' : 'text-slate-500'}`}>
+                        Purge local databases (bills, customer lists, local tables, active carts) from this device.
+                      </p>
+                    </div>
+                  </label>
 
-                    {clearLocalDataChecked && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
-                      >
-                        <AlertCircle size={14} className="shrink-0 mt-0.5" />
-                        <span>
-                          <strong>WARNING:</strong> This action is permanent. All offline history and un-submitted carts on this machine will be lost. Ensure you have synced everything first.
-                        </span>
-                      </motion.div>
-                    )}
-                  </div>
-                )}
+                  {clearLocalDataChecked && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex gap-2 items-start text-[10px] font-medium leading-relaxed"
+                    >
+                      <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                      <span>
+                        <strong>WARNING:</strong> This action is permanent. All offline history and un-submitted carts on this machine will be lost. Ensure you have synced everything first.
+                      </span>
+                    </motion.div>
+                  )}
+                </div>
 
                 {/* Actions */}
                 <div className="flex gap-3 justify-end pt-2">

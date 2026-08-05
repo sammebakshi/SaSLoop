@@ -21,3 +21,5 @@ pos-app/dist/
 *.exe
 *.key
 *.pem
+pos-app/release-v3/
+*.asar

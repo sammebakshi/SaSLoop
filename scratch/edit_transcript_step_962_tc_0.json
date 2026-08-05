@@ -1,7 +1,0 @@
-{
-  "step_index": 962,
-  "tool": "replace_file_content",
-  "description": "\"Set shouldPrint = true for KOT Print & Save button in BillingScreen.kt\"",
-  "instruction": "\"Change shouldPrint = false to shouldPrint = true on line 1546.\"",
-  "chunks": "\"                                                      kotNote = kotNote,\\n                                                      waiterName = selectedWaiter,\\n                                                      shouldPrint = true\\n                                                  ) { success ->\""
-}

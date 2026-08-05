@@ -368,23 +368,40 @@ function Login() {
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (token && user?.id && user?.role) {
-        if (user.role === "master_admin") window.location.href = "/master-dashboard";
-        else if (user.role.startsWith("admin") || user.role === "brand_owner") window.location.href = "/admin-dashboard";
-        else window.location.href = "/dashboard";
-      } else if (token) {
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+    const validateExistingSession = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+        if (!token || token === "dummy-token" || (!user?.id && !user?.user_id)) {
+          localStorage.clear();
+          sessionStorage.clear();
+          return;
+        }
+
+        // Verify token with backend before auto-redirecting
+        const res = await fetch(`${API_BASE}/api/auth/profile`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
+
+        if (res.ok) {
+          const profile = await res.json();
+          const role = profile.role || user.role;
+          if (role === "master_admin") window.location.href = "/master-dashboard";
+          else if (role.startsWith("admin") || role === "brand_owner") window.location.href = "/admin-dashboard";
+          else window.location.href = "/dashboard";
+        } else {
+          // Token expired or invalid — clear session and stay on login
+          localStorage.clear();
+          sessionStorage.clear();
+        }
+      } catch (err) {
+        console.error("Session Validation Error:", err);
+        localStorage.clear();
         sessionStorage.clear();
       }
-    } catch (err) {
-      console.error("Session Restoration Error:", err);
-      localStorage.clear();
-      sessionStorage.clear();
-    }
+    };
+    validateExistingSession();
   }, []);
 
   // RECOVERY STATES
@@ -454,11 +471,24 @@ function Login() {
         body: JSON.stringify({ identifier, password }),
       });
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type");
+      let data = {};
+      if (contentType && contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("Non-JSON Server Response:", text);
+        setErrorMsg(`Server connection error (${res.status}). Please check backend service at ${API_BASE}.`);
+        return;
+      }
 
       if (res.ok) {
+        if (!data.token) {
+          setErrorMsg("Login error: No valid session token returned from server.");
+          return;
+        }
         const userData = data.user || data;
-        localStorage.setItem("token", data.token || "dummy-token");
+        localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(userData));
 
         if (userData.role === "master_admin") {
@@ -474,7 +504,7 @@ function Login() {
     } catch (err) {
       console.error("FRONTEND LOGIN ERROR:", err);
       if (err.message === "Failed to fetch") {
-        setErrorMsg("Network Error: Could not reach the server. Is the backend running?");
+        setErrorMsg("Network Error: Could not reach backend server at " + API_BASE);
       } else {
         setErrorMsg("Connection Error: " + (err.message || "Please try again later."));
       }
@@ -596,7 +626,7 @@ function Login() {
       {/* RECOVERY MODAL */}
       {isForgotModalOpen && createPortal(
         <div className="pro-modal-overlay">
-          <div className="pro-modal-content max-w-md p-8 relative">
+          <div className="pro-modal-content max-w-md p-8 relative udm-scrollbar">
              <button onClick={() => { setIsForgotModalOpen(false); setRecoveryStep(1); }} className="absolute top-6 right-6 text-slate-400 hover:text-slate-900"><X /></button>
 
              

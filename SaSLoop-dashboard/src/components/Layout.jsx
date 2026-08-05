@@ -38,15 +38,35 @@ const Layout = () => {
   useEffect(() => {
     const fetchOutletsAndProfile = async () => {
         try {
+            const token = localStorage.getItem("token");
+            if (!token || token === "dummy-token") {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/login";
+                return;
+            }
+
             const res = await fetch(`${API_BASE}/api/auth/my-outlets`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+                headers: { "Authorization": `Bearer ${token}` }
             });
+            if (res.status === 401 || res.status === 403) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/login";
+                return;
+            }
             const data = await res.json();
             if (res.ok) setOutlets(data);
 
             const profileRes = await fetch(`${API_BASE}/api/auth/profile`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` }
+                headers: { "Authorization": `Bearer ${token}` }
             });
+            if (profileRes.status === 401 || profileRes.status === 403) {
+                localStorage.clear();
+                sessionStorage.clear();
+                window.location.href = "/login";
+                return;
+            }
             if (profileRes.ok) {
                 const profileData = await profileRes.json();
                 setPermissions(profileData.staff_permissions || {});
@@ -145,6 +165,7 @@ const Layout = () => {
           subItems: [
             { name: "Orders", icon: ShoppingCart, path: "/online-orders" },
             { name: "Digital Order Settings", icon: Settings, path: "/digital-order-settings" },
+            { name: "Home Page Settings", icon: LayoutGrid, path: "/home-page-settings" },
             { name: "Delivery Platforms", icon: Truck, path: "/delivery-platforms" },
           ]
       },
@@ -220,13 +241,27 @@ const Layout = () => {
           ]
       },
       { 
-          name: "Supply Chain", 
+          name: "Inventory Management", 
           icon: Database, 
           isDropdown: true,
           subItems: [
-            { name: "Vendors List", icon: Truck, path: "/inventory/vendors" },
-            { name: "Inventory Ops", icon: Box, path: "/business-data/inventory" },
-            { name: "Stock Entry", icon: ClipboardList, path: "/inventory/manual-stock-entry" }
+            { name: "Raw Material Master", icon: Box, isHeader: true, subItems: [
+              { name: "Raw Material Items", icon: Package, path: "/inventory/rm-items" },
+              { name: "RM Categories", icon: Grid, path: "/inventory/rm-category" },
+              { name: "RM Units Scale", icon: Sliders, path: "/inventory/rm-units" },
+              { name: "Storage Warehouses", icon: Building2, path: "/inventory/locations" },
+            ]},
+            { name: "Recipes & Stock Overview", icon: Layers, isHeader: true, subItems: [
+              { name: "Recipe Master (BOM)", icon: BookOpen, path: "/business-data/recipes" },
+              { name: "Live Stock Vault", icon: Box, path: "/business-data/inventory" },
+            ]},
+            { name: "Stock Operations", icon: RefreshCw, isHeader: true, subItems: [
+              { name: "Stock In (Purchase)", icon: ClipboardList, path: "/inventory/manual-stock-entry" },
+              { name: "Stock Out (Wastage)", icon: X, path: "/inventory/manual-stock-out" },
+            ]},
+            { name: "Procurement & Vendors", icon: Truck, isHeader: true, subItems: [
+              { name: "Vendors & Suppliers", icon: Truck, path: "/inventory/vendors" }
+            ]}
           ]
       },
       { 

@@ -4,15 +4,12 @@ import {
   Zap, CheckCircle2, RefreshCw, ChevronDown, Monitor, 
   Truck, Smartphone, Globe, Database, ListTree, Settings2, 
   ShieldCheck, Calculator, Landmark, Wallet, Banknote, Receipt,
-  UserSquare2, CreditCard, ChevronRight
+  UserSquare2, CreditCard, ChevronRight, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
 const BillerWiseSummary = () => {
-    const [data, setData] = useState({
-        summary: { punched: 0, punched_count: 0, complementary: 0, complementary_count: 0 },
-        payments: []
-    });
+    const [billers, setBillers] = useState([]);
     const [loading, setLoading] = useState(true);
     const [outlets, setOutlets] = useState([]);
 
@@ -26,24 +23,21 @@ const BillerWiseSummary = () => {
         if (!filters.outlet_id) return;
         setLoading(true);
         try {
-            const q = new URLSearchParams(filters).toString();
-            const res = await fetch(`${API_BASE}/api/brand/analytics/payment-report?${q}`, {
+            const q = new URLSearchParams({
+                outlet_id: filters.outlet_id,
+                from_date: filters.from_date + " 00:00:00",
+                to_date: filters.to_date + " 23:59:59"
+            }).toString();
+            const res = await fetch(`${API_BASE}/api/brand/analytics/biller-report?${q}`, {
                 headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
             });
             const d = await res.json();
-            
-            // Transform for Biller View
-            setData({
-                summary: { 
-                    punched: d.reduce((a, b) => a + parseFloat(b.amount), 0),
-                    punched_count: d.reduce((a, b) => a + parseInt(b.count), 0),
-                    complementary: 0,
-                    complementary_count: 0
-                },
-                payments: d
-            });
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            setBillers(d || []);
+        } catch (e) { 
+            console.error("Error loading biller report:", e); 
+        } finally { 
+            setLoading(false); 
+        }
     };
 
     useEffect(() => {
@@ -60,8 +54,97 @@ const BillerWiseSummary = () => {
 
     useEffect(() => { fetchData(); }, [filters.outlet_id]);
 
+    const totalBillerSales = billers.reduce((a, b) => a + parseFloat(b.total_sales || 0), 0);
+    const totalBillerOrders = billers.reduce((a, b) => a + parseInt(b.total_orders || 0), 0);
+
+    const handlePrintThermalReport = () => {
+        if (billers.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+
+        const billerRows = billers.map(b => `
+            <div class="flex-between">
+                <span class="bold" style="max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(b.biller_name || 'STAFF').toUpperCase()}</span>
+                <span>(${b.total_orders || 0} orders)</span>
+                <span class="bold">₹${parseFloat(b.total_sales || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Biller Sales Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">BILLER SUMMARY REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>BILLER</span>
+                    <span>ORDERS</span>
+                    <span>SALES</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${billerRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL ORDERS:</span>
+                    <span>${totalBillerOrders}</span>
+                </div>
+                <div class="flex-between bold">
+                    <span>TOTAL SALES:</span>
+                    <span>₹${totalBillerSales.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
+
     return (
-        <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="space-y-6 animate-in fade-in duration-500 text-slate-800">
             {/* Header */}
             <div className="flex items-center justify-between bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
                 <div className="flex items-center gap-3">
@@ -69,13 +152,17 @@ const BillerWiseSummary = () => {
                         <UserCheck className="w-5 h-5 text-indigo-600" />
                     </div>
                     <div>
-                        <h2 className="text-[14px] font-bold text-slate-800 uppercase tracking-tight">Biller Accountability</h2>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Revenue slicing by punched vs. complementary artifacts</p>
+                        <h2 className="text-[14px] font-bold text-slate-800 uppercase tracking-tight">Biller Accountability & Performance</h2>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cashier sales breakdown & transaction audit</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-indigo-500 transition-all flex items-center gap-2 shadow-md shadow-indigo-600/10">
-                        <Download className="w-3.5 h-3.5" /> Export Audit
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={billers.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
                     </button>
                 </div>
             </div>
@@ -103,65 +190,79 @@ const BillerWiseSummary = () => {
                 <UserCheck className="absolute -right-12 -bottom-12 w-48 h-48 text-indigo-600/[0.03] pointer-events-none group-hover:rotate-12 transition-transform duration-1000" />
             </div>
 
-            {/* Performance Metrics Hub */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Billing Summary Manifest */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-                        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                            <Calculator className="w-3.5 h-3.5 text-indigo-500" /> Billing Summary Manifest
-                        </h3>
+            {/* Performance Statistics */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Billed Orders</p>
+                        <p className="text-[18px] font-bold text-slate-800 uppercase tracking-tight">{totalBillerOrders} Orders</p>
                     </div>
-                    <div className="p-6 space-y-4 flex-1">
-                        <div className="p-5 bg-slate-50 border border-slate-100 rounded-lg group hover:bg-slate-900 transition-all duration-300">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-500">Punched Orders</span>
-                                <div className="text-right">
-                                    <p className="text-[20px] font-bold text-slate-800 tracking-tight group-hover:text-white transition-colors">₹{data.summary.punched.toLocaleString()}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">({data.summary.punched_count}) Artifacts</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div className="p-5 bg-slate-50 border border-slate-100 rounded-lg group hover:bg-slate-900 transition-all duration-300 opacity-60">
-                            <div className="flex items-center justify-between">
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-slate-500">Complementary Items</span>
-                                <div className="text-right">
-                                    <p className="text-[20px] font-bold text-slate-800 tracking-tight group-hover:text-white transition-colors">₹{data.summary.complementary.toLocaleString()}</p>
-                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-400 transition-colors">({data.summary.complementary_count}) Artifacts</p>
-                                </div>
-                            </div>
-                        </div>
+                    <div className="w-10 h-10 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                        <UserSquare2 className="w-5 h-5" />
                     </div>
                 </div>
+                <div className="bg-white border border-slate-200 rounded-lg shadow-sm p-4 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Biller Sales</p>
+                        <p className="text-[18px] font-bold text-slate-800 uppercase tracking-tight">₹{totalBillerSales.toFixed(2)}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                        <Landmark className="w-5 h-5" />
+                    </div>
+                </div>
+            </div>
 
-                {/* Realized Payment Protocols */}
-                <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col h-full">
-                    <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
-                        <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
-                            <CreditCard className="w-3.5 h-3.5 text-indigo-500" /> Payment Protocol Realization
-                        </h3>
-                    </div>
-                    <div className="p-6 flex-1">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            {data.payments.length === 0 ? (
-                                <div className="col-span-full py-20 flex flex-col items-center gap-4 opacity-20">
-                                    <div className="w-16 h-16 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
-                                        <Landmark className="w-8 h-8 text-slate-400" />
-                                    </div>
-                                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Zero liquidity artifacts found</p>
-                                </div>
-                            ) : data.payments.map((p, i) => (
-                                <div key={i} className="p-4 bg-slate-50 border border-slate-100 rounded-lg hover:border-indigo-500 transition-all group">
-                                    <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">{p.mode.toUpperCase()}</span>
-                                    <p className="text-[24px] font-bold text-slate-800 tracking-tight mt-1">₹{parseFloat(p.amount).toLocaleString()}</p>
-                                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-slate-200/50">
-                                        <span className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">{p.count} Bills Realized</span>
-                                        <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                                    </div>
-                                </div>
+            {/* Biller Table Manifest */}
+            <div className="bg-white rounded-lg border border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[400px]">
+                <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/30">
+                    <h3 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                        <UserCheck className="w-3.5 h-3.5 text-indigo-500" /> Biller Performance Manifest
+                    </h3>
+                </div>
+
+                <div className="flex-1 overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead>
+                            <tr className="bg-slate-50 border-b border-slate-200">
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Sr. No.</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Biller / Cashier Name</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Orders Billed</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Total Discounts Given</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-500 uppercase tracking-wider text-right">Total Net Sales</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                            {loading ? (
+                                <tr>
+                                    <td colSpan="5" className="py-24 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] animate-pulse">
+                                        Scanning Biller Records...
+                                    </td>
+                                </tr>
+                            ) : billers.length === 0 ? (
+                                <tr>
+                                    <td colSpan="5" className="py-24 text-center text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                        No Biller Transactions Found
+                                    </td>
+                                </tr>
+                            ) : billers.map((row, idx) => (
+                                <tr key={idx} className="hover:bg-slate-50/50 transition-colors">
+                                    <td className="px-6 py-4 text-[11px] font-bold text-slate-400 italic">#{idx + 1}</td>
+                                    <td className="px-6 py-4 font-bold text-slate-800 text-[12px] uppercase">
+                                        {row.biller_name}
+                                    </td>
+                                    <td className="px-6 py-4 text-[11px] font-bold text-slate-700">
+                                        {row.total_orders}
+                                    </td>
+                                    <td className="px-6 py-4 text-[11px] font-bold text-rose-500">
+                                        ₹{parseFloat(row.total_discount || 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-6 py-4 text-[13px] font-bold text-emerald-600 text-right">
+                                        ₹{parseFloat(row.total_sales || 0).toFixed(2)}
+                                    </td>
+                                </tr>
                             ))}
-                        </div>
-                    </div>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>

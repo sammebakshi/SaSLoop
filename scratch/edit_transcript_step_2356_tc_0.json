@@ -1,7 +1,0 @@
-{
-  "step_index": 2356,
-  "tool": "replace_file_content",
-  "description": "\"Combine old KOT items and cart items unconditionally for all flows.\"",
-  "instruction": "\"Remove if (activeFlow == \\\"DINEIN\\\") check and combine oldKotItems with cart unconditionally.\"",
-  "chunks": "\"    // Combine old KOT items + new cart items for billing\\n    val billingItems = remember(oldKotItems, cart) {\\n        val combined = oldKotItems.toMutableMap()\\n        cart.forEach { (item, qty) ->\\n            combined[item] = (combined[item] ?: 0) + qty\\n        }\\n        combined.toMap()\\n    }\""
-}

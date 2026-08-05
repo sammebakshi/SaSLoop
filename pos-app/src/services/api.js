@@ -15,8 +15,17 @@ const isTerminalMode = (() => {
   return !!(hasTerminalExec || hasTerminalEnv || hasTerminalStorage);
 })();
 
-// Live Production Cloud Server Base URL (Permanently locked - user cannot modify)
-export const API_BASE = "https://backend.sasloop.in";
+const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
+const isElectron = typeof window !== 'undefined' && (Boolean(window.process?.versions?.electron) || window.navigator?.userAgent?.includes('Electron'));
+const isFileProtocol = typeof window !== 'undefined' && window.location?.protocol === 'file:';
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+// Dynamic API Base URL (Electron / unpacked build / Capacitor / live production point to live cloud backend)
+export const API_BASE = (isElectron || isFileProtocol || isCapacitor)
+  ? "https://backend.sasloop.in"
+  : isLocalhost
+    ? `http://${window.location.hostname}:5000`
+    : "https://backend.sasloop.in";
 
 // Initialize device ID for isolation
 let deviceId = typeof localStorage !== 'undefined' ? localStorage.getItem('pos_device_id') : null;
@@ -30,9 +39,8 @@ const api = axios.create({
     timeout: 15000,
 });
 
-// Locked helper - Server URL is permanently locked to Live Cloud Server
 export const updateApiBaseUrl = () => {
-    api.defaults.baseURL = "https://backend.sasloop.in";
+    api.defaults.baseURL = API_BASE;
 };
 
 // Add auth token interceptor
@@ -67,7 +75,7 @@ export const posService = {
     getTables: () => api.get('/api/pos/tables'),
     getOrders: () => api.get('/api/orders'),
     createOrder: (order) => api.post('/api/orders', order),
-    updateOrderStatus: (id, status) => api.put(`/api/orders/${id}/status`, { status }),
+    updateOrderStatus: (id, status, rejection_reason) => api.put(`/api/orders/${id}/status`, { status, rejection_reason }),
     createKot: (kot) => api.post('/api/kots', kot),
     getWaiters: () => api.get('/api/waiters'),
     getStaff: () => api.get('/api/waiters'),
@@ -77,8 +85,9 @@ export const posService = {
     getTaxes: (outletId) => api.get('/api/brand/taxes', { params: { outlet_id: outletId } }),
     updateTax: (id, payload) => api.put(`/api/brand/taxes/${id}`, payload),
     getPaymentModes: (outletId) => api.get('/api/pos/payment-modes', { params: { outlet_id: outletId } }),
-    getQRs: () => api.get('/api/pos/qrs'),
     getActiveState: () => api.get('/api/pos/active-state'),
+    saveActiveState: (activeState) => api.post('/api/pos/active-state', { activeState }),
+    clearSalesData: () => api.post('/api/pos/clear-sales-data'),
 
     // CRM & Customer Sync Endpoints
     getCustomers: () => api.get('/api/crm/customers'),
@@ -97,6 +106,7 @@ export const posService = {
     // Order management
     updateOrder: (id, order) => api.put(`/api/orders/${id}`, order),
     updateOrderPaymentStatus: (id, status) => api.put(`/api/orders/${id}/payment-status`, { payment_status: status }),
+    assignRider: (orderId, riderId) => api.put('/api/delivery/assign', { orderId, riderId }),
 
     // Pre-order management
     createPreOrder: (data) => api.post('/api/pre-orders', data),
@@ -113,6 +123,10 @@ export const posService = {
     // WhatsApp E-Bill & messaging
     sendWhatsAppMessage: (phone, message) => api.post('/api/whatsapp/chat/send', { to: phone, text: message }),
     sendWhatsAppPdf: (phone, base64Pdf, fileName) => api.post('/api/whatsapp/chat/send-pdf', { to: phone, pdfBase64: base64Pdf, filename: fileName }),
+
+    // Waiter Call Notifications
+    getWaiterRequests: () => api.get('/api/pos/waiter-requests'),
+    resolveWaiterRequest: (payload) => api.put('/api/pos/waiter-requests/resolve', payload),
 };
 
 export default api;

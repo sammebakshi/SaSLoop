@@ -1,8 +1,0 @@
-{
-  "Description": "\"Wraps the mobile/name row with the correct conditional, and removes the orphan closing )} that's causing the parse error.\"",
-  "Instruction": "\"Add the missing {activeTrayTab !== 'Billing' && ( wrapper before line 9648 and remove the orphan )} at line 9778.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":9648,\"ReplacementContent\":\"\\n                      {/* Row 2: Mobile, Name, History — hidden on Billing tab */}\\n                      {activeTrayTab !== 'Billing' && (\\n                        <div className=\\\"flex items-center gap-1.5\\\">\\n                          <div className=\\\"flex-[1.8] min-w-0 relative\\\">\",\"StartLine\":9647,\"TargetContent\":\"\\n                           <div className=\\\"flex-[1.8] min-w-0 relative\\\">\"},{\"AllowMultiple\":false,\"EndLine\":9779,\"ReplacementContent\":\"                        </div>\\n                      )}\",\"StartLine\":9777,\"TargetContent\":\"                        </div>\\n                       )}\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Fixing mobile row wrapper\"",
-  "toolSummary": "\"Fix conditional wrapper\""
-}

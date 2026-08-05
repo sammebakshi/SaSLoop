@@ -4,7 +4,7 @@ import {
   Zap, CheckCircle2, RefreshCw, ChevronDown, Monitor, 
   Truck, Smartphone, Globe, Database, ListTree, Settings2, 
   ShieldCheck, User, Phone, Calendar, ArrowRight, Tag, ChevronRight,
-  Activity, MapPin, Hash, Clock
+  Activity, MapPin, Hash, Clock, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
@@ -19,32 +19,133 @@ const CouponHistoryReport = () => {
         to_date: new Date().toISOString().split('T')[0]
     });
 
-    const fetchData = async () => {
-        if (!filters.outlet_id) return;
+    const fetchData = () => {
         setLoading(true);
         try {
-            const q = new URLSearchParams(filters).toString();
-            const res = await fetch(`${API_BASE}/api/brand/analytics/coupon-history?${q}`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            setData(await res.json());
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            const localOrdersRaw = localStorage.getItem('pos_local_orders');
+            const localOrders = localOrdersRaw ? JSON.parse(localOrdersRaw) : [];
+
+            const fromTime = filters.from_date ? new Date(filters.from_date + " 00:00:00").getTime() : 0;
+            const toTime = filters.to_date ? new Date(filters.to_date + " 23:59:59").getTime() : Infinity;
+
+            const list = [];
+
+            if (Array.isArray(localOrders)) {
+                localOrders.forEach(order => {
+                    if (order.status === 'CANCELLED' || order.status === 'DELETED' || order.status === 'REFUNDED') return;
+                    const orderTime = order.created_at ? new Date(order.created_at).getTime() : Date.now();
+                    if (orderTime >= fromTime && orderTime <= toTime) {
+                        if (order.coupon_code || order.appliedCoupon) {
+                            list.push({
+                                outlet_name: 'POS Terminal',
+                                customer_name: order.customer_name || 'Guest',
+                                customer_phone: order.customer_phone || order.customer_number || '',
+                                coupon_code: order.coupon_code || order.appliedCoupon?.code || 'COUPON',
+                                amount: parseFloat(order.discount || order.couponDiscountAmt || 0),
+                                order_id: order.bill_no || order.id,
+                                date: order.created_at || new Date().toISOString()
+                            });
+                        }
+                    }
+                });
+            }
+
+            list.sort((a, b) => new Date(b.date) - new Date(a.date));
+            setData(list);
+        } catch (e) {
+            console.error("Error calculating local coupon report:", e);
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        const loadOutlets = async () => {
-            const res = await fetch(`${API_BASE}/api/brand/outlets`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            const d = await res.json();
-            setOutlets(d);
-            if (d.length > 0) setFilters(prev => ({ ...prev, outlet_id: d[0].id }));
-        };
-        loadOutlets();
-    }, []);
+        fetchData();
+    }, [filters.from_date, filters.to_date]);
 
-    useEffect(() => { fetchData(); }, [filters.outlet_id]);
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+        const totalYield = data.reduce((a, b) => a + parseFloat(b.amount || 0), 0);
+
+        const couponRows = data.map(c => `
+            <div class="flex-between">
+                <span class="bold" style="max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(c.coupon_code || 'COUPON').toUpperCase()}</span>
+                <span>ord #${c.order_id}</span>
+                <span class="bold">₹${parseFloat(c.amount || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Coupon Redemption Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">COUPON REDEMPTION REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>COUPON</span>
+                    <span>ORDER</span>
+                    <span>DISCOUNT</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${couponRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL REDEMPTION YIELD:</span>
+                    <span>₹${totalYield.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -60,6 +161,13 @@ const CouponHistoryReport = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={data.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
+                    </button>
                     <button className="px-4 py-2 bg-slate-900 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-slate-800 transition-all flex items-center gap-2 shadow-md shadow-slate-900/10">
                         <Download className="w-3.5 h-3.5" /> Export Redemption Audit
                     </button>

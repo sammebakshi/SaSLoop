@@ -92,7 +92,7 @@ ipcMain.on('print-silent', (event, { html, printerName }) => {
 });
 
 // IPC PDF generation handler
-ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName }) => {
+ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName, isA4, pageSize }) => {
   return new Promise((resolve, reject) => {
     const pdfWin = new BrowserWindow({
       show: false,
@@ -102,7 +102,9 @@ ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName }) => {
       }
     });
 
-    const styledHtml = html.replace('</head>', `
+    const isA4Format = isA4 || pageSize === 'A4' || (html && (html.includes('A4 portrait') || html.includes('A4 landscape') || html.includes('size: A4')));
+
+    const styledHtml = isA4Format ? html : html.replace('</head>', `
       <style>
         body {
           zoom: 1.0 !important;
@@ -114,7 +116,7 @@ ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName }) => {
       </style>
     </head>`);
 
-    const tempHtmlPath = path.join(app.getPath('temp'), `receipt_${Date.now()}.html`);
+    const tempHtmlPath = path.join(app.getPath('temp'), `doc_${Date.now()}.html`);
     try {
       fs.writeFileSync(tempHtmlPath, styledHtml, 'utf8');
       pdfWin.loadFile(tempHtmlPath);
@@ -128,25 +130,35 @@ ipcMain.handle('generate-pdf', async (event, { html, savePath, fileName }) => {
         // Wait 300ms to ensure complete rendering (fonts, styles, layout)
         await new Promise(r => setTimeout(r, 300));
 
-        let heightInInches = 15.0;
-        try {
-          const heightPx = await pdfWin.webContents.executeJavaScript('document.body.scrollHeight');
-          if (heightPx > 0) {
-            heightInInches = (heightPx / 96) + 0.3; // 96 DPI + 0.3" extra bottom padding
+        let pdfBuffer;
+        if (isA4Format) {
+          pdfBuffer = await pdfWin.webContents.printToPDF({
+            printBackground: true,
+            preferCSSPageSize: true,
+            pageSize: 'A4',
+            margins: { marginType: 'default' }
+          });
+        } else {
+          let heightInInches = 15.0;
+          try {
+            const heightPx = await pdfWin.webContents.executeJavaScript('document.body.scrollHeight');
+            if (heightPx > 0) {
+              heightInInches = (heightPx / 96) + 0.3; // 96 DPI + 0.3" extra bottom padding
+            }
+          } catch (measureErr) {
+            console.error('[IPC] Failed to measure content height, falling back to 15":', measureErr);
           }
-        } catch (measureErr) {
-          console.error('[IPC] Failed to measure content height, falling back to 15":', measureErr);
-        }
 
-        const pdfBuffer = await pdfWin.webContents.printToPDF({
-          printBackground: true,
-          preferCSSPageSize: false,
-          pageSize: { 
-            width: 3.15, 
-            height: heightInInches 
-          },
-          margins: { marginType: 'none' }
-        });
+          pdfBuffer = await pdfWin.webContents.printToPDF({
+            printBackground: true,
+            preferCSSPageSize: false,
+            pageSize: { 
+              width: 3.15, 
+              height: heightInInches 
+            },
+            margins: { marginType: 'none' }
+          });
+        }
 
         let savedFilePath = null;
         if (savePath && fileName) {

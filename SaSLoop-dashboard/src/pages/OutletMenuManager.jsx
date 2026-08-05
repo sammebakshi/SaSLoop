@@ -3,10 +3,12 @@ import { createPortal } from 'react-dom';
 import {
     MenuSquare, Plus, Edit3, Trash2, Search, Filter,
     Download, Upload, CheckCircle2, XCircle,
-    ChevronRight, RefreshCw, Layers, X, Save, AlertTriangle, Settings
+    ChevronRight, RefreshCw, Layers, X, Save, AlertTriangle, Settings,
+    QrCode, Printer, Copy, Check
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import API_BASE from '../config';
+import { generateStandee } from '../utils/standeeGenerator';
 
 const OutletMenuManager = () => {
     const [data, setData] = useState([]);
@@ -22,6 +24,83 @@ const OutletMenuManager = () => {
     const fileInputRef = React.useRef(null);
     const [currentEditingId, setCurrentEditingId] = useState(null);
 
+    // QR Code Modal State
+    const [qrModalMenu, setQrModalMenu] = useState(null);
+    const [copiedUrl, setCopiedUrl] = useState(false);
+    const [customDomain, setCustomDomain] = useState(
+        window.location.hostname.includes("localhost") ? window.location.origin : "https://menu.sasloop.in"
+    );
+
+    const triggerPrint = (qrUrl, title) => {
+        const printWindow = window.open("", "_blank");
+        printWindow.document.write(`
+            <html>
+                <head>
+                    <title>Print QR Code - ${title}</title>
+                    <style>
+                        body {
+                            font-family: Arial, sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            text-align: center;
+                        }
+                        .container {
+                            border: 2px solid #ccc;
+                            padding: 30px;
+                            border-radius: 15px;
+                            background: white;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                        }
+                        h1 {
+                            font-size: 28px;
+                            margin-bottom: 5px;
+                            text-transform: uppercase;
+                            letter-spacing: 2px;
+                        }
+                        p {
+                            font-size: 14px;
+                            color: #666;
+                            text-transform: uppercase;
+                            letter-spacing: 1px;
+                            margin-bottom: 25px;
+                        }
+                        img {
+                            width: 250px;
+                            height: 250px;
+                        }
+                    </style>
+                </head>
+                <body onload="window.print(); window.close();">
+                    <div class="container">
+                        <h1>${title}</h1>
+                        <p>Scan to view Online Menu & Place Order</p>
+                        <img src="${qrUrl}" alt="QR Code" />
+                    </div>
+                </body>
+            </html>
+        `);
+        printWindow.document.close();
+    };
+
+    const triggerDownload = (qrUrl, filename) => {
+        const link = document.createElement("a");
+        link.href = qrUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleCopyUrl = (url) => {
+        navigator.clipboard.writeText(url);
+        setCopiedUrl(true);
+        setTimeout(() => setCopiedUrl(false), 2000);
+    };
+
     // Search filters for matrix
     const [searchShortCode, setSearchShortCode] = useState('');
     const [searchItemName, setSearchItemName] = useState('');
@@ -35,7 +114,8 @@ const OutletMenuManager = () => {
         menu_name: '',
         short_name: '',
         is_pos_default: false,
-        is_digital_default: false
+        is_digital_default: false,
+        is_table_default: false
     });
 
     const [itemFormData, setItemFormData] = useState({
@@ -122,6 +202,7 @@ const OutletMenuManager = () => {
             short_name: menu.short_name || '',
             is_pos_default: menu.is_pos_default,
             is_digital_default: menu.is_digital_default,
+            is_table_default: menu.is_table_default,
             outlet_id: menu.outlet_id
         });
         setIsEditingSettings(true);
@@ -992,6 +1073,7 @@ const OutletMenuManager = () => {
                             <th>Outlet Name</th>
                             <th className="text-center">POS Default</th>
                             <th className="text-center">Digital Default</th>
+                            <th className="text-center">Table Default</th>
                             <th className="text-center">Published</th>
                         </tr>
                     </thead>
@@ -999,18 +1081,27 @@ const OutletMenuManager = () => {
                         {loading ? (
                             Array(5).fill(0).map((_, i) => (
                                 <tr key={i} className="animate-pulse">
-                                    <td colSpan="9" className="p-4"><div className="h-10 bg-slate-50 rounded" /></td>
+                                    <td colSpan="10" className="p-4"><div className="h-10 bg-slate-50 rounded" /></td>
                                 </tr>
                             ))
                         ) : data.length === 0 ? (
-                            <tr><td colSpan="9" className="py-24 text-center opacity-20"><MenuSquare className="w-12 h-12 mx-auto mb-4" /><p className="text-[11px] font-bold uppercase tracking-widest">No Menu Configurations Detected</p></td></tr>
+                            <tr><td colSpan="10" className="py-24 text-center opacity-20"><MenuSquare className="w-12 h-12 mx-auto mb-4" /><p className="text-[11px] font-bold uppercase tracking-widest">No Menu Configurations Detected</p></td></tr>
                         ) : data.map((item, idx) => (
                             <tr key={item.id} className="group hover:bg-emerald-50/50 transition-all">
                                 <td className="py-3">
-                                    <div className="flex items-center justify-center gap-1.5 px-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="flex items-center justify-center gap-1.5 px-2">
                                         <button onClick={() => handleEditClick(item)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-900 hover:text-white transition-all shadow-sm" title="Edit Items"><Edit3 className="w-3.5 h-3.5" /></button>
                                         <button onClick={() => handleSettingsClick(item)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white transition-all shadow-sm" title="Menu Settings"><Settings className="w-3.5 h-3.5" /></button>
                                         <button onClick={fetchData} className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" title="Refresh"><RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} /></button>
+                                        {item.is_digital_default && (
+                                            <button 
+                                                onClick={() => setQrModalMenu(item)} 
+                                                className="w-8 h-8 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white transition-all shadow-sm" 
+                                                title="Online Menu QR Code"
+                                            >
+                                                <QrCode className="w-3.5 h-3.5" />
+                                            </button>
+                                        )}
                                         <button onClick={() => handleDeleteMenu(item.id)} className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-600 hover:text-white transition-all shadow-sm" title="Delete"><Trash2 className="w-3.5 h-3.5" /></button>
                                     </div>
                                 </td>
@@ -1041,6 +1132,14 @@ const OutletMenuManager = () => {
                                             : 'bg-slate-50 text-slate-400 border-slate-100'
                                         }`}>
                                         {item.is_digital_default ? 'Primary' : 'Secondary'}
+                                    </span>
+                                </td>
+                                <td className="text-center">
+                                    <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border ${item.is_table_default
+                                            ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                            : 'bg-slate-50 text-slate-400 border-slate-100'
+                                        }`}>
+                                        {item.is_table_default ? 'Default Table' : 'Standard'}
                                     </span>
                                 </td>
                                 <td className="text-center">
@@ -1082,14 +1181,18 @@ const OutletMenuManager = () => {
                                     <input type="text" className="pro-input h-11 bg-slate-50 border border-slate-200 text-[13px] font-bold" placeholder="e.g. FD-LUNCH" value={formData.short_name} onChange={e => setFormData({ ...formData, short_name: e.target.value })} />
                                 </div>
                             </div>
-                            <div className="flex items-center gap-8 py-4 border-t border-slate-100">
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" checked={formData.is_pos_default} onChange={e => setFormData({ ...formData, is_pos_default: e.target.checked })} className="w-5 h-5 accent-emerald-600 rounded" />
-                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest group-hover:text-emerald-600 transition-colors">POS Default</span>
+                            <div className="flex items-center justify-between gap-4 py-4 border-t border-slate-100">
+                                <label className="flex items-center gap-2.5 cursor-pointer group">
+                                    <input type="checkbox" checked={formData.is_pos_default} onChange={e => setFormData({ ...formData, is_pos_default: e.target.checked })} className="w-4 h-4 accent-emerald-600 rounded" />
+                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider group-hover:text-emerald-600 transition-colors">POS Default</span>
                                 </label>
-                                <label className="flex items-center gap-3 cursor-pointer group">
-                                    <input type="checkbox" checked={formData.is_digital_default} onChange={e => setFormData({ ...formData, is_digital_default: e.target.checked })} className="w-5 h-5 accent-indigo-600 rounded" />
-                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">Digital Default</span>
+                                <label className="flex items-center gap-2.5 cursor-pointer group">
+                                    <input type="checkbox" checked={formData.is_digital_default} onChange={e => setFormData({ ...formData, is_digital_default: e.target.checked })} className="w-4 h-4 accent-indigo-600 rounded" />
+                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider group-hover:text-indigo-600 transition-colors">Digital Default</span>
+                                </label>
+                                <label className="flex items-center gap-2.5 cursor-pointer group">
+                                    <input type="checkbox" checked={formData.is_table_default} onChange={e => setFormData({ ...formData, is_table_default: e.target.checked })} className="w-4 h-4 accent-amber-600 rounded" />
+                                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-wider group-hover:text-amber-600 transition-colors">Table Order Default</span>
                                 </label>
                             </div>
                         </div>
@@ -1100,6 +1203,98 @@ const OutletMenuManager = () => {
                     </form>
                 </div>
                 , document.body)}
+
+            {/* Online Menu QR Code Modal (Digital Default) */}
+            {qrModalMenu && createPortal(
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md animate-in fade-in duration-300">
+                    <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                                    <QrCode className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-[13px] font-black text-slate-800 uppercase tracking-tight">Online Menu QR Code</h3>
+                                    <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{qrModalMenu.menu_name}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setQrModalMenu(null)} className="p-1.5 hover:bg-slate-200 rounded-full text-slate-400 transition-colors">
+                                <XCircle className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="p-6 flex flex-col items-center gap-4">
+                            {(() => {
+                                const user = JSON.parse(localStorage.getItem("user") || "{}");
+                                const bizId = user.bizId || user.id || 48;
+                                const onlineMenuUrl = `${customDomain}/menu/${qrModalMenu.id}`;
+                                const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(onlineMenuUrl)}`;
+
+                                return (
+                                    <>
+                                        <div className="w-56 h-56 bg-slate-50 border border-slate-200 rounded-xl p-4 flex items-center justify-center shadow-inner">
+                                            <img src={qrImageUrl} alt="Digital Menu QR" className="w-full h-full object-contain" />
+                                        </div>
+
+                                        {/* Action Buttons */}
+                                        <div className="w-full grid grid-cols-3 gap-2">
+                                            <button 
+                                                onClick={() => triggerPrint(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(onlineMenuUrl)}`, qrModalMenu.menu_name)}
+                                                className="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all"
+                                            >
+                                                <Printer className="w-3.5 h-3.5 text-slate-600" /> Print
+                                            </button>
+                                            <button 
+                                                onClick={() => triggerDownload(`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(onlineMenuUrl)}`, `${qrModalMenu.menu_name.replace(/\s+/g, '_')}_qr.png`)}
+                                                className="py-2 px-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md shadow-indigo-600/20"
+                                            >
+                                                <Download className="w-3.5 h-3.5" /> Save PNG
+                                            </button>
+                                            <button 
+                                                onClick={() => generateStandee(qrImageUrl, { name: qrModalMenu.menu_name }, "ORDER")}
+                                                className="py-2 px-3 bg-slate-900 hover:bg-black text-white rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-all shadow-md"
+                                            >
+                                                Standee
+                                            </button>
+                                        </div>
+
+                                        {/* URL Copy Field */}
+                                        <div className="w-full space-y-1.5 pt-3 border-t border-slate-100">
+                                            <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Online Menu Direct URL</label>
+                                            <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 rounded-lg p-1.5">
+                                                <input 
+                                                    readOnly 
+                                                    type="text" 
+                                                    value={onlineMenuUrl} 
+                                                    className="flex-1 bg-transparent text-[11px] font-mono font-bold text-slate-700 outline-none px-1"
+                                                />
+                                                <button 
+                                                    onClick={() => handleCopyUrl(onlineMenuUrl)}
+                                                    className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-md text-[10px] font-black uppercase tracking-widest flex items-center gap-1 transition-all shadow-sm shrink-0"
+                                                >
+                                                    {copiedUrl ? (
+                                                        <>
+                                                            <Check className="w-3 h-3" /> Copied!
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <Copy className="w-3 h-3" /> Copy
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept="image/*" />
         </div>
     );

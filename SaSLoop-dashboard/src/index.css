@@ -48,12 +48,14 @@
     @apply w-full bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 rounded px-2.5 py-1.5 text-[12px] text-slate-900 dark:text-white transition-all outline-none focus:border-slate-400 dark:focus:border-indigo-500 focus:bg-slate-50 dark:focus:bg-white/10;
   }
 
-  /* Precise Flat Professional Buttons */
-  .pro-btn-primary {
-    @apply bg-emerald-600 text-white px-5 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/20 active:scale-95;
+  /* 🚀 Login-Style Premium Buttons */
+  .pro-btn-primary,
+  .btn-primary {
+    @apply bg-[#18ba60] text-white px-6 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-[#15a353] transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-[#18ba60]/25 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer;
   }
-  .pro-btn-secondary {
-    @apply bg-white dark:bg-white/5 border border-slate-200 dark:border-white/5 text-slate-600 dark:text-slate-300 px-3 py-1.5 rounded text-[11px] font-bold hover:bg-slate-50 dark:hover:bg-white/10 transition-all flex items-center justify-center gap-2;
+  .pro-btn-secondary,
+  .btn-secondary {
+    @apply bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-2xl text-[11px] font-extrabold uppercase tracking-wider hover:bg-slate-50 dark:hover:bg-white/10 hover:border-[#18ba60] hover:text-[#18ba60] transition-all duration-300 flex items-center justify-center gap-2 shadow-sm hover:-translate-y-0.5 active:translate-y-0 cursor-pointer;
   }
 
   /* Professional Typography Scale (Atlantic Matrix) */
@@ -120,6 +122,64 @@
   background-size: 200% 100%;
   animation: pro-shimmer 1.5s infinite linear;
 }
+/* ========================================================================= */
+/* ======================== UDM DESIGN SYSTEM STYLES ======================= */
+/* ========================================================================= */
+
+/* Global UDM Green & Light Grey Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+.light ::-webkit-scrollbar-track,
+body.light ::-webkit-scrollbar-track,
+body ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb {
+  background: #18ba60;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #15a353;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #18ba60 #f1f5f9;
+}
+
+/* Green & Light Grey Scrollbar for Settings & UDM Popups */
+.udm-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.udm-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 9999px;
+}
+.udm-scrollbar::-webkit-scrollbar-thumb {
+  background: #18ba60;
+  border-radius: 9999px;
+}
+.udm-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #15a855;
+}
+.udm-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #18ba60 #f1f5f9;
+}
+
+/* UDM Modal Title Bar */
+.udm-title-bar {
+  background: linear-gradient(135deg, #0d1117 0%, #161b22 100%);
+  border-bottom: 1px solid rgba(24, 186, 96, 0.2);
+}
+
 /* Atlantic Matrix Scrollbar */
 .atlantic-scrollbar::-webkit-scrollbar {
     width: 6px;
@@ -134,4 +194,134 @@
 }
 .atlantic-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(16, 185, 129, 0.4);
+}
+
+/* ========================================================================= */
+/* 🌟 UNIFIED BUTTON STANDARDIZATION SYSTEM (EXACT FONT SIZE & SIZING SCALE) */
+/* ========================================================================= */
+
+/* Enforce uniform font size, font weight, letter spacing, and padding for ALL text buttons */
+button:not(.p-1):not(.p-1\.5):not(.p-2):not(.w-5):not(.w-6):not(.w-8):not(.w-9):not(.slide-dot) {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  line-height: 1.2 !important;
+  padding: 0.55rem 1.25rem !important;
+  border-radius: 0.85rem !important; /* rounded-2xl contour */
+  min-height: 2.35rem !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  cursor: pointer !important;
+}
+
+/* Ensure SVG icons inside buttons scale proportionally */
+button:not(.p-1):not(.p-1\.5):not(.p-2) svg {
+  width: 14px !important;
+  height: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+/* Floating Lift & Hover Motion */
+button:not(:disabled):hover {
+  transform: translateY(-2px) !important;
+}
+
+button:not(:disabled):active {
+  transform: translateY(0px) !important;
+}
+
+/* Primary Action Buttons (Emerald SIGN IN style) */
+button.bg-indigo-600,
+button.bg-indigo-500,
+button.bg-blue-600,
+button.bg-emerald-600,
+button.bg-emerald-500,
+button.bg-green-600,
+button.bg-\[\#18ba60\],
+button.bg-slate-900,
+.pro-btn-primary,
+.btn-primary {
+  background-color: #18ba60 !important;
+  color: #ffffff !important;
+  border: none !important;
+  box-shadow: 0 8px 20px -4px rgba(24, 186, 96, 0.35) !important;
+}
+
+button.bg-indigo-600:hover,
+button.bg-indigo-500:hover,
+button.bg-blue-600:hover,
+button.bg-emerald-600:hover,
+button.bg-emerald-500:hover,
+button.bg-green-600:hover,
+button.bg-\[\#18ba60\]:hover,
+button.bg-slate-900:hover,
+.pro-btn-primary:hover,
+.btn-primary:hover {
+  background-color: #15a353 !important;
+  box-shadow: 0 14px 28px -4px rgba(24, 186, 96, 0.45) !important;
+}
+
+/* Danger Action Buttons (Sign Out, Delete) */
+button.bg-rose-600,
+button.bg-rose-500,
+button.bg-red-600 {
+  background-color: #e11d48 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -4px rgba(225, 29, 72, 0.35) !important;
+}
+
+button.bg-rose-600:hover,
+button.bg-rose-500:hover,
+button.bg-red-600:hover {
+  background-color: #be123c !important;
+  box-shadow: 0 14px 28px -4px rgba(225, 29, 72, 0.5) !important;
+}
+
+/* ============================================================ */
+/* 💎 UDM GLASSMORPHISM & NEON GLOW DESIGN SYSTEM              */
+/* ============================================================ */
+.udm-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.05);
+}
+
+.dark .udm-card,
+.theme-dark .udm-card {
+  background: rgba(22, 27, 34, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+.udm-card-glow-amber {
+  border-color: rgba(245, 158, 11, 0.5) !important;
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3) !important;
+}
+
+.udm-card-glow-cyan {
+  border-color: rgba(6, 182, 212, 0.5) !important;
+  box-shadow: 0 0 25px -5px rgba(6, 182, 212, 0.3) !important;
+}
+
+.udm-card-glow-emerald {
+  border-color: rgba(24, 186, 96, 0.5) !important;
+  box-shadow: 0 0 25px -5px rgba(24, 186, 96, 0.3) !important;
+}
+
+@keyframes udm-pulse {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.02); opacity: 0.92; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-udm-pulse {
+  animation: udm-pulse 1.4s infinite cubic-bezier(0.4, 0, 0.6, 1);
 }

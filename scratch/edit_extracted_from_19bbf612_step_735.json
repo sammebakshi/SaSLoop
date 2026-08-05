@@ -1,8 +1,0 @@
-{
-  "Description": "\"Change tableNameAsCustomerName default to false and restrict auto-fill behavior strictly to temporary tables.\"",
-  "Instruction": "\"Change tableNameAsCustomerName default to false and restrict selectedTable auto-fill to temporary tables.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":2598,\"ReplacementContent\":\"      showItemsDetails: true,\\n      showItemsCodeDetails: false,\\n      tableNameAsCustomerName: false,\\n      showOrderStatusOnTable: false,\",\"StartLine\":2594,\"TargetContent\":\"      showItemsDetails: true,\\n      showItemsCodeDetails: false,\\n      tableNameAsCustomerName: true,\\n      showOrderStatusOnTable: false,\"},{\"AllowMultiple\":false,\"EndLine\":2762,\"ReplacementContent\":\"  useEffect(() => {\\n    if (posSettings?.tableNameAsCustomerName && selectedTable && selectedTable.is_temporary) {\",\"StartLine\":2759,\"TargetContent\":\"  useEffect(() => {\\n    if (posSettings?.tableNameAsCustomerName && selectedTable) {\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Disabling and restricting tableNameAsCustomerName auto-fill\"",
-  "toolSummary": "\"Multi Replace File Content App.jsx\""
-}

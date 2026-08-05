@@ -1437,145 +1437,92 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
         }
 
-        // --- 📍 HANDLE LOCATION (GPS PIN OR TYPED TEXT ADDRESS) ---
-        if (session.state === 'AWAITING_LOCATION') {
-            let customerAddress = "";
-            let deliveryCharge = parseFloat(biz.delivery_charge) || 0;
-            let distance = null;
-
-            if (isLocation && locationData) {
-                const { latitude: cLat, longitude: cLon } = locationData;
-                const delivery = await getDeliveryDetails(biz, cLat, cLon);
-                if (!delivery.serviceable) {
-                    const maxDist = delivery.maxRadius || delivery.radius || biz.delivery_radius_km || 15;
-                    const unserviceableMsg = `📍 *LOCATION OUTSIDE DELIVERY ZONE*\n━━━━━━━━━━━━━━\nSorry! Your location is *${delivery.distance.toFixed(1)} KM* away, which is outside our delivery radius of *${maxDist} KM*.\n\nWe cannot deliver to this address. Would you like to switch your order to *Pickup* (Takeaway) or cancel your order?`;
-                    await sendButtons(customerNumber, unserviceableMsg, [
-                        { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
-                        { id: 'cancel_order', title: '❌ Cancel Order' }
-                    ], userId);
-                    return;
-                }
-                deliveryCharge = delivery.charge;
-                distance = delivery.distance;
-                const googleMapsUrl = `https://maps.google.com/?q=${cLat.toFixed(6)},${cLon.toFixed(6)}`;
-                customerAddress = `GPS Pin: ${googleMapsUrl}`;
-            } else if (!isLocation && msgText.trim()) {
-                const isGreeting = greetings.includes(lower);
-                const isCommand = botCommands.includes(lower) || ['checkout', 'redeem_pts_wa', 'mode_pickup', 'mode_delivery', 'join_loyalty', 'cancel_order', 'cancel'].includes(lower);
-                const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
-                const matchedItems = allItems.filter(item => {
-                    const pName = item.product_name.toLowerCase();
-                    return searchWords.some(word => pName.includes(word) || word.includes(pName));
-                });
-
-                if (isGreeting || isCommand || matchedItems.length > 0) {
-                    console.log(`🔄 [INTENT SHIFT] Resetting AWAITING_LOCATION to IDLE.`);
-                    session.state = 'IDLE';
-                    await updateSession(userId, cleanNum, 'IDLE', session.context);
-                } else {
-                    customerAddress = msgText.trim();
-                    if (session.context.delivery_lat && session.context.delivery_lng) {
-                        const delivery = await getDeliveryDetails(biz, session.context.delivery_lat, session.context.delivery_lng);
-                        if (delivery) {
-                            if (!delivery.serviceable) {
-                                const maxDist = delivery.maxRadius || delivery.radius || biz.delivery_radius_km || 15;
-                                const unserviceableMsg = `📍 *LOCATION OUTSIDE DELIVERY ZONE*\n━━━━━━━━━━━━━━\nSorry! Your location is *${delivery.distance.toFixed(1)} KM* away, which is outside our delivery radius of *${maxDist} KM*.\n\nWe cannot deliver to this address. Would you like to switch your order to *Pickup* (Takeaway) or cancel your order?`;
-                                await sendButtons(customerNumber, unserviceableMsg, [
-                                    { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
-                                    { id: 'cancel_order', title: '❌ Cancel Order' }
-                                ], userId);
-                                return;
-                            }
-                            deliveryCharge = delivery.charge;
-                            distance = delivery.distance;
-                        }
-                    } else {
-                        // 📍 Pure Typed Text Address (No GPS pin dropped) -> Send to Manager / POS for Fee Verification
-                        const orderRef = `DEL-${Math.floor(100000 + Math.random() * 900000)}`;
-                        const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
-                        const initialTotal = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
-
-                        await pool.query(
-                            `INSERT INTO orders (
-                                user_id, restaurant_id, customer_name, customer_number, address, items, 
-                                total_price, order_reference, status, delivery_charge, payment_method, 
-                                redeemed_points, discount_amount, source, order_type
-                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING_DELIVERY_CHARGE', 0, 'COD', $9, $10, 'WHATSAPP', 'DELIVERY')`,
-                            [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, customerAddress, JSON.stringify(cart), initialTotal, orderRef, session.context.redeemedPoints || 0, discountAmount]
-                        );
-
-                        // Trigger Webhook & Notify Manager/Staff
-                        triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', status: 'PENDING_DELIVERY_CHARGE', total: initialTotal, items: cart, address: customerAddress, customer: { name: customerName, phone: cleanNum } });
-                        try {
-                            const staffAlert = `⚠️ *NEW TYPED ADDRESS ORDER RECEIVED! (Pending Fee Verification)*\n━━━━━━━━━━━━━━━━\nRef: *${orderRef}*\nCustomer: ${customerName || 'Customer'} (${cleanNum})\nAddress: ${customerAddress}\nItems Total: ${symbol}${subtotal.toFixed(2)}\n\n👉 *Action Required:* Open POS > Digital Orders to verify area serviceability & set delivery charge! 🚀`;
-                            let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0) ? biz.notification_numbers : [biz.phone, biz.contact_number].filter(Boolean);
-                            staffNums = [...new Set(staffNums)];
-                            for (let num of staffNums) {
-                                await sendOfficialMessage(num, staffAlert, userId);
-                            }
-                        } catch (sErr) { console.error("Staff notification error for typed address:", sErr); }
-
-                        // Send Customer Confirmation Message
-                        const custMsg = `📍 *ADDRESS RECEIVED & SENT TO MANAGER!*\n━━━━━━━━━━━━━━\n*Address:* ${customerAddress}\n\n⏳ Your order (*${orderRef}*) has been sent to our outlet manager to verify area serviceability and set the delivery charge.\n\nWe will send your updated bill with a confirmation button shortly! 🙏`;
-                        await sendOfficialMessage(customerNumber, custMsg, userId);
-
-                        await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
-                        return;
-                    }
-                }
+        // --- 📍 HANDLE LOCATION PIN STATE RESET ON INTENT SHIFT ---
+        if (session.state === 'AWAITING_LOCATION' && !isLocation) {
+            const isGreeting = greetings.includes(lower);
+            const isCommand = botCommands.includes(lower) || ['checkout', 'redeem_pts_wa', 'mode_pickup', 'mode_delivery', 'join_loyalty', 'cancel_order', 'cancel'].includes(lower);
+            const searchWords = lower.split(/[\s,]+/).filter(w => w.length > 2 && isNaN(w));
+            const matchedItems = allItems.filter(item => {
+                const pName = item.product_name.toLowerCase();
+                return searchWords.some(word => pName.includes(word) || word.includes(pName));
+            });
+            if (isGreeting || isCommand || matchedItems.length > 0) {
+                console.log(`🔄 [INTENT SHIFT] Resetting AWAITING_LOCATION to IDLE.`);
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', session.context);
             }
+        }
 
-            if (customerAddress) {
-                const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
-                const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
-
-                const pendingBill = [
-                    `📋 *ORDER SUMMARY*`,
-                    ``,
-                    cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
-                    `───────────────`,
-                    `Subtotal: ${symbol}${subtotal.toFixed(2)}`
-                ];
-
-                if (discountAmount > 0) {
-                    pendingBill.push(`🎁 Discount: -${symbol}${discountAmount.toFixed(0)}`);
-                }
-
-                if (biz.show_gst_on_receipt) {
-                    pendingBill.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
-                    pendingBill.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
-                }
-
-                pendingBill.push(`🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`);
-                pendingBill.push(`*Total Payable: ${symbol}${total.toFixed(2)}*`);
-                pendingBill.push(`───────────────`);
-                pendingBill.push(`📍 Address: ${customerAddress}`);
-                pendingBill.push(``);
-                pendingBill.push(`Would you like to confirm this order?`);
-
-                const billText = pendingBill.join("\n");
-                
-                // Store pending details in session
-                await updateSession(userId, cleanNum, 'AWAITING_ORDER_CONFIRMATION', {
-                    ...session.context,
-                    pendingOrder: {
-                        items: cart,
-                        subtotal,
-                        total,
-                        cgst,
-                        sgst,
-                        deliveryCharge,
-                        address: customerAddress,
-                        type: 'DELIVERY'
-                    }
-                });
-
-                await sendButtons(customerNumber, billText, [
-                    { id: 'confirm_delivery_order', title: '✅ Confirm Order' },
+        // --- 📍 HANDLE LOCATION PIN ---
+        if (isLocation && session.state === 'AWAITING_LOCATION' && locationData) {
+            const { latitude: cLat, longitude: cLon } = locationData;
+            
+            const delivery = await getDeliveryDetails(biz, cLat, cLon);
+            if (!delivery.serviceable) {
+                const maxDist = delivery.maxRadius || delivery.radius || biz.delivery_radius_km || 15;
+                const unserviceableMsg = `📍 *LOCATION OUTSIDE DELIVERY ZONE*\n━━━━━━━━━━━━━━\nSorry! Your location is *${delivery.distance.toFixed(1)} KM* away, which is outside our delivery radius of *${maxDist} KM*.\n\nWe cannot deliver to this address. Would you like to switch your order to *Pickup* (Takeaway) or cancel your order?`;
+                await sendButtons(customerNumber, unserviceableMsg, [
+                    { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
                     { id: 'cancel_order', title: '❌ Cancel Order' }
                 ], userId);
                 return;
             }
+
+            const deliveryCharge = delivery.charge;
+            const distance = delivery.distance;
+
+            const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
+            const total = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) + deliveryCharge - discountAmount);
+            
+            // Format exact Google Maps navigation URL
+            const googleMapsUrl = `https://maps.google.com/?q=${cLat.toFixed(6)},${cLon.toFixed(6)}`;
+            const customerAddress = `GPS Pin: ${googleMapsUrl}`;
+            const pendingBill = [
+                `📋 *ORDER SUMMARY*`,
+                ``,
+                cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
+                `───────────────`,
+                `Subtotal: ${symbol}${subtotal.toFixed(2)}`
+            ];
+
+            if (discountAmount > 0) {
+                pendingBill.push(`🎁 Discount: -${symbol}${discountAmount.toFixed(0)}`);
+            }
+
+            if (biz.show_gst_on_receipt) {
+                pendingBill.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                pendingBill.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+            }
+
+            pendingBill.push(`🚚 Delivery Charge: +${symbol}${deliveryCharge.toFixed(2)}`);
+            pendingBill.push(`*Total Payable: ${symbol}${total.toFixed(2)}*`);
+            pendingBill.push(`───────────────`);
+            pendingBill.push(`📍 Address: ${customerAddress}`);
+            pendingBill.push(``);
+            pendingBill.push(`Would you like to confirm this order?`);
+
+            const billText = pendingBill.join("\n");
+            
+            // Store pending details in session
+            await updateSession(userId, cleanNum, 'AWAITING_ORDER_CONFIRMATION', {
+                ...session.context,
+                pendingOrder: {
+                    items: cart,
+                    subtotal,
+                    total,
+                    cgst,
+                    sgst,
+                    deliveryCharge,
+                    address: customerAddress,
+                    type: 'DELIVERY'
+                }
+            });
+
+            await sendButtons(customerNumber, billText, [
+                { id: 'confirm_delivery_order', title: '✅ Confirm Order' },
+                { id: 'cancel_order', title: '❌ Cancel Order' }
+            ], userId);
+            return;
         }
 
         // --- 🔢 HANDLE QUANTITY REPLY ---

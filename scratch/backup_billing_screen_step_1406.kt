@@ -1,1 +1,0 @@
-"    LaunchedEffect(orderType) {\n        billingViewModel.setCurrentOrderType(orderType)\n    }\n\n    // Populate customer details automatically if editing an active order\n    LaunchedEffect(selectedTable, activeOrders) {"

@@ -135,7 +135,7 @@ router.get("/customers", authMiddleware, async (req, res) => {
         (SELECT COUNT(*) FROM orders o WHERE o.user_id = c.user_id AND o.customer_number = c.number) as orders
       FROM customers c
       LEFT JOIN customer_loyalty cl ON cl.user_id = c.user_id AND cl.customer_number = c.number
-      LEFT JOIN marketing_contacts mc ON mc.user_id = c.user_id AND mc.phone_number = c.number
+      LEFT JOIN (SELECT user_id, phone_number, bool_or(is_blocked) as is_blocked FROM marketing_contacts GROUP BY user_id, phone_number) mc ON mc.user_id = c.user_id AND mc.phone_number = c.number
       WHERE c.user_id = $1
       ORDER BY cl.last_visit DESC NULLS LAST
     `, [uid]);

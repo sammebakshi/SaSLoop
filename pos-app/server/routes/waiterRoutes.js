@@ -37,6 +37,43 @@ router.get("/", authMiddleware, async (req, res) => {
   }
 });
 
+// ✅ GET ONLY DELIVERY BOYS / RIDERS FOR LOGGED-IN BUSINESS
+router.get("/riders", authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user.bizId || req.user.id;
+    const result = await pool.query(
+      `SELECT dp.id, dp.name, dp.phone, 'Delivery Boy' as role 
+       FROM delivery_partners dp 
+       JOIN app_users u ON dp.user_id = u.id 
+       WHERE u.parent_user_id = $1 OR dp.user_id = $1
+       UNION ALL
+       SELECT u.id, COALESCE(u.name, u.first_name, u.username) as name, u.phone, COALESCE(u.user_type, u.role, 'Delivery Boy') as role 
+       FROM app_users u
+       LEFT JOIN outlet_designations d ON u.designation_id = d.id
+       WHERE (u.parent_user_id = $1 OR u.id = $1) 
+         AND (u.status IS NULL OR u.status = 'active')
+         AND (
+           LOWER(COALESCE(u.user_type, '')) LIKE '%delivery%' OR 
+           LOWER(COALESCE(u.user_type, '')) LIKE '%rider%' OR 
+           LOWER(COALESCE(u.user_type, '')) LIKE '%driver%' OR 
+           LOWER(COALESCE(u.role, '')) LIKE '%delivery%' OR 
+           LOWER(COALESCE(u.role, '')) LIKE '%rider%' OR 
+           LOWER(COALESCE(u.role, '')) LIKE '%driver%' OR 
+           LOWER(COALESCE(d.name, '')) LIKE '%delivery%' OR 
+           LOWER(COALESCE(d.name, '')) LIKE '%rider%' OR 
+           LOWER(COALESCE(d.name, '')) LIKE '%driver%'
+         )
+       ORDER BY name ASC`,
+      [userId]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("🔥 GET RIDERS ERROR:", err);
+    res.status(500).json({ error: "Failed to fetch riders" });
+  }
+});
+
 // ✅ UPDATE WAITER DETAILS
 router.put("/:id", authMiddleware, async (req, res) => {
   try {

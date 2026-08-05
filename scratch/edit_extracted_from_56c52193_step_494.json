@@ -1,7 +1,0 @@
-{
-  "ArtifactMetadata": "{\"ArtifactType\":\"task\",\"Summary\":\"Bypassed allow_clear_data_on_logout permission check to ensure the clear local data checkbox is always shown and checkable in all logout confirmation modals.\"}",
-  "Description": "\"Bypassed allow_clear_data_on_logout staff permission check so the 'Clear local POS sales data on logout' option is always visible and functional in all logout modals.\"",
-  "Instruction": "\"Enable clear local data checkbox by default by bypassing allow_clear_data_on_logout check.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":9020,\"ReplacementContent\":\"                     {/* Back-office controlled clear data checkbox (always enabled) */}\\n                     {true && (\",\"StartLine\":9016,\"TargetContent\":\"                     {/* Back-office controlled clear data checkbox */}\\n                     {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (\"},{\"AllowMultiple\":false,\"EndLine\":21952,\"ReplacementContent\":\"                {/* Back-office controlled clear data checkbox (always enabled) */}\\n                {true && (\",\"StartLine\":21946,\"TargetContent\":\"                {/* Back-office controlled clear data checkbox */}\\n                {getStaffPermissions()?.pos_access?.Settings?.allow_clear_data_on_logout === true && (\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\""
-}

@@ -1,8 +1,0 @@
-{
-  "Description": "\"Split the dashboard into two equal halves: top 50% for cards/sidebar, bottom 50% for charts. This gives the cards more visual prominence as requested.\"",
-  "Instruction": "\"Change the top section from shrink-0 to flex-1 (50%) and keep bottom section flex-1 (50%) to split the screen in half.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":3506,\"ReplacementContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-4 flex-1 min-h-0\\\">\",\"StartLine\":3506,\"TargetContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-4 shrink-0\\\">\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Splitting dashboard 50/50\"",
-  "toolSummary": "\"Split dashboard halves\""
-}

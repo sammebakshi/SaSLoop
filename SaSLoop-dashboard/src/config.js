@@ -6,18 +6,27 @@
 // In Capacitor (mobile app), we use the ngrok tunnel.
 // =====================================================
 
-// Detect if running inside Capacitor native shell
 const isCapacitor = typeof window !== 'undefined' && window.Capacitor?.isNativePlatform?.();
 
-// Ngrok or Production URL — update this whenever your tunnel restarts or domain changes
 const PRODUCTION_URL = "https://backend.sasloop.in";
 
-const API_BASE =
-  isCapacitor
-    ? PRODUCTION_URL
-    : window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-      ? "http://localhost:5000"
-      : ""; // In production, use relative paths (/api/...)
+const getApiBase = () => {
+  if (isCapacitor) return PRODUCTION_URL;
+  if (typeof window === 'undefined') return PRODUCTION_URL;
+
+  const hostname = window.location.hostname;
+  const port = window.location.port;
+
+  // Local development server running on port 3000/3001/etc or LAN IP
+  if (port === "3000" || port === "3001" || hostname === "localhost" || hostname === "127.0.0.1" || hostname.startsWith("192.168.") || hostname.startsWith("10.")) {
+    return `http://${hostname}:5000`;
+  }
+
+  // Live production build
+  return PRODUCTION_URL;
+};
+
+const API_BASE = getApiBase();
 
 export default API_BASE;
 

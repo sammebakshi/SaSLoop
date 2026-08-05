@@ -1,8 +1,0 @@
-{
-  "Description": "\"Add green-scrollbar style to the main receipts table and remove the border-top divider line from the summary strip.\"",
-  "Instruction": "\"Add green scrollbar styling to the receipts table and remove the top border from the summary strip.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":5000,\"ReplacementContent\":\"                {/* Main Table */}\\n                <div className={`flex-1 overflow-auto green-scrollbar transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>\",\"StartLine\":4995,\"TargetContent\":\"                {/* Main Table */}\\n                <div className={`flex-1 overflow-auto transition-colors ${isDark ? 'bg-[#0d1117]' : 'bg-white'}`}>\"},{\"AllowMultiple\":false,\"EndLine\":5130,\"ReplacementContent\":\"                {/* Summary Strip */}\\n                <div className=\\\"h-10 border-b border-[#30363d] flex items-center justify-between px-4 shrink-0 bg-[#161b22] text-[11px] font-bold text-[#c9d1d9]\\\">\",\"StartLine\":5126,\"TargetContent\":\"                {/* Summary Strip */}\\n                <div className=\\\"h-10 border-t border-b border-[#30363d] flex items-center justify-between px-4 shrink-0 bg-[#161b22] text-[11px] font-bold text-[#c9d1d9]\\\">\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Apply scrollbar styling and border removal in App.jsx\"",
-  "toolSummary": "\"Multi-replace file content\""
-}

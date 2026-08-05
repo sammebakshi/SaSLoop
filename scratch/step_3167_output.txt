@@ -1,4 +1,0 @@
-Created At: 2026-06-09T13:57:22Z
-Completed At: 2026-06-09T13:57:23Z
-{"File":"c:\\Users\\Sajad\\Desktop\\SaSLoop\\sasloop-android\\app\\src\\main\\java\\com\\example\\sasloopmanager\\ui\\BillingScreen.kt","LineNumber":603,"LineContent":"                            selectedTabIndex = when (activeSubTab) {"}
-{"File":"c:\\Users\\Sajad\\Desktop\\SaSLoop\\sasloop-android\\app\\src\\main\\java\\com\\example\\sasloopmanager\\ui\\BillingScreen.kt","LineNumber":673,"LineContent":"                        when (activeSubTab) {"}

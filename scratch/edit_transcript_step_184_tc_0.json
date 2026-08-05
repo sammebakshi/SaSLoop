@@ -1,7 +1,0 @@
-{
-  "step_index": 184,
-  "tool": "replace_file_content",
-  "description": "\"The dialogs were accidentally placed inside the `when` block — the `when` expression for sub-tabs needs to close before the dialog `if` blocks. Adding the missing closing brace for the `when` block.\"",
-  "instruction": "\"Add closing brace for the when block after the BILLING branch, before the PaymentDialog\"",
-  "chunks": "\"                                )\\n                            }\\n                        }\\n\\n            if (showPaymentDialog) {\""
-}

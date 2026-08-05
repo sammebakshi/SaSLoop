@@ -1,8 +1,0 @@
-{
-  "Description": "\"Clear order selection when switching between Order History and Points Ledger tabs to avoid stale details panel.\"",
-  "Instruction": "\"Add setSelectedHistoryOrder(null) to both tab toggle click handlers\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":19191,\"ReplacementContent\":\"                              onClick={() => {\\n                                 setCustomerHistoryActiveTab('orders');\\n                                 setSelectedHistoryOrder(null);\\n                              }}\",\"StartLine\":19191,\"TargetContent\":\"                              onClick={() => setCustomerHistoryActiveTab('orders')}\"},{\"AllowMultiple\":false,\"EndLine\":19202,\"ReplacementContent\":\"                              onClick={() => {\\n                                 setCustomerHistoryActiveTab('points');\\n                                 setSelectedHistoryOrder(null);\\n                              }}\",\"StartLine\":19202,\"TargetContent\":\"                              onClick={() => setCustomerHistoryActiveTab('points')}\"}]",
-  "TargetFile": "\"C:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Updating tab toggle handlers\"",
-  "toolSummary": "\"Clear selection on tab change\""
-}

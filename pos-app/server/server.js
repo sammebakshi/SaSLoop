@@ -54,20 +54,7 @@ app.use(helmet({
 app.use(hpp());
 // xss-clean removed due to Express 5 incompatibility
 
-// Global Rate Limiter: 2000 requests per 15 minutes per IP (Dashboard Polling requires higher limits)
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 2000, 
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res, next, options) => {
-        res.status(options.statusCode).json({ error: options.message });
-    },
-    message: "Too many requests from this IP, please try again later."
-});
-app.use("/api/", limiter); // Apply to all API routes
-
-// Brute Force Protection for Auth
+// Brute Force Protection exclusively for Auth Login
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 20, // Limit each IP to 20 login attempts per hour
@@ -75,11 +62,15 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth/login", authLimiter);
 
+
 const allowedOrigins = [
     'http://localhost:3000',
+    'http://localhost:3005',
     'http://localhost:5000',
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://localhost',
+    'capacitor://localhost',
     'https://sasloop.in',
     'https://www.sasloop.in',
     'https://backend.sasloop.in',
@@ -91,7 +82,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || origin === 'null' || origin === 'file://' || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        if (!origin || origin === 'null' || origin === 'file://' || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost') || origin.startsWith('capacitor://') || origin.startsWith('http://192.168.') || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
             console.error(`🚫 [CORS BLOCKED] Origin: ${origin}`);
@@ -202,13 +193,15 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
 // 🎨 DESIGN & ASSETS (Prioritized)
 // ======================
 // Resolve build path relative to server.js
-let buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
+let buildPath = path.join(__dirname, "..", "..", "SaSLoop-dashboard", "build");
 if (!fs.existsSync(buildPath)) {
-    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build_new");
+    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build");
 }
 if (!fs.existsSync(buildPath)) {
-    const altPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
-    if (fs.existsSync(altPath)) buildPath = altPath;
+    buildPath = path.join(__dirname, "..", "SaSLoop-dashboard", "build");
+}
+if (!fs.existsSync(buildPath)) {
+    buildPath = path.join(__dirname, "SaSLoop-dashboard", "build_new");
 }
 if (!fs.existsSync(buildPath)) {
     const distPath = path.join(__dirname, "dist");
@@ -266,7 +259,6 @@ app.get(/.*/, (req, res, next) => {
 // ======================
 // 🚀 START SERVER
 // ======================
-const { initializeDatabase } = require("./dbInit");
 const whatsappManager = require("./whatsappManager");
 const PORT = process.env.PORT || 5000;
 
@@ -275,7 +267,12 @@ app.listen(PORT, async () => {
     if (!fs.existsSync(path.join(__dirname, "uploads"))) {
         fs.mkdirSync(path.join(__dirname, "uploads"));
     }
-    await initializeDatabase();
+    try {
+        const { initializeDatabase } = require("./dbInit");
+        if (typeof initializeDatabase === 'function') await initializeDatabase();
+    } catch (dbInitErr) {
+        console.log("ℹ️ dbInit module check:", dbInitErr.message);
+    }
     
     // Start Cron Jobs
     whatsappManager.startCartRecoveryCron();

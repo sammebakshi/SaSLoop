@@ -1,5 +1,0 @@
-Created At: 2026-06-09T15:02:24Z
-Completed At: 2026-06-09T15:02:25Z
-{"File":"c:\\Users\\Sajad\\Desktop\\SaSLoop\\scratch\\restore_billing_screen.js","LineNumber":9,"LineContent":"// @Composable\\nfun MenuSubTab("}
-{"File":"c:\\Users\\Sajad\\Desktop\\SaSLoop\\scratch\\restore_billing_screen.js","LineNumber":37,"LineContent":"const menuHeader = '@Composable\\nfun MenuSubTab(';"}
-{"File":"c:\\Users\\Sajad\\Desktop\\SaSLoop\\scratch\\extract_tabs.js","LineNumber":178,"LineContent":"fun MenuSubTab("}

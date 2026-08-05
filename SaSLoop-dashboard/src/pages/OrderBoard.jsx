@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { 
   ShoppingBag, Search, Filter, Clock, CheckCircle2, 
   XCircle, MoreHorizontal, ChefHat, MapPin, Phone,
@@ -26,8 +26,8 @@ const OrderBoard = () => {
     const [cancelIsPosTable, setCancelIsPosTable] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
 
-    // Message notification toast
     const [toastMsg, setToastMsg] = useState(null);
+    const seenPaymentConfirmedRef = useRef(new Set());
 
     const showToast = (type, text) => {
         setToastMsg({ type, text });
@@ -52,7 +52,20 @@ const OrderBoard = () => {
 
             if (ordersRes.ok) {
                 const data = await ordersRes.json();
-                setOrders(Array.isArray(data) ? data : []);
+                const fetchedOrders = Array.isArray(data) ? data : [];
+                setOrders(fetchedOrders);
+
+                // Live toast notification on OrderBoard when customer confirms payment
+                fetchedOrders.forEach(o => {
+                    const isConfirmed = String(o.payment_status || '').toUpperCase() === 'CUSTOMER_CONFIRMED';
+                    if (isConfirmed) {
+                        const pKey = `pay_${o.id}`;
+                        if (!seenPaymentConfirmedRef.current.has(pKey)) {
+                            seenPaymentConfirmedRef.current.add(pKey);
+                            showToast("success", `💰 PAYMENT ALERT: Customer reported UPI payment of ₹${o.total_price} for Order #${o.order_reference || o.id}!`);
+                        }
+                    }
+                });
             }
             if (kotsRes.ok) {
                 const data = await kotsRes.json();
@@ -78,10 +91,10 @@ const OrderBoard = () => {
 
     useEffect(() => {
         fetchData();
-        // Polling interval: 10 seconds background refresh
+        // Polling interval: 8 seconds background refresh
         const interval = setInterval(() => {
             fetchData(true);
-        }, 10000);
+        }, 8000);
         return () => clearInterval(interval);
     }, []);
 
@@ -187,7 +200,6 @@ const OrderBoard = () => {
                 if (!dineInMap[table]) {
                     dineInMap[table] = mappedItem;
                 } else {
-                    // Combine items uniquely or overwrite if POS has the latest tray
                     dineInMap[table].total = total;
                     dineInMap[table].items = items;
                     dineInMap[table].status = mappedItem.status;
@@ -296,10 +308,7 @@ const OrderBoard = () => {
     // Search and Tab filtering
     const filteredOrders = useMemo(() => {
         return unifiedActiveList.filter(o => {
-            // Tab filtering
             if (activeTab !== 'ALL' && o.type !== activeTab) return false;
-
-            // Search filtering
             const query = searchQuery.trim().toLowerCase();
             if (!query) return true;
 
@@ -331,8 +340,6 @@ const OrderBoard = () => {
 
             if (item.isPosStateTable) {
                 if (newStatus === 'COMPLETED') {
-                    // Settle & Complete Bill
-                    // 1. Save finalized order to database
                     const orderRes = await fetch(`${API_BASE}/api/orders${targetParam}`, {
                         method: 'POST',
                         headers: {
@@ -358,22 +365,13 @@ const OrderBoard = () => {
                         return;
                     }
 
-                    // 2. Clear POS Table active state
                     const updatedPosState = { ...posState };
                     const tableId = item.dbId;
                     
-                    if (updatedPosState.tableBills) {
-                        delete updatedPosState.tableBills[tableId];
-                    }
-                    if (updatedPosState.tableStatuses) {
-                        updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
-                    }
-                    if (updatedPosState.tableBillNumbers) {
-                        delete updatedPosState.tableBillNumbers[tableId];
-                    }
-                    if (updatedPosState.tableActiveTimestamps) {
-                        delete updatedPosState.tableActiveTimestamps[tableId];
-                    }
+                    if (updatedPosState.tableBills) delete updatedPosState.tableBills[tableId];
+                    if (updatedPosState.tableStatuses) updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
+                    if (updatedPosState.tableBillNumbers) delete updatedPosState.tableBillNumbers[tableId];
+                    if (updatedPosState.tableActiveTimestamps) delete updatedPosState.tableActiveTimestamps[tableId];
                     if (updatedPosState.tables) {
                         const tableObj = updatedPosState.tables.find(t => t.id === tableId);
                         if (tableObj && tableObj.is_temporary) {
@@ -381,7 +379,6 @@ const OrderBoard = () => {
                         }
                     }
 
-                    // Save POS active state
                     const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
                         method: 'POST',
                         headers: {
@@ -401,14 +398,10 @@ const OrderBoard = () => {
                         showToast("error", "Failed to clear POS table status on server");
                     }
                 } else {
-                    // Update POS Table status (e.g. SAVED -> PROCESSING -> DISPATCHED)
                     const updatedPosState = { ...posState };
                     const tableId = item.dbId;
-                    if (updatedPosState.tableStatuses) {
-                        updatedPosState.tableStatuses[tableId] = newStatus;
-                    }
+                    if (updatedPosState.tableStatuses) updatedPosState.tableStatuses[tableId] = newStatus;
 
-                    // Save POS active state
                     const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
                         method: 'POST',
                         headers: {
@@ -467,6 +460,32 @@ const OrderBoard = () => {
         }
     };
 
+    const handleMarkPaymentPaid = async (item, newPayStatus = 'RECEIVED') => {
+        setActionLoading(true);
+        try {
+            const token = localStorage.getItem("token");
+            const res = await fetch(`${API_BASE}/api/orders/${item.dbId}/payment`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ payment_status: newPayStatus })
+            });
+            if (res.ok) {
+                showToast("success", `Payment status updated to ${newPayStatus}!`);
+                fetchData(true);
+            } else {
+                showToast("error", "Failed to update payment status");
+            }
+        } catch (e) {
+            console.error(e);
+            showToast("error", "Network error updating payment status");
+        } finally {
+            setActionLoading(false);
+        }
+    };
+
     // Cancellation Action
     const handleCancelOrder = async (e) => {
         if (e) e.preventDefault();
@@ -482,10 +501,8 @@ const OrderBoard = () => {
             const targetParam = impersonateId ? `?target_user_id=${impersonateId}` : "";
 
             if (cancelIsPosTable) {
-                // Find the selected POS table item details
                 const item = selectedOrder;
 
-                // 1. Create a cancelled order in the database for auditing
                 const orderRes = await fetch(`${API_BASE}/api/orders${targetParam}`, {
                     method: 'POST',
                     headers: {
@@ -512,22 +529,13 @@ const OrderBoard = () => {
                     return;
                 }
 
-                // 2. Clear POS Table active state
                 const updatedPosState = { ...posState };
                 const tableId = cancelOrderId;
                 
-                if (updatedPosState.tableBills) {
-                    delete updatedPosState.tableBills[tableId];
-                }
-                if (updatedPosState.tableStatuses) {
-                    updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
-                }
-                if (updatedPosState.tableBillNumbers) {
-                    delete updatedPosState.tableBillNumbers[tableId];
-                }
-                if (updatedPosState.tableActiveTimestamps) {
-                    delete updatedPosState.tableActiveTimestamps[tableId];
-                }
+                if (updatedPosState.tableBills) delete updatedPosState.tableBills[tableId];
+                if (updatedPosState.tableStatuses) updatedPosState.tableStatuses[tableId] = 'AVAILABLE';
+                if (updatedPosState.tableBillNumbers) delete updatedPosState.tableBillNumbers[tableId];
+                if (updatedPosState.tableActiveTimestamps) delete updatedPosState.tableActiveTimestamps[tableId];
                 if (updatedPosState.tables) {
                     const tableObj = updatedPosState.tables.find(t => t.id === tableId);
                     if (tableObj && tableObj.is_temporary) {
@@ -535,7 +543,6 @@ const OrderBoard = () => {
                     }
                 }
 
-                // Save POS active state
                 const syncRes = await fetch(`${API_BASE}/api/pos/active-state${targetParam}`, {
                     method: 'POST',
                     headers: {
@@ -643,46 +650,46 @@ const OrderBoard = () => {
     }, [unifiedActiveList]);
 
     return (
-        <div className="space-y-6 animate-in fade-in duration-500 font-sans text-slate-800 dark:text-slate-100">
+        <div className="space-y-6 animate-pro-in font-sans text-slate-800 dark:text-slate-100 pb-10">
             {/* Status Toast Notification */}
             {toastMsg && (
-                <div className={`fixed top-6 right-6 z-[1000] px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 border text-xs font-bold uppercase tracking-wider animate-in slide-in-from-top duration-300 ${
+                <div className={`fixed top-6 right-6 z-[1000] px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 border text-xs font-black uppercase tracking-wider animate-in slide-in-from-top duration-300 ${
                     toastMsg.type === "success" 
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-900/50" 
-                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/30 dark:text-rose-400 dark:border-rose-900/50"
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-900/50 udm-card-glow-emerald" 
+                        : "bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-900/50"
                 }`}>
                     {toastMsg.type === "success" ? <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />}
                     {toastMsg.text}
                 </div>
             )}
 
-            {/* Header Matrix */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between bg-white dark:bg-[#161b22] p-4 rounded-2xl border border-slate-200 dark:border-[#30363d] shadow-sm gap-4">
+            {/* Header Matrix - UDM Glassmorphism */}
+            <div className="udm-card flex flex-col md:flex-row md:items-center justify-between p-4 rounded-2xl border border-slate-200 dark:border-white/10 shadow-lg gap-4">
                 <div className="flex items-center gap-3">
-                    <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400">
-                        <Activity className="w-6 h-6 animate-pulse" />
+                    <div className="p-3 bg-emerald-500/10 rounded-xl text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        <Activity className="w-6 h-6 animate-udm-pulse" />
                     </div>
                     <div>
-                        <h2 className="text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Live Fulfillment Matrix</h2>
-                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Real-time telemetry of in-progress outlet orders</p>
+                        <h2 className="text-lg font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">Live Fulfillment Matrix (UDM)</h2>
+                        <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">Real-time telemetry & order tracking center</p>
                     </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4">
+                <div className="flex flex-wrap items-center gap-3">
                     {/* Search bar */}
                     <div className="relative min-w-[200px]">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
                         <input 
                             type="text" 
-                            placeholder="SEARCH REFERENCE, TABLE..." 
-                            className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase outline-none focus:border-emerald-600 dark:focus:border-emerald-600 transition-all text-slate-800 dark:text-white placeholder-slate-400 tracking-wider w-full"
+                            placeholder="SEARCH REF, TABLE, CUSTOMER..." 
+                            className="bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl pl-9 pr-4 py-2 text-[10px] font-black uppercase outline-none focus:border-emerald-500 transition-all text-slate-800 dark:text-white placeholder-slate-400 tracking-wider w-full"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
                     </div>
 
                     {/* Filter tabs */}
-                    <div className="flex bg-slate-100 dark:bg-[#0d1117] p-1 rounded-xl border border-slate-200 dark:border-[#30363d]">
+                    <div className="flex bg-slate-100 dark:bg-black/40 p-1 rounded-xl border border-slate-200 dark:border-white/10">
                         {[
                             { id: 'ALL', label: 'All Active' },
                             { id: 'DINE_IN', label: 'Dine-In' },
@@ -693,12 +700,12 @@ const OrderBoard = () => {
                                 key={tab.id} 
                                 onClick={() => {
                                     setActiveTab(tab.id);
-                                    setSelectedOrderId(null); // Reset detail selection
+                                    setSelectedOrderId(null);
                                 }}
                                 className={`px-4 py-1.5 text-[9px] font-black rounded-lg uppercase tracking-wider transition-all ${
                                     activeTab === tab.id 
-                                        ? 'bg-white dark:bg-[#161b22] shadow-sm text-slate-900 dark:text-white' 
-                                        : 'text-slate-450 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                        ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20' 
+                                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
                                 }`}
                             >
                                 {tab.label}
@@ -708,18 +715,18 @@ const OrderBoard = () => {
 
                     <button 
                         onClick={() => fetchData()} 
-                        className="p-2.5 bg-slate-55 dark:bg-[#161b22] hover:bg-slate-100 dark:hover:bg-[#21262d] border border-slate-200 dark:border-[#30363d] text-slate-600 dark:text-slate-350 rounded-xl transition-all"
+                        className="p-2.5 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 border border-slate-200 dark:border-white/10 text-slate-600 dark:text-slate-350 rounded-xl transition-all"
                     >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-500' : ''}`} />
                     </button>
                 </div>
             </div>
 
-            {/* TMBill-style Stats Grid */}
+            {/* UDM Glass Telemetry Cards Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 {/* 1. Dine-In Card */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-emerald-500">
-                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                <div className="udm-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden transition-all border-l-4 border-l-emerald-500">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0 border border-emerald-500/20">
                         <Utensils size={22} />
                     </div>
                     <div className="flex flex-col">
@@ -734,8 +741,8 @@ const OrderBoard = () => {
                 </div>
 
                 {/* 2. Pick-Up Card */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-amber-500">
-                    <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+                <div className="udm-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden transition-all border-l-4 border-l-amber-500">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0 border border-amber-500/20">
                         <ShoppingBag size={22} />
                     </div>
                     <div className="flex flex-col">
@@ -750,8 +757,8 @@ const OrderBoard = () => {
                 </div>
 
                 {/* 3. Delivery Card */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-blue-500">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                <div className="udm-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden transition-all border-l-4 border-l-blue-500">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 border border-blue-500/20">
                         <Truck size={22} />
                     </div>
                     <div className="flex flex-col">
@@ -766,17 +773,17 @@ const OrderBoard = () => {
                 </div>
 
                 {/* 4. Total KOTs / Active Card */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm flex items-center gap-4 relative overflow-hidden group hover:shadow-md transition-all border-l-4 border-l-purple-500">
-                    <div className="w-12 h-12 rounded-full bg-purple-500/10 text-purple-650 dark:text-purple-400 flex items-center justify-center shrink-0">
+                <div className="udm-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden transition-all border-l-4 border-l-purple-500">
+                    <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0 border border-purple-500/20">
                         <Activity size={22} />
                     </div>
                     <div className="flex flex-col">
                         <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-0.5">Fulfillment Load</span>
-                        <span className="text-lg font-black italic tracking-tighter text-purple-650 dark:text-purple-400">
+                        <span className="text-lg font-black italic tracking-tighter text-purple-600 dark:text-purple-400">
                             {totals.totalActiveCount} Running
                         </span>
                         <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mt-0.5">
-                            Unified telemetry load
+                            Unified Telemetry Load
                         </span>
                     </div>
                 </div>
@@ -786,11 +793,11 @@ const OrderBoard = () => {
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start min-h-[500px]">
                 {/* Left Area: Active Cards Grid */}
                 <div className="lg:col-span-8 space-y-4">
-                    <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] rounded-2xl p-5 shadow-sm">
+                    <div className="udm-card rounded-2xl p-5 border border-slate-200 dark:border-white/10">
                         <div className="flex justify-between items-center mb-4">
                             <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white flex items-center gap-2">
-                                <span>Active Grid monitor</span>
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-[9px] font-black tracking-normal text-slate-500 dark:text-slate-400">
+                                <span>Active Grid Monitor</span>
+                                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[9px] font-black">
                                     {filteredOrders.length} orders
                                 </span>
                             </h3>
@@ -798,11 +805,11 @@ const OrderBoard = () => {
 
                         {loading && filteredOrders.length === 0 ? (
                             <div className="py-24 text-center text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] animate-pulse">
-                                Reconnecting active streams...
+                                Reconnecting active telemetry streams...
                             </div>
                         ) : filteredOrders.length === 0 ? (
-                            <div className="py-24 text-center border border-dashed border-slate-200 dark:border-[#30363d] rounded-2xl flex flex-col items-center justify-center space-y-3">
-                                <div className="w-14 h-14 rounded-full bg-slate-50 dark:bg-[#0d1117] flex items-center justify-center text-slate-300 dark:text-slate-700">
+                            <div className="py-24 text-center border border-dashed border-slate-200 dark:border-white/10 rounded-2xl flex flex-col items-center justify-center space-y-3">
+                                <div className="w-14 h-14 rounded-full bg-slate-50 dark:bg-black/30 flex items-center justify-center text-slate-300 dark:text-slate-700">
                                     <ChefHat size={28} />
                                 </div>
                                 <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider"> Fulfillments Cleared: No Active Orders</div>
@@ -812,13 +819,19 @@ const OrderBoard = () => {
                                 <AnimatePresence mode="popLayout">
                                     {filteredOrders.map(item => {
                                         const isSelected = selectedOrder?.id === item.id;
-                                        
-                                        // Badge colors
-                                        let badgeStyle = "bg-emerald-50 text-emerald-600 border border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-900/30";
-                                        if (item.type === 'PICKUP') badgeStyle = "bg-amber-50 text-amber-600 border border-amber-100 dark:bg-amber-500/10 dark:text-amber-400 dark:border-amber-900/30";
-                                        if (item.type === 'DELIVERY') badgeStyle = "bg-blue-50 text-blue-600 border border-blue-100 dark:bg-blue-500/10 dark:text-blue-400 dark:border-blue-900/30";
+                                        const isPending = item.status === 'PENDING';
+                                        const isProcessing = item.status === 'PROCESSING' || item.status === 'PREPARING';
 
-                                        // Elapsed minutes
+                                        // UDM Neon Glow Classes
+                                        let glowClass = "udm-card";
+                                        if (isPending) glowClass += " udm-card-glow-amber animate-udm-pulse";
+                                        else if (isProcessing) glowClass += " udm-card-glow-cyan";
+                                        else glowClass += " udm-card-glow-emerald";
+
+                                        let badgeStyle = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+                                        if (item.type === 'PICKUP') badgeStyle = "bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20";
+                                        if (item.type === 'DELIVERY') badgeStyle = "bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20";
+
                                         const elapsed = Math.max(1, Math.floor((Date.now() - item.timestamp) / 60000));
 
                                         return (
@@ -830,10 +843,8 @@ const OrderBoard = () => {
                                                 transition={{ duration: 0.2 }}
                                                 key={item.id}
                                                 onClick={() => setSelectedOrderId(item.id)}
-                                                className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between h-36 ${
-                                                    isSelected 
-                                                        ? 'border-2 border-emerald-500 bg-emerald-50/10 dark:bg-emerald-950/5 shadow-md shadow-emerald-500/5' 
-                                                        : 'bg-slate-50 dark:bg-[#0d1117] border-slate-200 dark:border-[#30363d] hover:border-slate-350 dark:hover:border-slate-700 hover:bg-slate-100/50 dark:hover:bg-[#161b22]/50'
+                                                className={`p-4 rounded-2xl border cursor-pointer select-none transition-all flex flex-col justify-between min-h-[150px] ${glowClass} ${
+                                                    isSelected ? 'ring-2 ring-emerald-500 shadow-xl' : 'hover:scale-[1.01]'
                                                 }`}
                                             >
                                                 <div className="flex justify-between items-start gap-2">
@@ -845,19 +856,25 @@ const OrderBoard = () => {
                                                             {item.subtitle}
                                                         </div>
                                                     </div>
-                                                    <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase shrink-0 tracking-wider ${badgeStyle}`}>
+                                                    <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase shrink-0 tracking-wider ${badgeStyle}`}>
                                                         {item.type === 'DINE_IN' ? 'Dine-In' : (item.type === 'PICKUP' ? 'Pick-Up' : 'Delivery')}
                                                     </span>
                                                 </div>
 
+                                                {(item.order?.payment_status === 'CUSTOMER_CONFIRMED' || item.payment_status === 'CUSTOMER_CONFIRMED') && (
+                                                    <div className="bg-amber-400 text-amber-950 px-2 py-1 rounded-xl text-[8px] font-black uppercase tracking-wider animate-pulse flex items-center justify-center gap-1 shadow-sm my-1">
+                                                        <span>💰 CUSTOMER REPORTED PAID</span>
+                                                    </div>
+                                                )}
+
                                                 <div className="space-y-1 mt-2 flex-1 overflow-hidden">
-                                                    <p className="text-[9px] text-slate-400 dark:text-slate-500 truncate uppercase font-medium">
+                                                    <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate uppercase font-bold">
                                                         {item.items.map(it => `${it.product_name || it.name} x${it.quantity}`).join(', ')}
                                                     </p>
                                                 </div>
 
-                                                <div className="flex justify-between items-end pt-3 border-t border-dashed border-slate-200 dark:border-[#30363d] mt-2">
-                                                    <div className="text-[9px] font-black uppercase flex items-center gap-1 text-amber-600 dark:text-amber-500">
+                                                <div className="flex justify-between items-end pt-3 border-t border-dashed border-slate-200 dark:border-white/10 mt-2">
+                                                    <div className="text-[9px] font-black uppercase flex items-center gap-1 text-amber-600 dark:text-amber-400">
                                                         <Clock size={11} className="animate-pulse" /> {elapsed} {elapsed === 1 ? 'min' : 'mins'} ago
                                                     </div>
                                                     <span className="text-sm font-black tracking-tighter text-emerald-600 dark:text-emerald-400">
@@ -875,11 +892,11 @@ const OrderBoard = () => {
 
                 {/* Right Area: Selected Order Details Pane */}
                 <div className="lg:col-span-4">
-                    <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] rounded-2xl p-5 shadow-sm sticky top-6">
+                    <div className="udm-card rounded-2xl p-5 border border-slate-200 dark:border-white/10 sticky top-6 shadow-xl">
                         {selectedOrder ? (
                             <div className="space-y-5">
                                 {/* Details Header */}
-                                <div className="border-b border-dashed border-slate-200 dark:border-[#30363d] pb-4">
+                                <div className="border-b border-dashed border-slate-200 dark:border-white/10 pb-4">
                                     <div className="flex justify-between items-start gap-2">
                                         <div>
                                             <h3 className="text-md font-black uppercase italic tracking-tighter text-slate-900 dark:text-white">
@@ -889,11 +906,11 @@ const OrderBoard = () => {
                                                 {selectedOrder.subtitle}
                                             </p>
                                         </div>
-                                        <span className={`px-2.5 py-0.5 rounded-[4px] text-[8px] font-bold uppercase tracking-wider ${
-                                            selectedOrder.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-900/20' :
-                                            selectedOrder.status === 'PROCESSING' ? 'bg-blue-500/10 text-blue-500 border border-blue-900/20' :
-                                            selectedOrder.status === 'DISPATCHED' ? 'bg-purple-500/10 text-purple-500 border border-purple-900/20' :
-                                            'bg-slate-500/10 text-slate-450 border border-slate-900/20'
+                                        <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                                            selectedOrder.status === 'COMPLETED' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' :
+                                            selectedOrder.status === 'PROCESSING' ? 'bg-cyan-500/10 text-cyan-500 border border-cyan-500/20' :
+                                            selectedOrder.status === 'DISPATCHED' ? 'bg-purple-500/10 text-purple-500 border border-purple-500/20' :
+                                            'bg-amber-500/10 text-amber-500 border border-amber-500/20'
                                         }`}>
                                             {selectedOrder.status}
                                         </span>
@@ -906,7 +923,7 @@ const OrderBoard = () => {
                                 {/* Items list */}
                                 <div className="space-y-3">
                                     <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Order Items</h4>
-                                    <div className="bg-slate-50 dark:bg-[#0d1117] rounded-xl border border-slate-200 dark:border-[#30363d] divide-y divide-slate-200 dark:divide-[#30363d] max-h-[220px] overflow-y-auto custom-scrollbar">
+                                    <div className="bg-slate-50 dark:bg-black/30 rounded-xl border border-slate-200 dark:border-white/10 divide-y divide-slate-100 dark:divide-white/5 max-h-[220px] overflow-y-auto custom-scrollbar">
                                         {selectedOrder.items.map((item, idx) => (
                                             <div key={idx} className="p-3 flex justify-between items-center text-xs">
                                                 <div className="font-bold text-slate-800 dark:text-slate-200 uppercase truncate pr-2">
@@ -921,8 +938,8 @@ const OrderBoard = () => {
                                 </div>
 
                                 {/* Total summary */}
-                                <div className="border-t border-dashed border-slate-200 dark:border-[#30363d] pt-4 space-y-2">
-                                    <div className="flex justify-between items-center text-xs text-slate-450 dark:text-slate-400 font-bold uppercase">
+                                <div className="border-t border-dashed border-slate-200 dark:border-white/10 pt-4 space-y-2">
+                                    <div className="flex justify-between items-center text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">
                                         <span>Bill Subtotal</span>
                                         <span>{currencySymbol} {selectedOrder.total.toFixed(2)}</span>
                                     </div>
@@ -934,7 +951,7 @@ const OrderBoard = () => {
 
                                 {/* Customer Info */}
                                 {selectedOrder.customer_name && selectedOrder.customer_name !== 'Table Guest' && selectedOrder.customer_name !== 'Walk-in Guest' && (
-                                    <div className="bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] p-3 rounded-xl space-y-2 text-xs">
+                                    <div className="bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 p-3 rounded-xl space-y-2 text-xs">
                                         <div className="flex items-center gap-2 font-black uppercase text-[9px] text-slate-400 dark:text-slate-500">
                                             <User size={12} /> Contact Information
                                         </div>
@@ -953,14 +970,75 @@ const OrderBoard = () => {
                                     </div>
                                 )}
 
+                                {/* Master POS Payment Verification Box */}
+                                {(() => {
+                                    const pStatus = String(selectedOrder.order?.payment_status || selectedOrder.payment_status || '').toUpperCase();
+                                    if (pStatus === 'CUSTOMER_CONFIRMED' || pStatus.includes('CLAIM')) {
+                                        return (
+                                            <div className="p-3 bg-amber-500/10 border-2 border-amber-500/40 rounded-xl space-y-2 udm-card-glow-amber">
+                                                <div className="text-[10px] font-black text-amber-700 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                                    <span>💰 Customer Claimed Online Paid</span>
+                                                </div>
+                                                <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold">
+                                                    Customer clicked "I've Paid" on menu / WhatsApp. Verify from your UPI app.
+                                                </p>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        disabled={actionLoading}
+                                                        onClick={() => handleMarkPaymentPaid(selectedOrder, 'RECEIVED')}
+                                                        className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-xs transition"
+                                                    >
+                                                        ✅ PAYMENT RECEIVED
+                                                    </button>
+                                                    <button
+                                                        disabled={actionLoading}
+                                                        onClick={() => handleMarkPaymentPaid(selectedOrder, 'NOT_RECEIVED')}
+                                                        className="py-2 px-3 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-black text-[9px] uppercase tracking-wider shadow-xs transition"
+                                                    >
+                                                        ❌ NOT RECEIVED
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    if (pStatus === 'RECEIVED' || pStatus === 'PAID' || pStatus === 'VERIFIED') {
+                                        return (
+                                            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl flex items-center justify-between">
+                                                <span className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase">🟢 Payment Verified: Received</span>
+                                                <button
+                                                    disabled={actionLoading}
+                                                    onClick={() => handleMarkPaymentPaid(selectedOrder, 'NOT_RECEIVED')}
+                                                    className="text-[9px] font-bold text-rose-600 hover:underline"
+                                                >
+                                                    Change to Not Received
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    if (pStatus === 'NOT_RECEIVED' || pStatus === 'UNPAID') {
+                                        return (
+                                            <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl flex items-center justify-between">
+                                                <span className="text-xs font-black text-rose-600 dark:text-rose-400 uppercase">🔴 Payment Alert: Not Received</span>
+                                                <button
+                                                    disabled={actionLoading}
+                                                    onClick={() => handleMarkPaymentPaid(selectedOrder, 'RECEIVED')}
+                                                    className="text-[9px] font-bold text-emerald-600 hover:underline"
+                                                >
+                                                    Mark as Received
+                                                </button>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                })()}
+
                                 {/* Action Buttons */}
                                 <div className="space-y-2.5 pt-2">
-                                    {/* Action Override Engine */}
                                     {selectedOrder.status === 'PENDING' && (
                                         <button 
                                             disabled={actionLoading}
                                             onClick={() => handleUpdateStatus(selectedOrder, 'PROCESSING')}
-                                            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
                                         >
                                             Process Order
                                         </button>
@@ -970,7 +1048,7 @@ const OrderBoard = () => {
                                         <button 
                                             disabled={actionLoading}
                                             onClick={() => handleUpdateStatus(selectedOrder, 'DISPATCHED')}
-                                            className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-2.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-amber-600/20 transition-all flex items-center justify-center gap-2"
                                         >
                                             Mark Ready / Dispatched
                                         </button>
@@ -980,7 +1058,7 @@ const OrderBoard = () => {
                                         <button 
                                             disabled={actionLoading}
                                             onClick={() => handleUpdateStatus(selectedOrder, 'COMPLETED')}
-                                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-md transition-all flex items-center justify-center gap-2"
+                                            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2"
                                         >
                                             Settle & Complete Bill
                                         </button>
@@ -994,14 +1072,14 @@ const OrderBoard = () => {
                                             setCancelIsPosTable(selectedOrder.isPosStateTable || false);
                                             setIsCancelModalOpen(true);
                                         }}
-                                        className="w-full py-2.5 bg-rose-50/50 hover:bg-rose-50 dark:bg-rose-950/20 dark:hover:bg-rose-950/40 border border-rose-200 dark:border-rose-900/40 text-rose-600 dark:text-rose-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                                        className="w-full py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-600 dark:text-rose-400 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center justify-center gap-2"
                                     >
                                         Cancel Order / KOT
                                     </button>
                                 </div>
                             </div>
                         ) : (
-                            <div className="py-20 text-center text-slate-400 dark:text-slate-650 flex flex-col items-center justify-center space-y-2">
+                            <div className="py-20 text-center text-slate-400 flex flex-col items-center justify-center space-y-2">
                                 <ShoppingBag size={32} className="opacity-25" />
                                 <p className="text-[10px] font-black uppercase tracking-wider">Select active order to inspect</p>
                             </div>
@@ -1013,22 +1091,22 @@ const OrderBoard = () => {
             {/* Bottom Widgets Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
                 {/* 1. Top Running KOT Items */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm">
+                <div className="udm-card p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <ChefHat size={14} className="text-emerald-500" /> Top Running KOT Items
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-[#30363d] text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                <tr className="border-b border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                                     <th className="pb-3 text-left">Item Name</th>
                                     <th className="pb-3 text-right">Quantity Required</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-[#30363d]">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {runningKOTItems.length === 0 ? (
                                     <tr>
-                                        <td colSpan="2" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-650 uppercase tracking-wide">
+                                        <td colSpan="2" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                                             No active items in kitchen queue
                                         </td>
                                     </tr>
@@ -1048,23 +1126,23 @@ const OrderBoard = () => {
                 </div>
 
                 {/* 2. Customers List */}
-                <div className="bg-white dark:bg-[#161b22] border border-slate-200 dark:border-[#30363d] p-5 rounded-2xl shadow-sm">
+                <div className="udm-card p-5 rounded-2xl border border-slate-200 dark:border-white/10 shadow-sm">
                     <h3 className="text-xs font-black uppercase tracking-wider text-slate-900 dark:text-white mb-4 flex items-center gap-2">
                         <User size={14} className="text-blue-500" /> Customers Queue
                     </h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs">
                             <thead>
-                                <tr className="border-b border-slate-200 dark:border-[#30363d] text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
+                                <tr className="border-b border-slate-200 dark:border-white/10 text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
                                     <th className="pb-3 text-left">Customer</th>
                                     <th className="pb-3 text-center">Fulfillment Type</th>
                                     <th className="pb-3 text-right">Amount</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-100 dark:divide-[#30363d]">
+                            <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                 {activeCustomers.length === 0 ? (
                                     <tr>
-                                        <td colSpan="3" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-650 uppercase tracking-wide">
+                                        <td colSpan="3" className="py-8 text-center text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wide">
                                             No active customer fulfillment
                                         </td>
                                     </tr>
@@ -1076,10 +1154,10 @@ const OrderBoard = () => {
                                                 <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5">{cust.phone}</div>
                                             </td>
                                             <td className="py-3 text-center">
-                                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-wider ${
-                                                    cust.type === 'DINE_IN' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400' :
-                                                    cust.type === 'PICKUP' ? 'bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400' :
-                                                    'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'
+                                                <span className={`px-2.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${
+                                                    cust.type === 'DINE_IN' ? 'bg-emerald-500/10 text-emerald-500' :
+                                                    cust.type === 'PICKUP' ? 'bg-amber-500/10 text-amber-500' :
+                                                    'bg-blue-500/10 text-blue-500'
                                                 }`}>
                                                     {cust.type}
                                                 </span>
@@ -1113,7 +1191,7 @@ const OrderBoard = () => {
                                     Reason Description
                                 </label>
                                 <textarea
-                                    className="w-full bg-slate-50 dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white transition-all outline-none focus:border-rose-500 min-h-[80px]"
+                                    className="w-full bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl px-3 py-2 text-xs text-slate-900 dark:text-white transition-all outline-none focus:border-rose-500 min-h-[80px]"
                                     placeholder="ENTER DETAILED REJECTION REASON..."
                                     value={rejectionReason}
                                     onChange={(e) => setRejectionReason(e.target.value)}
@@ -1128,14 +1206,14 @@ const OrderBoard = () => {
                                         setIsCancelModalOpen(false);
                                         setRejectionReason('');
                                     }}
-                                    className="px-4 py-2 bg-slate-105 hover:bg-slate-100 dark:bg-[#161b22] dark:hover:bg-[#21262d] text-slate-600 dark:text-slate-450 rounded-xl text-[10px] font-black uppercase tracking-wider"
+                                    className="px-4 py-2 bg-slate-100 dark:bg-white/5 text-slate-600 dark:text-slate-400 rounded-xl text-[10px] font-black uppercase tracking-wider"
                                 >
                                     Dismiss
                                 </button>
                                 <button
                                     type="submit"
                                     disabled={actionLoading}
-                                    className="px-5 py-2 bg-rose-600 hover:bg-rose-550 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2"
+                                    className="px-5 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-50 text-white rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center gap-2"
                                 >
                                     Confirm Cancellation
                                 </button>

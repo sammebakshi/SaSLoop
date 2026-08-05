@@ -1,1 +1,0 @@
-"                                                      kotNote = kotNote,\n                                                      waiterName = selectedWaiter,\n                                                      shouldPrint = true\n                                                  ) { success ->"

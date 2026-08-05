@@ -6,7 +6,6 @@ const authMiddleware = require("../middleware/authMiddleware");
 const whatsappManager = require("../whatsappManager");
 const { triggerWebhook } = require("../utils/webhookUtils");
 const { Tag, tagsToBase64, ZATCA_TAGS } = require("../utils/zatcaUtils");
-const { deductInventoryForOrder } = require("../utils/inventoryDeduction");
 
 // Helper function to extract all possible variations of a phone number
 function getPhoneVariations(phone) {
@@ -128,8 +127,8 @@ async function awardLoyaltyPoints(order, userId) {
         // Log transaction
         await pool.query(
           `INSERT INTO customer_transactions (user_id, customer_number, type, amount, points, reason, created_at)
-           VALUES ($1, $2, 'POINTS_EARNED', $3, $4, $5, NOW())`,
-          [userId, targetPhone, parseFloat(order.total_price) || 0.00, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference || order.id}`]
+           VALUES ($1, $2, 'POINTS_EARNED', 0.00, $3, $4, NOW())`,
+          [userId, targetPhone, earned, `Points earned for Order Bill: ${order.bill_no || order.order_reference}`]
         );
       }
     }
@@ -227,7 +226,7 @@ router.post("/", authMiddleware, async (req, res) => {
               coupon_code || null,
               rider_id || null,
               parseInt(points_redeemed) || 0,
-              (created_at && created_at !== '') ? created_at : null
+              created_at || null
             ]
           );
 
@@ -403,12 +402,12 @@ router.post("/", authMiddleware, async (req, res) => {
         finalPaidAmount, finalCreditAmount, waiter_id || null,
         charge_details ? JSON.stringify(charge_details) : '[]',
         deviceId,
-        (pre_order_scheduled_date && pre_order_scheduled_date !== '') ? pre_order_scheduled_date : null,
-        (pre_order_scheduled_time && pre_order_scheduled_time !== '') ? pre_order_scheduled_time : null,
+        pre_order_scheduled_date || null,
+        pre_order_scheduled_time || null,
         coupon_code || null,
         rider_id || null,
         parseInt(points_redeemed) || 0,
-        (created_at && created_at !== '') ? created_at : null
+        created_at || null
       ]
     );
 
@@ -496,8 +495,31 @@ router.post("/", authMiddleware, async (req, res) => {
       }
     }
 
-    // --- AUTOMATIC STOCK DEDUCTION BASED ON CHANNEL SETTINGS ---
-    await deductInventoryForOrder(userId, items, source || order_type || 'POS', orderRef);
+    // --- HIGH-TECH: AUTOMATIC STOCK DEDUCTION (BOM) ---
+    try {
+        const parsedItems = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
+        for (const item of parsedItems) {
+            // Find recipe for this item
+            const recipeRes = await pool.query("SELECT raw_item_id, quantity FROM recipes WHERE menu_item_id = $1", [item.id]);
+            if (recipeRes.rows.length > 0) {
+                for (const ingredient of recipeRes.rows) {
+                    const deductQty = ingredient.quantity * (item.qty || 1);
+                    // Deduct from raw stock
+                    await pool.query(
+                        "UPDATE inventory_raw SET current_stock = current_stock - $1, updated_at = NOW() WHERE id = $2 AND business_id = $3",
+                        [deductQty, ingredient.raw_item_id, userId]
+                    );
+                    // Log the movement
+                    await pool.query(
+                        "INSERT INTO inventory_logs (raw_item_id, change_amount, type, reference, created_at) VALUES ($1, $2, $3, $4, NOW())",
+                        [ingredient.raw_item_id, -deductQty, 'SALE', `Order ${orderRef}`]
+                    );
+                }
+            }
+        }
+    } catch (stockErr) {
+        console.error("Stock Deduction Failed:", stockErr);
+    }
 
     // 🔥 Trigger KOT and Staff Notifications
     try {
@@ -515,18 +537,6 @@ router.post("/", authMiddleware, async (req, res) => {
         if (biz) {
             triggerWebhook(biz, 'order.created', newOrder);
         }
-
-        // 🧾 Send Official Thermal Text Receipt via WhatsApp if customer number present or ebill requested
-        const targetPhone = newOrder.customer_number || req.body.customer_phone || req.body.phone;
-        if (targetPhone) {
-            try {
-                const { generateTextReceipt } = require('../utils/pdfGenerator');
-                const receiptText = generateTextReceipt(newOrder, biz);
-                await whatsappManager.sendOfficialMessage(targetPhone, receiptText, userId);
-            } catch (pErr) {
-                console.error("POS Order eBill WhatsApp Error:", pErr);
-            }
-        }
     } catch (err) {
         console.error("POS Order Notification Error:", err);
     }
@@ -535,40 +545,6 @@ router.post("/", authMiddleware, async (req, res) => {
   } catch (err) {
     console.error("🔥 POS ORDER CREATE ERROR:", err);
     res.status(500).json({ error: "Failed to create POS order" });
-  }
-});
-
-// 📱 SEND WHATSAPP EBILL ON DEMAND
-router.post("/:id/send-ebill", authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.bizId;
-    const { target_phone } = req.body;
-
-    const orderRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
-    if (orderRes.rows.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
-    const order = orderRes.rows[0];
-    const phone = target_phone || order.customer_number;
-
-    if (!phone) {
-      return res.status(400).json({ error: "Customer phone number is required to send eBill" });
-    }
-
-    const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
-    const biz = bizRes.rows[0];
-
-    const { generateTextReceipt } = require('../utils/pdfGenerator');
-    const receiptText = generateTextReceipt(order, biz);
-
-    await whatsappManager.sendOfficialMessage(phone, receiptText, userId);
-
-    res.json({ success: true, message: "Thermal text eBill sent via WhatsApp successfully" });
-  } catch (err) {
-    console.error("Failed to send WhatsApp eBill:", err);
-    res.status(500).json({ error: err.message });
   }
 });
 
@@ -583,6 +559,7 @@ router.put("/:id", authMiddleware, async (req, res) => {
     if (checkRes.rows.length === 0) {
       return res.status(403).json({ error: "Unauthorized or order not found" });
     }
+    const existingOrder = checkRes.rows[0];
 
     const {
       customer_name, customer_number, customer_phone, items, total_price,
@@ -594,36 +571,51 @@ router.put("/:id", authMiddleware, async (req, res) => {
       coupon_code, rider_id, points_redeemed
     } = req.body;
 
-    const finalDiscount = discount !== undefined ? discount : (discount_amount !== undefined ? discount_amount : 0);
+    const finalItems = items !== undefined 
+      ? JSON.stringify(items) 
+      : (typeof existingOrder.items === 'string' ? existingOrder.items : JSON.stringify(existingOrder.items || []));
+    const finalCustomerName = customer_name !== undefined ? customer_name : (existingOrder.customer_name || 'Walk-in');
+    const cleanCust = customer_number || customer_phone || '';
+    const cleanCustomerNumber = cleanCust !== '' ? cleanCust : (existingOrder.customer_number || '');
+    const finalCustomerNumber = cleanCustomerNumber;
+    const finalTotalPrice = total_price !== undefined ? total_price : existingOrder.total_price;
+    const finalStatus = status !== undefined ? status : existingOrder.status;
+    const finalOrderType = order_type !== undefined ? order_type : (existingOrder.order_type || 'QUICK');
+    const finalAddress = address !== undefined ? address : (existingOrder.address || 'POS');
+    const finalTableNumber = table_number !== undefined ? table_number : (table_id ? table_id.toString() : (existingOrder.table_number || '0'));
+    const finalWaiterId = waiter_id !== undefined ? (waiter_id || null) : existingOrder.waiter_id;
+    const finalRiderId = rider_id !== undefined ? (rider_id || null) : existingOrder.rider_id;
+    const finalDeliveryCharge = delivery_charge !== undefined ? parseFloat(delivery_charge) : parseFloat(existingOrder.delivery_charge || 0);
+    const finalServiceCharge = service_charge !== undefined ? parseFloat(service_charge) : parseFloat(existingOrder.service_charge || 0);
+    const finalDiscount = discount !== undefined ? discount : (discount_amount !== undefined ? discount_amount : (existingOrder.discount_amount || 0));
 
-    const cleanCustomerNumber = customer_number || customer_phone || '';
-
-    let upperMethod = String(payment_method || 'CASH').trim().toUpperCase();
+    let upperMethod = String(payment_method || existingOrder.payment_method || 'CASH').trim().toUpperCase();
     if (upperMethod === 'DUE') {
       upperMethod = 'CREDIT';
     }
 
     const finalPaidAmount = (upperMethod === 'CREDIT') ? 0 : 
                             ((upperMethod === 'SPLIT') ? (parseFloat(paid_amount) || 0) : 
-                             (parseFloat(paid_amount) > parseFloat(total_price) ? parseFloat(paid_amount) : parseFloat(total_price || 0)));
-    const finalCreditAmount = (upperMethod === 'CREDIT') ? parseFloat(total_price || 0) : 
+                             (parseFloat(paid_amount) > parseFloat(finalTotalPrice) ? parseFloat(paid_amount) : parseFloat(finalTotalPrice || 0)));
+    const finalCreditAmount = (upperMethod === 'CREDIT') ? parseFloat(finalTotalPrice || 0) : 
                               ((upperMethod === 'SPLIT') ? (parseFloat(credit_amount) || 0) : 0);
 
-    let paymentStatus = 'PENDING';
-    if (upperMethod === 'CREDIT') {
-      paymentStatus = 'UNPAID';
-    } else if (upperMethod === 'SPLIT') {
-      if (finalCreditAmount > 0 && finalPaidAmount > 0) {
-        paymentStatus = 'PARTIALLY_PAID';
-      } else if (finalCreditAmount > 0) {
+    let paymentStatus = existingOrder.payment_status || 'PENDING';
+    if (payment_method || status) {
+      if (upperMethod === 'CREDIT') {
         paymentStatus = 'UNPAID';
-      } else {
+      } else if (upperMethod === 'SPLIT') {
+        if (finalCreditAmount > 0 && finalPaidAmount > 0) {
+          paymentStatus = 'PARTIALLY_PAID';
+        } else if (finalCreditAmount > 0) {
+          paymentStatus = 'UNPAID';
+        } else {
+          paymentStatus = 'PAID';
+        }
+      } else if (upperMethod === 'CASH' || finalStatus === 'COMPLETED') {
         paymentStatus = 'PAID';
       }
-    } else if (upperMethod === 'CASH' || status === 'COMPLETED') {
-      paymentStatus = 'PAID';
     }
-
     const result = await pool.query(
       `UPDATE orders SET
         customer_name = $1, customer_number = $2, items = $3,
@@ -644,22 +636,22 @@ router.put("/:id", authMiddleware, async (req, res) => {
         (SELECT name FROM delivery_partners WHERE id = rider_id) as rider_name,
         (SELECT phone FROM delivery_partners WHERE id = rider_id) as rider_phone`,
       [
-        customer_name || 'Walk-in', cleanCustomerNumber, JSON.stringify(items),
-        total_price, upperMethod, status || 'COMPLETED',
+        finalCustomerName, finalCustomerNumber, finalItems,
+        finalTotalPrice, upperMethod, finalStatus,
         paymentStatus,
-        table_number || (table_id ? table_id.toString() : '0'),
-        address || (order_type || 'POS'),
+        finalTableNumber,
+        finalAddress,
         finalDiscount || 0, tax_cgst || 0, tax_sgst || 0,
-        tip_amount || 0, bill_no || '', order_type || 'QUICK',
-        parseFloat(delivery_charge) || 0, parseFloat(service_charge) || 0,
-        finalPaidAmount, finalCreditAmount, waiter_id || null,
-        charge_details ? JSON.stringify(charge_details) : '[]',
+        tip_amount || 0, bill_no || '', finalOrderType,
+        finalDeliveryCharge, finalServiceCharge,
+        finalPaidAmount, finalCreditAmount, finalWaiterId,
+        charge_details ? JSON.stringify(charge_details) : (existingOrder.charge_details ? JSON.stringify(existingOrder.charge_details) : '[]'),
         id, userId,
         (pre_order_scheduled_date && pre_order_scheduled_date !== '') ? pre_order_scheduled_date : null,
         (pre_order_scheduled_time && pre_order_scheduled_time !== '') ? pre_order_scheduled_time : null,
         coupon_code || null,
-        rider_id || null,
-        parseInt(points_redeemed) || 0
+        finalRiderId,
+        points_redeemed !== undefined ? points_redeemed : (existingOrder.redeemed_points || 0)
       ]
     );
 
@@ -849,19 +841,6 @@ router.put("/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// 🧹 DELETE ALL ORDERS FOR LOGGED IN BUSINESS
-router.delete("/clear-all", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.bizId;
-    const deleteRes = await pool.query("DELETE FROM orders WHERE user_id = $1 RETURNING id", [userId]);
-    console.log(`🧹 Cleared all ${deleteRes.rows.length} orders for user ${userId}`);
-    res.json({ message: `Successfully deleted ${deleteRes.rows.length} old orders.`, count: deleteRes.rows.length });
-  } catch (err) {
-    console.error("🔥 CLEAR ALL ORDERS ERROR:", err);
-    res.status(500).json({ error: "Failed to clear orders" });
-  }
-});
-
 // ✅ GET RECENT ORDERS (LIMIT 50)
 router.get("/recent", authMiddleware, async (req, res) => {
   try {
@@ -1003,74 +982,16 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
         } else if (status === 'COMPLETED') {
             // 🏆 AWARD LOYALTY POINTS ON COMPLETION
             const pointsSummary = await awardLoyaltyPoints(order, userId);
-            const bizRow = bizRes.rows[0];
 
-            try {
-                const { generateTextReceipt } = require('../utils/pdfGenerator');
-
-                // Send Official Thermal Text Receipt via WhatsApp
-                const receiptText = generateTextReceipt(order, bizRow);
-                await whatsappManager.sendOfficialMessage(customerNumber, receiptText, userId);
-            } catch (rErr) {
-                console.error("WhatsApp Receipt generation error:", rErr);
-            }
-
-            updateMsg = `⭐ *How was your experience today?*\nTap a rating below to let us know!`;
-
-            try {
-                await whatsappManager.sendButtons(customerNumber, updateMsg, [
-                    { id: 'rating_5', title: '⭐ 5 Stars (Great!)' },
-                    { id: 'rating_4', title: '⭐ 4 Stars' },
-                    { id: 'rating_3', title: '⭐ 1-3 Stars (Issue)' }
-                ], userId);
-                updateMsg = ""; // Handled via sendButtons
-            } catch (btnErr) {
-                console.warn("Failed to send rating buttons, fallback to text:", btnErr.message);
+            const isTable = order.table_number ? true : false;
+            if (isTable) {
+                updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5)!`;
+            } else {
+                updateMsg = `🏁 *Delivered:* Your order *${ref}* was successful. Enjoy!${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5) and any comments!`;
             }
         } else if (status === 'CANCELLED') {
             const finalReason = rejection_reason || order.rejection_reason;
             updateMsg = `❌ *Cancelled:* Your order *${ref}* has been cancelled.${finalReason ? `\nReason: *${finalReason}*` : ''}`;
-            
-            // 🔥 Notify kitchen & staff numbers that order has been cancelled
-            try {
-                const bizRow = bizRes.rows[0];
-                let staffList = [];
-                const rawStaff = bizRow?.notification_numbers;
-                if (Array.isArray(rawStaff)) {
-                    staffList = rawStaff;
-                } else if (typeof rawStaff === 'string') {
-                    try {
-                        const parsed = JSON.parse(rawStaff);
-                        staffList = Array.isArray(parsed) ? parsed : [rawStaff];
-                    } catch (e) {
-                        staffList = [rawStaff];
-                    }
-                }
-                if (bizRow?.phone) staffList.push(bizRow.phone);
-                if (bizRow?.contact_number) staffList.push(bizRow.contact_number);
-
-                const kitchenNum = bizRow?.kitchen_number || bizRow?.kitchen_phone;
-
-                const notifyTargets = new Set();
-                if (kitchenNum) {
-                    const cleanK = String(kitchenNum).replace(/[^0-9+]/g, '');
-                    if (cleanK.length >= 10) notifyTargets.add(cleanK);
-                }
-                staffList.forEach(n => {
-                    if (n && typeof n === 'string') {
-                        const clean = n.replace(/[^0-9+]/g, '');
-                        if (clean.length >= 10) notifyTargets.add(clean);
-                    }
-                });
-
-                const cancelAlert = `🛑 *ORDER CANCELLED!*\n━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nCustomer: ${order.customer_name || 'Customer'} (${order.customer_number || ''})\nReason: ${finalReason || 'Cancelled by Staff/Customer'}\n\nPlease stop preparation immediately! 🚫`;
-
-                for (let targetNum of notifyTargets) {
-                    await whatsappManager.sendOfficialMessage(targetNum, cancelAlert, userId);
-                }
-            } catch (staffCancelErr) {
-                console.error("Staff/Kitchen Cancellation Alert Error:", staffCancelErr);
-            }
             
             // 🔄 REFUND CREDIT ON CANCELLATION
             const creditRefundAmount = (String(order.payment_method).toUpperCase() === 'CREDIT')
@@ -1184,77 +1105,25 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
-// 🧹 DELETE ALL ORDERS FOR LOGGED IN BUSINESS
-router.delete("/clear-all", authMiddleware, async (req, res) => {
-  try {
-    const userId = req.user.bizId;
-    const deleteRes = await pool.query("DELETE FROM orders WHERE user_id = $1 RETURNING id", [userId]);
-    console.log(`🧹 Cleared all ${deleteRes.rows.length} orders for user ${userId}`);
-    res.json({ message: `Successfully deleted ${deleteRes.rows.length} old orders.`, count: deleteRes.rows.length });
-  } catch (err) {
-    console.error("🔥 CLEAR ALL ORDERS ERROR:", err);
-    res.status(500).json({ error: "Failed to clear orders" });
-  }
-});
-
-// ✅ UPDATE PAYMENT STATUS (Received vs Not Received verification)
-const handlePaymentStatusUpdate = async (req, res) => {
+// ✅ UPDATE PAYMENT STATUS
+router.put("/:id/payment", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const { payment_status, paymentStatus } = req.body;
-    const targetStatus = String(payment_status || paymentStatus || 'RECEIVED').toUpperCase();
-    const userId = req.user?.bizId || req.user?.id;
+    const { payment_status } = req.body;
+    const userId = req.user.bizId;
 
-    // Support both numeric id AND string order_reference (e.g. "ONL-AQ8EOS" or 123)
-    let checkRes = await pool.query(
-      "SELECT * FROM orders WHERE (id::text = $1 OR order_reference = $1) AND (user_id = $2 OR user_id IS NOT NULL)",
-      [String(id), userId]
-    );
-
+    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
     if (checkRes.rows.length === 0) {
-      checkRes = await pool.query(
-        "SELECT * FROM orders WHERE (id::text = $1 OR order_reference = $1) ORDER BY id DESC LIMIT 1",
-        [String(id)]
-      );
+      return res.status(403).json({ error: "Unauthorized" });
     }
 
-    if (checkRes.rows.length === 0) {
-      return res.status(404).json({ error: "Order not found" });
-    }
-
-    const order = checkRes.rows[0];
-
-    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [targetStatus, order.id]);
-
-    // Send customer WhatsApp notification if customer phone exists
-    try {
-      const custPhone = order.customer_number || order.customer_phone;
-      if (custPhone) {
-        const ref = order.order_reference || `#${order.id}`;
-        let payNotifMsg = "";
-        if (targetStatus === 'RECEIVED' || targetStatus === 'PAID' || targetStatus === 'VERIFIED') {
-          payNotifMsg = `✅ *Payment Verified!* Your online payment for Order *${ref}* has been received and verified. Thank you! 🍽️`;
-        } else if (targetStatus === 'NOT_RECEIVED' || targetStatus === 'UNPAID') {
-          payNotifMsg = `⚠️ *Payment Alert:* The restaurant was unable to verify your payment for Order *${ref}*. Please contact staff if you have paid.`;
-        }
-
-        if (payNotifMsg) {
-          await whatsappManager.sendOfficialMessage(custPhone, payNotifMsg, userId || order.user_id, `PAYMENT_${order.id}_${targetStatus}`);
-        }
-      }
-    } catch (notifErr) {
-      console.error("Payment status WhatsApp notification error:", notifErr);
-    }
-
-    res.json({ message: "Payment status updated", payment_status: targetStatus, order_id: order.id });
+    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [payment_status, id]);
+    res.json({ message: "Payment status updated" });
   } catch (err) {
-    console.error("Payment status update error:", err);
-    res.status(500).json({ error: err.message || "Server error updating payment status" });
+    console.error(err.message);
+    res.status(500).json({ error: "Server error" });
   }
-};
-
-router.put("/:id/payment", authMiddleware, handlePaymentStatusUpdate);
-router.put("/:id/payment-status", authMiddleware, handlePaymentStatusUpdate);
+});
 
 // 💸 ADD CHARGES TO ORDER (Dynamic Update)
 router.patch("/:id/charges", authMiddleware, async (req, res) => {
@@ -1476,7 +1345,68 @@ router.post("/bulk-delete", authMiddleware, async (req, res) => {
   }
 });
 
+
+
+// 🚚 UPDATE DELIVERY CHARGE & TRIGGER WHATSAPP CONFIRMATION
+router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.bizId;
+    const { delivery_charge } = req.body;
+    const newCharge = parseFloat(delivery_charge || 0);
+
+    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
+    if (checkRes.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found or unauthorized" });
+    }
+    const order = checkRes.rows[0];
+
+    const oldCharge = parseFloat(order.delivery_charge || 0);
+    const oldTotal = parseFloat(order.total_price || 0);
+    const subtotal = oldTotal - oldCharge;
+    const newTotal = subtotal + newCharge;
+
+    const result = await pool.query(
+      "UPDATE orders SET delivery_charge = $1, total_price = $2, status = 'AWAITING_CUSTOMER_CONFIRMATION' WHERE id = $3 AND user_id = $4 RETURNING *",
+      [newCharge, newTotal, id, userId]
+    );
+
+    const updatedOrder = result.rows[0];
+
+    try {
+      const targetPhone = updatedOrder.customer_number;
+      if (targetPhone) {
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const biz = bizRes.rows[0];
+        const symbol = (biz && biz.currency_code === "USD") ? String.fromCharCode(36) : "₹";
+
+        const chargeMsg = [
+          "📦 *AREA SERVICEABLE & ORDER TOTAL UPDATED!*",
+          "━━━━━━━━━━━━━━━━",
+          "*Order Ref:* " + (updatedOrder.order_reference || ("#" + updatedOrder.id)),
+          "*Address:* " + (updatedOrder.address || ""),
+          "Subtotal: " + symbol + subtotal.toFixed(2),
+          "Delivery Charge: +" + symbol + newCharge.toFixed(2),
+          "───────────────",
+          "*Total Amount Payable: " + symbol + newTotal.toFixed(2) + "*",
+          "━━━━━━━━━━━━━━━━",
+          "Your area is serviceable! Please confirm if you accept the total amount including delivery charges so we can process your order: 👇"
+        ].join("\n");
+
+        await whatsappManager.sendButtons(targetPhone, chargeMsg, [
+          { id: "confirm_charge_" + updatedOrder.id, title: "✅ Confirm Order" },
+          { id: "cancel_charge_" + updatedOrder.id, title: "❌ Cancel Order" }
+        ], userId);
+      }
+    } catch (waErr) {
+      console.error("WhatsApp delivery charge confirmation notification error:", waErr);
+    }
+
+    res.json(updatedOrder);
+  } catch (err) {
+    console.error("🔥 UPDATE DELIVERY CHARGE ERROR:", err);
+    res.status(500).json({ error: err.message || "Failed to update delivery charge" });
+  }
+});
+
 module.exports = router;
-
-
-

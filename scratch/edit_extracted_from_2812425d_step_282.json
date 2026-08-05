@@ -1,9 +1,0 @@
-{
-  "ArtifactMetadata": "{\"ArtifactType\":\"task\",\"RequestFeedback\":false,\"Summary\":\"Add printDetailedBalance reset to pre-order creation success blocks.\"}",
-  "Description": "\"Reset printDetailedBalance on pre-order form clear on successful booking/updating\"",
-  "Instruction": "\"Reset printDetailedBalance to true when clearing pre-order form.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":12613,\"ReplacementContent\":\"                                     setSelectedCustomer(null);\\n                                     setPrintDetailedBalance(true);\\n                                     setPreOrderSubTab('KOT');\",\"StartLine\":12610,\"TargetContent\":\"                                     setSelectedCustomer(null);\\n                                     setPreOrderSubTab('KOT');\"},{\"AllowMultiple\":false,\"EndLine\":12646,\"ReplacementContent\":\"                                     setSelectedCustomer(null);\\n                                     setPrintDetailedBalance(true);\\n                                     setPreOrderSubTab('KOT');\",\"StartLine\":12643,\"TargetContent\":\"                                     setSelectedCustomer(null);\\n                                     setPreOrderSubTab('KOT');\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Resetting printDetailedBalance on pre-order submission\"",
-  "toolSummary": "\"Reset printDetailedBalance on pre-order submission\""
-}

@@ -1,1 +1,0 @@
-"                                             listOf(\n                                                 1 to \"Sale Price 1\",\n                                                 2 to \"Sale Price 2\",\n                                                 3 to \"Sale Price 3\"\n                                             ).forEach { (tier, label) ->"

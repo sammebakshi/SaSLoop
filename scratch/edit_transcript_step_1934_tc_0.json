@@ -1,7 +1,0 @@
-{
-  "step_index": 1934,
-  "tool": "replace_file_content",
-  "description": "\"Change price tier buttons to Sale Price 1, 2, 3 in BillingScreen.kt\"",
-  "instruction": "\"Modify price tier list in BillingScreen.kt\"",
-  "chunks": "\"                                            listOf(\\n                                                1 to \\\"Sale Price 1\\\",\\n                                                2 to \\\"Sale Price 2\\\",\\n                                                3 to \\\"Sale Price 3\\\"\\n                                            ).forEach { (tier, label) ->\""
-}

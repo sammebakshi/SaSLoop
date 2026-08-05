@@ -527,7 +527,7 @@ const sendBrandedText = async (to, title, text, userId) => {
 // ----------------------------------------------------------------------------------
 const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation = false, locationData = null) => {
     try {
-        const lower = msgText.trim().toLowerCase();
+        let lower = msgText.trim().toLowerCase();
         const cleanNum = normalizePhone(customerNumber);
         
         // --- 🔍 FETCH BIZ DATA FIRST (For Hours Check) ---
@@ -1256,37 +1256,53 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
-            const receiptRows = [
-                `✅ *Pickup Order Confirmed!*`,
-                `Ref: ${orderRef}`,
-                `───────────────`,
-                cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
-                `───────────────`,
-                `Subtotal: ${symbol}${subtotal.toFixed(2)}`
-            ];
-
-            if (biz.show_gst_on_receipt) {
-                receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
-                receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
-                receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
-            }
-
-            receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
-            receiptRows.push(`💵 *Payment Method:* ${isCOD ? 'Cash on Delivery / Pay on Pickup' : 'Prepaid UPI'}`);
-            receiptRows.push(``);
-
             if (!isCOD) {
                 const baseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
                 const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
-                receiptRows.push(`💳 *Pay Online:* ${paymentLink}`);
+                const upiMsg = [
+                    `💳 *Prepaid UPI Selected!*`,
+                    `Ref: ${orderRef}`,
+                    `Total: ${symbol}${total.toFixed(2)}`,
+                    `───────────────`,
+                    `💳 *Pay Online:* ${paymentLink}`,
+                    ``,
+                    `⚠️ *NOTE:* Please complete payment first so we can accept and prepare your order!`,
+                    `👉 *After paying, click the button below or reply "I HAVE COMPLETED PAYMENT".*`
+                ].join("\n");
+
+                await sendOfficialMessage(customerNumber, upiMsg, userId);
+                try {
+                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
+                    ], userId);
+                } catch (btnErr) {
+                    console.error("Payment button error for pickup:", btnErr);
+                }
+            } else {
+                const receiptRows = [
+                    `✅ *Pickup Order Confirmed!*`,
+                    `Ref: ${orderRef}`,
+                    `───────────────`,
+                    cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
+                    `───────────────`,
+                    `Subtotal: ${symbol}${subtotal.toFixed(2)}`
+                ];
+
+                if (biz.show_gst_on_receipt) {
+                    receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                    receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+                    receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
+                }
+
+                receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
+                receiptRows.push(`💵 *Payment Method:* Cash on Delivery / Pay on Pickup`);
                 receiptRows.push(``);
+                receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
+
+                const receipt = receiptRows.join("\n");
+                await sendBrandedText(customerNumber, biz.name, receipt, userId);
             }
 
-            receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
-
-            const receipt = receiptRows.join("\n");
-
-            await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             return;
         }

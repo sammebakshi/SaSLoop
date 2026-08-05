@@ -4,7 +4,7 @@ import {
   TrendingUp, IndianRupee, Tag, CheckCircle2, 
   RefreshCw, ChevronDown, Monitor, Truck, Smartphone, 
   Globe, Database, ListTree, Settings2, ShieldCheck, Zap,
-  Star, Trophy, Award, Briefcase, ChevronRight
+  Star, Trophy, Award, Briefcase, ChevronRight, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
@@ -19,32 +19,144 @@ const WaiterIncentiveReport = () => {
         to_date: new Date().toISOString().split('T')[0]
     });
 
-    const fetchData = async () => {
-        if (!filters.outlet_id) return;
+    const fetchData = () => {
         setLoading(true);
         try {
-            const q = new URLSearchParams(filters).toString();
-            const res = await fetch(`${API_BASE}/api/brand/analytics/waiter-incentive?${q}`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            setData(await res.json());
-        } catch (e) { console.error(e); }
-        finally { setLoading(false); }
+            const localOrdersRaw = localStorage.getItem('pos_local_orders');
+            const localOrders = localOrdersRaw ? JSON.parse(localOrdersRaw) : [];
+
+            const fromTime = filters.from_date ? new Date(filters.from_date + " 00:00:00").getTime() : 0;
+            const toTime = filters.to_date ? new Date(filters.to_date + " 23:59:59").getTime() : Infinity;
+
+            const waiterMap = new Map();
+
+            if (Array.isArray(localOrders)) {
+                localOrders.forEach(order => {
+                    if (order.status === 'CANCELLED' || order.status === 'DELETED' || order.status === 'REFUNDED') return;
+                    const orderTime = order.created_at ? new Date(order.created_at).getTime() : Date.now();
+                    if (orderTime >= fromTime && orderTime <= toTime) {
+                        const waiterName = order.waiter_name || 'Staff/Server';
+                        const amount = parseFloat(order.total_price || 0);
+
+                        if (waiterMap.has(waiterName)) {
+                            const curr = waiterMap.get(waiterName);
+                            curr.total_orders += 1;
+                            curr.total_sales += amount;
+                            curr.total_incentive += (amount * 0.02);
+                        } else {
+                            waiterMap.set(waiterName, {
+                                waiter_name: waiterName,
+                                total_orders: 1,
+                                total_sales: amount,
+                                total_incentive: amount * 0.02
+                            });
+                        }
+                    }
+                });
+            }
+
+            const list = Array.from(waiterMap.values());
+            list.sort((a, b) => b.total_sales - a.total_sales);
+            setData(list);
+        } catch (e) {
+            console.error("Error calculating local waiter incentive report:", e);
+            setData([]);
+        } finally {
+            setLoading(false);
+        }
     };
 
     useEffect(() => {
-        const loadOutlets = async () => {
-            const res = await fetch(`${API_BASE}/api/brand/outlets`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            const d = await res.json();
-            setOutlets(d);
-            if (d.length > 0) setFilters(prev => ({ ...prev, outlet_id: d[0].id }));
-        };
-        loadOutlets();
-    }, []);
+        fetchData();
+    }, [filters.from_date, filters.to_date]);
 
-    useEffect(() => { fetchData(); }, [filters.outlet_id]);
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+        const totalSales = data.reduce((a, b) => a + parseFloat(b.total_sales || 0), 0);
+        const totalIncentive = data.reduce((a, b) => a + parseFloat(b.total_incentive || 0), 0);
+
+        const waiterRows = data.map(w => `
+            <div class="flex-between">
+                <span class="bold" style="max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${(w.waiter_name || 'SERVER').toUpperCase()}</span>
+                <span>${w.total_orders} bills</span>
+                <span class="bold">₹${parseFloat(w.total_incentive || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Waiter Incentive Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">WAITER INCENTIVE REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>WAITER</span>
+                    <span>ORDERS</span>
+                    <span>INCENTIVE</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${waiterRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL SALES:</span>
+                    <span>₹${totalSales.toFixed(2)}</span>
+                </div>
+                <div class="flex-between bold">
+                    <span>TOTAL INCENTIVES:</span>
+                    <span>₹${totalIncentive.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
 
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
@@ -60,11 +172,15 @@ const WaiterIncentiveReport = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={data.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
+                    </button>
                     <button className="px-4 py-2 bg-white border border-slate-200 rounded-md text-[10px] font-bold text-slate-600 uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2">
                         <Settings2 className="w-3.5 h-3.5" /> Configuration
-                    </button>
-                    <button className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10">
-                        <Download className="w-3.5 h-3.5" /> Download Manifest
                     </button>
                 </div>
             </div>

@@ -54,20 +54,7 @@ app.use(helmet({
 app.use(hpp());
 // xss-clean removed due to Express 5 incompatibility
 
-// Global Rate Limiter: 2000 requests per 15 minutes per IP (Dashboard Polling requires higher limits)
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, 
-    max: 2000, 
-    standardHeaders: true,
-    legacyHeaders: false,
-    handler: (req, res, next, options) => {
-        res.status(options.statusCode).json({ error: options.message });
-    },
-    message: "Too many requests from this IP, please try again later."
-});
-app.use("/api/", limiter); // Apply to all API routes
-
-// Brute Force Protection for Auth
+// Brute Force Protection exclusively for Auth Login
 const authLimiter = rateLimit({
     windowMs: 60 * 60 * 1000, // 1 hour
     max: 20, // Limit each IP to 20 login attempts per hour
@@ -75,11 +62,16 @@ const authLimiter = rateLimit({
 });
 app.use("/api/auth/login", authLimiter);
 
+
 const allowedOrigins = [
     'http://localhost:3000',
+    'http://localhost:3005',
     'http://localhost:5000',
     'http://localhost:5173',
     'http://localhost:5174',
+    'https://localhost',
+    'capacitor://localhost',
+    'http://192.168.0.229:3005',
     'https://sasloop.in',
     'https://www.sasloop.in',
     'https://backend.sasloop.in',
@@ -93,7 +85,7 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: (origin, callback) => {
-        if (!origin || origin === 'null' || origin === 'file://' || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
+        if (!origin || origin === 'null' || origin === 'file://' || allowedOrigins.indexOf(origin) !== -1 || origin.includes('localhost') || origin.startsWith('capacitor://') || origin.startsWith('http://192.168.') || process.env.NODE_ENV !== 'production') {
             callback(null, true);
         } else {
             console.error(`🚫 [CORS BLOCKED] Origin: ${origin}`);
@@ -217,8 +209,7 @@ candidatePaths.forEach(p => {
     if (fs.existsSync(p)) {
         app.use(express.static(p, {
             index: false,
-            immutable: true,
-            maxAge: '1y'
+            maxAge: 0
         }));
         console.log("✅ Mounted Dashboard Static Path:", p);
     }
@@ -275,7 +266,9 @@ app.listen(PORT, async () => {
     // Start Cron Jobs
     whatsappManager.startCartRecoveryCron();
     whatsappManager.startAutoFollowupCron();
-    whatsappManager.startBackupCron();
+    if (typeof whatsappManager.startBackupCron === 'function') whatsappManager.startBackupCron();
+    if (typeof whatsappManager.startWinBackCron === 'function') whatsappManager.startWinBackCron();
+    if (typeof whatsappManager.startReservationReminderCron === 'function') whatsappManager.startReservationReminderCron();
     
     // Log Restart
     try {

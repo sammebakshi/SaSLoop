@@ -1,8 +1,0 @@
-{
-  "Description": "\"Restore the scrollable card grid but size it to show exactly 2 rows of cards (8 cards visible). Reduced parent height from 480px to 380px so only 2 rows fit in the scrollable area, with the green scrollbar for the rest.\"",
-  "Instruction": "\"1. Restore lg:h but reduce to 380px so only 2 card rows show. 2. Restore flex-1 overflow-y-auto green-scrollbar on the cards grid container.\"",
-  "ReplacementChunks": "[{\"AllowMultiple\":false,\"EndLine\":8140,\"ReplacementContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-2.5 lg:h-[380px] shrink-0\\\">\",\"StartLine\":8140,\"TargetContent\":\"                    <div className=\\\"flex flex-col lg:flex-row gap-2.5 shrink-0\\\">\"},{\"AllowMultiple\":false,\"EndLine\":8177,\"ReplacementContent\":\"                          <div className={`flex-1 rounded-2xl border p-2.5 overflow-y-auto green-scrollbar transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\",\"StartLine\":8177,\"TargetContent\":\"                          <div className={`rounded-2xl border p-2.5 transition-colors ${isDark ? 'bg-[#161b22] border-[#30363d]' : 'bg-white border-slate-200'}`}>\"}]",
-  "TargetFile": "\"c:\\\\Users\\\\Sajad\\\\Desktop\\\\SaSLoop\\\\pos-app\\\\src\\\\App.jsx\"",
-  "toolAction": "\"Restoring scrollable grid with 2-row height\"",
-  "toolSummary": "\"Fix dashboard card grid height\""
-}

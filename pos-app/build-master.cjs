@@ -14,7 +14,13 @@ execSync('npm run build', {
   env: { ...process.env, NODE_OPTIONS: '--max-old-space-size=4096' }
 });
 
-// 2. Electron Builder
+// 2. Kill any running POS processes to prevent DLL locks
+try {
+  execSync('taskkill /F /IM "sasloop-master-pos-v1.0.2.exe" /T', { stdio: 'ignore' });
+  execSync('taskkill /F /IM "Master POS.exe" /T', { stdio: 'ignore' });
+} catch (e) {}
+
+// 3. Electron Builder
 console.log('🔨 Compiling Electron App...');
 execSync('npx electron-builder', {
   stdio: 'inherit',

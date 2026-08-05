@@ -1355,23 +1355,44 @@ router.get("/outlet-menus", authMiddleware, async (req, res) => {
 router.post("/outlet-menus", authMiddleware, async (req, res) => {
   let { 
     outlet_id, menu_name, short_name, is_pos_default, 
-    is_digital_default, is_digital, use_for_mobile, is_ondc 
+    is_digital_default, is_table_default, is_digital, use_for_mobile, is_ondc 
   } = req.body;
   const ownerId = req.user.bizId || req.user.id;
+  const userId = req.user.id;
   
   if ((!outlet_id || outlet_id === 'null' || outlet_id === 'undefined' || outlet_id === 'global') && req.user.role === "user") {
     outlet_id = req.user.id;
   }
   
-  const parsedOutletId = (outlet_id && outlet_id !== "global" && outlet_id !== "null" && outlet_id !== "undefined") ? parseInt(outlet_id) : null;
+  const parsedOutletId = (outlet_id && outlet_id !== "global" && outlet_id !== "null" && outlet_id !== "undefined") ? parseInt(outlet_id) : (ownerId || userId);
   
   try {
     console.log(`[POST /outlet-menus] Creating menu: ${menu_name} for Outlet: ${parsedOutletId} (Owner: ${ownerId})`);
+
+    if (is_pos_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_pos_default = false WHERE user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2",
+        [ownerId, userId]
+      );
+    }
+    if (is_digital_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_digital_default = false WHERE user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2",
+        [ownerId, userId]
+      );
+    }
+    if (is_table_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_table_default = false WHERE user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2",
+        [ownerId, userId]
+      );
+    }
+
     const result = await pool.query(
       `INSERT INTO outlet_menus 
-       (user_id, outlet_id, menu_name, short_name, is_pos_default, is_digital_default, is_digital, use_for_mobile, is_ondc) 
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [ownerId, parsedOutletId, menu_name, short_name, !!is_pos_default, !!is_digital_default, !!is_digital, !!use_for_mobile, !!is_ondc]
+       (user_id, outlet_id, menu_name, short_name, is_pos_default, is_digital_default, is_table_default, is_digital, use_for_mobile, is_ondc) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+      [ownerId, parsedOutletId, menu_name, short_name, !!is_pos_default, !!is_digital_default, !!is_table_default, !!is_digital, !!use_for_mobile, !!is_ondc]
     );
     res.json(result.rows[0]);
   } catch (err) { 
@@ -1383,9 +1404,10 @@ router.post("/outlet-menus", authMiddleware, async (req, res) => {
 router.put("/outlet-menus/:id", authMiddleware, async (req, res) => {
   let { 
     outlet_id, menu_name, short_name, is_pos_default, 
-    is_digital_default, is_digital, use_for_mobile, is_ondc 
+    is_digital_default, is_table_default, is_digital, use_for_mobile, is_ondc 
   } = req.body;
   const ownerId = req.user.bizId || req.user.id;
+  const userId = req.user.id;
   
   if ((!outlet_id || outlet_id === 'null' || outlet_id === 'undefined' || outlet_id === 'global') && req.user.role === "user") {
     outlet_id = req.user.id;
@@ -1394,14 +1416,41 @@ router.put("/outlet-menus/:id", authMiddleware, async (req, res) => {
   const parsedOutletId = (outlet_id && outlet_id !== "global" && outlet_id !== "null" && outlet_id !== "undefined") ? parseInt(outlet_id) : null;
   
   try {
-    console.log(`[PUT /outlet-menus] Updating menu: ${req.params.id} for Outlet: ${parsedOutletId} (Owner: ${ownerId})`);
+    console.log(`[PUT /outlet-menus] Updating menu: ${req.params.id} for Outlet: ${parsedOutletId} (Owner: ${ownerId}, User: ${userId})`);
+
+    if (is_pos_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_pos_default = false WHERE (user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2) AND id != $3",
+        [ownerId, userId, req.params.id]
+      );
+    }
+    if (is_digital_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_digital_default = false WHERE (user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2) AND id != $3",
+        [ownerId, userId, req.params.id]
+      );
+    }
+    if (is_table_default) {
+      await pool.query(
+        "UPDATE outlet_menus SET is_table_default = false WHERE (user_id = $1 OR outlet_id = $1 OR user_id = $2 OR outlet_id = $2) AND id != $3",
+        [ownerId, userId, req.params.id]
+      );
+    }
+
+    const isMaster = req.user.role === 'master_admin' || req.user.role === 'admin';
+
     const result = await pool.query(
       `UPDATE outlet_menus SET 
-         menu_name=$1, short_name=$2, is_pos_default=$3, is_digital_default=$4, 
-         is_digital=$5, use_for_mobile=$6, is_ondc=$7, outlet_id=$8 
-       WHERE id=$9 AND user_id=$10 RETURNING *`,
-      [menu_name, short_name, !!is_pos_default, !!is_digital_default, !!is_digital, !!use_for_mobile, !!is_ondc, parsedOutletId, req.params.id, ownerId]
+         menu_name=$1, short_name=$2, is_pos_default=$3, is_digital_default=$4, is_table_default=$5,
+         is_digital=$6, use_for_mobile=$7, is_ondc=$8, outlet_id=COALESCE($9, outlet_id) 
+       WHERE id=$10 AND ($11 = true OR user_id = $12 OR outlet_id = $12 OR user_id = $13 OR outlet_id = $13) RETURNING *`,
+      [menu_name, short_name, !!is_pos_default, !!is_digital_default, !!is_table_default, !!is_digital, !!use_for_mobile, !!is_ondc, parsedOutletId, req.params.id, isMaster, ownerId, userId]
     );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Menu configuration not found or unauthorized" });
+    }
+
     res.json(result.rows[0]);
   } catch (err) { 
     console.error("[PUT /outlet-menus] Error:", err.message);
@@ -1411,9 +1460,14 @@ router.put("/outlet-menus/:id", authMiddleware, async (req, res) => {
 
 router.delete("/outlet-menus/:id", authMiddleware, async (req, res) => {
   const ownerId = req.user.bizId || req.user.id;
+  const userId = req.user.id;
+  const isMaster = req.user.role === 'master_admin' || req.user.role === 'admin';
   try {
     console.log(`[DELETE /outlet-menus] ID: ${req.params.id} (Owner: ${ownerId})`);
-    await pool.query("DELETE FROM outlet_menus WHERE id = $1 AND user_id = $2", [req.params.id, ownerId]);
+    await pool.query(
+      "DELETE FROM outlet_menus WHERE id = $1 AND ($2 = true OR user_id = $3 OR outlet_id = $3 OR user_id = $4 OR outlet_id = $4)", 
+      [req.params.id, isMaster, ownerId, userId]
+    );
     res.json({ success: true });
   } catch (err) { 
     console.error("[DELETE /outlet-menus] Error:", err.message);

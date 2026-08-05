@@ -13,7 +13,9 @@ const QRManager = () => {
     const [provisionName, setProvisionName] = useState("");
     const [maxPersons, setMaxPersons] = useState("4");
     const [copiedId, setCopiedId] = useState(null);
-    const [customDomain, setCustomDomain] = useState(window.location.origin);
+    const [customDomain, setCustomDomain] = useState(
+      window.location.hostname.includes("localhost") ? window.location.origin : "https://menu.sasloop.in"
+    );
     const [showDomainInput, setShowDomainInput] = useState(false);
     
     // Retrieve business info
@@ -171,7 +173,7 @@ const QRManager = () => {
         t.name.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
-    const onlineOrderUrl = `${customDomain}/order/${bizId}`;
+    const onlineOrderUrl = `${customDomain}/menu/${bizId}`;
 
     return (
         <div className="space-y-4 animate-in fade-in duration-500">
@@ -306,7 +308,7 @@ const QRManager = () => {
                     </div>
                 ) : (
                     filteredTables.map(table => {
-                        const tableUrl = `${customDomain}/menu/${bizId}/${table.id}`;
+                        const tableUrl = `${customDomain}/table/${bizId}/${encodeURIComponent(table.name)}`;
                         return (
                             <div key={table.id} className="pro-card p-5 bg-white dark:bg-[#1e2129] border border-slate-200 dark:border-white/5 rounded-xl shadow-sm flex flex-col items-center gap-3.5 hover:border-indigo-400 dark:hover:border-indigo-500/50 transition-all group relative">
                                 <button 

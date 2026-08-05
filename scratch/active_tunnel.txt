@@ -1,3 +1,0 @@
-Tunnel URL: https://comply-lagged-concave.ngrok-free.dev
-Webhook URL: https://comply-lagged-concave.ngrok-free.dev/api/whatsapp/webhook
-Updated At: 6/7/2026, 9:45:03 AM

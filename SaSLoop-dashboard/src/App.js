@@ -24,12 +24,11 @@ import BroadcastHub from "./pages/BroadcastHub";
 import LiveChats from "./pages/LiveChats";
 import OperationalRules from "./pages/OperationalRules";
 import FreeformKnowledge from "./pages/FreeformKnowledge";
-import DigitalCatalog from "./pages/DigitalCatalog";
-import CustomerMenu from "./pages/CustomerMenu";
 import QRManager from "./pages/QRManager";
 import Reports from "./pages/Reports";
-import OnlineOrder from "./pages/OnlineOrder";
 import KDS from "./pages/KDS";
+import PublicOutletMenu from "./pages/PublicOutletMenu";
+import TableOutletMenu from "./pages/TableOutletMenu";
 import TrackOrder from "./pages/TrackOrder";
 import Reservations from "./pages/Reservations";
 import DeliveryTeam from "./pages/DeliveryTeam";
@@ -40,6 +39,7 @@ import Integrations from "./pages/Integrations";
 import IntelligenceHub from "./pages/IntelligenceHub";
 import MarketingStudio from "./pages/MarketingStudio";
 import CommandCenter from "./pages/CommandCenter";
+import HomePageSettings from "./pages/HomePageSettings";
 import TableManagement from "./pages/TableManagement";
 import InventoryMaster from "./pages/InventoryMaster";
 import RecipeMaster from "./pages/RecipeMaster";
@@ -185,7 +185,13 @@ const AppLayout = () => {
 // ============================================================
 const ProtectedShell = ({ allowedRoles }) => {
   const user = JSON.parse(localStorage.getItem("user") || "null");
-  if (!user) return <Navigate to="/login" replace />;
+  const token = localStorage.getItem("token");
+
+  if (!user || !token || token === "dummy-token" || (!user.id && !user.user_id)) {
+    localStorage.clear();
+    sessionStorage.clear();
+    return <Navigate to="/login" replace />;
+  }
 
   // 🛡️ Guard against infinite redirect loops
   const redirectCount = parseInt(sessionStorage.getItem("redirect_count") || "0");
@@ -236,6 +242,13 @@ function App() {
         {/* Public Routes (No Layout) */}
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/menu" element={<PublicOutletMenu />} />
+        <Route path="/menu/:userId" element={<PublicOutletMenu />} />
+        <Route path="/menu/:userId/:tableId" element={<PublicOutletMenu />} />
+        <Route path="/table/:userId/:tableId" element={<PublicOutletMenu />} />
+        <Route path="/order" element={<PublicOutletMenu />} />
+        <Route path="/order/:userId" element={<PublicOutletMenu />} />
+        <Route path="/order/:userId/:tableId" element={<PublicOutletMenu />} />
         <Route path="/rider/:riderId" element={<RiderPortal />} />
 
         {/* Master Admin Routes */}
@@ -302,8 +315,7 @@ function App() {
             <Route path="/loyalty-settings" element={<LoyaltySettings />} />
             <Route path="/notification-settings" element={<NotificationSettings />} />
 
-            {/* Product & Operations */}
-            <Route path="/business-data/catalog" element={<DigitalCatalog />} />
+
             <Route path="/business-data/inventory" element={<InventoryMaster />} />
             <Route path="/business-data/recipes" element={<RecipeMaster />} />
             <Route path="/outlet-menus" element={<OutletMenuManager />} />
@@ -342,7 +354,7 @@ function App() {
             <Route path="/online-orders" element={<OnlineOrderHub />} />
             <Route path="/delivery-platforms" element={<DeliveryPlatformManager />} />
             <Route path="/digital-order-settings" element={<DigitalOrderSettings />} />
-            <Route path="/pre-order-settings" element={<PreOrderSettings />} />
+            <Route path="/home-page-settings" element={<HomePageSettings />} />
             <Route path="/centralized-hub" element={<CentralizedOrderingHub />} />
             <Route path="/whatsapp-connect" element={<WhatsAppConnect />} />
             <Route path="/bot-config" element={<BotConfig />} />

@@ -1,7 +1,0 @@
-{
-  "step_index": 1402,
-  "tool": "replace_file_content",
-  "description": "\"Collect selectedPriceTier and currentOrderType in BillingScreen.kt\"",
-  "instruction": "\"Add state flow collectors for selectedPriceTier and currentOrderType.\"",
-  "chunks": "\"    val posSettings by billingViewModel.posSettings.collectAsStateWithLifecycle()\\n    val optionGroups by billingViewModel.optionGroups.collectAsStateWithLifecycle()\\n    val selectedPriceTier by billingViewModel.selectedPriceTier.collectAsStateWithLifecycle()\\n    val currentOrderType by billingViewModel.currentOrderType.collectAsStateWithLifecycle()\\n    var selectedItemForModifiers by remember { mutableStateOf<MenuItem?>(null) }\""
-}

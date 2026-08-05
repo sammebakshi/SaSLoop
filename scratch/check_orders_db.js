@@ -1,17 +1,18 @@
-const pool = require("../db");
+const pool = require('../db');
 
-async function checkAllLoyalty() {
+async function test() {
   try {
-    const res = await pool.query(`
-      SELECT * FROM customer_loyalty LIMIT 10;
-    `);
-    console.log("All Loyalty Records:");
-    console.table(res.rows);
+    const res = await pool.query(
+      `SELECT id, user_id, customer_name, customer_number, total_price, status, created_at
+       FROM orders
+       ORDER BY id DESC LIMIT 15`
+    );
+    console.log("Recent Orders in DB:", res.rows);
   } catch (err) {
-    console.error("Error:", err.message);
+    console.error(err);
   } finally {
     pool.end();
   }
 }
 
-checkAllLoyalty();
+test();

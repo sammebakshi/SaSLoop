@@ -1,7 +1,0 @@
-{
-  "step_index": 1496,
-  "tool": "replace_file_content",
-  "description": "\"Rename Base Price to Sale Price 1 to match Windows POS labels exactly\"",
-  "instruction": "\"Rename Base Price to Sale Price 1.\"",
-  "chunks": "\"                                             listOf(\\n                                                 1 to \\\"Sale Price 1\\\",\\n                                                 2 to \\\"Sale Price 2\\\",\\n                                                 3 to \\\"Sale Price 3\\\"\\n                                             ).forEach { (tier, label) ->\""
-}

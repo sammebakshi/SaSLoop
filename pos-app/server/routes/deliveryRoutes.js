@@ -79,7 +79,7 @@ router.delete("/partners/:id", authMiddleware, async (req, res) => {
     }
 });
 
-// 4. ASSIGN ORDER TO RIDER (Dispatches Order and notifies both Rider & Customer)
+// 4. ASSIGN ORDER TO RIDER (Assigns rider without changing order status or sending customer status update)
 router.put("/assign", authMiddleware, async (req, res) => {
     try {
         const { orderId, riderId } = req.body;
@@ -91,35 +91,12 @@ router.put("/assign", authMiddleware, async (req, res) => {
 
         const order = orderCheck.rows[0];
 
-        // Update Order in DB
-        await pool.query("UPDATE orders SET rider_id = $1, status = 'DISPATCHED' WHERE id = $2", [riderId, orderId]);
+        // Update rider_id ONLY (do not change status to DISPATCHED or trigger out for delivery notification)
+        await pool.query("UPDATE orders SET rider_id = $1 WHERE id = $2", [riderId, orderId]);
         
-        // Notify Customer & Rider
+        // Notify Rider only
         try {
-            const customerNumber = order.customer_number;
             const ref = order.order_reference || `#${orderId}`;
-            const isTable = order.table_number && order.table_number !== "0";
-            const isPickup = order.address?.toLowerCase() === 'pickup';
-            
-            let updateMsg = "";
-            if (isTable) {
-                updateMsg = `🍽️ *Serving Now:* Your order *${ref}* is being served to *Table ${order.table_number}*. Enjoy your meal!`;
-            } else if (isPickup) {
-                updateMsg = `🛍️ *Ready for Pickup:* Your order *${ref}* is ready! Please collect it from the counter.`;
-            } else {
-                // Find rider info
-                const riderRes = await pool.query("SELECT name, phone FROM delivery_partners WHERE id = $1", [riderId]);
-                const rider = riderRes.rows[0];
-                const riderName = rider ? rider.name : "Our rider";
-                const riderPhone = rider ? rider.phone : "";
-                updateMsg = `🚚 *Out for Delivery:* Your order *${ref}* is on the way! Rider *${riderName}* (${riderPhone}) will contact you shortly.`;
-            }
-
-            if (updateMsg && customerNumber) {
-                await whatsappManager.sendOfficialMessage(customerNumber, updateMsg, userId, `STATUS_${orderId}_DISPATCHED`);
-            }
-
-            // Notify Rider
             const riderRes = await pool.query("SELECT phone FROM delivery_partners WHERE id = $1", [riderId]);
             const riderPhone = riderRes.rows[0]?.phone;
             if (riderPhone) {
@@ -127,10 +104,10 @@ router.put("/assign", authMiddleware, async (req, res) => {
                 await whatsappManager.sendOfficialMessage(riderPhone, riderMsg, userId);
             }
         } catch (notifErr) {
-            console.error("WhatsApp Order Assignment Notification Fail:", notifErr);
+            console.error("WhatsApp Rider Assignment Notification Fail:", notifErr);
         }
 
-        res.json({ message: "Rider assigned and order dispatched" });
+        res.json({ message: "Rider assigned successfully" });
     } catch (err) {
         console.error(err.message);
         res.status(500).json({ error: "Server error" });

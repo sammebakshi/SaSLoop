@@ -3,7 +3,7 @@ import {
   CreditCard, Search, RefreshCw, Filter, 
   Download, Calendar, IndianRupee, TrendingUp, 
   PieChart, ChevronDown, ListChecks, Database,
-  ShieldCheck, Banknote, Landmark, ChevronRight
+  ShieldCheck, Banknote, Landmark, ChevronRight, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 import * as XLSX from 'xlsx';
@@ -35,38 +35,54 @@ const PaymentReport = () => {
         }
     };
 
-    const fetchData = useCallback(async () => {
-        if (!filters.outlet_id) return;
+    const fetchData = useCallback(() => {
         setLoading(true);
         try {
-            const queryParams = new URLSearchParams();
-            queryParams.append("outlet_id", filters.outlet_id);
-            if (filters.from_date) queryParams.append("from_date", filters.from_date + " 00:00:00");
-            if (filters.to_date) queryParams.append("to_date", filters.to_date + " 23:59:59");
+            const localOrdersRaw = localStorage.getItem('pos_local_orders');
+            const localOrders = localOrdersRaw ? JSON.parse(localOrdersRaw) : [];
 
-            const res = await fetch(`${API_BASE}/api/brand/analytics/payment-report?${queryParams.toString()}`, {
-                headers: { "Authorization": `Bearer ${localStorage.getItem("pos_token")}` }
-            });
-            if (res.ok) {
-                const d = await res.json();
-                setData(d);
+            const fromTime = filters.from_date ? new Date(filters.from_date + " 00:00:00").getTime() : 0;
+            const toTime = filters.to_date ? new Date(filters.to_date + " 23:59:59").getTime() : Infinity;
+
+            const modeMap = new Map();
+
+            if (Array.isArray(localOrders)) {
+                localOrders.forEach(order => {
+                    if (order.status === 'CANCELLED' || order.status === 'DELETED' || order.status === 'REFUNDED') return;
+                    const orderTime = order.created_at ? new Date(order.created_at).getTime() : Date.now();
+                    if (orderTime >= fromTime && orderTime <= toTime) {
+                        const mode = (order.payment_method || order.payment_mode || 'CASH').toUpperCase();
+                        const amount = parseFloat(order.total_price || 0);
+
+                        if (modeMap.has(mode)) {
+                            const curr = modeMap.get(mode);
+                            curr.total_orders += 1;
+                            curr.total_collection += amount;
+                        } else {
+                            modeMap.set(mode, {
+                                payment_mode: mode,
+                                total_orders: 1,
+                                total_collection: amount
+                            });
+                        }
+                    }
+                });
             }
+
+            const list = Array.from(modeMap.values());
+            list.sort((a, b) => b.total_collection - a.total_collection);
+            setData(list);
         } catch (e) {
-            console.error("Error loading payment report:", e);
+            console.error("Error calculating local payment report:", e);
+            setData([]);
         } finally {
             setLoading(false);
         }
-    }, [filters]);
+    }, [filters.from_date, filters.to_date]);
 
     useEffect(() => {
-        loadOutlets();
-    }, []);
-
-    useEffect(() => {
-        if (filters.outlet_id) {
-            fetchData();
-        }
-    }, [filters.outlet_id, fetchData]);
+        fetchData();
+    }, [fetchData]);
 
     const handleExport = () => {
         if (data.length === 0) return;
@@ -78,6 +94,92 @@ const PaymentReport = () => {
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Payment Report");
         XLSX.writeFile(wb, `Payment_Report_${filters.from_date}_to_${filters.to_date}.xlsx`);
+    };
+
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+
+        const paymentRows = data.map(p => `
+            <div class="flex-between">
+                <span class="bold">${(p.payment_mode || 'CASH').toUpperCase()}</span>
+                <span>(${p.total_orders || 0} orders)</span>
+                <span class="bold">₹${parseFloat(p.total_collection || 0).toFixed(2)}</span>
+            </div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Payment Collection Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">PAYMENT REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>MODE</span>
+                    <span>ORDERS</span>
+                    <span>COLLECTION</span>
+                </div>
+                <div class="dashed-line"></div>
+                ${paymentRows}
+                <div class="dashed-line"></div>
+                
+                <div class="flex-between bold">
+                    <span>TOTAL ORDERS:</span>
+                    <span>${totalOrders}</span>
+                </div>
+                <div class="flex-between bold">
+                    <span>TOTAL COLLECTION:</span>
+                    <span>₹${totalCollection.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
     };
 
     const totalOrders = data.reduce((acc, curr) => acc + parseInt(curr.total_orders || 0), 0);
@@ -97,6 +199,13 @@ const PaymentReport = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={data.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
+                    </button>
                     <button 
                         onClick={handleExport}
                         disabled={data.length === 0}

@@ -4,7 +4,7 @@ import {
   Zap, CheckCircle2, RefreshCw, ChevronDown, Monitor, 
   Truck, Smartphone, Globe, Database, ListTree, Settings2, 
   ShieldCheck, Power, Landmark, Wallet, Banknote, Receipt,
-  UserCheck, ArrowRight, ChevronRight
+  UserCheck, ArrowRight, ChevronRight, Printer
 } from "lucide-react";
 import { API_BASE } from "../../services/api";
 
@@ -46,6 +46,86 @@ const StartCloseDayReport = () => {
 
     useEffect(() => { fetchData(); }, [filters.outlet_id]);
 
+    const handlePrintThermalReport = () => {
+        if (data.length === 0) return;
+        const outletName = outlets.find(o => String(o.id) === String(filters.outlet_id))?.name || 'OUTLET';
+        const totalSales = data.reduce((a, b) => a + parseFloat(b.total_sale || 0), 0);
+
+        const dayRows = data.map(d => `
+            <div class="flex-between">
+                <span>START: ${d.shift_start}</span>
+                <span>CLOSE: ${d.shift_end}</span>
+            </div>
+            <div class="flex-between">
+                <span>OPEN FLOAT: ₹${parseFloat(d.opening_balance || 0).toFixed(2)}</span>
+                <span class="bold">SALE: ₹${parseFloat(d.total_sale || 0).toFixed(2)}</span>
+            </div>
+            <div class="dashed-line"></div>
+        `).join('');
+
+        const printHtml = `
+            <html>
+            <head>
+                <title>Start Close Day Report</title>
+                <style>
+                    @page { size: 80mm auto; margin: 0; }
+                    body { 
+                        font-family: monospace, Courier, monospace; 
+                        width: 78mm; 
+                        margin: 0 auto; 
+                        padding: 8px; 
+                        font-size: 11px; 
+                        line-height: 1.3;
+                        color: #000;
+                    }
+                    .center { text-align: center; }
+                    .bold { font-weight: bold; }
+                    .dashed-line { border-bottom: 1px dashed #000; margin: 6px 0; }
+                    .flex-between { display: flex; justify-content: space-between; margin-bottom: 3px; }
+                    @media print {
+                        body { margin: 0; padding: 4px; width: 100%; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="center bold" style="font-size: 14px;">DAY LIFECYCLE REPORT</div>
+                <div class="center bold" style="font-size: 12px; margin-top: 2px;">${outletName.toUpperCase()}</div>
+                <div class="dashed-line"></div>
+                <div>FROM: ${filters.from_date}</div>
+                <div>TO:   ${filters.to_date}</div>
+                <div class="dashed-line"></div>
+                
+                ${dayRows}
+                
+                <div class="flex-between bold">
+                    <span>TOTAL LIFECYCLE SALES:</span>
+                    <span>₹${totalSales.toFixed(2)}</span>
+                </div>
+                
+                <div class="dashed-line"></div>
+                <div class="center" style="font-size: 9px;">PRINTED AT: ${new Date().toLocaleString()}</div>
+                <script>window.onload = () => { window.print(); window.close(); }</script>
+            </body>
+            </html>
+        `;
+
+        if (window.require) {
+            try {
+                const { ipcRenderer } = window.require('electron');
+                ipcRenderer.send('print-silent', { html: printHtml.replace(/<script>.*<\/script>/, '') });
+                return;
+            } catch (err) {
+                console.error("Silent report print failed:", err);
+            }
+        }
+        
+        const printWindow = window.open('', '_blank', 'width=600,height=800');
+        if (printWindow) {
+            printWindow.document.write(printHtml);
+            printWindow.document.close();
+        }
+    };
+
     return (
         <div className="space-y-6 animate-in fade-in duration-500">
             {/* Header */}
@@ -60,6 +140,13 @@ const StartCloseDayReport = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <button 
+                        onClick={handlePrintThermalReport}
+                        disabled={data.length === 0}
+                        className="px-4 py-2 bg-emerald-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-emerald-500 transition-all flex items-center gap-2 shadow-md shadow-emerald-600/10 disabled:opacity-50"
+                    >
+                        <Printer className="w-3.5 h-3.5" /> Print Thermal (3-inch)
+                    </button>
                     <button className="px-4 py-2 bg-amber-600 text-white rounded-md font-bold text-[10px] uppercase tracking-widest hover:bg-amber-500 transition-all flex items-center gap-2 shadow-md shadow-amber-600/10">
                         <Download className="w-3.5 h-3.5" /> Export Lifecycle
                     </button>

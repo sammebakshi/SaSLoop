@@ -226,6 +226,100 @@ router.post("/pos-login", async (req, res) => {
     }
 });
 
+// 📱 ORDERS APP LOGIN (No role restrictions - works for ALL users: owner, staff, cashier, etc.)
+router.post("/orders-app-login", async (req, res) => {
+    try {
+        const { username, identifier, password } = req.body;
+        const rawLoginId = username || identifier || '';
+        const cleanLoginId = String(rawLoginId).trim();
+        const cleanPassword = String(password || '').trim();
+        console.log(`📱 [ORDERS APP LOGIN] Attempt: ${cleanLoginId}`);
+
+        if (!cleanLoginId || !cleanPassword) {
+            return res.status(400).json({ error: "Username and password are required" });
+        }
+
+        // Search by username, email, phone, or first_name (Case Insensitive)
+        const result = await pool.query(
+            "SELECT * FROM app_users WHERE LOWER(email) = LOWER($1) OR LOWER(username) = LOWER($1) OR phone = $1 OR LOWER(first_name) = LOWER($1)",
+            [cleanLoginId]
+        );
+
+        if (result.rows.length === 0) {
+            console.log(`❌ [ORDERS APP] User not found for loginId: "${cleanLoginId}"`);
+            return res.status(401).json({ error: "User not found. Please check your username." });
+        }
+
+        const user = result.rows[0];
+        console.log(`👤 [ORDERS APP] User found: ${user.email || user.username}, Role: ${user.role}, UserType: ${user.user_type}`);
+
+        // 🛡️ APP ACCESS GATING: Only allow users with user_type "POS Billing" to access the app
+        const userTypeNormalized = String(user.user_type || '').toLowerCase().trim();
+        const roleNormalized = String(user.role || '').toLowerCase().trim();
+        const isPosBilling = userTypeNormalized === 'pos billing' || userTypeNormalized === 'pos_billing' || 
+                              userTypeNormalized.includes('pos billing') || userTypeNormalized.includes('pos_billing') ||
+                              roleNormalized === 'pos billing' || roleNormalized === 'pos_billing';
+
+        if (!isPosBilling) {
+            console.warn(`🚨 [ORDERS APP ACCESS DENIED] User ${user.email || user.username} (Role: ${user.role}, UserType: ${user.user_type}) attempted login without 'POS Billing' user_type.`);
+            return res.status(403).json({ error: "Access denied. App access is restricted to users with 'POS Billing' user type." });
+        }
+
+        if (user.status && user.status !== 'active') {
+            return res.status(403).json({ error: "Account is inactive. Please contact the administrator." });
+        }
+
+        // Check password: try POS PIN first, then bcrypt hash
+        let isMatch = false;
+
+        // Priority 1: Match against pos_pin (plain text)
+        if (user.pos_pin && password === user.pos_pin) {
+            isMatch = true;
+        }
+        // Priority 2: bcrypt hashed password
+        if (!isMatch && user.password) {
+            try {
+                isMatch = await bcrypt.compare(password, user.password);
+            } catch (e) {
+                // If bcrypt fails (e.g. password not hashed), try plain text
+                isMatch = (password === user.password);
+            }
+        }
+
+        if (!isMatch) {
+            console.log(`❌ [ORDERS APP] Invalid password for: ${loginId}`);
+            return res.status(401).json({ error: "Invalid password" });
+        }
+
+        const bizId = user.parent_user_id || user.id;
+
+        const token = jwt.sign(
+            { id: user.id, bizId, email: user.email, role: user.role, user_type: user.user_type },
+            process.env.JWT_SECRET || "secretkey",
+            { expiresIn: "7d" }
+        );
+
+        console.log(`✅ [ORDERS APP] Login successful: ${user.email || user.username}`);
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                email: user.email,
+                role: user.role,
+                user_type: user.user_type,
+                name: user.name || user.first_name,
+                business_name: user.business_name,
+                bizId,
+                parent_user_id: user.parent_user_id
+            }
+        });
+    } catch (err) {
+        console.error("🔥 ORDERS APP LOGIN ERROR:", err);
+        res.status(500).json({ error: "Server error during login" });
+    }
+});
+
 // GET PROFILE (Includes Business DNA for Universal POS)
 router.get("/profile", authMiddleware, async (req, res) => {
     try {

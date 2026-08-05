@@ -844,6 +844,50 @@ router.post("/clear-sales-data", authMiddleware, async (req, res) => {
     }
 });
 
+// ✅ GET PENDING WAITER REQUESTS
+router.get("/waiter-requests", authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.bizId || req.user.id;
+        const result = await pool.query(
+            `SELECT wr.* 
+             FROM waiter_requests wr
+             WHERE (
+               wr.user_id = $1 
+               OR wr.user_id = (SELECT parent_user_id FROM app_users WHERE id = $1)
+               OR wr.user_id = (SELECT id FROM app_users WHERE parent_user_id = $1 LIMIT 1)
+               OR wr.user_id IN (SELECT user_id FROM restaurants)
+             ) AND wr.status = 'PENDING' 
+             ORDER BY wr.created_at DESC`,
+            [userId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error("Failed to fetch waiter requests:", err);
+        res.status(500).json({ error: "Failed to fetch waiter requests" });
+    }
+});
+
+// ✅ RESOLVE WAITER REQUEST
+router.put("/waiter-requests/resolve", authMiddleware, async (req, res) => {
+    try {
+        const { id, tableNumber } = req.body;
+        const userId = req.user.bizId || req.user.id;
+        if (id) {
+            await pool.query("UPDATE waiter_requests SET status = 'COMPLETED' WHERE id = $1", [id]);
+        } else if (tableNumber) {
+            const tableText = String(tableNumber).replace(/^Table\s+/i, '');
+            await pool.query(
+                "UPDATE waiter_requests SET status = 'COMPLETED' WHERE (user_id = $1 OR user_id = (SELECT parent_user_id FROM app_users WHERE id = $1)) AND (table_number = $2 OR table_number = $3)",
+                [userId, tableText, `Table ${tableText}`]
+            );
+        }
+        res.json({ success: true });
+    } catch (err) {
+        console.error("Failed to resolve waiter request:", err);
+        res.status(500).json({ error: "Failed to resolve waiter request" });
+    }
+});
+
 module.exports = router;
 
 
