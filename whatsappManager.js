@@ -1489,6 +1489,38 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                             deliveryCharge = delivery.charge;
                             distance = delivery.distance;
                         }
+                    } else {
+                        // 📍 Pure Typed Text Address (No GPS pin dropped) -> Send to Manager / POS for Fee Verification
+                        const orderRef = `DEL-${Math.floor(100000 + Math.random() * 900000)}`;
+                        const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
+                        const initialTotal = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
+
+                        await pool.query(
+                            `INSERT INTO orders (
+                                user_id, restaurant_id, customer_name, customer_number, address, items, 
+                                total_price, order_reference, status, delivery_charge, payment_method, 
+                                redeemed_points, discount_amount, source, order_type
+                            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING_DELIVERY_CHARGE', 0, 'COD', $9, $10, 'WHATSAPP', 'DELIVERY')`,
+                            [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, customerAddress, JSON.stringify(cart), initialTotal, orderRef, session.context.redeemedPoints || 0, discountAmount]
+                        );
+
+                        // Trigger Webhook & Notify Manager/Staff
+                        triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', status: 'PENDING_DELIVERY_CHARGE', total: initialTotal, items: cart, address: customerAddress, customer: { name: customerName, phone: cleanNum } });
+                        try {
+                            const staffAlert = `⚠️ *NEW TYPED ADDRESS ORDER RECEIVED! (Pending Fee Verification)*\n━━━━━━━━━━━━━━━━\nRef: *${orderRef}*\nCustomer: ${customerName || 'Customer'} (${cleanNum})\nAddress: ${customerAddress}\nItems Total: ${symbol}${subtotal.toFixed(2)}\n\n👉 *Action Required:* Open POS > Digital Orders to verify area serviceability & set delivery charge! 🚀`;
+                            let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0) ? biz.notification_numbers : [biz.phone, biz.contact_number].filter(Boolean);
+                            staffNums = [...new Set(staffNums)];
+                            for (let num of staffNums) {
+                                await sendOfficialMessage(num, staffAlert, userId);
+                            }
+                        } catch (sErr) { console.error("Staff notification error for typed address:", sErr); }
+
+                        // Send Customer Confirmation Message
+                        const custMsg = `📍 *ADDRESS RECEIVED & SENT TO MANAGER!*\n━━━━━━━━━━━━━━\n*Address:* ${customerAddress}\n\n⏳ Your order (*${orderRef}*) has been sent to our outlet manager to verify area serviceability and set the delivery charge.\n\nWe will send your updated bill with a confirmation button shortly! 🙏`;
+                        await sendOfficialMessage(customerNumber, custMsg, userId);
+
+                        await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+                        return;
                     }
                 }
             }
@@ -1581,7 +1613,31 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- 🔘 HANDLE BUTTON CLICKS ---
-        if (lower === 'cancel' || lower === 'clear cart' || lower.includes('cancel')) {
+        if (lower.startsWith('confirm_charge_')) {
+            const ordId = lower.replace('confirm_charge_', '').trim();
+            const ordRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [ordId, userId]);
+            if (ordRes.rows.length > 0) {
+                const ord = ordRes.rows[0];
+                await pool.query("UPDATE orders SET status = 'PENDING' WHERE id = $1", [ordId]);
+                await sendOfficialMessage(customerNumber, `✅ *ORDER CONFIRMED!*\n━━━━━━━━━━━━━━\nOrder Ref: *${ord.order_reference || '#' + ord.id}*\nTotal: *${symbol}${parseFloat(ord.total_price).toFixed(2)}*\n\nYour order is confirmed and sent to our kitchen for preparation! 🍽️`, userId);
+                
+                const itemsArr = typeof ord.items === 'string' ? JSON.parse(ord.items) : (ord.items || []);
+                try {
+                    await notifyKitchenAndStaff(userId, ord.order_reference || `#${ord.id}`, ord.customer_name, ord.customer_number, itemsArr, parseFloat(ord.total_price), parseFloat(ord.total_price), 0, 0, 0, 0, symbol, 'online', ord.address, '0');
+                } catch (kotErr) { console.error("KOT notification fail on charge confirm:", kotErr); }
+            }
+            return;
+        }
+
+        if (lower.startsWith('cancel_charge_')) {
+            const ordId = lower.replace('cancel_charge_', '').trim();
+            await pool.query("UPDATE orders SET status = 'CANCELLED', rejection_reason = 'Delivery charge rejected by customer' WHERE id = $1 AND user_id = $2", [ordId, userId]);
+            await sendOfficialMessage(customerNumber, `❌ *ORDER CANCELLED*\n━━━━━━━━━━━━━━\nYour order has been cancelled as requested. Feel free to place a new order anytime!`, userId);
+            await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+            return;
+        }
+
+        if (lower === 'cancel' || lower === 'clear cart') {
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             await sendOfficialMessage(customerNumber, "🗑️ *Cart Cleared!*\n\nYour session has been reset and your bag is empty. How can I help you today?", userId);
             return;
