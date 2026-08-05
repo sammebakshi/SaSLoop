@@ -20,17 +20,19 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
  */
 async function getRoadDistance(lat1, lon1, lat2, lon2) {
     try {
-        const url = `http://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
-        const response = await axios.get(url, { timeout: 5000 });
-        if (response.data && response.data.routes && response.data.routes[0]) {
+        const url = `https://router.project-osrm.org/route/v1/driving/${lon1},${lat1};${lon2},${lat2}?overview=false`;
+        const response = await axios.get(url, { timeout: 6000 });
+        if (response.data && response.data.routes && response.data.routes[0] && typeof response.data.routes[0].distance === 'number') {
             const distanceInMeters = response.data.routes[0].distance;
-            return distanceInMeters / 1000; // Return in KM
+            return Math.round((distanceInMeters / 1000) * 10) / 10; // Return in KM
         }
-        // Fallback to haversine if OSRM fails
-        return calculateDistance(lat1, lon1, lat2, lon2);
+        // Fallback to estimated road distance (haversine * 1.35) if OSRM fails
+        const hav = calculateDistance(lat1, lon1, lat2, lon2);
+        return Math.round(hav * 1.35 * 10) / 10;
     } catch (error) {
         console.error("OSRM Route Error:", error.message);
-        return calculateDistance(lat1, lon1, lat2, lon2);
+        const hav = calculateDistance(lat1, lon1, lat2, lon2);
+        return Math.round(hav * 1.35 * 10) / 10;
     }
 }
 

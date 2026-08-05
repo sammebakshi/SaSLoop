@@ -21,7 +21,10 @@ const formatToInter = (p) => {
 
 const sendOfficialMessage = async (to, content, userId) => {
     try {
-        const dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1", [userId]);
+        let dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1 AND meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL", [userId]);
+        if (dbRes.rows.length === 0) {
+            dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL ORDER BY id ASC LIMIT 1");
+        }
         let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
         if (token) token = token.trim();
         if (phoneId) phoneId = phoneId.trim();
@@ -608,7 +611,7 @@ const buildGroupRows = async (groupNames, groups, userId, symbol) => {
 // ----------------------------------------------------------------------------------
 const processAiAutomations = async (userId, customerNumber, msgText, customerName, isLocation = false, locationData = null) => {
     try {
-        const lower = msgText.trim().toLowerCase();
+        let lower = msgText.trim().toLowerCase();
         const cleanNum = normalizePhone(customerNumber);
         
         // --- 🔍 FETCH BIZ DATA FIRST (For Hours Check) ---
@@ -625,24 +628,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         // --- 📍 HANDLE WHATSAPP NATIVE GPS LOCATION MESSAGE ---
         if (isLocation && locationData && locationData.latitude && locationData.longitude) {
             const session = await getSession(userId, cleanNum);
-            const bizLat = parseFloat(biz.latitude || biz.lat || 0);
-            const bizLng = parseFloat(biz.longitude || biz.lng || 0);
-            
-            function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-                if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-                const R = 6371;
-                const dLat = (lat2 - lat1) * Math.PI / 180;
-                const dLon = (lon2 - lon1) * Math.PI / 180;
-                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                          Math.sin(dLon/2) * Math.sin(dLon/2);
-                const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-                return parseFloat((R * c).toFixed(1));
-            }
-
-            const distKm = (bizLat && bizLng) ? calculateDistanceKm(bizLat, bizLng, locationData.latitude, locationData.longitude) : 2.5;
-            const maxRadius = parseFloat(biz.delivery_radius_km || biz.delivery_radius || 10);
-            const isCovered = distKm !== null ? distKm <= maxRadius : true;
+            const deliveryInfo = await getDeliveryDetails(biz, locationData.latitude, locationData.longitude);
+            const distKm = deliveryInfo ? deliveryInfo.distance : null;
+            const isCovered = deliveryInfo ? deliveryInfo.serviceable : true;
 
             session.context.delivery_lat = locationData.latitude;
             session.context.delivery_lng = locationData.longitude;
@@ -651,10 +639,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             let locReply = `📍 *LOCATION RECEIVED & SAVED!*\n━━━━━━━━━━━━━━\n`;
             if (distKm !== null) {
-                locReply += `📏 *Distance to Kitchen:* ${distKm} KM\n`;
-                locReply += `🚚 *Delivery Status:* ${isCovered ? '✅ Covered (Within Service Zone)' : '⚠️ Outside Regular Delivery Zone'}\n\n`;
+                locReply += `📏 *Driving Distance:* ${distKm} KM\n`;
+                locReply += `🚚 *Delivery Status:* ${isCovered ? '✅ Covered (Within Service Zone)' : '⚠️ Outside Delivery Zone'}\n\n`;
             }
-            locReply += `Your delivery coordinates have been saved to your session context. Tap below or reply to order! 🍔 🥤`;
+            locReply += `Your delivery coordinates have been saved. Tap below to continue your order! 🍔 🥤`;
             
             await sendButtons(customerNumber, locReply, [
                 { id: 'place_order', title: '🛍️ Place an Order' },
@@ -1677,38 +1665,54 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 );
             } catch (lErr) { console.error("CRM Background Fail:", lErr); }
 
-            const receiptRows = [
-                `⏳ *Pickup Order Placed!*`,
-                `Ref: ${orderRef}`,
-                `───────────────`,
-                cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
-                `───────────────`,
-                `Subtotal: ${symbol}${subtotal.toFixed(2)}`
-            ];
-
-            if (biz.show_gst_on_receipt) {
-                receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
-                receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
-                receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
-            }
-
-            receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
-            receiptRows.push(`💵 *Payment Method:* ${isCOD ? 'Cash on Delivery / Pay on Pickup' : 'Prepaid UPI'}`);
-            receiptRows.push(`📋 *Status:* Pending for POS Confirmation`);
-            receiptRows.push(``);
-
             if (!isCOD) {
                 const baseUrl = process.env.BACKEND_URL || 'https://backend.sasloop.in';
                 const paymentLink = `${baseUrl}/api/public/payment-redirect/${orderRef}`;
-                receiptRows.push(`💳 *Pay Online:* ${paymentLink}`);
+                const upiMsg = [
+                    `💳 *Prepaid UPI Selected!*`,
+                    `Ref: ${orderRef}`,
+                    `Total: ${symbol}${total.toFixed(2)}`,
+                    `───────────────`,
+                    `💳 *Pay Online:* ${paymentLink}`,
+                    ``,
+                    `⚠️ *NOTE:* Please complete payment first so we can accept and prepare your order!`,
+                    `👉 *After paying, click the button below or reply "I HAVE COMPLETED PAYMENT".*`
+                ].join("\n");
+
+                await sendOfficialMessage(customerNumber, upiMsg, userId);
+                try {
+                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
+                    ], userId);
+                } catch (btnErr) {
+                    console.error("Payment button error for pickup:", btnErr);
+                }
+            } else {
+                const receiptRows = [
+                    `⏳ *Pickup Order Placed!*`,
+                    `Ref: ${orderRef}`,
+                    `───────────────`,
+                    cart.map(i => `• ${i.qty}x ${i.name}`).join("\n"),
+                    `───────────────`,
+                    `Subtotal: ${symbol}${subtotal.toFixed(2)}`
+                ];
+
+                if (biz.show_gst_on_receipt) {
+                    receiptRows.push(`CGST (${cgstR}%): ${symbol}${cgst.toFixed(2)}`);
+                    receiptRows.push(`SGST (${sgstR}%): ${symbol}${sgst.toFixed(2)}`);
+                    receiptRows.push(`_(Prices ${biz.gst_included ? 'include' : 'exclude'} GST)_`);
+                }
+
+                receiptRows.push(`*Total: ${symbol}${total.toFixed(2)}*`);
+                receiptRows.push(`💵 *Payment Method:* Cash on Delivery / Pay on Pickup`);
+                receiptRows.push(`📋 *Status:* Pending for POS Confirmation`);
                 receiptRows.push(``);
+                receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
+
+                const receipt = receiptRows.join("\n");
+                await sendBrandedText(customerNumber, biz.name, receipt, userId);
             }
 
-            receiptRows.push(`Please arrive in 20-30 minutes for pickup. See you soon! 🥡`);
-
-            const receipt = receiptRows.join("\n");
-
-            await sendBrandedText(customerNumber, biz.name, receipt, userId);
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
             return;
         }

@@ -253,6 +253,21 @@ router.get("/menu/:userId", async (req, res) => {
         console.error(err);
         res.status(500).json({ error: "Internal error" });
     }
+// 🗺️ OSRM DRIVING ROAD DISTANCE PROXY (100% Reliable for Mobile Browsers)
+router.get("/osrm-distance", async (req, res) => {
+    try {
+        const { originLat, originLng, destLat, destLng } = req.query;
+        if (!originLat || !originLng || !destLat || !destLng) {
+            return res.status(400).json({ error: "originLat, originLng, destLat, destLng are required" });
+        }
+        const { getRoadDistance, calculateDistance } = require("../utils/businessUtils");
+        const roadKm = await getRoadDistance(originLat, originLng, destLat, destLng);
+        const havKm = calculateDistance(originLat, originLng, destLat, destLng);
+        res.json({ success: true, roadKm, haversineKm: Math.round(havKm * 10) / 10 });
+    } catch (err) {
+        console.error("OSRM proxy error:", err);
+        res.status(500).json({ error: "Failed to calculate road distance" });
+    }
 });
 
 // ────────── WHATSAPP OTP LOGIN ──────────
@@ -275,16 +290,20 @@ router.post("/send-whatsapp-otp", async (req, res) => {
 
         otpStore.set(last10, { otp, expiresAt, userId });
 
-        // Send OTP via WhatsApp
-        const fullNumber = `+91${last10}`;
+        // Format recipient number accurately
+        let fullNumber = `+91${last10}`;
+        if (digits.length >= 11 && (digits.startsWith("91") || digits.startsWith("966"))) {
+            fullNumber = `+${digits}`;
+        }
+
         const otpMsg = `🔐 *Your OTP for Online Menu Login*\n\n*${otp}*\n\nThis code expires in 5 minutes. Do not share it with anyone.\n\n— SaSLoop Ordering`;
 
-        try {
-            const { sendOfficialMessage } = require("../whatsappManager");
-            await sendOfficialMessage(fullNumber, otpMsg, userId);
-            console.log(`📲 WhatsApp OTP ${otp} sent to ${fullNumber} for user ${userId}`);
-        } catch (waErr) {
-            console.error("WhatsApp OTP send error (will still return success):", waErr);
+        const { sendOfficialMessage } = require("../whatsappManager");
+        const sendResult = await sendOfficialMessage(fullNumber, otpMsg, userId || 2);
+        console.log(`📲 WhatsApp OTP ${otp} send attempt to ${fullNumber} (Result: ${JSON.stringify(sendResult)})`);
+
+        if (!sendResult || sendResult.success === false) {
+            console.error("WhatsApp OTP send error:", sendResult?.error);
         }
 
         res.json({ success: true, message: "OTP sent to your WhatsApp" });

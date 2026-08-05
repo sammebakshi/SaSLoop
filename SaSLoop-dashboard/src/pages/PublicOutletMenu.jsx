@@ -1649,20 +1649,19 @@ const PublicOutletMenu = () => {
 
     if (isByDistanceMode) {
       setIsCalculatingDistance(true);
-      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${restLng},${restLat};${deliveryCoords.lng},${deliveryCoords.lat}?overview=false`;
+      const proxyUrl = `${API_BASE}/api/public/osrm-distance?originLat=${restLat}&originLng=${restLng}&destLat=${deliveryCoords.lat}&destLng=${deliveryCoords.lng}`;
       
-      fetch(osrmUrl)
+      fetch(proxyUrl)
         .then((res) => res.json())
         .then((data) => {
-          if (data && data.routes && data.routes[0] && typeof data.routes[0].distance === "number") {
-            const roadKm = data.routes[0].distance / 1000;
-            setCalculatedDistanceKm(Math.round(roadKm * 10) / 10);
+          if (data && typeof data.roadKm === "number") {
+            setCalculatedDistanceKm(data.roadKm);
           } else {
             setCalculatedDistanceKm(Math.round(haversineDist * 1.35 * 10) / 10);
           }
         })
         .catch((err) => {
-          console.warn("OSRM routing API error, falling back to estimated road distance:", err);
+          console.warn("Backend OSRM proxy error, falling back to estimated road distance:", err);
           setCalculatedDistanceKm(Math.round(haversineDist * 1.35 * 10) / 10);
         })
         .finally(() => setIsCalculatingDistance(false));
