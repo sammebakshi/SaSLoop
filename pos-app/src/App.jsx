@@ -10083,7 +10083,7 @@ const UniversalPOS = () => {
 
       const status = String(order.status || 'PENDING').toUpperCase();
       if (digitalSelectedStateFilter === 'NEW') {
-        if (!['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status)) return false;
+        if (!['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status)) return false;
       } else if (digitalSelectedStateFilter === 'RUNNING') {
         if (!['PROCESSING', 'PREPARING'].includes(status)) return false;
       } else if (digitalSelectedStateFilter === 'READY') {

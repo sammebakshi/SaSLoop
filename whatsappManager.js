@@ -1911,13 +1911,13 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     `👉 *After paying, click the button below or reply "I HAVE COMPLETED PAYMENT".*`
                 ].join("\n");
 
-                await sendOfficialMessage(customerNumber, upiMsg, userId);
                 try {
-                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                    await sendButtons(customerNumber, upiMsg, [
                         { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
                     ], userId);
                 } catch (btnErr) {
                     console.error("Payment button error for pickup:", btnErr);
+                    await sendOfficialMessage(customerNumber, upiMsg, userId);
                 }
             } else {
                 const receiptRows = [
@@ -2032,16 +2032,17 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
 
             const receipt = receiptRows.join("\n");
 
-            await sendOfficialMessage(customerNumber, receipt, userId);
-
             if (!isCOD) {
                 try {
-                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
-                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Completed Payment" }
+                    await sendButtons(customerNumber, receipt, [
+                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
                     ], userId);
                 } catch (btnErr) {
                     console.error("Payment button error:", btnErr);
+                    await sendOfficialMessage(customerNumber, receipt, userId);
                 }
+            } else {
+                await sendOfficialMessage(customerNumber, receipt, userId);
             }
 
             await updateSession(userId, cleanNum, 'IDLE', { cart: [] });

@@ -22,8 +22,8 @@ const App = () => {
   });
 
   const [activeOutlet, setActiveOutlet] = useState(() => ({
-    id: user?.id || 1,
-    name: user?.name || user?.business_name || 'Main Restaurant'
+    id: user?.bizId || user?.parent_user_id || user?.id || 1,
+    name: user?.business_name || user?.name || 'Main Restaurant'
   }));
 
   const [activeTab, setActiveTab] = useState('orders');
@@ -65,8 +65,8 @@ const App = () => {
     setToken(newToken);
     setUser(newUser);
     setActiveOutlet({
-      id: newUser.id || 1,
-      name: newUser.name || newUser.business_name || 'Main Restaurant'
+      id: newUser.bizId || newUser.parent_user_id || newUser.id || 1,
+      name: newUser.business_name || newUser.name || 'Main Restaurant'
     });
     audioEngine.initContext();
     if (window.AndroidNativeAuth && window.AndroidNativeAuth.saveAuthToken) {
