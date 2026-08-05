@@ -655,9 +655,10 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         const biz = bizRes.rows[0];
         if (!biz) return;
 
+        const session = await getSession(userId, cleanNum);
+
         // --- 📍 HANDLE WHATSAPP NATIVE GPS LOCATION MESSAGE ---
         if (isLocation && locationData && locationData.latitude && locationData.longitude) {
-            const session = await getSession(userId, cleanNum);
             const deliveryInfo = await getDeliveryDetails(biz, locationData.latitude, locationData.longitude);
             const distKm = deliveryInfo ? deliveryInfo.distance : null;
             const isCovered = deliveryInfo ? deliveryInfo.serviceable : true;
@@ -1072,8 +1073,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
             return;
         }
-
-        const session = await getSession(userId, cleanNum);
 
         // --- 🧩 HANDLE PENDING DISAMBIGUATION SELECTION ---
         if (session.context.pending_selection) {
