@@ -35,7 +35,7 @@ const WhatsAppIcon = ({ size = 18, className = "" }) => (
 );
 
 /* ────────── INTERACTIVE LEAFLET MAP PICKER (AUTO GPS & PIN AT CURRENT LOCATION) ────────── */
-const InteractiveMapPicker = ({ restLat, restLng, deliveryCoords, setDeliveryCoords, calculatedDistanceKm, fetchAddressFromCoords, readOnly = false }) => {
+const InteractiveMapPicker = ({ restLat, restLng, deliveryCoords, setDeliveryCoords, calculatedDistanceKm, fetchAddressFromCoords, readOnly = false, isByDistanceMode = false, maxDeliveryRadiusKm = 15 }) => {
   const mapRef = React.useRef(null);
   const leafletMapInstance = React.useRef(null);
   const markerRef = React.useRef(null);
@@ -103,13 +103,13 @@ const InteractiveMapPicker = ({ restLat, restLng, deliveryCoords, setDeliveryCoo
         maxZoom: 19,
       }).addTo(map);
 
-      // Restaurant Circle Radius Marker (only in interactive mode)
+      // Restaurant Circle Boundary Marker (only in interactive mode)
       if (!readOnly && restLat && restLng) {
         L.circle([restLat, restLng], {
           color: '#e05328',
           fillColor: '#e05328',
-          fillOpacity: 0.15,
-          radius: 1000,
+          fillOpacity: 0.1,
+          radius: (parseFloat(maxDeliveryRadiusKm) || 15) * 1000,
         }).addTo(map);
       }
 
@@ -145,7 +145,7 @@ const InteractiveMapPicker = ({ restLat, restLng, deliveryCoords, setDeliveryCoo
       leafletMapInstance.current = map;
       setTimeout(() => { map.invalidateSize(); }, 300);
     }
-  }, [restLat, restLng, setDeliveryCoords, readOnly]);
+  }, [restLat, restLng, setDeliveryCoords, readOnly, maxDeliveryRadiusKm]);
 
   return (
     <div className={`relative w-full ${readOnly ? 'h-44 sm:h-52' : 'h-72 sm:h-80'} rounded-2xl overflow-hidden border-2 border-stone-300 shadow-md bg-stone-100`}>
@@ -156,7 +156,7 @@ const InteractiveMapPicker = ({ restLat, restLng, deliveryCoords, setDeliveryCoo
           {readOnly
             ? "📍 Pinned Delivery Location"
             : (deliveryCoords
-              ? `Pin: ${calculatedDistanceKm ? calculatedDistanceKm.toFixed(1) : '0'} KM away (Drag pin or tap map to adjust)`
+              ? `Pin: ${calculatedDistanceKm ? calculatedDistanceKm.toFixed(1) : '0'} KM away (${isByDistanceMode ? 'by Road Distance' : 'by Radius'})`
               : "Locating your GPS location...")}
         </span>
       </div>
@@ -1623,12 +1623,53 @@ const PublicOutletMenu = () => {
   // Back Office Restaurant GPS & Delivery Settings
   const restLat = parseFloat(businessData?.latitude) || 34.262643;
   const restLng = parseFloat(businessData?.longitude) || 74.903283;
-  const maxDeliveryRadiusKm = parseFloat(businessData?.delivery_radius_km || activeSettings.delivery_radius_km || 15);
+
+  // Determine Fencing Mode: "distance" (BY DISTANCE via OSRM) vs "radius" (BY RADIUS via Haversine)
+  const isByDistanceMode = (
+    businessData?.settings?.custDeliveryLimitType === "distance" ||
+    activeSettings?.custDeliveryLimitType === "distance"
+  );
+
+  const maxDeliveryRadiusKm = isByDistanceMode
+    ? parseFloat(businessData?.settings?.custDeliveryDistanceKm || businessData?.delivery_radius_km || activeSettings.delivery_radius_km || 15)
+    : parseFloat(businessData?.settings?.custDeliveryRadiusKm || businessData?.delivery_radius_km || activeSettings.delivery_radius_km || 15);
+
   const minDeliveryOrderAmount = parseFloat(businessData?.min_order_value || businessData?.min_delivery_amount || activeSettings.min_delivery_amount || 0);
 
-  const calculatedDistanceKm = deliveryCoords
-    ? calculateKmDistance(restLat, restLng, deliveryCoords.lat, deliveryCoords.lng)
-    : 0;
+  const [calculatedDistanceKm, setCalculatedDistanceKm] = useState(0);
+  const [isCalculatingDistance, setIsCalculatingDistance] = useState(false);
+
+  useEffect(() => {
+    if (!deliveryCoords || !deliveryCoords.lat || !deliveryCoords.lng || !restLat || !restLng) {
+      setCalculatedDistanceKm(0);
+      return;
+    }
+
+    const haversineDist = calculateKmDistance(restLat, restLng, deliveryCoords.lat, deliveryCoords.lng);
+
+    if (isByDistanceMode) {
+      setIsCalculatingDistance(true);
+      const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${restLng},${restLat};${deliveryCoords.lng},${deliveryCoords.lat}?overview=false`;
+      
+      fetch(osrmUrl)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && data.routes && data.routes[0] && typeof data.routes[0].distance === "number") {
+            const roadKm = data.routes[0].distance / 1000;
+            setCalculatedDistanceKm(Math.round(roadKm * 10) / 10);
+          } else {
+            setCalculatedDistanceKm(Math.round(haversineDist * 1.35 * 10) / 10);
+          }
+        })
+        .catch((err) => {
+          console.warn("OSRM routing API error, falling back to estimated road distance:", err);
+          setCalculatedDistanceKm(Math.round(haversineDist * 1.35 * 10) / 10);
+        })
+        .finally(() => setIsCalculatingDistance(false));
+    } else {
+      setCalculatedDistanceKm(Math.round(haversineDist * 10) / 10);
+    }
+  }, [deliveryCoords?.lat, deliveryCoords?.lng, restLat, restLng, isByDistanceMode]);
 
   const isLocationServiceable =
     fulfillmentMode === "DELIVERY" && deliveryCoords
@@ -2868,6 +2909,8 @@ const PublicOutletMenu = () => {
                         deliveryCoords={deliveryCoords}
                         setDeliveryCoords={setDeliveryCoords}
                         calculatedDistanceKm={calculatedDistanceKm}
+                        isByDistanceMode={isByDistanceMode}
+                        maxDeliveryRadiusKm={maxDeliveryRadiusKm}
                       />
 
                       <input
