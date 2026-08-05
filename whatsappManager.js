@@ -340,7 +340,7 @@ const getItemOptions = async (itemId, userId) => {
              JOIN outlet_menus om ON omi.menu_id = om.id
              WHERE (om.outlet_id = $1 OR om.user_id = $1)
                AND (omi.id = $2 OR LOWER(omi.item_name) = LOWER($3))
-             ORDER BY om.is_pos_default DESC, om.is_digital_default DESC`,
+             ORDER BY om.is_digital_default DESC, om.is_digital DESC, om.is_pos_default DESC`,
             [userId, itemId, targetItemName || '']
         );
         const candidateIds = candidateIdsRes.rows.map(r => r.id);
@@ -366,13 +366,16 @@ const getItemOptions = async (itemId, userId) => {
                         omi.base_price as matched_price,
                         omi.id as menu_item_id
                      FROM options_list ol 
-                     LEFT JOIN outlet_menu_items omi ON (omi.menu_id IN (SELECT id FROM outlet_menus WHERE outlet_id = $1 OR user_id = $1)) AND (
+                     LEFT JOIN outlet_menu_items omi ON (omi.menu_id IN (
+                        SELECT id FROM outlet_menus WHERE (outlet_id = $1 OR user_id = $1)
+                     )) AND (
                         omi.item_name ILIKE ol.name 
                         OR omi.item_name ILIKE '%' || ol.name
                         OR ol.name ILIKE '%' || omi.item_name
                      ) AND omi.is_active = true
+                     LEFT JOIN outlet_menus om ON omi.menu_id = om.id
                      WHERE ol.group_id = ANY($2) AND ol.is_active = true 
-                     ORDER BY ol.id ASC, omi.id ASC`,
+                     ORDER BY ol.id ASC, om.is_digital_default DESC NULLS LAST, om.is_digital DESC NULLS LAST, omi.id ASC`,
                     [userId, groupIds]
                 );
 
