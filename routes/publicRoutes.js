@@ -253,6 +253,8 @@ router.get("/menu/:userId", async (req, res) => {
         console.error(err);
         res.status(500).json({ error: "Internal error" });
     }
+});
+
 // 🗺️ OSRM DRIVING ROAD DISTANCE PROXY (100% Reliable for Mobile Browsers)
 router.get("/osrm-distance", async (req, res) => {
     try {
