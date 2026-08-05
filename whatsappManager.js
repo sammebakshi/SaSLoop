@@ -687,20 +687,27 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 return;
             }
 
-            await updateSession(userId, cleanNum, session.state, session.context);
+            // If customer is in ordering flow (AWAITING_LOCATION or has cart items), proceed directly to Order Summary!
+            if (session.state === 'AWAITING_LOCATION' || (session.context.cart && session.context.cart.length > 0)) {
+                session.state = 'AWAITING_LOCATION';
+                await updateSession(userId, cleanNum, 'AWAITING_LOCATION', session.context);
+                // Fall through to AWAITING_LOCATION handler below
+            } else {
+                await updateSession(userId, cleanNum, session.state, session.context);
 
-            let locReply = `📍 *LOCATION RECEIVED & SAVED!*\n━━━━━━━━━━━━━━\n`;
-            if (distKm !== null) {
-                locReply += `📏 *Driving Distance:* ${distKm} KM\n`;
-                locReply += `🚚 *Delivery Status:* ✅ Covered (Within Service Zone)\n\n`;
+                let locReply = `📍 *LOCATION RECEIVED & SAVED!*\n━━━━━━━━━━━━━━\n`;
+                if (distKm !== null) {
+                    locReply += `📏 *Driving Distance:* ${distKm} KM\n`;
+                    locReply += `🚚 *Delivery Status:* ✅ Covered (Within Service Zone)\n\n`;
+                }
+                locReply += `Your delivery coordinates have been saved. Tap below to continue your order! 🍔 🥤`;
+                
+                await sendButtons(customerNumber, locReply, [
+                    { id: 'place_order', title: '🛍️ Place an Order' },
+                    { id: 'view_menu', title: '📜 View Digital Menu' }
+                ], userId);
+                return;
             }
-            locReply += `Your delivery coordinates have been saved. Tap below to continue your order! 🍔 🥤`;
-            
-            await sendButtons(customerNumber, locReply, [
-                { id: 'place_order', title: '🛍️ Place an Order' },
-                { id: 'view_menu', title: '📜 View Digital Menu' }
-            ], userId);
-            return;
         }
 
         // --- ⭐ HANDLE 5-STAR RATING & GOOGLE REVIEW BOOSTER ---
@@ -1482,17 +1489,28 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     const discountAmount = session.context.redeemedPoints ? (session.context.redeemedPoints * (parseFloat(biz.points_to_amount_ratio) || 0.1)) : 0;
                     const initialTotal = Math.max(0, (biz.gst_included ? subtotal : (subtotal + cgst + sgst)) - discountAmount);
 
-                    await pool.query(
+                    const insRes = await pool.query(
                         `INSERT INTO orders (
                             user_id, restaurant_id, customer_name, customer_number, address, items, 
                             total_price, order_reference, status, delivery_charge, payment_method, 
                             redeemed_points, discount_amount, source, order_type
-                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING_DELIVERY_CHARGE', 0, 'COD', $9, $10, 'WHATSAPP', 'DELIVERY')`,
+                        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'PENDING_DELIVERY_CHARGE', 0, 'COD', $9, $10, 'WHATSAPP', 'DELIVERY') RETURNING *`,
                         [userId, biz.id || null, customerName || "WhatsApp Customer", cleanNum, customerAddress, JSON.stringify(cart), initialTotal, orderRef, session.context.redeemedPoints || 0, discountAmount]
                     );
 
-                    // Trigger Webhook & Notify Manager/Staff
-                    triggerWebhook(biz, 'order.new', { reference: orderRef, type: 'DELIVERY', status: 'PENDING_DELIVERY_CHARGE', total: initialTotal, items: cart, address: customerAddress, customer: { name: customerName, phone: cleanNum } });
+                    const createdOrder = insRes.rows[0];
+
+                    // Trigger Webhooks & Staff Notifications for POS & Order App
+                    triggerWebhook(biz, 'order.created', createdOrder);
+                    triggerWebhook(biz, 'order.new', createdOrder);
+                    try {
+                        await notifyKitchenAndStaff(
+                            userId, orderRef, createdOrder.customer_name, createdOrder.customer_number, cart,
+                            initialTotal, initialTotal, 0, 0, 0, 0, symbol,
+                            'WHATSAPP', customerAddress, '0'
+                        );
+                    } catch (kotErr) { console.error("KOT notification error for typed address:", kotErr); }
+
                     try {
                         const staffAlert = `⚠️ *NEW TYPED ADDRESS ORDER RECEIVED! (Pending Fee Verification)*\n━━━━━━━━━━━━━━━━\nRef: *${orderRef}*\nCustomer: ${customerName || 'Customer'} (${cleanNum})\nAddress: ${customerAddress}\nItems Total: ${symbol}${subtotal.toFixed(2)}\n\n👉 *Action Required:* Open POS > Digital Orders to verify area serviceability & set delivery charge! 🚀`;
                         let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0) ? biz.notification_numbers : [biz.phone, biz.contact_number].filter(Boolean);
