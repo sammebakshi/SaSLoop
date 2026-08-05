@@ -346,7 +346,37 @@ const getItemOptions = async (itemId, userId) => {
         const candidateIds = candidateIdsRes.rows.map(r => r.id);
 
         if (candidateIds.length > 0) {
-            // 1. Check item_option_groups
+            // 1. Check item_type = '1' direct sub-items under base item in outlet_menu_items (e.g. HALF / FULL)
+            for (const cand of candidateIdsRes.rows) {
+                const subItemsRes = await pool.query(
+                    `SELECT id, item_name as name, base_price as price
+                     FROM outlet_menu_items
+                     WHERE menu_id = $1
+                       AND item_type = '1'
+                       AND id > $2
+                       AND id < COALESCE(
+                         (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $1 AND id > $2),
+                         99999999
+                       )
+                     ORDER BY id ASC`,
+                    [cand.menu_id, cand.id]
+                );
+                if (subItemsRes.rows.length > 0) {
+                    return {
+                        groupId: cand.id,
+                        groupName: "Size/Portion",
+                        minSelectable: 1,
+                        maxSelectable: 1,
+                        options: subItemsRes.rows.map(o => ({
+                            id: o.id,
+                            name: o.name,
+                            price: parseFloat(o.price) || 0
+                        }))
+                    };
+                }
+            }
+
+            // 2. Check item_option_groups & options_list fallback
             const ogRes = await pool.query(
                 `SELECT og.id, og.name, og.min_selectable, og.max_selectable
                  FROM option_groups og
@@ -397,36 +427,6 @@ const getItemOptions = async (itemId, userId) => {
                         minSelectable: og.min_selectable,
                         maxSelectable: og.max_selectable,
                         options: parsedOptions
-                    };
-                }
-            }
-
-            // 2. Check item_type = '1' sub-items across candidate IDs
-            for (const cand of candidateIdsRes.rows) {
-                const fallbackRes = await pool.query(
-                    `SELECT id, item_name as name, base_price as price
-                     FROM outlet_menu_items
-                     WHERE menu_id = $1
-                       AND item_type = '1'
-                       AND id > $2
-                       AND id < COALESCE(
-                         (SELECT MIN(id) FROM outlet_menu_items WHERE item_type = '0' AND menu_id = $1 AND id > $2),
-                         99999999
-                       )
-                     ORDER BY id ASC`,
-                    [cand.menu_id, cand.id]
-                );
-                if (fallbackRes.rows.length > 0) {
-                    return {
-                        groupId: cand.id,
-                        groupName: "Size/Portion",
-                        minSelectable: 1,
-                        maxSelectable: 1,
-                        options: fallbackRes.rows.map(o => ({
-                            id: o.id,
-                            name: o.name,
-                            price: parseFloat(o.price) || 0
-                        }))
                     };
                 }
             }
