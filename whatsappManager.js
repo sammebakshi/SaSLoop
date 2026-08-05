@@ -1617,6 +1617,35 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         // --- 🔘 HANDLE BUTTON CLICKS ---
+        if (lower.startsWith('payment_completed_')) {
+            const ordRef = lower.replace('payment_completed_', '').trim();
+            const ordRes = await pool.query("SELECT * FROM orders WHERE (order_reference = $1 OR bill_no = $1 OR id::text = $1) AND user_id = $2", [ordRef, userId]);
+            if (ordRes.rows.length > 0) {
+                const ord = ordRes.rows[0];
+                await pool.query("UPDATE orders SET payment_status = 'CUSTOMER_CONFIRMED' WHERE id = $1", [ord.id]);
+
+                // Send Customer Confirmation Message
+                await sendOfficialMessage(
+                    customerNumber,
+                    `💰 *PAYMENT CONFIRMATION RECEIVED!*\n━━━━━━━━━━━━━━━━\nOrder Ref: *${ord.order_reference || '#' + ord.id}*\n\nThank you! We have notified our staff to verify your payment and start preparing your order immediately. 🚀`,
+                    userId
+                );
+
+                // Trigger Webhook & Notify Manager/Staff
+                triggerWebhook(biz, 'order.updated', { ...ord, payment_status: 'CUSTOMER_CONFIRMED' });
+                try {
+                    const staffMsg = `💰 *CUSTOMER REPORTED PAYMENT!*\n━━━━━━━━━━━━━━━━\nRef: *${ord.order_reference || '#' + ord.id}*\nCustomer: ${ord.customer_name || 'Customer'} (${ord.customer_number})\nTotal: ${symbol}${parseFloat(ord.total_price).toFixed(2)}\n\n👉 *Please verify payment in bank app and update order status in POS!* 🚀`;
+                    let staffNums = (biz.notification_numbers && biz.notification_numbers.length > 0) ? biz.notification_numbers : [biz.phone, biz.contact_number].filter(Boolean);
+                    staffNums = [...new Set(staffNums)];
+                    for (let num of staffNums) {
+                        await sendOfficialMessage(num, staffMsg, userId);
+                    }
+                } catch (sErr) { console.error("Staff notification error for payment completion:", sErr); }
+            }
+            await updateSession(userId, cleanNum, 'IDLE', session.context);
+            return;
+        }
+
         if (lower.startsWith('confirm_charge_')) {
             const ordId = lower.replace('confirm_charge_', '').trim();
             const ordRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [ordId, userId]);

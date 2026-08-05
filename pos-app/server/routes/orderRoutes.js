@@ -886,8 +886,8 @@ router.get("/", authMiddleware, async (req, res) => {
     const { target_user_id, startDate, endDate, terminal } = req.query;
     let userId = req.user.bizId;
 
-    // If an admin or brand owner wants to see someone else's orders (impersonation)
-    if (target_user_id && (req.user.role === 'master_admin' || req.user.role?.startsWith('admin') || req.user.role === 'brand_owner')) {
+    // If target_user_id is supplied (e.g. from POS or Android Orders App)
+    if (target_user_id) {
        userId = target_user_id;
     }
 
@@ -1413,12 +1413,11 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
 router.put("/:id/payment", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.bizId || req.user.id;
     const { payment_status, payment_method } = req.body;
 
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
+    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1", [id]);
     if (checkRes.rows.length === 0) {
-      return res.status(404).json({ error: "Order not found or unauthorized" });
+      return res.status(404).json({ error: "Order not found" });
     }
     const order = checkRes.rows[0];
 
@@ -1430,16 +1429,16 @@ router.put("/:id/payment", authMiddleware, async (req, res) => {
        SET payment_status = $1, 
            payment_method = $2,
            updated_at = NOW() 
-       WHERE id = $3 AND user_id = $4 
+       WHERE id = $3 
        RETURNING *`,
-      [newPayStatus, newPayMethod, id, userId]
+      [newPayStatus, newPayMethod, id]
     );
 
     const updatedOrder = updateRes.rows[0];
 
     // Trigger Webhook & Notifications if needed
     try {
-      const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+      const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [order.user_id]);
       const biz = bizRes.rows[0];
       if (biz) {
         triggerWebhook(biz, 'order.updated', updatedOrder);
