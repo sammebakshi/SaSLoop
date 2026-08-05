@@ -1409,4 +1409,50 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
   }
 });
 
+// 💳 UPDATE ORDER PAYMENT STATUS (POS & Orders App)
+router.put("/:id/payment", authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.bizId || req.user.id;
+    const { payment_status, payment_method } = req.body;
+
+    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
+    if (checkRes.rows.length === 0) {
+      return res.status(404).json({ error: "Order not found or unauthorized" });
+    }
+    const order = checkRes.rows[0];
+
+    const newPayStatus = payment_status ? String(payment_status).toUpperCase() : (order.payment_status || 'RECEIVED');
+    const newPayMethod = payment_method ? String(payment_method).toUpperCase() : (order.payment_method || 'CASH');
+
+    const updateRes = await pool.query(
+      `UPDATE orders 
+       SET payment_status = $1, 
+           payment_method = $2,
+           updated_at = NOW() 
+       WHERE id = $3 AND user_id = $4 
+       RETURNING *`,
+      [newPayStatus, newPayMethod, id, userId]
+    );
+
+    const updatedOrder = updateRes.rows[0];
+
+    // Trigger Webhook & Notifications if needed
+    try {
+      const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+      const biz = bizRes.rows[0];
+      if (biz) {
+        triggerWebhook(biz, 'order.updated', updatedOrder);
+      }
+    } catch (wErr) {
+      console.error("Webhook trigger fail on payment update:", wErr);
+    }
+
+    res.json(updatedOrder);
+  } catch (err) {
+    console.error("🔥 UPDATE PAYMENT STATUS ERROR:", err);
+    res.status(500).json({ error: err.message || "Failed to update payment status" });
+  }
+});
+
 module.exports = router;

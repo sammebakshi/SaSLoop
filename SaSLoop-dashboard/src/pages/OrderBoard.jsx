@@ -819,7 +819,7 @@ const OrderBoard = () => {
                                 <AnimatePresence mode="popLayout">
                                     {filteredOrders.map(item => {
                                         const isSelected = selectedOrder?.id === item.id;
-                                        const isPending = item.status === 'PENDING';
+                                        const isPending = item.status === 'PENDING' || item.status === 'PENDING_DELIVERY_CHARGE' || item.status === 'AWAITING_CUSTOMER_CONFIRMATION';
                                         const isProcessing = item.status === 'PROCESSING' || item.status === 'PREPARING';
 
                                         // UDM Neon Glow Classes
