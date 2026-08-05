@@ -21,13 +21,20 @@ const formatToInter = (p) => {
 
 const sendOfficialMessage = async (to, content, userId) => {
     try {
-        let dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1 AND meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL", [userId]);
+        let dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1 AND meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL AND LENGTH(meta_access_token) > 20 AND meta_phone_id != '123'", [userId]);
         if (dbRes.rows.length === 0) {
-            dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL ORDER BY id ASC LIMIT 1");
+            dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL AND LENGTH(meta_access_token) > 20 AND meta_phone_id != '123' ORDER BY id ASC LIMIT 1");
         }
         let { meta_access_token: token, meta_phone_id: phoneId } = dbRes.rows[0] || {};
         if (token) token = token.trim();
         if (phoneId) phoneId = phoneId.trim();
+
+        // Fall back to system ENV if DB token is missing, too short, or dummy
+        if (!token || !phoneId || token.length < 20 || phoneId === '123') {
+            token = process.env.META_ACCESS_TOKEN ? process.env.META_ACCESS_TOKEN.trim() : null;
+            phoneId = process.env.META_PHONE_ID ? process.env.META_PHONE_ID.trim() : null;
+        }
+
         if (!token || !phoneId) return { success: false, error: "Missing Meta credentials" };
 
         const cleanTo = formatToInter(to);
@@ -82,9 +89,32 @@ const sendOfficialMessage = async (to, content, userId) => {
             Object.assign(payload, content);
         }
         
-        const response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
-            headers: { "Authorization": `Bearer ${token}` }
-        });
+        let response;
+        try {
+            response = await axios.post(`https://graph.facebook.com/v21.0/${phoneId}/messages`, payload, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+        } catch (apiErr) {
+            const errData = apiErr.response?.data;
+            console.error(`⚠️ Meta API attempt 1 failed (phoneId: ${phoneId}):`, errData || apiErr.message);
+            const envToken = process.env.META_ACCESS_TOKEN ? process.env.META_ACCESS_TOKEN.trim() : null;
+            const envPhoneId = process.env.META_PHONE_ID ? process.env.META_PHONE_ID.trim() : null;
+
+            if (envToken && envPhoneId && (token !== envToken || phoneId !== envPhoneId)) {
+                console.log(`🔄 Retrying Meta send with System ENV credentials (${envPhoneId})...`);
+                try {
+                    response = await axios.post(`https://graph.facebook.com/v21.0/${envPhoneId}/messages`, payload, {
+                        headers: { "Authorization": `Bearer ${envToken}` }
+                    });
+                    console.log("✅ Retry with System ENV credentials succeeded!");
+                } catch (retryErr) {
+                    console.error("❌ Retry with System ENV credentials failed:", retryErr.response?.data || retryErr.message);
+                    return { success: false, error: retryErr.response?.data || retryErr.message };
+                }
+            } else {
+                return { success: false, error: errData || apiErr.message };
+            }
+        }
 
         // --- 📝 LOG OUTGOING BOT MESSAGE ---
         if (!content.skipLog) {
@@ -635,12 +665,30 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             session.context.delivery_lat = locationData.latitude;
             session.context.delivery_lng = locationData.longitude;
             session.context.delivery_distance_km = distKm;
+
+            if (!isCovered) {
+                session.context.pendingOrder = null;
+                await updateSession(userId, cleanNum, session.state, session.context);
+
+                const maxDist = deliveryInfo?.maxRadius || biz.delivery_radius_km || 15;
+                let unservMsg = `📍 *LOCATION OUTSIDE DELIVERY ZONE*\n━━━━━━━━━━━━━━\n`;
+                if (distKm !== null) unservMsg += `📏 *Driving Distance:* ${distKm} KM\n`;
+                unservMsg += `🚫 Sorry! Your address is outside our delivery radius of *${maxDist} KM*.\n\n`;
+                unservMsg += `We cannot deliver to this address. Would you like to switch your order to *Pickup* (Takeaway) or cancel your order?`;
+
+                await sendButtons(customerNumber, unservMsg, [
+                    { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
+                    { id: 'cancel_order', title: '❌ Cancel Order' }
+                ], userId);
+                return;
+            }
+
             await updateSession(userId, cleanNum, session.state, session.context);
 
             let locReply = `📍 *LOCATION RECEIVED & SAVED!*\n━━━━━━━━━━━━━━\n`;
             if (distKm !== null) {
                 locReply += `📏 *Driving Distance:* ${distKm} KM\n`;
-                locReply += `🚚 *Delivery Status:* ${isCovered ? '✅ Covered (Within Service Zone)' : '⚠️ Outside Delivery Zone'}\n\n`;
+                locReply += `🚚 *Delivery Status:* ✅ Covered (Within Service Zone)\n\n`;
             }
             locReply += `Your delivery coordinates have been saved. Tap below to continue your order! 🍔 🥤`;
             
@@ -849,7 +897,9 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
                 return;
             } else {
-                await sendOfficialMessage(customerNumber, `ℹ️ You don't have any active pending orders to cancel right now.`, userId);
+                session.state = 'IDLE';
+                await updateSession(userId, cleanNum, 'IDLE', { cart: [] });
+                await sendOfficialMessage(customerNumber, `❌ *Order Cancelled & Cart Cleared*\n━━━━━━━━━━━━━━\nYour cart has been cleared. You can start a new order anytime by sending *Hi* or *Menu*.`, userId);
                 return;
             }
         }
@@ -1410,10 +1460,11 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             
             const delivery = await getDeliveryDetails(biz, cLat, cLon);
             if (!delivery.serviceable) {
-                const unserviceableMsg = `📍 *Outside Service Area*\n━━━━━━━━━━━━━━\nSorry! Your location is ${delivery.distance.toFixed(1)}km away, which is outside our ${delivery.radius}km delivery radius.\n\nWould you like to switch to *Pickup* instead?`;
+                const maxDist = delivery.maxRadius || delivery.radius || biz.delivery_radius_km || 15;
+                const unserviceableMsg = `📍 *LOCATION OUTSIDE DELIVERY ZONE*\n━━━━━━━━━━━━━━\nSorry! Your location is *${delivery.distance.toFixed(1)} KM* away, which is outside our delivery radius of *${maxDist} KM*.\n\nWe cannot deliver to this address. Would you like to switch your order to *Pickup* (Takeaway) or cancel your order?`;
                 await sendButtons(customerNumber, unserviceableMsg, [
                     { id: 'mode_pickup', title: '🥡 Switch to Pickup' },
-                    { id: 'checkout', title: '❌ Cancel' }
+                    { id: 'cancel_order', title: '❌ Cancel Order' }
                 ], userId);
                 return;
             }
