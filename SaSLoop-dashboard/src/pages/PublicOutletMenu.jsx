@@ -2336,30 +2336,55 @@ const PublicOutletMenu = () => {
           )}
 
           {/* 💳 ACTIVE TABLE SESSION BILL TRACKER */}
-          {selectedTableNumber && tableStatusData?.status === "OCCUPIED" && (tableStatusData?.session_orders?.length > 0 || tableStatusData?.total_session_amount > 0) && (
-            <div className="mb-4 p-4 rounded-2xl bg-stone-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg border border-emerald-500/40">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 animate-pulse">
-                  <Clock size={20} />
-                </div>
-                <div>
-                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
-                    Table {selectedTableNumber} Active Session
+          {(() => {
+            let sessionTotal = parseFloat(tableStatusData?.total_session_amount) || 0;
+            const orders = tableStatusData?.session_orders || [];
+            if (sessionTotal === 0 && orders.length > 0) {
+              sessionTotal = orders.reduce((sum, ord) => {
+                const p = parseFloat(ord.total_price) || 0;
+                if (p > 0) return sum + p;
+                const rawItems = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                return sum + rawItems.reduce((iSum, i) => iSum + ((parseFloat(i.qty || i.quantity || 1)) * (parseFloat(i.price) || 0)), 0);
+              }, 0);
+            }
+            if (sessionTotal === 0 && tableStatusData?.active_order) {
+              const ord = tableStatusData.active_order;
+              const p = parseFloat(ord.total_price) || 0;
+              if (p > 0) sessionTotal = p;
+              else {
+                const rawItems = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                sessionTotal = rawItems.reduce((iSum, i) => iSum + ((parseFloat(i.qty || i.quantity || 1)) * (parseFloat(i.price) || 0)), 0);
+              }
+            }
+
+            const showBanner = selectedTableNumber && tableStatusData?.status === "OCCUPIED" && (sessionTotal > 0 || orders.length > 0 || tableStatusData?.active_order);
+            if (!showBanner) return null;
+
+            return (
+              <div className="mb-4 p-4 rounded-2xl bg-stone-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg border border-emerald-500/40">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 animate-pulse">
+                    <Clock size={20} />
                   </div>
-                  <div className="text-lg font-black text-white tabular-nums">
-                    Total Session Bill: ₹{parseFloat(tableStatusData.total_session_amount || 0).toFixed(2)}
+                  <div>
+                    <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                      Table {selectedTableNumber} Active Session
+                    </div>
+                    <div className="text-lg font-black text-white tabular-nums">
+                      Total Session Bill: ₹{sessionTotal.toFixed(2)}
+                    </div>
                   </div>
                 </div>
+                <button
+                  onClick={() => setIsProfileOpen(true)}
+                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Receipt size={14} />
+                  <span>Track Orders ({orders.length || 1})</span>
+                </button>
               </div>
-              <button
-                onClick={() => setIsProfileOpen(true)}
-                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer"
-              >
-                <Receipt size={14} />
-                <span>Track Orders ({tableStatusData.session_orders?.length || 0})</span>
-              </button>
-            </div>
-          )}
+            );
+          })()}
 
           {/* Search & Veg toggle row */}
           <div className="flex items-center gap-3">

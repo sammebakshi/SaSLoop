@@ -510,7 +510,17 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
         );
         const latestRejectedOrder = rejectedRes.rows[0] || null;
 
-        const totalSessionAmount = sessionOrders.reduce((sum, ord) => sum + (parseFloat(ord.total_price) || 0), 0);
+        let totalSessionAmount = sessionOrders.reduce((sum, ord) => sum + (parseFloat(ord.total_price) || 0), 0);
+        if (totalSessionAmount === 0 && isOccupiedInState && activeItemsInState.length > 0) {
+            totalSessionAmount = activeItemsInState.reduce((sum, i) => sum + ((parseFloat(i.qty || i.quantity || 1)) * (parseFloat(i.price) || 0)), 0);
+        }
+        if (totalSessionAmount === 0 && sessionOrders.length > 0) {
+            totalSessionAmount = sessionOrders.reduce((sum, ord) => {
+                const items = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                const itemSum = items.reduce((iSum, i) => iSum + ((parseFloat(i.qty || i.quantity || 1)) * (parseFloat(i.price) || 0)), 0);
+                return sum + (parseFloat(ord.total_price) || itemSum);
+            }, 0);
+        }
 
         // Table is occupied ONLY if there are active items in POS state OR an active session order from the last 12 hours
         const isOccupied = isOccupiedInState || hasActiveDbOrder || ( (dbStatus === 'OCCUPIED' || dbStatus === 'SAVED') && (isOccupiedInState || hasActiveDbOrder) );
