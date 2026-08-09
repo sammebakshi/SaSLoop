@@ -245,7 +245,7 @@ function App() {
         <Route path="/menu" element={<PublicOutletMenu />} />
         <Route path="/menu/:userId" element={<PublicOutletMenu />} />
         <Route path="/menu/:userId/:tableId" element={<PublicOutletMenu />} />
-        <Route path="/table/:userId/:tableId" element={<TableOutletMenu />} />
+        <Route path="/table/:userId/:tableId" element={<PublicOutletMenu />} />
         <Route path="/order" element={<PublicOutletMenu />} />
         <Route path="/order/:userId" element={<PublicOutletMenu />} />
         <Route path="/order/:userId/:tableId" element={<PublicOutletMenu />} />

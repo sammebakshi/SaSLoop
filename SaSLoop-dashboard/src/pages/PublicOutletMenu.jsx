@@ -3871,7 +3871,14 @@ const PublicOutletMenu = () => {
                               const oStatus = String(ord.status || '').toUpperCase();
                               if (['REJECTED', 'CANCELLED'].includes(oStatus)) return null;
 
-                              const stages = [
+                              const isDineInTable = Boolean(selectedTableNumber || ord.table_number || String(ord.fulfillment_mode || '').toUpperCase() === 'DINE_IN');
+
+                              const stages = isDineInTable ? [
+                                { key: 'RECEIVED', label: 'Received', icon: '📥' },
+                                { key: 'PREPARING', label: 'Preparing', icon: '👨‍🍳' },
+                                { key: 'READY', label: 'Ready to Serve', icon: '🍽️' },
+                                { key: 'SERVED', label: 'Served / Settled', icon: '✨' }
+                              ] : [
                                 { key: 'RECEIVED', label: 'Received', icon: '📥' },
                                 { key: 'PREPARING', label: 'Preparing', icon: '👨‍🍳' },
                                 { key: 'READY', label: 'Food Ready', icon: '🍱' },
@@ -3880,10 +3887,16 @@ const PublicOutletMenu = () => {
                               ];
 
                               let currentStageIndex = 0;
-                              if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
-                              else if (['FOOD_READY', 'READY', 'PACKED'].includes(oStatus)) currentStageIndex = 2;
-                              else if (['DISPATCHED', 'OUT_FOR_DELIVERY', 'ON_THE_WAY', 'RIDER_ASSIGNED'].includes(oStatus)) currentStageIndex = 3;
-                              else if (['DELIVERED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 4;
+                              if (isDineInTable) {
+                                if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
+                                else if (['FOOD_READY', 'READY'].includes(oStatus)) currentStageIndex = 2;
+                                else if (['DISPATCHED', 'SERVED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 3;
+                              } else {
+                                if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
+                                else if (['FOOD_READY', 'READY', 'PACKED'].includes(oStatus)) currentStageIndex = 2;
+                                else if (['DISPATCHED', 'OUT_FOR_DELIVERY', 'ON_THE_WAY', 'RIDER_ASSIGNED'].includes(oStatus)) currentStageIndex = 3;
+                                else if (['DELIVERED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 4;
+                              }
 
                               return (
                                 <div className="p-3 bg-white border border-stone-200 rounded-2xl space-y-2 shadow-2xs my-2">
@@ -3895,7 +3908,7 @@ const PublicOutletMenu = () => {
                                     </span>
                                   </div>
 
-                                  <div className="grid grid-cols-5 gap-1 relative pt-1">
+                                  <div className={`grid ${isDineInTable ? 'grid-cols-4' : 'grid-cols-5'} gap-1 relative pt-1`}>
                                     {stages.map((stage, sIdx) => {
                                       const isActive = sIdx <= currentStageIndex;
                                       const isCurrent = sIdx === currentStageIndex;
