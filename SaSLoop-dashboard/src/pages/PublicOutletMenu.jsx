@@ -615,6 +615,44 @@ const PublicOutletMenu = () => {
   const [fulfillmentMode, setFulfillmentMode] = useState(tableParam ? "DINE_IN" : "DELIVERY"); // "DELIVERY" | "PICKUP" | "DINE_IN"
   const [livePreviewOverride, setLivePreviewOverride] = useState(null);
   const [dismissedRejectionRef, setDismissedRejectionRef] = useState(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Hero Slides Data
+  const heroSlides = useMemo(() => [
+    {
+      image: "https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=1400&q=80",
+      title: "Signature Kashmiri Wazwan & Biryani",
+      subtitle: "Authentic royal delicacies cooked with rich aromatic saffron and spices",
+      tag: "MOST POPULAR"
+    },
+    {
+      image: "https://images.unsplash.com/photo-1544025162-d76694265947?w=1400&q=80",
+      title: "Tandoori Seekh Kebabs & Charcoal Grills",
+      subtitle: "Juicy, flame-grilled sizzlers served piping hot with fresh mint chutney",
+      tag: "CHEF'S SPECIAL"
+    },
+    {
+      image: "https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=1400&q=80",
+      title: "Rich Mughlai & Kashmiri Gravies",
+      subtitle: "Rosta, Rogan Josh, Butter Chicken & Korma prepared fresh daily",
+      tag: "FRESH TODAY"
+    },
+    {
+      image: "https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=1400&q=80",
+      title: "Artisanal Pizzas & Gourmet Burgers",
+      subtitle: "Crispy wood-fired crusts and double-loaded melted cheese patties",
+      tag: "FAST DELIVERY"
+    }
+  ], []);
+
+  // Auto advance slideshow
+  useEffect(() => {
+    if (activeNav !== "home") return;
+    const timer = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, [activeNav, heroSlides.length]);
 
   // Helper to get future time slots for a given date
   const getAvailableTimeSlots = (selectedDate) => {
@@ -2474,39 +2512,236 @@ const PublicOutletMenu = () => {
       {/* MAIN VIEW AREA */}
       <main className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-8 pt-3 sm:pt-4 pb-32 lg:pb-16 flex-1 w-full">
 
-        {/* 🏠 HOME VIEW SECTION */}
+        {/* 🏠 HOME VIEW SECTION WITH SLIDESHOW CAROUSEL & IMAGE COLLAGE */}
         {activeNav === "home" && !selectedTableNumber && (
-          <div className="space-y-6 max-w-4xl mx-auto py-4">
-            {/* Hero Banner Card */}
-            <div style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }} className="rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
-              <div className="relative z-10 space-y-3">
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white inline-block">
-                  Official Online Store
-                </span>
-                <h1 className="text-2xl sm:text-4xl font-display font-black tracking-tight leading-tight">
-                  {restaurantTitle}
-                </h1>
-                <p className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed max-w-xl">
-                  {activeSettings.heroSubtext || "Order fresh biryani, wazwan, curries & snacks delivered fast to your doorstep!"}
-                </p>
-              </div>
+          <div className="space-y-8 max-w-6xl mx-auto py-2">
 
-              <div className="pt-6 flex flex-wrap items-center gap-3">
+            {/* 📸 HERO IMAGE SLIDESHOW CAROUSEL */}
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-stone-900 aspect-[16/9] sm:aspect-[21/9] min-h-[280px] sm:min-h-[380px]">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentSlide}
+                  initial={{ opacity: 0, scale: 1.05 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.7, ease: "easeInOut" }}
+                  className="absolute inset-0"
+                >
+                  <img
+                    src={heroSlides[currentSlide].image}
+                    alt={heroSlides[currentSlide].title}
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Dark gradient overlay for typography readability */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/50 to-transparent" />
+                </motion.div>
+              </AnimatePresence>
+
+              {/* Banner Text Overlay */}
+              <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between z-10 text-white">
+                <div className="flex items-center justify-between">
+                  <span className="px-3 py-1 bg-emerald-500/90 backdrop-blur-md text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">
+                    {heroSlides[currentSlide].tag}
+                  </span>
+                  <span className="text-[11px] font-extrabold text-white/80 tracking-widest uppercase">
+                    {restaurantTitle}
+                  </span>
+                </div>
+
+                <div className="space-y-2 max-w-2xl">
+                  <motion.h1
+                    key={`title-${currentSlide}`}
+                    initial={{ y: 20, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    className="text-2xl sm:text-4xl font-display font-black tracking-tight leading-tight drop-shadow-md"
+                  >
+                    {heroSlides[currentSlide].title}
+                  </motion.h1>
+                  <motion.p
+                    key={`sub-${currentSlide}`}
+                    initial={{ y: 15, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.1 }}
+                    className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed max-w-xl drop-shadow-sm text-stone-200"
+                  >
+                    {heroSlides[currentSlide].subtitle}
+                  </motion.p>
+                </div>
+
+                {/* Buttons & Slide Indicator Dots */}
+                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setActiveNav("menu")}
+                      style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }}
+                      className="px-6 py-3 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl hover:brightness-110 transition cursor-pointer flex items-center gap-2"
+                    >
+                      <span>Explore Menu Catalog</span>
+                      <ArrowRight size={16} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsReservationModalOpen(true)}
+                      className="px-5 py-3 bg-stone-900/70 backdrop-blur-md hover:bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer border border-white/20 flex items-center gap-1.5"
+                    >
+                      <Calendar size={14} /> Book Table
+                    </button>
+                  </div>
+
+                  {/* Manual Slide Dots */}
+                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10">
+                    {heroSlides.map((_, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        onClick={() => setCurrentSlide(idx)}
+                        className={`h-2 rounded-full transition-all cursor-pointer ${
+                          currentSlide === idx ? "w-6 bg-emerald-400" : "w-2 bg-white/40 hover:bg-white/70"
+                        }`}
+                        title={`Go to slide ${idx + 1}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 🍱 FEATURED DISHES IMAGE COLLAGE GRID */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-amber-500" />
+                    <span>Specialty Culinary Collage</span>
+                  </h2>
+                  <p className="text-xs text-stone-500 font-medium">Click any collection to jump directly to category menu</p>
+                </div>
                 <button
                   type="button"
                   onClick={() => setActiveNav("menu")}
-                  className="px-6 py-3 bg-white text-stone-900 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-stone-100 transition cursor-pointer flex items-center gap-2"
+                  className="text-xs font-black text-emerald-600 hover:text-emerald-700 transition flex items-center gap-1 uppercase tracking-wider cursor-pointer"
                 >
-                  <span>Browse Food Menu</span>
-                  <ArrowRight size={16} />
+                  <span>View All Menu</span>
+                  <ArrowRight size={14} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setIsReservationModalOpen(true)}
-                  className="px-5 py-3 bg-stone-900/60 backdrop-blur-md hover:bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer border border-white/20 flex items-center gap-1.5"
+              </div>
+
+              {/* Collage Masonry / Grid */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+                {/* Large Featured Card 1 */}
+                <div
+                  onClick={() => { setActiveNav("menu"); setActiveCat("Wazwan"); }}
+                  className="group relative rounded-3xl overflow-hidden shadow-md cursor-pointer aspect-square sm:aspect-auto md:col-span-2 md:row-span-2 min-h-[220px] sm:min-h-[300px]"
                 >
-                  <Calendar size={14} /> Book Table
-                </button>
+                  <img
+                    src="https://images.unsplash.com/photo-1589302168068-964664d93dc0?w=900&q=80"
+                    alt="Royal Kashmiri Wazwan"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/40 to-transparent" />
+                  <div className="absolute inset-0 p-5 flex flex-col justify-between text-white">
+                    <span className="self-start px-2.5 py-1 bg-amber-500 text-stone-950 font-black text-[9px] uppercase tracking-widest rounded-full shadow-md">
+                      ROYAL SPECIAL
+                    </span>
+                    <div>
+                      <h3 className="text-xl sm:text-2xl font-black font-display tracking-tight text-white group-hover:text-amber-300 transition">
+                        Kashmiri Wazwan Collection
+                      </h3>
+                      <p className="text-xs font-semibold text-stone-300 mt-1 line-clamp-1">
+                        Rosta, Kashmiri Rogan Josh, Gushtaba & Tabak Maaz
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 2 */}
+                <div
+                  onClick={() => { setActiveNav("menu"); setActiveCat("Biryani"); }}
+                  className="group relative rounded-3xl overflow-hidden shadow-md cursor-pointer aspect-square min-h-[160px]"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1563379091339-03b21ab4a4f8?w=600&q=80"
+                    alt="Authentic Biryani"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
+                    <span className="self-start px-2 py-0.5 bg-emerald-500 text-white font-black text-[8px] uppercase tracking-wider rounded-full">
+                      POPULAR
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-emerald-300 transition">Signature Biryani</h4>
+                      <p className="text-[10px] text-stone-300 font-medium">Saffron Dum Rice</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 3 */}
+                <div
+                  onClick={() => { setActiveNav("menu"); setActiveCat("Kebabs"); }}
+                  className="group relative rounded-3xl overflow-hidden shadow-md cursor-pointer aspect-square min-h-[160px]"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1544025162-d76694265947?w=600&q=80"
+                    alt="Charcoal Seekh Kebabs"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
+                    <span className="self-start px-2 py-0.5 bg-rose-500 text-white font-black text-[8px] uppercase tracking-wider rounded-full">
+                      HOT & SPICY
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-rose-300 transition">Tandoori Kebabs</h4>
+                      <p className="text-[10px] text-stone-300 font-medium">Flame Grilled Sizzlers</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 4 */}
+                <div
+                  onClick={() => { setActiveNav("menu"); setActiveCat("Burgers"); }}
+                  className="group relative rounded-3xl overflow-hidden shadow-md cursor-pointer aspect-square min-h-[160px]"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1568901346375-23c9450c58cd?w=600&q=80"
+                    alt="Gourmet Burgers"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
+                    <span className="self-start px-2 py-0.5 bg-blue-500 text-white font-black text-[8px] uppercase tracking-wider rounded-full">
+                      CHEESY
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-blue-300 transition">Gourmet Burgers</h4>
+                      <p className="text-[10px] text-stone-300 font-medium">Double Cheese Patties</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Card 5 */}
+                <div
+                  onClick={() => { setActiveNav("menu"); setActiveCat("Beverages"); }}
+                  className="group relative rounded-3xl overflow-hidden shadow-md cursor-pointer aspect-square min-h-[160px]"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1551024709-8f23befc6f87?w=600&q=80"
+                    alt="Mocktails & Beverages"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/80 to-transparent" />
+                  <div className="absolute inset-0 p-4 flex flex-col justify-between text-white">
+                    <span className="self-start px-2 py-0.5 bg-purple-500 text-white font-black text-[8px] uppercase tracking-wider rounded-full">
+                      CHILLED
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-black text-white group-hover:text-purple-300 transition">Cool Beverages</h4>
+                      <p className="text-[10px] text-stone-300 font-medium">Shakes & Cold Coffee</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
