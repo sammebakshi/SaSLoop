@@ -2430,27 +2430,27 @@ const PublicOutletMenu = () => {
 
         </div>
 
-        {/* 🎯 ONLINE NAVIGATION TABS (HOME, MENU, ORDERS, PROFILE) */}
+        {/* 🎯 SIMPLE CLEAN TEXT TABS (HOME, MENU, ORDERS) */}
         {!selectedTableNumber && (
-          <div className="bg-stone-100/80 border-t border-stone-200 px-4 py-1.5 flex items-center justify-center gap-2 sm:gap-4 text-xs font-black shadow-inner">
+          <div className="bg-white border-t border-stone-100 px-4 py-2 flex items-center justify-center gap-8 text-xs font-black uppercase tracking-wider">
             <button
               type="button"
               onClick={() => setActiveNav("home")}
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
-                activeNav === "home" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              className={`transition cursor-pointer py-1 border-b-2 ${
+                activeNav === "home" ? "text-stone-900 border-stone-900 font-black" : "text-stone-400 border-transparent hover:text-stone-700 font-bold"
               }`}
             >
-              <Home size={14} /> Home
+              Home
             </button>
 
             <button
               type="button"
               onClick={() => setActiveNav("menu")}
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
-                activeNav === "menu" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              className={`transition cursor-pointer py-1 border-b-2 ${
+                activeNav === "menu" ? "text-stone-900 border-stone-900 font-black" : "text-stone-400 border-transparent hover:text-stone-700 font-bold"
               }`}
             >
-              <Utensils size={14} /> Menu Catalog
+              Menu
             </button>
 
             <button
@@ -2462,25 +2462,11 @@ const PublicOutletMenu = () => {
                   setIsAuthModalOpen(true);
                 }
               }}
-              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
-                activeNav === "orders" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              className={`transition cursor-pointer py-1 border-b-2 ${
+                activeNav === "orders" ? "text-stone-900 border-stone-900 font-black" : "text-stone-400 border-transparent hover:text-stone-700 font-bold"
               }`}
             >
-              <Package size={14} /> My Orders
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (isUserLoggedIn) {
-                  setIsProfileOpen(true);
-                } else {
-                  setIsAuthModalOpen(true);
-                }
-              }}
-              className="px-3.5 py-1.5 rounded-full text-stone-600 hover:text-stone-900 transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <User size={14} /> Profile
+              Orders
             </button>
           </div>
         )}
