@@ -1083,6 +1083,29 @@ const PublicOutletMenu = () => {
     }
   }, [selectedTableNumber, selectedOutletId, userSession?.isLoggedIn, userSession?.phone, profile?.phone]);
 
+  // 🔄 Fast Live Sync for Table Session & POS Bill Settlement
+  useEffect(() => {
+    if (!selectedTableNumber || !selectedOutletId) return;
+
+    const syncTableStatus = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/public/table-status/${selectedOutletId}/${encodeURIComponent(selectedTableNumber)}`);
+        const data = await res.json();
+        if (data) {
+          setTableStatusData(data);
+          if (data.status === "AVAILABLE") {
+            setIsTableAccessBlocked(false);
+          }
+        }
+      } catch (e) {
+        // Silent catch for background poll
+      }
+    };
+
+    const intervalId = setInterval(syncTableStatus, 4000);
+    return () => clearInterval(intervalId);
+  }, [selectedTableNumber, selectedOutletId]);
+
   // 📲 Send WhatsApp OTP for Table Login
   const handleTableSendOtp = async () => {
     setTableLoginError("");
@@ -2164,13 +2187,30 @@ const PublicOutletMenu = () => {
 
         // 🚀 INSTANT TABLE SESSION UPDATE: Instantly show active session bill without waiting for poll
         if (selectedTableNumber) {
+          const formattedOrderForSession = {
+            ...orderObject,
+            total_price: grandTotal,
+            total: grandTotal,
+            order_reference: data.orderRef || orderObject.id,
+            items: cart.map(c => ({
+              id: c.id,
+              product_name: c.product_name || c.name,
+              name: c.product_name || c.name,
+              qty: c.qty,
+              price: c.price
+            })),
+            status: "PENDING",
+            created_at: new Date().toISOString()
+          };
+
           setTableStatusData(prev => ({
             ...prev,
             status: "OCCUPIED",
             customer_number: form.phone || profile?.phone || "",
+            active_order: formattedOrderForSession,
             total_session_amount: (parseFloat(prev?.total_session_amount) || 0) + grandTotal,
             latest_rejected_order: null,
-            session_orders: [orderObject, ...(prev?.session_orders || [])]
+            session_orders: [formattedOrderForSession, ...(prev?.session_orders || [])]
           }));
         }
 
