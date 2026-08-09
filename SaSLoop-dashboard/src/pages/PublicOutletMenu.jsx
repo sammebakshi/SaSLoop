@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search, ShoppingBag, Plus, Minus, ArrowRight, X, Leaf, Check, Calendar,
+  Search, ShoppingBag, Plus, Minus, ArrowRight, X, Leaf, Check, Calendar, Home,
   MapPin, Clock, Bike, ShoppingBag as PickupIcon, ChevronDown, Phone,
   CheckCircle2, Sparkles, User, Package, Heart, LogOut, Navigation, AlertTriangle,
   Utensils, UtensilsCrossed, Menu, ShieldCheck, Flame, Percent, Tag, Star, Coffee, Ticket, Copy, ExternalLink,
@@ -2429,9 +2429,263 @@ const PublicOutletMenu = () => {
           </div>
 
         </div>
+
+        {/* 🎯 ONLINE NAVIGATION TABS (HOME, MENU, ORDERS, PROFILE) */}
+        {!selectedTableNumber && (
+          <div className="bg-stone-100/80 border-t border-stone-200 px-4 py-1.5 flex items-center justify-center gap-2 sm:gap-4 text-xs font-black shadow-inner">
+            <button
+              type="button"
+              onClick={() => setActiveNav("home")}
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
+                activeNav === "home" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              }`}
+            >
+              <Home size={14} /> Home
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveNav("menu")}
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
+                activeNav === "menu" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              }`}
+            >
+              <Utensils size={14} /> Menu Catalog
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (isUserLoggedIn) {
+                  setActiveNav("orders");
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5 cursor-pointer ${
+                activeNav === "orders" ? "bg-stone-900 text-white shadow-xs" : "text-stone-600 hover:text-stone-900"
+              }`}
+            >
+              <Package size={14} /> My Orders
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (isUserLoggedIn) {
+                  setIsProfileOpen(true);
+                } else {
+                  setIsAuthModalOpen(true);
+                }
+              }}
+              className="px-3.5 py-1.5 rounded-full text-stone-600 hover:text-stone-900 transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <User size={14} /> Profile
+            </button>
+          </div>
+        )}
       </header>
-      {/* MENU VIEW */}
+      {/* MAIN VIEW AREA */}
       <main className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-8 pt-3 sm:pt-4 pb-32 lg:pb-16 flex-1 w-full">
+
+        {/* 🏠 HOME VIEW SECTION */}
+        {activeNav === "home" && !selectedTableNumber && (
+          <div className="space-y-6 max-w-4xl mx-auto py-4">
+            {/* Hero Banner Card */}
+            <div style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }} className="rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[220px]">
+              <div className="relative z-10 space-y-3">
+                <span className="px-3 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white inline-block">
+                  Official Online Store
+                </span>
+                <h1 className="text-2xl sm:text-4xl font-display font-black tracking-tight leading-tight">
+                  {restaurantTitle}
+                </h1>
+                <p className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed max-w-xl">
+                  {activeSettings.heroSubtext || "Order fresh biryani, wazwan, curries & snacks delivered fast to your doorstep!"}
+                </p>
+              </div>
+
+              <div className="pt-6 flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setActiveNav("menu")}
+                  className="px-6 py-3 bg-white text-stone-900 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-stone-100 transition cursor-pointer flex items-center gap-2"
+                >
+                  <span>Browse Food Menu</span>
+                  <ArrowRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsReservationModalOpen(true)}
+                  className="px-5 py-3 bg-stone-900/60 backdrop-blur-md hover:bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer border border-white/20 flex items-center gap-1.5"
+                >
+                  <Calendar size={14} /> Book Table
+                </button>
+              </div>
+            </div>
+
+            {/* Outlet Details Cards */}
+            <div className="grid gap-4 sm:grid-cols-3 text-stone-800">
+              <div className="p-5 bg-white border border-stone-200 rounded-3xl space-y-1.5 shadow-2xs">
+                <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-wider">
+                  <Clock size={16} /> Opening Hours
+                </div>
+                <p className="text-xs font-bold text-stone-900">{activeSettings.timingsText || "Everyday · 10:00 AM – 10:00 PM"}</p>
+                <p className="text-[11px] text-stone-500 font-medium">Kitchen orders accepted all day</p>
+              </div>
+
+              <div className="p-5 bg-white border border-stone-200 rounded-3xl space-y-1.5 shadow-2xs">
+                <div className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-wider">
+                  <MapPin size={16} /> Outlet Location
+                </div>
+                <p className="text-xs font-bold text-stone-900">{activeSettings.address || "Srinagar, Kashmir"}</p>
+                <p className="text-[11px] text-stone-500 font-medium">GPS navigation & doorstep delivery</p>
+              </div>
+
+              <div className="p-5 bg-white border border-stone-200 rounded-3xl space-y-1.5 shadow-2xs">
+                <div className="flex items-center gap-2 text-amber-600 font-black text-xs uppercase tracking-wider">
+                  <Phone size={16} /> Hotline & Support
+                </div>
+                <p className="text-xs font-bold text-stone-900">{activeSettings.contactPhone || "+91 9906123989"}</p>
+                <p className="text-[11px] text-stone-500 font-medium">Direct POS helpdesk & WhatsApp</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 🧾 ORDERS VIEW SECTION */}
+        {activeNav === "orders" && !selectedTableNumber && (
+          <div className="space-y-4 max-w-4xl mx-auto py-4">
+            <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+              <div>
+                <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight">Your Online Orders</h2>
+                <p className="text-xs text-stone-500 font-medium">Live kitchen stage tracking and past order history</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setActiveNav("menu")}
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
+              >
+                + New Order
+              </button>
+            </div>
+
+            {customerOrdersList.length === 0 ? (
+              <div className="py-16 text-center space-y-3 bg-white border border-stone-200 rounded-3xl p-8 shadow-2xs">
+                <Package size={40} className="text-stone-300 mx-auto" />
+                <h3 className="text-sm font-black text-stone-800 uppercase">No Online Orders Yet</h3>
+                <p className="text-xs text-stone-500 max-w-xs mx-auto">Place your first food order from our menu catalog and track its live kitchen progress here!</p>
+                <button
+                  type="button"
+                  onClick={() => setActiveNav("menu")}
+                  style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }}
+                  className="px-6 py-2.5 rounded-full text-white text-xs font-extrabold shadow-md cursor-pointer mt-2"
+                >
+                  Browse Menu Catalog
+                </button>
+              </div>
+            ) : (
+              customerOrdersList.map((ord) => {
+                const itemsArr = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                return (
+                  <div key={ord.id} className="bg-white border border-stone-200 rounded-3xl p-5 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+                      <div>
+                        <span className="text-xs font-black text-stone-900">Ref: {ord.order_reference || ord.id}</span>
+                        <p className="text-[10px] font-semibold text-stone-500">{new Date(ord.created_at || Date.now()).toLocaleString()}</p>
+                      </div>
+                      <span className="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        {ord.status || "Received"}
+                      </span>
+                    </div>
+
+                    {/* Live Delivery Stepper */}
+                    {(() => {
+                      const oStatus = String(ord.status || '').toUpperCase();
+                      if (['REJECTED', 'CANCELLED'].includes(oStatus)) {
+                        return (
+                          <div className="p-3 bg-rose-50 border border-rose-200 rounded-2xl text-rose-800 text-xs font-bold space-y-1">
+                            <div className="flex items-center gap-1.5 font-black text-rose-900">
+                              <XCircle size={15} /> Order Declined by Restaurant
+                            </div>
+                            {ord.rejection_reason && (
+                              <p className="text-[11px] font-semibold text-rose-700">Reason: {ord.rejection_reason}</p>
+                            )}
+                          </div>
+                        );
+                      }
+
+                      const stages = [
+                        { key: 'RECEIVED', label: 'Received', icon: '📥' },
+                        { key: 'PREPARING', label: 'Preparing', icon: '👨‍🍳' },
+                        { key: 'READY', label: 'Food Ready', icon: '🍱' },
+                        { key: 'DISPATCHED', label: 'Out for Delivery', icon: '🛵' },
+                        { key: 'DELIVERED', label: 'Delivered', icon: '✅' }
+                      ];
+
+                      let currentStageIndex = 0;
+                      if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
+                      else if (['FOOD_READY', 'READY', 'PACKED'].includes(oStatus)) currentStageIndex = 2;
+                      else if (['DISPATCHED', 'OUT_FOR_DELIVERY', 'ON_THE_WAY', 'RIDER_ASSIGNED'].includes(oStatus)) currentStageIndex = 3;
+                      else if (['DELIVERED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 4;
+
+                      return (
+                        <div className="p-3.5 bg-stone-50 border border-stone-200 rounded-2xl space-y-2">
+                          <div className="flex items-center justify-between text-[10px] font-black uppercase text-stone-500 tracking-wider">
+                            <span>Delivery Stage Progress</span>
+                            <span className="text-emerald-600 font-extrabold flex items-center gap-1">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                              <span>{stages[currentStageIndex]?.label}</span>
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-5 gap-1 pt-1">
+                            {stages.map((stage, sIdx) => {
+                              const isActive = sIdx <= currentStageIndex;
+                              const isCurrent = sIdx === currentStageIndex;
+                              return (
+                                <div key={stage.key} className="flex flex-col items-center text-center">
+                                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                    isCurrent ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 scale-110 shadow-sm' :
+                                    isActive ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-stone-100 text-stone-400'
+                                  }`}>
+                                    {stage.icon}
+                                  </div>
+                                  <span className={`text-[9px] font-black mt-1.5 leading-tight ${isActive ? 'text-stone-900' : 'text-stone-400'}`}>
+                                    {stage.label}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Items List */}
+                    <div className="space-y-1 text-xs text-stone-700 pt-1">
+                      {itemsArr.map((i, idx) => (
+                        <div key={idx} className="flex justify-between font-medium">
+                          <span>{i.qty || 1}x {i.product_name || i.name}</span>
+                          <span className="font-bold">₹{((i.qty || 1) * (i.price || 0)).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between">
+                      <span className="text-xs font-bold text-stone-500">Total Amount:</span>
+                      <span className="text-sm font-black text-emerald-600">₹{ord.total_price || ord.total}</span>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        )}
+
+        {/* 📜 MENU VIEW SECTION (Default or when activeNav === "menu" or Table QR scanned) */}
+        {(activeNav === "menu" || selectedTableNumber) && (
+          <>
 
           {/* 🛑 REJECTED ORDER BANNER */}
           {tableStatusData?.latest_rejected_order && dismissedRejectionRef !== tableStatusData.latest_rejected_order.order_reference && (
@@ -2773,8 +3027,9 @@ const PublicOutletMenu = () => {
               );
             })()
           )}
-        </main>
-      )}
+          </>
+        )}
+      </main>
 
       {/* FLOATING CART PILL BAR */}
       <AnimatePresence>
