@@ -540,6 +540,15 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
         const sessionOrders = sessionOrdersRes.rows || [];
         const hasActiveDbOrder = sessionOrders.length > 0;
 
+        // 4. Check for recently rejected or cancelled order for this table (within last 2 hours)
+        const rejectedRes = await pool.query(
+            "SELECT id, order_reference, customer_name, customer_number, items, total_price, status, rejection_reason, created_at FROM orders WHERE (user_id = $1 OR user_id = $2) AND (table_number = $3 OR table_number = 'Table ' || $3 OR replace(table_number, ' ', '') ILIKE replace($3, ' ', '')) AND status IN ('REJECTED', 'CANCELLED') AND created_at >= NOW() - INTERVAL '2 hours' ORDER BY created_at DESC LIMIT 1",
+            [userId, targetUserId, cleanTable]
+        );
+        const latestRejectedOrder = rejectedRes.rows[0] || null;
+
+        const totalSessionAmount = sessionOrders.reduce((sum, ord) => sum + (parseFloat(ord.total_price) || 0), 0);
+
         // Table is occupied ONLY if there are active items in POS state OR an active session order from the last 12 hours
         const isOccupied = isOccupiedInState || hasActiveDbOrder || ( (dbStatus === 'OCCUPIED' || dbStatus === 'SAVED') && (isOccupiedInState || hasActiveDbOrder) );
         const finalCustomerNumber = hasActiveDbOrder ? sessionOrders[0]?.customer_number : (isOccupiedInState ? stateCustomerNumber : null);
@@ -548,7 +557,9 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
             status: isOccupied ? "OCCUPIED" : "AVAILABLE",
             customer_number: isOccupied ? finalCustomerNumber : null,
             active_order: isOccupied ? (sessionOrders[0] || (isOccupiedInState ? { items: activeItemsInState, customer_number: finalCustomerNumber } : null)) : null,
-            session_orders: isOccupied ? (sessionOrders.length > 0 ? sessionOrders : (isOccupiedInState && activeItemsInState.length > 0 ? [{ id: 'pos-draft', order_reference: 'POS Table Draft', items: activeItemsInState, status: 'SAVED', created_at: new Date() }] : [])) : []
+            session_orders: isOccupied ? (sessionOrders.length > 0 ? sessionOrders : (isOccupiedInState && activeItemsInState.length > 0 ? [{ id: 'pos-draft', order_reference: 'POS Table Draft', items: activeItemsInState, status: 'SAVED', created_at: new Date() }] : [])) : [],
+            latest_rejected_order: latestRejectedOrder,
+            total_session_amount: totalSessionAmount
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });

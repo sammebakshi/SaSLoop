@@ -9652,6 +9652,18 @@ const UniversalPOS = () => {
         const cleanTableNum = String(selectedTable.table_name || selectedTable.id).replace(/^Table\s+/i, '').trim();
         const keysToClear = [selectedTable.id, selectedTable.table_name, cleanTableNum, `Table ${cleanTableNum}`].filter(Boolean);
 
+        // Mark active orders for this table as COMPLETED in backend database
+        try {
+          const tableOrders = (recentOrders || []).filter(o => {
+            if (!o || ['COMPLETED', 'CANCELLED', 'REJECTED'].includes(String(o.status || '').toUpperCase())) return false;
+            const oNum = String(o.table_number || o.table_id || '').replace(/^Table\s+/i, '').trim();
+            return oNum.toLowerCase() === cleanTableNum.toLowerCase() || String(o.table_id) === String(selectedTable.id);
+          });
+          tableOrders.forEach(ord => {
+            posService.updateOrderStatus(ord.id, 'COMPLETED').catch(e => console.error("Settlement status update fail:", e));
+          });
+        } catch (sErr) { console.error("Settlement order cleanup error:", sErr); }
+
         setTableStatuses(prev => {
           const n = { ...prev };
           keysToClear.forEach(k => delete n[k]);
@@ -10061,7 +10073,14 @@ const UniversalPOS = () => {
           const tableName = matchedTable ? matchedTable.table_name : `Table ${cleanNum}`;
           const itemsArr = Array.isArray(targetOrder.items) ? targetOrder.items : (typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items || '[]') : []);
 
-          if (itemsArr.length > 0 && !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(String(newStatus).toUpperCase())) {
+          const upperStatus = String(newStatus).toUpperCase();
+          if (['COMPLETED', 'CANCELLED', 'REJECTED'].includes(upperStatus)) {
+            const keysToClear = [tableId, cleanNum, tableName].filter(Boolean);
+            setTableBills(prev => { const n = { ...prev }; keysToClear.forEach(k => delete n[k]); return n; });
+            setTableStatuses(prev => { const n = { ...prev }; keysToClear.forEach(k => delete n[k]); return n; });
+            setTableBillNumbers(prev => { const n = { ...prev }; keysToClear.forEach(k => delete n[k]); return n; });
+            setTableActiveTimestamps(prev => { const n = { ...prev }; keysToClear.forEach(k => delete n[k]); return n; });
+          } else if (itemsArr.length > 0 && !['DISPATCHED', 'FOOD_READY', 'READY', 'DELIVERED'].includes(upperStatus)) {
             const formattedItems = itemsArr.map(i => ({
               id: i.id,
               product_name: i.product_name || i.name || 'Item',

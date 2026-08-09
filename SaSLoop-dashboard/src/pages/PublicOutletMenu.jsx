@@ -6,7 +6,7 @@ import {
   MapPin, Clock, Bike, ShoppingBag as PickupIcon, ChevronDown, Phone,
   CheckCircle2, Sparkles, User, Package, Heart, LogOut, Navigation, AlertTriangle,
   Utensils, UtensilsCrossed, Menu, ShieldCheck, Flame, Percent, Tag, Star, Coffee, Ticket, Copy, ExternalLink,
-  Globe, MessageCircle, Share2, Bell, Lock, ShieldOff
+  Globe, MessageCircle, Share2, Bell, Lock, ShieldOff, XCircle, Receipt
 } from "lucide-react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
@@ -612,6 +612,7 @@ const PublicOutletMenu = () => {
   const [vegOnly, setVegOnly] = useState(false);
   const [fulfillmentMode, setFulfillmentMode] = useState(tableParam ? "DINE_IN" : "DELIVERY"); // "DELIVERY" | "PICKUP" | "DINE_IN"
   const [livePreviewOverride, setLivePreviewOverride] = useState(null);
+  const [dismissedRejectionRef, setDismissedRejectionRef] = useState(null);
 
   // Helper to get future time slots for a given date
   const getAvailableTimeSlots = (selectedDate) => {
@@ -2308,6 +2309,57 @@ const PublicOutletMenu = () => {
       </header>
       {/* MENU VIEW */}
       <main className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-8 pt-3 sm:pt-4 pb-32 lg:pb-16 flex-1 w-full">
+
+          {/* 🛑 REJECTED ORDER BANNER */}
+          {tableStatusData?.latest_rejected_order && dismissedRejectionRef !== tableStatusData.latest_rejected_order.order_reference && (
+            <div className="mb-4 p-4 rounded-2xl bg-red-500/10 border border-red-500/30 text-red-700 flex flex-wrap items-center justify-between gap-3 shadow-sm animate-fade-in">
+              <div className="flex items-start gap-3">
+                <div className="p-2 rounded-xl bg-red-500/20 text-red-600 mt-0.5 shrink-0">
+                  <XCircle size={20} />
+                </div>
+                <div>
+                  <div className="font-extrabold text-sm text-red-800">
+                    Order Rejected ({tableStatusData.latest_rejected_order.order_reference})
+                  </div>
+                  <div className="text-xs font-semibold text-red-600 mt-0.5">
+                    Reason: <span className="font-bold underline">{tableStatusData.latest_rejected_order.rejection_reason || "Declined by restaurant staff"}</span>
+                  </div>
+                </div>
+              </div>
+              <button 
+                onClick={() => setDismissedRejectionRef(tableStatusData.latest_rejected_order.order_reference)}
+                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl transition cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* 💳 ACTIVE TABLE SESSION BILL TRACKER */}
+          {selectedTableNumber && tableStatusData?.status === "OCCUPIED" && (tableStatusData?.session_orders?.length > 0 || tableStatusData?.total_session_amount > 0) && (
+            <div className="mb-4 p-4 rounded-2xl bg-stone-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-lg border border-emerald-500/40">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-emerald-400 animate-pulse">
+                  <Clock size={20} />
+                </div>
+                <div>
+                  <div className="text-[10px] font-black text-emerald-400 uppercase tracking-widest">
+                    Table {selectedTableNumber} Active Session
+                  </div>
+                  <div className="text-lg font-black text-white tabular-nums">
+                    Total Session Bill: ₹{parseFloat(tableStatusData.total_session_amount || 0).toFixed(2)}
+                  </div>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-xs uppercase tracking-wider rounded-xl transition shadow-md flex items-center gap-1.5 cursor-pointer"
+              >
+                <Receipt size={14} />
+                <span>Track Orders ({tableStatusData.session_orders?.length || 0})</span>
+              </button>
+            </div>
+          )}
 
           {/* Search & Veg toggle row */}
           <div className="flex items-center gap-3">
