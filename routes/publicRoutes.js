@@ -639,6 +639,7 @@ router.post("/order", async (req, res) => {
         const isPOS = source === "POS_MANUAL";
         const prefix = isOnline ? "ONL" : (isPOS ? "POS" : "QR");
         const orderRef = `${prefix}-${Math.random().toString(36).substring(7).toUpperCase()}`;
+        const currentOrderRef = orderRef;
         
         const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1 OR id = $1", [userId]);
         const bizData = bizRes.rows[0];
