@@ -3874,14 +3874,16 @@ const PublicOutletMenu = () => {
                               const stages = [
                                 { key: 'RECEIVED', label: 'Received', icon: '📥' },
                                 { key: 'PREPARING', label: 'Preparing', icon: '👨‍🍳' },
-                                { key: 'READY', label: 'Ready to Serve', icon: '🍽️' },
-                                { key: 'SERVED', label: 'Served / Settled', icon: '✨' }
+                                { key: 'READY', label: 'Food Ready', icon: '🍱' },
+                                { key: 'DISPATCHED', label: 'Out for Delivery', icon: '🛵' },
+                                { key: 'DELIVERED', label: 'Delivered', icon: '✅' }
                               ];
 
                               let currentStageIndex = 0;
                               if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
-                              else if (['FOOD_READY', 'READY'].includes(oStatus)) currentStageIndex = 2;
-                              else if (['DISPATCHED', 'SERVED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 3;
+                              else if (['FOOD_READY', 'READY', 'PACKED'].includes(oStatus)) currentStageIndex = 2;
+                              else if (['DISPATCHED', 'OUT_FOR_DELIVERY', 'ON_THE_WAY', 'RIDER_ASSIGNED'].includes(oStatus)) currentStageIndex = 3;
+                              else if (['DELIVERED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 4;
 
                               return (
                                 <div className="p-3 bg-white border border-stone-200 rounded-2xl space-y-2 shadow-2xs my-2">
@@ -3893,7 +3895,7 @@ const PublicOutletMenu = () => {
                                     </span>
                                   </div>
 
-                                  <div className="grid grid-cols-4 gap-1 relative pt-1">
+                                  <div className="grid grid-cols-5 gap-1 relative pt-1">
                                     {stages.map((stage, sIdx) => {
                                       const isActive = sIdx <= currentStageIndex;
                                       const isCurrent = sIdx === currentStageIndex;
