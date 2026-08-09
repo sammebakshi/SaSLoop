@@ -1289,6 +1289,19 @@ const PublicOutletMenu = () => {
     paymentMethod: "UPI"
   });
 
+  // 🔄 Auto-Sync Logged-in Customer Phone & Name into Checkout Form
+  useEffect(() => {
+    const activePhone = profile?.phone || userSession?.phone || "";
+    const activeName = profile?.name || userSession?.name || "";
+    if (activePhone || activeName) {
+      setForm(prev => ({
+        ...prev,
+        name: activeName || prev.name,
+        phone: activePhone || prev.phone
+      }));
+    }
+  }, [profile?.phone, profile?.name, userSession?.phone, userSession?.name, isCheckoutOpen]);
+
   // Sync profile edits to Backoffice CRM database
   const handleSaveProfile = async (e) => {
     e.preventDefault();
@@ -2162,8 +2175,11 @@ const PublicOutletMenu = () => {
 
     setIsSubmitting(true);
 
+    const activeCustomerPhone = form.phone || profile.phone || userSession?.phone || "";
+    const activeCustomerName = form.name || profile.name || userSession?.name || "Guest Customer";
+
     let streetAddress = (form.address || "").trim();
-    if (!streetAddress || streetAddress.toLowerCase() === "srinagar") {
+    if (!selectedTableNumber && (!streetAddress || streetAddress.toLowerCase() === "srinagar")) {
       if (deliveryCoords && deliveryCoords.lat && deliveryCoords.lng) {
         const exactMapAddr = await fetchAddressFromCoords(deliveryCoords.lat, deliveryCoords.lng);
         streetAddress = exactMapAddr || form.landmark || `Pinned Map Location (${deliveryCoords.lat.toFixed(4)}, ${deliveryCoords.lng.toFixed(4)})`;
@@ -2192,8 +2208,8 @@ const PublicOutletMenu = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: selectedOutletId,
-          customerName: form.name || profile.name || userSession?.name || "Guest Customer",
-          customerPhone: form.phone || profile.phone || userSession?.phone || "",
+          customerName: activeCustomerName,
+          customerPhone: activeCustomerPhone,
           address: fullDeliveryAddress,
           fulfillmentMode: selectedTableNumber ? "DINE_IN" : fulfillmentMode,
           tableNumber: selectedTableNumber || null,
@@ -2218,8 +2234,8 @@ const PublicOutletMenu = () => {
       if (data && (data.success || data.orderRef)) {
         const orderObject = {
           id: data.orderRef || "ONL-" + Math.floor(100000 + Math.random() * 900000),
-          name: form.name,
-          phone: form.phone,
+          name: activeCustomerName,
+          phone: activeCustomerPhone,
           address: fullDeliveryAddress,
           mode: selectedTableNumber ? "DINE_IN" : fulfillmentMode,
           paymentMethod: form.paymentMethod,
@@ -3196,7 +3212,7 @@ const PublicOutletMenu = () => {
                       required
                       type="text"
                       placeholder="e.g. Sajad Ahmad"
-                      value={form.name}
+                      value={form.name || profile.name || userSession?.name || ""}
                       onChange={(e) => setForm({ ...form, name: e.target.value })}
                       className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-[#e05328]"
                     />
@@ -3208,7 +3224,7 @@ const PublicOutletMenu = () => {
                       required
                       type="tel"
                       placeholder="9906123989"
-                      value={form.phone}
+                      value={form.phone || profile.phone || userSession?.phone || ""}
                       onChange={(e) => setForm({ ...form, phone: e.target.value })}
                       className="w-full bg-stone-50 border border-stone-200 rounded-xl px-4 py-2.5 text-xs font-semibold outline-none focus:border-[#e05328]"
                     />
