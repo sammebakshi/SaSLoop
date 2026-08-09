@@ -467,19 +467,16 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
         const activePosState = settings.active_pos_state;
         if (activePosState) {
             const tableBills = activePosState.tableBills || {};
-            const tableStatuses = activePosState.tableStatuses || {};
             const tableCustomers = activePosState.tableCustomers || activePosState.tableCustomerPhone || {};
             
             // Check keys (e.g. "1" or "Table 1")
             const matchedKey = Object.keys(tableBills).find(k => String(k).replace(/^Table\s+/i, '').trim() === cleanTable);
-            if (matchedKey && Array.isArray(tableBills[matchedKey]) && tableBills[matchedKey].length > 0) {
-                isOccupiedInState = true;
-                activeItemsInState = tableBills[matchedKey];
-            }
-            
-            const matchedStatusKey = Object.keys(tableStatuses).find(k => String(k).replace(/^Table\s+/i, '').trim() === cleanTable);
-            if (matchedStatusKey && ['SAVED', 'OCCUPIED', 'RUNNING', 'BILL_PRINTED'].includes(String(tableStatuses[matchedStatusKey]).toUpperCase())) {
-                isOccupiedInState = true;
+            if (matchedKey && Array.isArray(tableBills[matchedKey])) {
+                const uncancelledItems = tableBills[matchedKey].filter(i => i && !i.isCancelled);
+                if (uncancelledItems.length > 0) {
+                    isOccupiedInState = true;
+                    activeItemsInState = uncancelledItems;
+                }
             }
 
             const matchedCustKey = Object.keys(tableCustomers).find(k => String(k).replace(/^Table\s+/i, '').trim() === cleanTable);
@@ -497,19 +494,24 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
 
         let dbStatus = result.rows[0]?.status || "AVAILABLE";
 
-        // 3. Check active orders in DB
-        const activeOrderRes = await pool.query(
-            "SELECT id, order_reference, customer_name, customer_number, items, created_at FROM orders WHERE (user_id = $1 OR user_id = $2) AND (table_number = $3 OR table_number = 'Table ' || $3 OR replace(table_number, ' ', '') ILIKE replace($3, ' ', '')) AND status IN ('PENDING', 'PROCESSING', 'PREPARING') ORDER BY created_at DESC LIMIT 1",
+        // 3. Check active session orders created in DB within the last 12 hours
+        const sessionOrdersRes = await pool.query(
+            "SELECT id, order_reference, customer_name, customer_number, items, total_price, status, created_at FROM orders WHERE (user_id = $1 OR user_id = $2) AND (table_number = $3 OR table_number = 'Table ' || $3 OR replace(table_number, ' ', '') ILIKE replace($3, ' ', '')) AND status IN ('PENDING', 'PROCESSING', 'PREPARING', 'ACKNOWLEDGED', 'FOOD_READY', 'SAVED', 'DISPATCHED') AND created_at >= NOW() - INTERVAL '12 hours' ORDER BY created_at DESC",
             [userId, targetUserId, cleanTable]
         );
 
-        const isOccupied = isOccupiedInState || dbStatus === 'OCCUPIED' || dbStatus === 'SAVED' || activeOrderRes.rows.length > 0;
-        const finalCustomerNumber = activeOrderRes.rows[0]?.customer_number || stateCustomerNumber || null;
+        const sessionOrders = sessionOrdersRes.rows || [];
+        const hasActiveDbOrder = sessionOrders.length > 0;
+
+        // Table is occupied ONLY if there are active items in POS state OR an active session order from the last 12 hours
+        const isOccupied = isOccupiedInState || hasActiveDbOrder || ( (dbStatus === 'OCCUPIED' || dbStatus === 'SAVED') && (isOccupiedInState || hasActiveDbOrder) );
+        const finalCustomerNumber = hasActiveDbOrder ? sessionOrders[0]?.customer_number : (isOccupiedInState ? stateCustomerNumber : null);
 
         res.json({
             status: isOccupied ? "OCCUPIED" : "AVAILABLE",
-            customer_number: finalCustomerNumber,
-            active_order: activeOrderRes.rows[0] || (isOccupiedInState ? { items: activeItemsInState, customer_number: finalCustomerNumber } : null)
+            customer_number: isOccupied ? finalCustomerNumber : null,
+            active_order: isOccupied ? (sessionOrders[0] || (isOccupiedInState ? { items: activeItemsInState, customer_number: finalCustomerNumber } : null)) : null,
+            session_orders: isOccupied ? (sessionOrders.length > 0 ? sessionOrders : (isOccupiedInState && activeItemsInState.length > 0 ? [{ id: 'pos-draft', order_reference: 'POS Table Draft', items: activeItemsInState, status: 'SAVED', created_at: new Date() }] : [])) : []
         });
     } catch (e) { res.status(500).json({ error: e.message }); }
 });
@@ -733,49 +735,96 @@ router.post("/order", async (req, res) => {
            existingOrder = checkRes.rows[0];
         }
 
-        let insertRes;
-        let orderId;
-        let currentOrderRef = orderRef;
-
         const isCOD = paymentMethod === 'CASH' || !paymentMethod;
         const initialStatus = customStatus || (isCOD ? 'PENDING' : 'AWAITING_PAYMENT');
 
-        if (existingOrder) {
-            orderId = existingOrder.id;
-            currentOrderRef = existingOrder.order_reference;
-            
-            // 🥗 SMART MERGE: Append new items to existing items
-            const oldItems = Array.isArray(existingOrder.items) ? existingOrder.items : (typeof existingOrder.items === 'string' ? JSON.parse(existingOrder.items) : []);
-            const newItemsList = Array.isArray(items) ? items : (typeof items === 'string' ? JSON.parse(items) : []);
-            const mergedItems = [...oldItems, ...newItemsList];
-            const newTotal = (parseFloat(existingOrder.total_price) || 0) + finalPrice;
-            const newRedeemedPoints = (parseInt(existingOrder.redeemed_points) || 0) + (parseInt(redeemedPoints) || 0);
+        const itemsData = typeof items === 'string' ? JSON.parse(items) : (items || []);
+        let finalSource = source;
+        const determinedOrderType = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINE_IN" : "PICKUP");
+        const insertRes = await pool.query(
+            "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *",
+            [targetUserId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints, finalSource, determinedOrderType]
+        );
+        const orderId = insertRes.rows[0].id;
 
-            insertRes = await pool.query(
-              "UPDATE orders SET items=$1, total_price=$2, status=$3, payment_method=$4, payment_status=$5, discount_amount=$6, service_charge=$7, delivery_charge=$8, redeemed_points=$9 WHERE id=$10 RETURNING *",
-              [JSON.stringify(mergedItems), newTotal, initialStatus, paymentMethod || 'CASH', paymentStatus || 'PENDING', (parseFloat(existingOrder.discount_amount) || 0) + (discount_amount || 0), (parseFloat(existingOrder.service_charge) || 0) + (service_charge || 0), (parseFloat(existingOrder.delivery_charge) || 0) + finalDeliveryCharge, newRedeemedPoints, orderId]
-            );
-        } else {
-            const itemsData = typeof items === 'string' ? JSON.parse(items) : (items || []);
-            let finalSource = source;
-            const determinedOrderType = fulfillmentMode || (tableNumber && tableNumber !== "0" ? "DINE_IN" : "PICKUP");
-            insertRes = await pool.query(
-                "INSERT INTO orders (user_id, customer_name, customer_number, address, items, total_price, order_reference, status, table_number, payment_method, payment_status, discount_amount, service_charge, delivery_charge, redeemed_points, source, order_type) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17) RETURNING *",
-                [targetUserId, customerName || "Guest", dbPhone || (isPOS ? "POS-MANUAL" : "QR-ORDER"), finalOrderAddress, JSON.stringify(itemsData), finalPrice, orderRef, initialStatus, tableNumber, paymentMethod || 'CASH', paymentStatus || 'PENDING', discount_amount || 0, service_charge || 0, finalDeliveryCharge, redeemedPoints, finalSource, determinedOrderType]
-            );
-            orderId = insertRes.rows[0].id;
+        // ✅ INSTANTLY OCCUPY TABLE & SYNC ACCUMULATED ITEMS IN POS & DB
+        if (tableNumber && tableNumber !== "0") {
+            try {
+                const cleanTableStr = String(tableNumber).replace(/^Table\s+/i, '').trim();
+                await pool.query(
+                    "UPDATE pos_tables SET status = 'OCCUPIED', updated_at = NOW() WHERE (user_id = $1 OR user_id = $2) AND (table_name ILIKE $3 OR table_name ILIKE 'Table ' || $3 OR replace(table_name, ' ', '') ILIKE replace($3, ' ', ''))",
+                    [userId, targetUserId, cleanTableStr]
+                );
 
-            // ✅ AUTO-OCCUPY TABLE IN POS
-            if (tableNumber && tableNumber !== "0" && source === "QR_MENU") {
-                try {
-                    await pool.query(
-                        "UPDATE pos_tables SET status = 'OCCUPIED', updated_at = NOW() WHERE user_id = $1 AND table_name = $2",
-                        [targetUserId, tableNumber]
-                    );
-                    console.log(`🪑 Table ${tableNumber} marked as OCCUPIED for Biz ${targetUserId}`);
-                } catch (posErr) { console.error("POS Table Occupy Error:", posErr.message); }
+                // Fetch matching table database object
+                const posTableRes = await pool.query(
+                    "SELECT id, table_name FROM pos_tables WHERE (user_id = $1 OR user_id = $2) AND (table_name ILIKE $3 OR table_name ILIKE 'Table ' || $3 OR replace(table_name, ' ', '') ILIKE replace($3, ' ', '')) LIMIT 1",
+                    [userId, targetUserId, cleanTableStr]
+                );
+                const posTableObj = posTableRes.rows[0];
+                const dbTableId = posTableObj ? String(posTableObj.id) : null;
+                const dbTableName = posTableObj ? posTableObj.table_name : `Table ${cleanTableStr}`;
+
+                // Format order items for POS table bill items
+                const rawItems = Array.isArray(itemsData) ? itemsData : (typeof itemsData === 'string' ? JSON.parse(itemsData || '[]') : []);
+                const formattedItems = rawItems.map(i => ({
+                    id: i.id,
+                    product_name: i.product_name || i.name || 'Item',
+                    name: i.product_name || i.name || 'Item',
+                    qty: parseFloat(i.qty || i.quantity || 1),
+                    quantity: parseFloat(i.qty || i.quantity || 1),
+                    price: parseFloat(i.price || 0),
+                    modifiers: i.modifiers || [],
+                    kot_category: i.kot_category || 'Main Kitchen'
+                }));
+
+                // Sync active_pos_state in settings so Master POS picks up table occupation immediately
+                const resSetting = await pool.query("SELECT settings FROM restaurants WHERE user_id = $1 OR id = $1 LIMIT 1", [targetUserId]);
+                if (resSetting.rows.length > 0) {
+                    let curSettings = resSetting.rows[0].settings;
+                    if (typeof curSettings === 'string') {
+                        try { curSettings = JSON.parse(curSettings); } catch(e) { curSettings = {}; }
+                    }
+                    curSettings = curSettings || {};
+                    const activePosState = curSettings.active_pos_state || {};
+                    const tableBills = activePosState.tableBills || {};
+                    const tableStatuses = activePosState.tableStatuses || {};
+                    const tableBillNumbers = activePosState.tableBillNumbers || {};
+                    const tableActiveTimestamps = activePosState.tableActiveTimestamps || {};
+                    const tableCustomers = activePosState.tableCustomers || {};
+
+                    const keysToUpdate = [cleanTableStr, `Table ${cleanTableStr}`, dbTableName, dbTableId].filter(Boolean);
+                    keysToUpdate.forEach(key => {
+                        const existingBill = Array.isArray(tableBills[key]) ? tableBills[key].filter(i => i && !i.isCancelled) : [];
+                        tableBills[key] = [...existingBill, ...formattedItems];
+                        tableStatuses[key] = 'SAVED';
+                        tableBillNumbers[key] = orderRef;
+                        tableActiveTimestamps[key] = Date.now();
+                        tableCustomers[key] = {
+                            customerName: customerName || 'WhatsApp Customer',
+                            customerPhone: dbPhone || ''
+                        };
+                    });
+
+                    activePosState.tableBills = tableBills;
+                    activePosState.tableStatuses = tableStatuses;
+                    activePosState.tableBillNumbers = tableBillNumbers;
+                    activePosState.tableActiveTimestamps = tableActiveTimestamps;
+                    activePosState.tableCustomers = tableCustomers;
+                    curSettings.active_pos_state = activePosState;
+
+                    await pool.query("UPDATE restaurants SET settings = $1 WHERE user_id = $2 OR id = $2", [JSON.stringify(curSettings), targetUserId]);
+                }
+
+                    // Emit Socket.IO Event for instant POS Table Grid refresh
+                    const io = req.app.get("io");
+                    if (io) {
+                        io.emit(`table_status_${targetUserId}`, { tableNumber: cleanTableStr, status: 'SAVED', customerNumber: dbPhone, items: formattedItems });
+                        io.emit("table_status_update", { userId: targetUserId, tableNumber: cleanTableStr, status: 'SAVED', customerNumber: dbPhone, items: formattedItems });
+                    }
+                    console.log(`🪑 Table ${tableNumber} INSTANTLY marked as SAVED with ${formattedItems.length} items for Biz ${targetUserId}`);
+                } catch (posErr) { console.error("POS Instant Table Occupy Error:", posErr.message); }
             }
-        }
         
         // 🧹 TABLE CLEANUP: If this is a COMPLETED POS order for a table, mark other active orders for that table as COMPLETED too
         if (tableNumber && tableNumber !== "0" && initialStatus === 'COMPLETED' && source === "POS_MANUAL") {

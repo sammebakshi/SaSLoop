@@ -269,6 +269,7 @@ async function initializeDatabase() {
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS pre_order_scheduled_time TIME`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(100)`,
             `ALTER TABLE orders ADD COLUMN IF NOT EXISTS pdf_sent BOOLEAN DEFAULT false`,
+            `ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`,
 
             // 20. Delivery Partners
             `CREATE TABLE IF NOT EXISTS leads (

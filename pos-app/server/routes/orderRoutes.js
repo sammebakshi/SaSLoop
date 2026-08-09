@@ -36,6 +36,48 @@ async function findExistingCustomerNumber(userId, phone) {
   return phone;
 }
 
+// Helper function to find order by ID, numeric primary key, or order_reference
+async function findOrderByIdOrRef(id) {
+  if (!id) return null;
+  const rawId = String(id).trim();
+  const cleanId = rawId.replace(/^#/, '').trim();
+  const digitsOnly = cleanId.replace(/\D/g, '');
+  const parsedInt = parseInt(cleanId);
+
+  // 1. Exact match by id text or order_reference variations
+  let res = await pool.query(
+    `SELECT * FROM orders 
+     WHERE id::text = $1 
+        OR order_reference = $1 
+        OR order_reference = $2 
+        OR order_reference = $3 
+        OR order_reference = $4
+        OR order_reference = $5`,
+    [rawId, cleanId, `#${cleanId}`, cleanId.replace(/^DEL-?/i, ''), `DEL-${digitsOnly}`]
+  );
+  if (res.rows.length > 0) return res.rows[0];
+
+  // 2. Exact integer primary key match
+  if (!isNaN(parsedInt)) {
+    res = await pool.query("SELECT * FROM orders WHERE id = $1", [parsedInt]);
+    if (res.rows.length > 0) return res.rows[0];
+  }
+
+  // 3. Fallback: Match by order_reference containing digits
+  if (digitsOnly && digitsOnly.length >= 3) {
+    res = await pool.query(
+      `SELECT * FROM orders 
+       WHERE order_reference LIKE $1 
+          OR order_reference LIKE $2 
+       ORDER BY id DESC LIMIT 1`,
+      [`%${digitsOnly}`, `%${digitsOnly}%`]
+    );
+    if (res.rows.length > 0) return res.rows[0];
+  }
+
+  return null;
+}
+
 async function deductRedeemedPoints(userId, customerNumber, pointsRedeemed, orderRef) {
   if (!customerNumber || !pointsRedeemed || pointsRedeemed <= 0) return;
   try {
@@ -887,8 +929,15 @@ router.get("/", authMiddleware, async (req, res) => {
     let userId = req.user.bizId;
 
     // If target_user_id is supplied (e.g. from POS or Android Orders App)
-    if (target_user_id) {
-       userId = target_user_id;
+    if (target_user_id && target_user_id !== 'undefined' && target_user_id !== 'null') {
+       const parsedTarget = parseInt(target_user_id);
+       if (!isNaN(parsedTarget)) {
+         userId = parsedTarget;
+         const uRes = await pool.query("SELECT id, parent_user_id FROM app_users WHERE id = $1", [userId]);
+         if (uRes.rows.length > 0 && uRes.rows[0].parent_user_id) {
+           userId = uRes.rows[0].parent_user_id;
+         }
+       }
     }
 
     let queryText = `
@@ -938,19 +987,19 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { status, rejection_reason, source } = req.body;
-    const userId = req.user.bizId;
+    const userId = req.user.bizId || req.user.parent_user_id || req.user.id;
+    const staffId = req.user.id;
 
-    // Verify ownership & Fetch order data for notification
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
-    if (checkRes.rows.length === 0) {
-      return res.status(403).json({ error: "Unauthorized" });
+    // Verify ownership & Fetch order data
+    const order = await findOrderByIdOrRef(id);
+    if (!order) {
+      return res.status(403).json({ error: "Unauthorized or order not found" });
     }
-    const order = checkRes.rows[0];
 
     if (status === 'CANCELLED' && rejection_reason) {
-      await pool.query("UPDATE orders SET status = $1, rejection_reason = $2, source = COALESCE($3, source) WHERE id = $4", [status, rejection_reason, source || null, id]);
+      await pool.query("UPDATE orders SET status = $1, rejection_reason = $2, source = COALESCE($3, source) WHERE id = $4", [status, rejection_reason, source || null, order.id]);
     } else {
-      await pool.query("UPDATE orders SET status = $1, source = COALESCE($2, source) WHERE id = $3", [status, source || null, id]);
+      await pool.query("UPDATE orders SET status = $1, source = COALESCE($2, source) WHERE id = $3", [status, source || null, order.id]);
     }
 
     // 🔥 WEBHOOK TRIGGER
@@ -983,11 +1032,41 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
             // 🏆 AWARD LOYALTY POINTS ON COMPLETION
             const pointsSummary = await awardLoyaltyPoints(order, userId);
 
-            const isTable = order.table_number ? true : false;
-            if (isTable) {
-                updateMsg = `🏁 *Served:* Your items for Table *${order.table_number}* have been served. Enjoy your meal! 🍽️${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5)!`;
-            } else {
-                updateMsg = `🏁 *Delivered:* Your order *${ref}* was successful. Enjoy!${pointsSummary}\n\nHow was your experience? Reply with a rating (1 to 5) and any comments!`;
+            const isTable = order.table_number && String(order.table_number) !== "0";
+            
+            // Fetch business branding name
+            let bName = 'our restaurant';
+            try {
+              const bRes = await pool.query(
+                `SELECT r.name, u.business_name, u.brand_name 
+                 FROM app_users u 
+                 LEFT JOIN restaurants r ON (r.user_id = u.id OR r.user_id = u.parent_user_id) 
+                 WHERE u.id = $1 OR u.id = (SELECT parent_user_id FROM app_users WHERE id = $1)
+                 ORDER BY r.id DESC LIMIT 1`,
+                [userId]
+              );
+              const bRow = bRes.rows[0];
+              bName = bRow?.name || bRow?.brand_name || bRow?.business_name || 'our restaurant';
+            } catch(e) {}
+
+            const reviewHeader = isTable
+              ? `🎉 *ITEMS SERVED & COMPLETED!* 🍽️\n━━━━━━━━━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nTable: *Table ${order.table_number}*\nBusiness: *${bName}*\n\nHope you loved your meal! ${pointsSummary}\n\n⭐ *HOW WAS YOUR EXPERIENCE?*\nPlease tap a rating button below to let us know:`
+              : `🎉 *ORDER DELIVERED & COMPLETED!* 🍽️\n━━━━━━━━━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nBusiness: *${bName}*\n\nHope you loved your meal! ${pointsSummary}\n\n⭐ *HOW WAS YOUR EXPERIENCE?*\nPlease tap a rating button below to let us know:`;
+
+            try {
+              await whatsappManager.sendButtons(
+                customerNumber,
+                reviewHeader,
+                [
+                  { id: 'rating_5', title: '⭐⭐⭐⭐⭐ Excellent (5/5)' },
+                  { id: 'rating_4', title: '⭐⭐⭐⭐ Good (4/5)' },
+                  { id: 'rating_3', title: '⭐⭐⭐ Needs Work' }
+                ],
+                userId
+              );
+              updateMsg = ""; // Already dispatched decorative interactive message!
+            } catch (btnErr) {
+              updateMsg = `🎉 *ORDER COMPLETED!* 🍽️\n━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\n\nHope you enjoyed your meal! ${pointsSummary}\n\n⭐ *HOW WAS YOUR EXPERIENCE?*\nReply with *5* for Excellent, *4* for Good, or *3* for Feedback!`;
             }
         } else if (status === 'CANCELLED') {
             const finalReason = rejection_reason || order.rejection_reason;
@@ -1105,25 +1184,7 @@ router.put("/:id/status", authMiddleware, async (req, res) => {
   }
 });
 
-// ✅ UPDATE PAYMENT STATUS
-router.put("/:id/payment", authMiddleware, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { payment_status } = req.body;
-    const userId = req.user.bizId;
 
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
-    if (checkRes.rows.length === 0) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
-
-    await pool.query("UPDATE orders SET payment_status = $1 WHERE id = $2", [payment_status, id]);
-    res.json({ message: "Payment status updated" });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: "Server error" });
-  }
-});
 
 // 💸 ADD CHARGES TO ORDER (Dynamic Update)
 router.patch("/:id/charges", authMiddleware, async (req, res) => {
@@ -1351,15 +1412,13 @@ router.post("/bulk-delete", authMiddleware, async (req, res) => {
 router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.bizId;
     const { delivery_charge } = req.body;
     const newCharge = parseFloat(delivery_charge || 0);
 
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1 AND user_id = $2", [id, userId]);
-    if (checkRes.rows.length === 0) {
-      return res.status(404).json({ error: "Order not found or unauthorized" });
+    const order = await findOrderByIdOrRef(id);
+    if (!order) {
+      return res.status(404).json({ error: "Order not found" });
     }
-    const order = checkRes.rows[0];
 
     const oldCharge = parseFloat(order.delivery_charge || 0);
     const oldTotal = parseFloat(order.total_price || 0);
@@ -1367,8 +1426,8 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
     const newTotal = subtotal + newCharge;
 
     const result = await pool.query(
-      "UPDATE orders SET delivery_charge = $1, total_price = $2, status = 'AWAITING_CUSTOMER_CONFIRMATION' WHERE id = $3 AND user_id = $4 RETURNING *",
-      [newCharge, newTotal, id, userId]
+      "UPDATE orders SET delivery_charge = $1, total_price = $2, status = 'AWAITING_CUSTOMER_CONFIRMATION' WHERE id = $3 RETURNING *",
+      [newCharge, newTotal, order.id]
     );
 
     const updatedOrder = result.rows[0];
@@ -1376,9 +1435,9 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
     try {
       const targetPhone = updatedOrder.customer_number;
       if (targetPhone) {
-        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [userId]);
+        const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [updatedOrder.user_id]);
         const biz = bizRes.rows[0];
-        const symbol = (biz && biz.currency_code === "USD") ? String.fromCharCode(36) : "₹";
+        const symbol = (biz && biz.currency_code === "USD") ? "$" : "₹";
 
         const chargeMsg = [
           "📦 *AREA SERVICEABLE & ORDER TOTAL UPDATED!*",
@@ -1393,10 +1452,15 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
           "Your area is serviceable! Please confirm if you accept the total amount including delivery charges so we can process your order: 👇"
         ].join("\n");
 
-        await whatsappManager.sendButtons(targetPhone, chargeMsg, [
-          { id: "confirm_charge_" + updatedOrder.id, title: "✅ Confirm Order" },
-          { id: "cancel_charge_" + updatedOrder.id, title: "❌ Cancel Order" }
-        ], userId);
+        await whatsappManager.sendOfficialMessage(targetPhone, chargeMsg, updatedOrder.user_id);
+        const btnRes = await whatsappManager.sendButtons(targetPhone, "👇 Click below to accept or cancel order:", [
+          { id: "confirm_charge_" + updatedOrder.id, title: "Confirm Order" },
+          { id: "cancel_charge_" + updatedOrder.id, title: "Cancel Order" }
+        ], updatedOrder.user_id);
+
+        if (!btnRes || !btnRes.success) {
+          await whatsappManager.sendOfficialMessage(targetPhone, `👉 Reply "CONFIRM" to accept delivery charge or "CANCEL" to cancel order.`, updatedOrder.user_id);
+        }
       }
     } catch (waErr) {
       console.error("WhatsApp delivery charge confirmation notification error:", waErr);
@@ -1409,17 +1473,20 @@ router.put("/:id/delivery-charge", authMiddleware, async (req, res) => {
   }
 });
 
-// 💳 UPDATE ORDER PAYMENT STATUS (POS & Orders App)
-router.put("/:id/payment", authMiddleware, async (req, res) => {
+// 💳 UPDATE ORDER PAYMENT STATUS (Supports both /payment and /payment-status)
+const handlePaymentStatusUpdate = async (req, res) => {
   try {
     const { id } = req.params;
     const { payment_status, payment_method } = req.body;
 
-    const checkRes = await pool.query("SELECT * FROM orders WHERE id = $1", [id]);
-    if (checkRes.rows.length === 0) {
+    if (!id) {
+      return res.status(400).json({ error: "Order ID is required" });
+    }
+
+    const order = await findOrderByIdOrRef(id);
+    if (!order) {
       return res.status(404).json({ error: "Order not found" });
     }
-    const order = checkRes.rows[0];
 
     const newPayStatus = payment_status ? String(payment_status).toUpperCase() : (order.payment_status || 'RECEIVED');
     const newPayMethod = payment_method ? String(payment_method).toUpperCase() : (order.payment_method || 'CASH');
@@ -1427,24 +1494,52 @@ router.put("/:id/payment", authMiddleware, async (req, res) => {
     const updateRes = await pool.query(
       `UPDATE orders 
        SET payment_status = $1, 
-           payment_method = $2,
-           updated_at = NOW() 
+           payment_method = $2 
        WHERE id = $3 
        RETURNING *`,
-      [newPayStatus, newPayMethod, id]
+      [newPayStatus, newPayMethod, order.id]
     );
 
     const updatedOrder = updateRes.rows[0];
 
-    // Trigger Webhook & Notifications if needed
+    // Trigger Webhook & WhatsApp Notification to Customer
     try {
-      const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1", [order.user_id]);
+      let bizUserId = updatedOrder.user_id;
+      const userCheck = await pool.query("SELECT id, parent_user_id FROM app_users WHERE id = $1", [bizUserId]);
+      if (userCheck.rows.length > 0 && userCheck.rows[0].parent_user_id) {
+        bizUserId = userCheck.rows[0].parent_user_id;
+      }
+
+      const bizRes = await pool.query("SELECT * FROM restaurants WHERE user_id = $1 OR user_id = $2", [updatedOrder.user_id, bizUserId]);
       const biz = bizRes.rows[0];
+      const symbol = (biz && biz.currency_code === "USD") ? "$" : "₹";
+      const ref = updatedOrder.order_reference || `#${updatedOrder.id}`;
+      const totalStr = parseFloat(updatedOrder.total_price || 0).toFixed(2);
+
       if (biz) {
-        triggerWebhook(biz, 'order.updated', updatedOrder);
+        try {
+          triggerWebhook(biz, 'order.updated', updatedOrder);
+        } catch (wbErr) {
+          console.error("Webhook trigger fail on payment status update:", wbErr);
+        }
+      }
+
+      if (updatedOrder.customer_number) {
+        let payMsg = "";
+        if (newPayStatus === 'RECEIVED' || newPayStatus === 'PAID' || newPayStatus === 'VERIFIED') {
+          payMsg = `🟢 *PAYMENT VERIFIED & RECEIVED!*\n━━━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nTotal Amount: *${symbol}${totalStr}*\nPayment Method: *${newPayMethod}*\nStatus: *PAID & VERIFIED ✅*\n\nThank you! We are preparing your order. 🚀`;
+        } else if (newPayStatus === 'NOT_RECEIVED' || newPayStatus === 'UNPAID') {
+          payMsg = `🔴 *PAYMENT STATUS UPDATE*\n━━━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\nStatus: *PAYMENT NOT RECEIVED ❌*\n\nIf you have already paid, please reply with your payment screenshot or reference number so our team can check immediately. 🙏`;
+        } else if (newPayStatus === 'CUSTOMER_CONFIRMED' || newPayStatus.includes('CLAIM')) {
+          payMsg = `🟡 *PAYMENT CLAIM RECEIVED*\n━━━━━━━━━━━━━━━━\nOrder Ref: *${ref}*\n\nThank you! We have notified our staff to verify your payment. 🚀`;
+        }
+
+        if (payMsg) {
+          await whatsappManager.sendOfficialMessage(updatedOrder.customer_number, payMsg, bizUserId || updatedOrder.user_id);
+        }
       }
     } catch (wErr) {
-      console.error("Webhook trigger fail on payment update:", wErr);
+      console.error("Webhook / WhatsApp trigger fail on payment update:", wErr);
     }
 
     res.json(updatedOrder);
@@ -1452,6 +1547,9 @@ router.put("/:id/payment", authMiddleware, async (req, res) => {
     console.error("🔥 UPDATE PAYMENT STATUS ERROR:", err);
     res.status(500).json({ error: err.message || "Failed to update payment status" });
   }
-});
+};
+
+router.put("/:id/payment", authMiddleware, handlePaymentStatusUpdate);
+router.put("/:id/payment-status", authMiddleware, handlePaymentStatusUpdate);
 
 module.exports = router;

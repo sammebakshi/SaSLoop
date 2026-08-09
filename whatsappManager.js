@@ -21,7 +21,18 @@ const formatToInter = (p) => {
 
 const sendOfficialMessage = async (to, content, userId) => {
     try {
-        let dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE id = $1 AND meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL AND LENGTH(meta_access_token) > 20 AND meta_phone_id != '123'", [userId]);
+        let dbRes = await pool.query(
+            `SELECT id, meta_access_token, meta_phone_id 
+             FROM app_users 
+             WHERE (id = $1 OR id = (SELECT parent_user_id FROM app_users WHERE id = $1)) 
+               AND meta_access_token IS NOT NULL 
+               AND meta_phone_id IS NOT NULL 
+               AND LENGTH(meta_access_token) > 20 
+               AND meta_phone_id != '123'
+             ORDER BY CASE WHEN id = $1 THEN 0 ELSE 1 END
+             LIMIT 1`,
+            [userId]
+        );
         if (dbRes.rows.length === 0) {
             dbRes = await pool.query("SELECT id, meta_access_token, meta_phone_id FROM app_users WHERE meta_access_token IS NOT NULL AND meta_phone_id IS NOT NULL AND LENGTH(meta_access_token) > 20 AND meta_phone_id != '123' ORDER BY id ASC LIMIT 1");
         }
@@ -647,16 +658,18 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         let lower = msgText.trim().toLowerCase();
         const cleanNum = normalizePhone(customerNumber);
         
-        // --- 🔍 FETCH BIZ DATA FIRST (For Hours Check) ---
+        // --- 🔍 FETCH BIZ DATA FIRST (For Hours & Branding Check) ---
         const bizRes = await pool.query(
-            `SELECT r.*, u.bot_knowledge 
-             FROM restaurants r 
-             JOIN app_users u ON r.user_id = u.id 
-             WHERE r.user_id = $1`, 
+            `SELECT r.*, u.bot_knowledge, u.business_name AS user_biz_name, u.brand_name AS user_brand_name, u.name AS user_name 
+             FROM app_users u 
+             LEFT JOIN restaurants r ON (r.user_id = u.id OR r.user_id = u.parent_user_id) 
+             WHERE u.id = $1 OR u.id = (SELECT parent_user_id FROM app_users WHERE id = $1)
+             ORDER BY r.id DESC LIMIT 1`, 
             [userId]
         );
         const biz = bizRes.rows[0];
         if (!biz) return;
+        const bizName = (biz?.name && biz.name.trim()) || (biz?.user_brand_name && biz.user_brand_name.trim()) || (biz?.user_biz_name && biz.user_biz_name.trim()) || (biz?.user_name && biz.user_name.trim()) || "our restaurant";
 
         const session = await getSession(userId, cleanNum);
 
@@ -974,14 +987,15 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             );
 
             const loy = loyRes.rows[0] || { balance: 0, points: 0, total_spent: 0 };
-            const balVal = parseFloat(loy.balance || 0).toFixed(2);
+            const numBal = parseFloat(loy.balance || 0);
+            const balStr = numBal < 0 ? `Credit Due: ${symbol}${Math.abs(numBal).toFixed(2)}` : `Wallet Balance: ${symbol}${numBal.toFixed(2)}`;
             const ptsVal = parseInt(loy.points || 0);
             const spentVal = parseFloat(loy.total_spent || 0).toFixed(2);
 
             const profileMsg = `💳 *YOUR WALLET & REWARDS ACCOUNT*\n━━━━━━━━━━━━━━━━\n` +
                 `👤 *Customer:* ${loy.name || customerName || 'Valued Guest'}\n` +
                 `📱 *Phone:* ${cleanNum}\n` +
-                `💰 *Wallet Balance:* ${symbol}${balVal}\n` +
+                `💰 *${balStr}*\n` +
                 `💎 *Reward Points:* ${ptsVal} Points\n` +
                 `🛍️ *Total Spent:* ${symbol}${spentVal}\n` +
                 `━━━━━━━━━━━━━━━━\n` +
@@ -995,8 +1009,6 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
         }
 
         if (greetings.includes(lower)) {
-            const bizName = biz.name || "our restaurant";
-            
             // Always unpause AI when user sends explicit greeting/reset command
             try {
                 await pool.query("UPDATE conversation_sessions SET is_paused = false WHERE user_id = $1 AND customer_number = $2", [userId, cleanNum]);
@@ -1012,12 +1024,14 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 [userId, tenDigits]
             );
             const existing = customerRes.rows[0];
-            const userBalance = parseFloat(existing?.balance || 0).toFixed(2);
+            const rawBalance = parseFloat(existing?.balance || 0);
             const userPoints = parseInt(existing?.points || 0);
 
             if (existing) {
                 // EXISTING CUSTOMER: Show "Welcome Back" + Balance + List
-                let balanceLine = `💰 *Wallet Balance:* ${symbol}${userBalance}`;
+                let balanceLine = rawBalance < 0 
+                    ? `💰 *Credit Due:* ${symbol}${Math.abs(rawBalance).toFixed(2)}` 
+                    : `💰 *Wallet Balance:* ${symbol}${rawBalance.toFixed(2)}`;
                 if (userPoints > 0) balanceLine += ` | 💎 *Rewards:* ${userPoints} pts`;
 
                 const welcomeText = `🏠 *Welcome back to ${bizName}!*\n\nHello ${existing.name || customerName || 'friend'}! 👋\n${balanceLine}\n\nHow may I assist you today? You can explore our menu, place an order, check your wallet, or book a table below. 👇`;
@@ -1616,11 +1630,16 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             }
         }
 
-        // --- 🔘 HANDLE BUTTON CLICKS ---
-        if (lower.startsWith('payment_completed_')) {
-            const ordRef = lower.replace('payment_completed_', '').trim();
-            const ordRes = await pool.query("SELECT * FROM orders WHERE (order_reference = $1 OR bill_no = $1 OR id::text = $1) AND user_id = $2", [ordRef, userId]);
-            if (ordRes.rows.length > 0) {
+        // --- 🔘 HANDLE BUTTON CLICKS & PAYMENT CONFIRMATIONS ---
+        if (lower.startsWith('payment_completed_') || lower === 'i have paid' || lower === 'i paid' || lower === 'i have completed payment' || lower === 'payment completed' || lower === 'payment done') {
+            let ordRef = lower.startsWith('payment_completed_') ? lower.replace('payment_completed_', '').trim() : null;
+            let ordRes;
+            if (ordRef) {
+                ordRes = await pool.query("SELECT * FROM orders WHERE (order_reference = $1 OR bill_no = $1 OR id::text = $1) AND user_id = $2", [ordRef, userId]);
+            } else {
+                ordRes = await pool.query("SELECT * FROM orders WHERE customer_number = $1 AND user_id = $2 AND status IN ('AWAITING_PAYMENT', 'PENDING', 'PENDING_DELIVERY_CHARGE', 'PLACED') ORDER BY id DESC LIMIT 1", [cleanNum, userId]);
+            }
+            if (ordRes && ordRes.rows.length > 0) {
                 const ord = ordRes.rows[0];
                 await pool.query("UPDATE orders SET payment_status = 'CUSTOMER_CONFIRMED' WHERE id = $1", [ord.id]);
 
@@ -1641,6 +1660,8 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                         await sendOfficialMessage(num, staffMsg, userId);
                     }
                 } catch (sErr) { console.error("Staff notification error for payment completion:", sErr); }
+            } else {
+                await sendOfficialMessage(customerNumber, "Thank you! We have logged your payment status and our staff will verify it shortly. 🙏", userId);
             }
             await updateSession(userId, cleanNum, 'IDLE', session.context);
             return;
@@ -1720,11 +1741,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                 ].join("\n");
 
                 await sendOfficialMessage(customerNumber, upiMsg, userId);
-                try {
-                    await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
-                        { id: `payment_completed_${ord.order_reference || ordId}`, title: "💳 I Have Paid" }
-                    ], userId);
-                } catch (btnErr) { console.error("Payment button error:", btnErr); }
+                const btnRes = await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                    { id: `payment_completed_${ord.order_reference || ordId}`, title: "I Have Paid" }
+                ], userId);
+                if (!btnRes || !btnRes.success) {
+                    await sendOfficialMessage(customerNumber, `👉 After completing payment, reply "I HAVE PAID" to confirm.`, userId);
+                }
 
                 try {
                     await notifyKitchenAndStaff(userId, ord.order_reference || `#${ord.id}`, ord.customer_name, ord.customer_number, itemsArr, parseFloat(ord.total_price), parseFloat(ord.total_price), 0, 0, 0, 0, symbol, 'online', ord.address, '0');
@@ -1911,13 +1933,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
                     `👉 *After paying, click the button below or reply "I HAVE COMPLETED PAYMENT".*`
                 ].join("\n");
 
-                try {
-                    await sendButtons(customerNumber, upiMsg, [
-                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
-                    ], userId);
-                } catch (btnErr) {
-                    console.error("Payment button error for pickup:", btnErr);
-                    await sendOfficialMessage(customerNumber, upiMsg, userId);
+                await sendOfficialMessage(customerNumber, upiMsg, userId);
+                const btnRes = await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                    { id: `payment_completed_${orderRef}`, title: "I Have Paid" }
+                ], userId);
+                if (!btnRes || !btnRes.success) {
+                    await sendOfficialMessage(customerNumber, `👉 After completing payment, reply "I HAVE PAID" to confirm.`, userId);
                 }
             } else {
                 const receiptRows = [
@@ -2033,13 +2054,12 @@ const processAiAutomations = async (userId, customerNumber, msgText, customerNam
             const receipt = receiptRows.join("\n");
 
             if (!isCOD) {
-                try {
-                    await sendButtons(customerNumber, receipt, [
-                        { id: `payment_completed_${orderRef}`, title: "💳 I Have Paid" }
-                    ], userId);
-                } catch (btnErr) {
-                    console.error("Payment button error:", btnErr);
-                    await sendOfficialMessage(customerNumber, receipt, userId);
+                await sendOfficialMessage(customerNumber, receipt, userId);
+                const btnRes = await sendButtons(customerNumber, `💳 Click below once you have completed payment:`, [
+                    { id: `payment_completed_${orderRef}`, title: "I Have Paid" }
+                ], userId);
+                if (!btnRes || !btnRes.success) {
+                    await sendOfficialMessage(customerNumber, `👉 After completing payment, reply "I HAVE PAID" to confirm.`, userId);
                 }
             } else {
                 await sendOfficialMessage(customerNumber, receipt, userId);
@@ -2572,7 +2592,7 @@ RETURN ONLY JSON:
                     if (joiningPoints > 0) {
                         pointsPromo = ` and get *${joiningPoints} Free Points* instantly`;
                     }
-                    const welcomeMsg = `👋 *Welcome to ${biz.name}!* ✨\n\n${result.human_reply || "Hello! It is a pleasure to meet you. 😊"}\n\n🎁 Join our *VIP Club* today${pointsPromo} to start earning rewards and track your orders! 🎈`;
+                    const welcomeMsg = `👋 *Welcome to ${bizName}!* ✨\n\n${result.human_reply || "Hello! It is a pleasure to meet you. 😊"}\n\n🎁 Join our *VIP Club* today${pointsPromo} to start earning rewards and track your orders! 🎈`;
                     await sendButtons(customerNumber, welcomeMsg, [
                         { id: 'join_loyalty', title: joiningPoints > 0 ? `🎁 Claim ${joiningPoints} Pts` : '🎁 Join VIP Club' },
                         { id: 'place_order', title: '🛍️ Browse Menu' }
@@ -2581,7 +2601,7 @@ RETURN ONLY JSON:
                 }
 
                 // Standard Professional List Menu
-                await sendList(customerNumber, "How can we help? ✨", `🏠 *Welcome back to ${biz.name}!* \n\nHello ${customerName}, how may I assist you today? 🌟 \n\nYou can explore our menu, place an order, or book a table below. 👇`, "✨ Open Main Menu ✨", [
+                await sendList(customerNumber, "How can we help? ✨", `🏠 *Welcome back to ${bizName}!* \n\nHello ${customerName}, how may I assist you today? 🌟 \n\nYou can explore our menu, place an order, or book a table below. 👇`, "✨ Open Main Menu ✨", [
                     {
                         title: "🛒 Ordering & Booking",
                         rows: [

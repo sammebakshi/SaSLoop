@@ -4999,6 +4999,7 @@ const UniversalPOS = () => {
       onlineOrdersKOTPrint: false,
       onlineOrdersBillPrint: false,
       onlineOrdersDirectComplete: false,
+      autoPrintTableKOTOnAcceptance: true,
       dateFormat: 'DD-MM-YYYY',
       decimalPlaces: 2,
       printMarginLeft: 0,
@@ -6832,11 +6833,11 @@ const UniversalPOS = () => {
           if (POS_SOURCES_SET.has(source)) return false;
 
           const refStr = String(order.order_reference || '');
-          const isTargetSource = ['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ONLINE', 'POS_ONLINE'].includes(source) || (refStr && (refStr.startsWith('ONL-') || refStr.startsWith('QR-') || refStr.startsWith('WA-')));
+          const isTargetSource = ['QR_MENU', 'ONLINE_ORDER', 'WHATSAPP', 'ONLINE', 'POS_ONLINE'].includes(source) || (refStr && (refStr.startsWith('ONL-') || refStr.startsWith('QR-') || refStr.startsWith('WA-') || refStr.startsWith('DEL-')));
           if (!isTargetSource && !source) return false;
 
           const status = String(order.status || 'PENDING').toUpperCase();
-          const isTargetStatus = ['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status);
+          const isTargetStatus = ['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW', 'RECEIVED', 'ORDER RECEIVED AT POS KITCHEN'].includes(status);
           return isTargetSource && isTargetStatus;
         });
 
@@ -9648,11 +9649,39 @@ const UniversalPOS = () => {
         handlePrint(newOrder);
       }
       else if (type === 'SETTLE') {
-        setTableStatuses(prev => ({ ...prev, [selectedTable.id]: 'AVAILABLE' }));
-        setTableCarts(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });
-        setTableBills(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });
-        setTableBillNumbers(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });
-        setTableActiveTimestamps(prev => { const n = { ...prev }; delete n[selectedTable.id]; return n; });
+        const cleanTableNum = String(selectedTable.table_name || selectedTable.id).replace(/^Table\s+/i, '').trim();
+        const keysToClear = [selectedTable.id, selectedTable.table_name, cleanTableNum, `Table ${cleanTableNum}`].filter(Boolean);
+
+        setTableStatuses(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
+        setTableCarts(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
+        setTableBills(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
+        setTableBillNumbers(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
+        setTableActiveTimestamps(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
+        setTableCustomers(prev => {
+          const n = { ...prev };
+          keysToClear.forEach(k => delete n[k]);
+          return n;
+        });
         releaseTableExtraState(selectedTable.id);
 
         if (selectedTable.is_temporary) {
@@ -10016,6 +10045,71 @@ const UniversalPOS = () => {
     try {
       await posService.updateOrderStatus(orderId, newStatus, rejectionReason);
       toast.success(`Order status updated to ${newStatus}`);
+
+      // 🪑 Instant POS Table Binding: Transfer order items to table state
+      const targetOrder = (recentOrders || []).find(o => String(o.id) === String(orderId) || String(o.order_reference) === String(orderId));
+      if (targetOrder) {
+        const rawTable = targetOrder.table_number || targetOrder.table_id || targetOrder.table_name;
+        if (rawTable && rawTable !== '0' && rawTable !== '') {
+          const cleanNum = String(rawTable).replace(/^Table\s+/i, '').trim();
+          const matchedTable = (tables || []).find(t => {
+            const tNameClean = String(t.table_name || t.name || t.id).replace(/^Table\s+/i, '').trim();
+            return tNameClean.toLowerCase() === cleanNum.toLowerCase() || String(t.id) === String(rawTable);
+          });
+
+          const tableId = matchedTable ? matchedTable.id : cleanNum;
+          const tableName = matchedTable ? matchedTable.table_name : `Table ${cleanNum}`;
+          const itemsArr = Array.isArray(targetOrder.items) ? targetOrder.items : (typeof targetOrder.items === 'string' ? JSON.parse(targetOrder.items || '[]') : []);
+
+          if (itemsArr.length > 0 && !['COMPLETED', 'CANCELLED', 'REJECTED'].includes(String(newStatus).toUpperCase())) {
+            const formattedItems = itemsArr.map(i => ({
+              id: i.id,
+              product_name: i.product_name || i.name || 'Item',
+              name: i.product_name || i.name || 'Item',
+              qty: parseFloat(i.qty || i.quantity || 1),
+              quantity: parseFloat(i.qty || i.quantity || 1),
+              price: parseFloat(i.price || 0),
+              modifiers: i.modifiers || [],
+              kot_category: i.kot_category || 'Main Kitchen'
+            }));
+
+            const bRef = targetOrder.order_reference || targetOrder.bill_no || targetOrder.id;
+
+            setTableBills(prev => ({
+              ...prev,
+              [tableId]: formattedItems,
+              [cleanNum]: formattedItems,
+              [tableName]: formattedItems
+            }));
+            setTableStatuses(prev => ({
+              ...prev,
+              [tableId]: 'SAVED',
+              [cleanNum]: 'SAVED',
+              [tableName]: 'SAVED'
+            }));
+            setTableBillNumbers(prev => ({
+              ...prev,
+              [tableId]: bRef,
+              [cleanNum]: bRef,
+              [tableName]: bRef
+            }));
+            setTableActiveTimestamps(prev => ({
+              ...prev,
+              [tableId]: Date.now(),
+              [cleanNum]: Date.now(),
+              [tableName]: Date.now()
+            }));
+            if (targetOrder.customer_number || targetOrder.customer_name) {
+              setTableCustomers(prev => ({
+                ...prev,
+                [tableId]: { customerName: targetOrder.customer_name || 'WhatsApp Guest', customerPhone: targetOrder.customer_number || '' },
+                [cleanNum]: { customerName: targetOrder.customer_name || 'WhatsApp Guest', customerPhone: targetOrder.customer_number || '' }
+              }));
+            }
+          }
+        }
+      }
+
       fetchOrdersForMode(
         activeTab === 'digital' ? digitalDateMode : receiptsDateMode,
         activeTab === 'digital' ? digitalStartDate : receiptsStartDate,
@@ -11343,36 +11437,59 @@ const UniversalPOS = () => {
     setPrintDetailedBalance(restoredCustomer.printDetailedBalance !== undefined ? restoredCustomer.printDetailedBalance : true);
     // isRestoringCustomerRef.current is cleared automatically by the commit-phase useEffect
 
-    const pendingOrder = (recentOrders || []).find(o => 
-      o && 
-      String(o.table_id || o.table_number) === String(table.id) && 
-      String(o.status).toUpperCase() === 'PENDING'
-    );
+    const activeOrdersForTable = (recentOrders || []).filter(o => {
+      if (!o) return false;
+      const oStatus = String(o.status || '').toUpperCase();
+      if (['COMPLETED', 'CANCELLED', 'REJECTED', 'SETTLED', 'DELIVERED'].includes(oStatus)) return false;
 
-    if (pendingOrder) {
-      setEditingOrder(pendingOrder);
-      const parsedItems = Array.isArray(pendingOrder.items) ? pendingOrder.items : JSON.parse(pendingOrder.items || '[]');
-      const mappedItems = parsedItems.map(i => ({
-        ...i,
-        product_name: i.product_name || i.name || 'Item',
-        quantity: parseFloat(i.quantity || i.qty || 1),
-        price: parseFloat(i.price || 0),
-        modifiers: i.modifiers || [],
-        kot_category: i.kot_category || 'Main Kitchen'
-      }));
-      setTableBills(prev => {
-        const currentBill = prev[table.id] || [];
-        const hasActiveItems = currentBill.filter(item => !item.isCancelled).length > 0;
-        if (hasActiveItems) {
-          return prev;
-        }
-        return { ...prev, [table.id]: mergeBillItems(mappedItems) };
+      const tblNumStr = String(o.table_number || o.table_id || '').replace(/^Table\s+/i, '').trim();
+      const targetNumStr = String(table.table_name || table.id).replace(/^Table\s+/i, '').trim();
+
+      return String(o.table_id) === String(table.id) ||
+             String(o.table_number) === String(table.table_name) ||
+             (tblNumStr && targetNumStr && tblNumStr.toLowerCase() === targetNumStr.toLowerCase());
+    });
+
+    if (activeOrdersForTable.length > 0) {
+      const activeOrderForTable = activeOrdersForTable[0];
+      setEditingOrder(activeOrderForTable);
+      
+      const allTableItems = activeOrdersForTable.flatMap(ord => {
+        const parsedItems = Array.isArray(ord.items) 
+          ? ord.items 
+          : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+        return parsedItems.map(i => ({
+          ...i,
+          product_name: i.product_name || i.name || 'Item',
+          quantity: parseFloat(i.quantity || i.qty || 1),
+          qty: parseFloat(i.quantity || i.qty || 1),
+          price: parseFloat(i.price || 0),
+          modifiers: i.modifiers || [],
+          kot_category: i.kot_category || 'Main Kitchen'
+        }));
       });
+
+      const merged = mergeBillItems(allTableItems);
+      setTableBills(prev => ({
+        ...prev,
+        [table.id]: merged,
+        [table.table_name]: merged
+      }));
+      setTableStatuses(prev => ({
+        ...prev,
+        [table.id]: 'SAVED',
+        [table.table_name]: 'SAVED'
+      }));
+      setTableBillNumbers(prev => ({
+        ...prev,
+        [table.id]: activeOrderForTable.order_reference || activeOrderForTable.bill_no || activeOrderForTable.id,
+        [table.table_name]: activeOrderForTable.order_reference || activeOrderForTable.bill_no || activeOrderForTable.id
+      }));
       setCart(tableCarts[table.id] || []);
       if (!restoredCustomer.customerPhone) {
-        setCustomerName(pendingOrder.customer_name || 'POS Guest');
-        setCustomerPhone(pendingOrder.customer_phone || '');
-        setCustomerAddress(pendingOrder.address || '');
+        setCustomerName(activeOrderForTable.customer_name || 'POS Guest');
+        setCustomerPhone(activeOrderForTable.customer_number || activeOrderForTable.customer_phone || '');
+        setCustomerAddress(activeOrderForTable.address || '');
       }
     } else {
       setEditingOrder(null);
@@ -16812,6 +16929,15 @@ const UniversalPOS = () => {
                           } else if (status === 'CANCELLED') {
                             statusLabel = 'Cancelled';
                             statusColor = 'text-black bg-red-100 border-red-300 font-black';
+                          } else if (['PENDING_DELIVERY_CHARGE', 'AWAITING_DELIVERY_CHARGE', 'PENDING_DELIVERY'].includes(status)) {
+                            statusLabel = 'Awaits Delivery Fee';
+                            statusColor = 'text-amber-900 bg-amber-200 border-amber-400 font-black';
+                          } else if (['AWAITING_CUSTOMER_CONFIRMATION', 'AWAITING_CUSTOMER'].includes(status)) {
+                            statusLabel = 'Awaits Customer Confirmation';
+                            statusColor = 'text-purple-900 bg-purple-200 border-purple-400 font-black';
+                          } else if (['AWAITING_PAYMENT', 'PENDING_PAYMENT'].includes(status)) {
+                            statusLabel = 'Awaits Customer Payment';
+                            statusColor = 'text-blue-900 bg-blue-200 border-blue-400 font-black';
                           }
 
                           // Get source info
@@ -16896,7 +17022,7 @@ const UniversalPOS = () => {
                                   <span className="text-black font-black text-[9px]">{dateFormatted}</span>
                                 </div>
                                 <div className="text-[10px] font-black uppercase mt-1.5">
-                                  {['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(status) && (
+                                  {['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW'].includes(status) && (
                                     <span className="text-black font-black bg-rose-100 px-2 py-0.5 rounded border border-rose-300">Placed</span>
                                   )}
                                   {['PROCESSING', 'PREPARING'].includes(status) && (
@@ -16979,7 +17105,7 @@ const UniversalPOS = () => {
 
                               {/* Bottom Action buttons */}
                               <div className="flex gap-2" onClick={e => e.stopPropagation()}>
-                                {['PENDING', 'AWAITING_PAYMENT', 'PLACED'].includes(status) ? (
+                                {['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW'].includes(status) ? (
                                   <>
                                     <button
                                       onClick={() => {
@@ -17206,7 +17332,7 @@ const UniversalPOS = () => {
                                   <span className="text-[10px] font-black text-black">Delivery Fee:</span>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                  {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                                  {['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
                                     <>
                                       <span className="text-xs font-black text-black">₹</span>
                                       <input
@@ -17219,25 +17345,18 @@ const UniversalPOS = () => {
                                           const newFee = parseFloat(e.target.value) || 0;
                                           if (newFee === (deliveryCharge || 0)) return;
                                           try {
-                                            const newTotal = subtotal + newFee - discountAmt + cgst + sgst;
-                                            const updatedChargeDetails = [{ name: 'Delivery Charge', amount: newFee, value: newFee }];
-                                            await posService.updateOrder(order.id, { 
-                                              ...order,
-                                              delivery_charge: newFee, 
-                                              total_price: newTotal,
-                                              charge_details: updatedChargeDetails 
-                                            });
-                                            toast.success(`Delivery charge updated to ₹${newFee.toFixed(2)}`);
+                                            const res = await posService.updateDeliveryCharge(order.id, newFee);
+                                            const updatedData = res.data;
+                                            toast.success(`Delivery charge updated to ₹${newFee.toFixed(2)}! WhatsApp confirmation sent.`);
                                             setSelectedDigitalOrder(prev => prev ? { 
                                               ...prev, 
-                                              delivery_charge: newFee, 
-                                              total_price: newTotal,
-                                              charge_details: updatedChargeDetails 
+                                              ...(updatedData || {}),
+                                              delivery_charge: newFee
                                             } : null);
                                             fetchOrdersForMode(digitalDateMode, digitalStartDate, digitalEndDate);
                                           } catch (err) {
                                             console.error(err);
-                                            toast.error("Failed to update delivery charge");
+                                            toast.error(err.response?.data?.error || "Failed to update delivery charge");
                                           }
                                         }}
                                         className="w-16 h-7 px-1.5 bg-white border border-slate-300 text-black font-black text-xs text-right rounded-md outline-none focus:border-amber-500"
@@ -17259,6 +17378,29 @@ const UniversalPOS = () => {
                                 <span className="text-emerald-700">₹{totalPrice.toFixed(2)}</span>
                               </div>
                             </div>
+
+                            {/* Detailed Status Warning Banner for Quotes/Confirmations */}
+                            {['PENDING_DELIVERY_CHARGE', 'AWAITING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'AWAITING_PAYMENT'].includes(String(order.status || '').toUpperCase()) && (
+                              <div className={`p-3 rounded-xl border font-black text-[11px] uppercase tracking-wide flex items-center gap-2.5 my-2 shadow-sm ${
+                                String(order.status || '').toUpperCase().includes('CUSTOMER') ? 'bg-purple-100 border-purple-300 text-purple-900' :
+                                String(order.status || '').toUpperCase().includes('DELIVERY') ? 'bg-amber-100 border-amber-300 text-amber-900' :
+                                'bg-blue-100 border-blue-300 text-blue-900'
+                              }`}>
+                                <Clock size={18} className="shrink-0 animate-pulse" />
+                                <div>
+                                  <div>
+                                    {String(order.status || '').toUpperCase().includes('CUSTOMER') ? '⏳ Awaiting Customer Confirmation' :
+                                     String(order.status || '').toUpperCase().includes('DELIVERY') ? '🛵 Awaiting Delivery Fee Setting' :
+                                     '💳 Awaiting Customer Payment'}
+                                  </div>
+                                  <div className="text-[9px] font-bold opacity-80 normal-case">
+                                    {String(order.status || '').toUpperCase().includes('CUSTOMER') ? 'Delivery charge sent to customer on WhatsApp. Waiting for customer response...' :
+                                     String(order.status || '').toUpperCase().includes('DELIVERY') ? 'Please enter delivery charge above to send quote.' :
+                                     'Customer has been sent payment details on WhatsApp.'}
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Horizontal Status Timeline */}
                             <div className="bg-slate-50 p-4 rounded-lg border border-slate-300 space-y-4">
@@ -17334,7 +17476,7 @@ const UniversalPOS = () => {
                                   Delivery Boy
                                 </label>
 
-                                {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                                {['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
                                   <>
                                     <select
                                       value={order.rider_id || ''}
@@ -17416,14 +17558,15 @@ const UniversalPOS = () => {
                               <label className="text-[8px] font-black uppercase text-black tracking-wider block">
                                 Payment Status
                               </label>
-                              {['PENDING', 'AWAITING_PAYMENT', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
+                              {['PENDING', 'AWAITING_PAYMENT', 'PENDING_DELIVERY_CHARGE', 'AWAITING_CUSTOMER_CONFIRMATION', 'PLACED', 'NEW'].includes(String(order.status || '').toUpperCase()) ? (
                                 <select
                                   value={order.payment_status || 'PENDING'}
                                   onChange={async (e) => {
                                     const selectedStatus = e.target.value;
                                     if (!selectedStatus) return;
                                     try {
-                                      await posService.updateOrderPaymentStatus(order.id, selectedStatus);
+                                      const targetId = order.id || order.order_reference;
+                                      await posService.updateOrderPaymentStatus(targetId, selectedStatus);
                                       const statusLabel = selectedStatus === 'RECEIVED' || selectedStatus === 'PAID'
                                         ? 'PAID & VERIFIED'
                                         : selectedStatus === 'NOT_RECEIVED'

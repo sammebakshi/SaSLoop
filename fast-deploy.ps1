@@ -22,7 +22,7 @@ $TIMESTAMP = Get-Date -Format "yyyyMMddHHmmss"
 $SYNC_FILE = "project_sync_$TIMESTAMP.tar.gz"
 Write-Host "-> Compressing project for sync ($SYNC_FILE)..." -ForegroundColor Gray
 # We use tar to grab everything except the heavy node_modules and native/app directories
-tar -czf $SYNC_FILE --exclude="node_modules" --exclude="SaSLoop-dashboard/node_modules" --exclude=".git" --exclude="*.tar.gz" --exclude="*.apk" --exclude="*.exe" --exclude="pos-app" --exclude="rider-app" --exclude="sasloop-android" --exclude="sasloop-mobile" --exclude="backups" --exclude=".wwebjs_auth" --exclude=".wwebjs_cache" --exclude="uploads" --exclude="dist" .
+tar -czf $SYNC_FILE --exclude="node_modules" --exclude="SaSLoop-dashboard/node_modules" --exclude="pos-app/node_modules" --exclude="pos-app/release-v2" --exclude="release-v2" --exclude=".git" --exclude="*.tar.gz" --exclude="*.apk" --exclude="*.exe" --exclude="rider-app" --exclude="sasloop-android" --exclude="sasloop-mobile" --exclude="backups" --exclude=".wwebjs_auth" --exclude=".wwebjs_cache" --exclude="uploads" .
 
 # 3. Sync code to GitHub (DISABLED TEMPORARILY FOR SPEED)
 # Write-Host "-> Pushing to GitHub (Skipped for speed)..." -ForegroundColor Yellow

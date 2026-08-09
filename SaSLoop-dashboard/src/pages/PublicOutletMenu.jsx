@@ -547,6 +547,37 @@ const PublicOutletMenu = () => {
   const [tableStatusData, setTableStatusData] = useState(null);
   const [isVerifyingTableOrder, setIsVerifyingTableOrder] = useState(false);
 
+  // 📋 Active Table KOT Dishes & Status Tracking
+  const activeTableOrder = tableStatusData?.active_order || null;
+  const activeTableItems = useMemo(() => {
+    if (!activeTableOrder || !activeTableOrder.items) return [];
+    if (Array.isArray(activeTableOrder.items)) return activeTableOrder.items;
+    try { return JSON.parse(activeTableOrder.items); } catch(e) { return []; }
+  }, [activeTableOrder]);
+
+  const previousKOTSubtotal = useMemo(() => {
+    if (!activeTableItems || activeTableItems.length === 0) return 0;
+    return activeTableItems.reduce((acc, item) => {
+      const p = parseFloat(item.price) || 0;
+      const q = parseInt(item.qty || item.quantity) || 1;
+      return acc + (p * q);
+    }, 0);
+  }, [activeTableItems]);
+
+  const getKOTStatusBadge = (itemStatus, orderStatus) => {
+    const st = String(itemStatus || orderStatus || 'ACCEPTED').toUpperCase();
+    if (st === 'PREPARING' || st === 'PROCESSING' || st === 'COOKING') {
+      return <span className="text-[9.5px] font-extrabold text-amber-800 bg-amber-100/90 px-2 py-0.5 rounded-full border border-amber-300 flex items-center gap-1 shrink-0">🔥 Preparing</span>;
+    }
+    if (st === 'FOOD_READY' || st === 'READY') {
+      return <span className="text-[9.5px] font-extrabold text-blue-800 bg-blue-100/90 px-2 py-0.5 rounded-full border border-blue-300 flex items-center gap-1 shrink-0">🔔 Food Ready</span>;
+    }
+    if (st === 'SERVED' || st === 'DELIVERED' || st === 'COMPLETED') {
+      return <span className="text-[9.5px] font-extrabold text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-full border border-emerald-300 flex items-center gap-1 shrink-0">🍽️ Served</span>;
+    }
+    return <span className="text-[9.5px] font-extrabold text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full border border-stone-300 flex items-center gap-1 shrink-0">⏳ Accepted</span>;
+  };
+
   // 🔐 Table QR Login Gate — WhatsApp OTP Flow
   const [isTableLoginModalOpen, setIsTableLoginModalOpen] = useState(false);
   const [tableLoginStep, setTableLoginStep] = useState("PHONE"); // "PHONE" | "OTP" | "BLOCKED"
@@ -1027,20 +1058,18 @@ const PublicOutletMenu = () => {
             if (data.status === "OCCUPIED") {
               const occupiedPhone = (data.customer_number || data.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
 
-              if (occupiedPhone && occupiedPhone.length >= 10) {
-                if (occupiedPhone === savedPhone) {
-                  // Phone MATCH -> Access Granted!
-                  setIsTableAccessBlocked(false);
-                  setIsTableLoginModalOpen(false);
-                } else {
-                  // Different phone -> Access Blocked!
-                  setIsTableAccessBlocked(true);
-                  setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your logged-in number (${savedPhone}) does not match.`);
-                }
+              if (occupiedPhone && occupiedPhone.length >= 10 && savedPhone && savedPhone.length >= 10 && occupiedPhone === savedPhone) {
+                // SAME USER -> Access Granted!
+                setIsTableAccessBlocked(false);
+                setIsTableLoginModalOpen(false);
               } else {
-                // Table occupied without customer phone in POS -> Access Blocked!
+                // Table HAS items & user is NOT the same user -> Access BLOCKED!
                 setIsTableAccessBlocked(true);
-                setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied, but no customer mobile number is attached to this table in POS. Please ask the waiter for assistance.`);
+                if (occupiedPhone && occupiedPhone.length >= 10) {
+                  setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your logged-in number (${savedPhone}) does not match.`);
+                } else {
+                  setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied with active items in POS. Please ask restaurant staff for assistance.`);
+                }
               }
             } else {
               // Table AVAILABLE -> Access Granted!
@@ -1120,19 +1149,18 @@ const PublicOutletMenu = () => {
       if (statusData && statusData.status === "OCCUPIED") {
         const occupiedPhone = (statusData.customer_number || statusData.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
         if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone === cleanPhone) {
-          // Same phone -> Access Granted!
+          // SAME USER -> Access Granted!
           setIsTableLoginModalOpen(false);
           setIsTableAccessBlocked(false);
-          showToast(`✅ Welcome back! Table ${selectedTableNumber} verified.`);
-        } else if (occupiedPhone && occupiedPhone.length >= 10) {
-          // Different phone -> Access Blocked!
-          setTableLoginStep("BLOCKED");
-          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your mobile number (${cleanPhone}) does not match.`);
-          setIsTableAccessBlocked(true);
+          showToast(`✅ Welcome back! Table ${selectedTableNumber} session verified.`);
         } else {
-          // Table occupied without phone in POS -> Access Blocked!
+          // Table HAS items & phone does not match -> Access BLOCKED!
           setTableLoginStep("BLOCKED");
-          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied in POS, but no customer mobile number is attached to this table. Please ask the waiter for assistance.`);
+          if (occupiedPhone && occupiedPhone.length >= 10) {
+            setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your mobile number (${cleanPhone}) does not match.`);
+          } else {
+            setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied with active items in POS. Please ask restaurant staff for assistance.`);
+          }
           setIsTableAccessBlocked(true);
         }
       } else {
@@ -1479,6 +1507,10 @@ const PublicOutletMenu = () => {
   };
 
   const executeAddToCart = (item) => {
+    if (isTableAccessBlocked || tableLoginStep === "BLOCKED") {
+      showToast("❌ Table is currently occupied by another customer.");
+      return;
+    }
     setCart((prev) => {
       const match = prev.find((i) => i.id === item.id);
       if (match) return prev.map((i) => (i.id === item.id ? { ...i, qty: i.qty + 1 } : i));
@@ -1490,6 +1522,11 @@ const PublicOutletMenu = () => {
   // Add to cart with Login Requirement & Option Customization Modal Guard
   const addToCart = (item, e) => {
     if (e) e.stopPropagation();
+
+    if (isTableAccessBlocked || tableLoginStep === "BLOCKED") {
+      showToast("❌ Table is currently occupied. Ordering disabled.");
+      return;
+    }
 
     if (!isUserLoggedIn) {
       setPendingCartItem(item);
@@ -2084,7 +2121,7 @@ const PublicOutletMenu = () => {
           fulfillmentMode: selectedTableNumber ? "DINE_IN" : fulfillmentMode,
           tableNumber: selectedTableNumber || null,
           paymentMethod: form.paymentMethod || "COD",
-          totalPrice: grandTotal,
+          totalPrice: subtotal,
           service_charge: deliveryFee,
           points_redeemed: isLoyaltyRedeemed ? redeemedPointsInput : 0,
           discount_amount: loyaltyDiscount,
@@ -2150,7 +2187,7 @@ const PublicOutletMenu = () => {
 
   return (
     <div
-      className="min-h-screen flex flex-col font-sans antialiased select-none transition-colors duration-300"
+      className={`min-h-screen flex flex-col font-sans antialiased select-none transition-colors duration-300 ${(isTableAccessBlocked || tableLoginStep === "BLOCKED") ? "pointer-events-none filter blur-xs" : ""}`}
       style={{
         backgroundColor: activeSettings.mainBgColor,
         color: activeSettings.fontColor,
@@ -2691,7 +2728,11 @@ const PublicOutletMenu = () => {
               <div className="p-5 border-b border-stone-200 flex items-center justify-between bg-stone-50">
                 <div>
                   <h3 className="font-display text-lg font-bold text-stone-900">Your Order Cart</h3>
-                  <p className="text-[11px] text-stone-500 font-medium">{fulfillmentMode === "DELIVERY" ? "🛵 Home Delivery" : "🛍️ Self Takeaway"}</p>
+                  <p className="text-[11px] font-bold text-stone-600">
+                    {selectedTableNumber || fulfillmentMode === "DINE_IN"
+                      ? `🍽️ Table Dine-In (Table ${selectedTableNumber || "1"})`
+                      : (fulfillmentMode === "DELIVERY" ? "🛵 Home Delivery" : "🛍️ Self Takeaway")}
+                  </p>
                 </div>
                 <button onClick={() => setIsCartOpen(false)} className="h-8 w-8 rounded-full bg-stone-200 grid place-items-center">
                   <X size={16} />
@@ -2699,39 +2740,120 @@ const PublicOutletMenu = () => {
               </div>
 
               <div className="flex-1 overflow-y-auto p-5 space-y-4">
-                {cart.length === 0 ? (
-                  <div className="py-16 text-center space-y-3">
-                    <div className="h-14 w-14 rounded-full bg-stone-100 grid place-items-center mx-auto text-stone-400">
-                      <ShoppingBag size={24} />
-                    </div>
-                    <h4 className="font-display text-lg font-bold text-stone-800">Your cart is empty</h4>
-                    <p className="text-xs text-stone-500">Add dishes from our menu to place an online order.</p>
-                  </div>
-                ) : (
-                  cart.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200">
-                      <img src={item.image_url} alt={item.product_name} className="h-14 w-14 rounded-xl object-cover" />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-xs font-bold text-stone-900 truncate">{item.product_name}</h4>
-                        <p className="text-xs font-bold mt-0.5" style={{ color: activeSettings.primaryColor || '#10b981' }}>{currencySymbol}{item.price * item.qty}</p>
+                {/* 📋 CURRENT SESSION ORDERS (ALL KOTs PLACED UNTIL BILL IS PAID) */}
+                {(() => {
+                  const sessionOrdersList = tableStatusData?.session_orders && tableStatusData.session_orders.length > 0 
+                    ? tableStatusData.session_orders 
+                    : (activeTableOrder ? [activeTableOrder] : (activeTableItems.length > 0 ? [{ id: 'active-kot', order_reference: `Table ${selectedTableNumber} KOT`, items: activeTableItems, status: activeTableOrder?.status || 'SAVED' }] : []));
+
+                  if (sessionOrdersList.length === 0) return null;
+
+                  const totalSessionSubtotal = sessionOrdersList.reduce((sum, ord) => {
+                    if (ord.total_price && parseFloat(ord.total_price) > 0) return sum + parseFloat(ord.total_price);
+                    const itemsArr = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                    return sum + itemsArr.reduce((iSum, i) => iSum + (parseFloat(i.price || 0) * (parseInt(i.qty || i.quantity) || 1)), 0);
+                  }, 0);
+
+                  return (
+                    <div className="bg-amber-50/90 rounded-2xl p-4 border-2 border-amber-200 space-y-3 shadow-xs">
+                      <div className="flex items-center justify-between border-b border-amber-200 pb-2">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="w-4 h-4 text-amber-700 animate-pulse" />
+                          <span className="text-xs font-black text-amber-950 uppercase tracking-tight">
+                            Current Session Orders ({sessionOrdersList.length} {sessionOrdersList.length === 1 ? 'KOT' : 'KOTs'})
+                          </span>
+                        </div>
+                        <span className="text-xs font-mono font-black text-amber-900">{currencySymbol}{totalSessionSubtotal.toFixed(2)}</span>
                       </div>
 
-                      <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-full p-1">
-                        <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 rounded-full bg-stone-100 text-stone-700 grid place-items-center cursor-pointer">
-                          <Minus size={10} />
-                        </button>
-                        <span className="px-1.5 text-xs font-bold">{item.qty}</span>
-                        <button
-                          onClick={() => addToCart(item)}
-                          style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }}
-                          className="h-6 w-6 rounded-full text-white grid place-items-center cursor-pointer hover:brightness-95 transition"
-                        >
-                          <Plus size={10} />
-                        </button>
+                      <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                        {sessionOrdersList.map((sOrder, sIdx) => {
+                          const sItems = Array.isArray(sOrder.items) ? sOrder.items : (typeof sOrder.items === 'string' ? JSON.parse(sOrder.items || '[]') : []);
+                          const sRef = sOrder.order_reference || sOrder.bill_no || `KOT #${sIdx + 1}`;
+                          const sTime = sOrder.created_at ? new Date(sOrder.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+                          const sStatus = sOrder.status || 'PROCESSING';
+                          const sSubtotal = parseFloat(sOrder.total_price || 0) || sItems.reduce((acc, i) => acc + (parseFloat(i.price || 0) * (parseInt(i.qty || i.quantity) || 1)), 0);
+
+                          return (
+                            <div key={sIdx} className="bg-white border border-amber-200/90 p-3 rounded-xl space-y-2 shadow-2xs">
+                              <div className="flex items-center justify-between border-b border-amber-100 pb-1.5">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-extrabold text-stone-900 text-xs">{sRef}</span>
+                                  {sTime && <span className="text-[10px] text-stone-400 font-semibold">• {sTime}</span>}
+                                </div>
+                                {getKOTStatusBadge(sStatus, sStatus)}
+                              </div>
+
+                              <div className="space-y-1">
+                                {sItems.map((sItem, sItemIdx) => (
+                                  <div key={sItemIdx} className="flex items-center justify-between text-xs py-0.5">
+                                    <div className="flex items-center gap-2 min-w-0 pr-2">
+                                      <span className="w-4 h-4 bg-amber-100 text-amber-900 rounded font-black text-[10px] flex items-center justify-center shrink-0">
+                                        {sItem.qty || sItem.quantity || 1}x
+                                      </span>
+                                      <span className="font-bold text-stone-800 truncate">{sItem.product_name || sItem.name}</span>
+                                    </div>
+                                    <span className="font-mono font-bold text-stone-900 shrink-0">
+                                      {currencySymbol}{((parseFloat(sItem.price) || 0) * (parseInt(sItem.qty || sItem.quantity) || 1)).toFixed(2)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="pt-1.5 border-t border-amber-100 flex justify-between items-center text-[11px] font-bold text-amber-900">
+                                <span>KOT Subtotal:</span>
+                                <span className="font-mono font-black">{currencySymbol}{sSubtotal.toFixed(2)}</span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ))
-                )}
+                  );
+                })()}
+
+                {/* 🛒 NEW CART ITEMS TO ADD */}
+                <div className="space-y-3">
+                  {cart.length > 0 && (activeTableItems.length > 0 || (tableStatusData?.session_orders && tableStatusData.session_orders.length > 0)) && (
+                    <div className="flex items-center gap-1.5 text-xs font-black text-stone-800 uppercase tracking-tight pt-1">
+                      <Plus className="w-4 h-4 text-emerald-600" /> New Items to Add to Order
+                    </div>
+                  )}
+
+                  {cart.length === 0 ? (
+                    <div className="py-12 text-center space-y-3">
+                      <div className="h-14 w-14 rounded-full bg-stone-100 grid place-items-center mx-auto text-stone-400">
+                        <ShoppingBag size={24} />
+                      </div>
+                      <h4 className="font-display text-base font-bold text-stone-800">No new items added to cart yet</h4>
+                      <p className="text-xs text-stone-500">Browse the menu to select additional dishes for your table.</p>
+                    </div>
+                  ) : (
+                    cart.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between gap-3 p-3 rounded-2xl bg-stone-50 border border-stone-200">
+                        <img src={item.image_url} alt={item.product_name} className="h-14 w-14 rounded-xl object-cover" />
+                        <div className="flex-1 min-w-0">
+                          <h4 className="text-xs font-bold text-stone-900 truncate">{item.product_name}</h4>
+                          <p className="text-xs font-bold mt-0.5" style={{ color: activeSettings.primaryColor || '#10b981' }}>{currencySymbol}{item.price * item.qty}</p>
+                        </div>
+
+                        <div className="flex items-center gap-1 bg-white border border-stone-200 rounded-full p-1">
+                          <button onClick={() => removeFromCart(item.id)} className="h-6 w-6 rounded-full bg-stone-100 text-stone-700 grid place-items-center cursor-pointer">
+                            <Minus size={10} />
+                          </button>
+                          <span className="px-1.5 text-xs font-bold">{item.qty}</span>
+                          <button
+                            onClick={() => addToCart(item)}
+                            style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }}
+                            className="h-6 w-6 rounded-full text-white grid place-items-center cursor-pointer hover:brightness-95 transition"
+                          >
+                            <Plus size={10} />
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
 
               {cart.length > 0 && (
@@ -2771,23 +2893,48 @@ const PublicOutletMenu = () => {
                   </div>
 
                   <div className="space-y-2 text-xs font-semibold text-stone-600">
-                    <div className="flex justify-between">
-                      <span>Item Subtotal</span>
-                      <span className="text-stone-900 font-bold">{currencySymbol}{subtotal}</span>
-                    </div>
+                    {(() => {
+                      const sessionOrdersList = tableStatusData?.session_orders && tableStatusData.session_orders.length > 0 
+                        ? tableStatusData.session_orders 
+                        : (activeTableOrder ? [activeTableOrder] : []);
 
-                    {/* GST Displayed ONLY if Enabled in Back Office */}
-                    {isGstEnabled && (
-                      <div className="flex justify-between">
-                        <span>GST ({gstRate}%)</span>
-                        <span className="text-stone-900 font-bold">{currencySymbol}{taxes}</span>
-                      </div>
-                    )}
+                      const totalSessionSubtotal = sessionOrdersList.reduce((sum, ord) => {
+                        if (ord.total_price && parseFloat(ord.total_price) > 0) return sum + parseFloat(ord.total_price);
+                        const itemsArr = Array.isArray(ord.items) ? ord.items : (typeof ord.items === 'string' ? JSON.parse(ord.items || '[]') : []);
+                        return sum + itemsArr.reduce((iSum, i) => iSum + (parseFloat(i.price || 0) * (parseInt(i.qty || i.quantity) || 1)), 0);
+                      }, 0);
 
-                    <div className="flex justify-between pt-2 border-t border-stone-200 text-base font-black text-stone-900">
-                      <span>Total Amount</span>
-                      <span style={{ color: activeSettings.primaryColor || '#10b981' }}>{currencySymbol}{(subtotal + (isGstEnabled ? taxes : 0))}</span>
-                    </div>
+                      const effectivePrevSubtotal = totalSessionSubtotal > 0 ? totalSessionSubtotal : previousKOTSubtotal;
+
+                      return (
+                        <>
+                          {effectivePrevSubtotal > 0 && (
+                            <div className="flex justify-between text-amber-900 font-bold bg-amber-100/60 p-2 rounded-xl border border-amber-200/80">
+                              <span>Previous Session Orders Subtotal</span>
+                              <span className="font-mono">{currencySymbol}{effectivePrevSubtotal.toFixed(2)}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between">
+                            <span>New Cart Items Subtotal</span>
+                            <span className="text-stone-900 font-bold">{currencySymbol}{subtotal.toFixed(2)}</span>
+                          </div>
+
+                          {/* GST Displayed ONLY if Enabled in Back Office */}
+                          {isGstEnabled && (
+                            <div className="flex justify-between">
+                              <span>GST ({gstRate}%)</span>
+                              <span className="text-stone-900 font-bold">{currencySymbol}{taxes.toFixed(2)}</span>
+                            </div>
+                          )}
+
+                          <div className="flex justify-between pt-2 border-t border-stone-200 text-base font-black text-stone-900">
+                            <span>{effectivePrevSubtotal > 0 ? "Grand Combined Bill" : "Total Amount"}</span>
+                            <span style={{ color: activeSettings.primaryColor || '#10b981' }}>{currencySymbol}{(effectivePrevSubtotal + subtotal + (isGstEnabled ? taxes : 0)).toFixed(2)}</span>
+                          </div>
+                        </>
+                      );
+                    })()}
                   </div>
 
                   <button
@@ -4591,35 +4738,63 @@ const PublicOutletMenu = () => {
               exit={{ scale: 0.92, opacity: 0 }}
               className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl border border-stone-200 text-center space-y-5"
             >
-              {/* STEP: BLOCKED — Access Denied */}
+              {/* STEP: BLOCKED — Table is Currently Occupied Prompt */}
               {(tableLoginStep === "BLOCKED" || isTableAccessBlocked) ? (
                 <>
-                  <div className="w-16 h-16 bg-rose-50 rounded-full flex items-center justify-center mx-auto border-2 border-rose-200">
-                    <ShieldOff className="w-8 h-8 text-rose-500" />
+                  <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center mx-auto border-2 border-amber-200">
+                    <Clock className="w-8 h-8 text-amber-600" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-black text-rose-700 uppercase tracking-tight">Access Denied</h3>
+                    <h3 className="text-lg font-black text-amber-800 uppercase tracking-tight">Table is Currently Occupied</h3>
                     <p className="text-xs text-stone-600 font-medium leading-relaxed mt-2">
                       {tableBlockedReason}
                     </p>
                   </div>
-                  <div className="bg-rose-50/80 border border-rose-200/80 rounded-2xl p-4 text-left">
-                    <p className="text-[11px] text-rose-800 font-bold leading-relaxed">
-                      🚫 You cannot browse the menu or place orders on Table <span className="font-black">{selectedTableNumber}</span>. 
-                      Please request the waiter to assist you or scan a different table's QR code.
+                  <div className="bg-amber-50/80 border border-amber-200/80 rounded-2xl p-4 text-left">
+                    <p className="text-[11px] text-amber-900 font-bold leading-relaxed">
+                      🪑 Table <span className="font-black">{selectedTableNumber}</span> is currently occupied by another guest. 
+                      Menu browsing and ordering are disabled for this table session.
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsTableAccessBlocked(false);
-                      setTableBlockedReason("");
-                      setIsTableLoginModalOpen(false);
-                    }}
-                    className="w-full py-3.5 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-extrabold transition cursor-pointer shadow-md"
-                  >
-                    I Understand
-                  </button>
+
+                  <div className="space-y-2 pt-1 pointer-events-auto">
+                    <button
+                      type="button"
+                      onClick={handleCallWaiter}
+                      disabled={isCallingWaiter}
+                      className="w-full py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-2xl text-xs font-extrabold transition cursor-pointer shadow-md flex items-center justify-center gap-2"
+                    >
+                      🔔 Call Waiter to Table {selectedTableNumber}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTableLoginStep("PHONE");
+                        setTableLoginPhone("");
+                        setTableLoginOtp("");
+                        setTableLoginError("");
+                      }}
+                      className="w-full py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-800 rounded-2xl text-xs font-bold transition cursor-pointer"
+                    >
+                      📲 Change Phone / Login Again
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedTableNumber(null);
+                        setFulfillmentMode("PICKUP");
+                        setIsTableAccessBlocked(false);
+                        setTableBlockedReason("");
+                        setIsTableLoginModalOpen(false);
+                        showToast("Switched to Takeaway / Pickup mode");
+                      }}
+                      className="w-full py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-2xl text-xs font-bold transition cursor-pointer"
+                    >
+                      🛍️ Order for Takeaway / Delivery Instead
+                    </button>
+                  </div>
                 </>
               ) : tableLoginStep === "OTP" ? (
                 /* STEP 2: Enter OTP */

@@ -112,7 +112,7 @@ const OrderCard = ({
         </span>
       );
     }
-    if (status.includes('AWAITING_DELIVERY')) {
+    if (status.includes('AWAITING_DELIVERY') || status.includes('PENDING_DELIVERY_CHARGE')) {
       return (
         <span className="bg-blue-500/15 border border-blue-500/40 text-blue-600 dark:text-blue-400 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider animate-pulse">
           🚚 AWAITING DELIVERY FEE

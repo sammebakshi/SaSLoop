@@ -106,6 +106,7 @@ export const posService = {
     // Order management
     updateOrder: (id, order) => api.put(`/api/orders/${id}`, order),
     updateOrderPaymentStatus: (id, status) => api.put(`/api/orders/${id}/payment-status`, { payment_status: status }),
+    updateDeliveryCharge: (id, deliveryCharge) => api.put(`/api/orders/${id}/delivery-charge`, { delivery_charge: deliveryCharge }),
     assignRider: (orderId, riderId) => api.put('/api/delivery/assign', { orderId, riderId }),
 
     // Pre-order management
