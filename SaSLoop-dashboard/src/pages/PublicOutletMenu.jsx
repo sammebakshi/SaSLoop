@@ -2160,6 +2160,20 @@ const PublicOutletMenu = () => {
         setIsCartOpen(false);
         setIsLoyaltyRedeemed(false);
         setRedeemedPointsInput(0);
+        setDismissedRejectionRef(null);
+
+        // 🚀 INSTANT TABLE SESSION UPDATE: Instantly show active session bill without waiting for poll
+        if (selectedTableNumber) {
+          setTableStatusData(prev => ({
+            ...prev,
+            status: "OCCUPIED",
+            customer_number: form.phone || profile?.phone || "",
+            total_session_amount: (parseFloat(prev?.total_session_amount) || 0) + grandTotal,
+            latest_rejected_order: null,
+            session_orders: [orderObject, ...(prev?.session_orders || [])]
+          }));
+        }
+
         // Instantly refresh loyalty points balance after order
         refreshLoyaltyData();
       } else {

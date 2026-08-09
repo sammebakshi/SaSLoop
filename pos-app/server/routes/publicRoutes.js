@@ -503,12 +503,21 @@ router.get("/table-status/:userId/:tableName", async (req, res) => {
         const sessionOrders = sessionOrdersRes.rows || [];
         const hasActiveDbOrder = sessionOrders.length > 0;
 
-        // 4. Check for recently rejected or cancelled order for this table (within last 2 hours)
+        // 4. Check for recently rejected or cancelled order for this table (within last 15 minutes)
         const rejectedRes = await pool.query(
-            "SELECT id, order_reference, customer_name, customer_number, items, total_price, status, rejection_reason, created_at FROM orders WHERE (user_id = $1 OR user_id = $2) AND (table_number = $3 OR table_number = 'Table ' || $3 OR replace(table_number, ' ', '') ILIKE replace($3, ' ', '')) AND status IN ('REJECTED', 'CANCELLED') AND created_at >= NOW() - INTERVAL '2 hours' ORDER BY created_at DESC LIMIT 1",
+            "SELECT id, order_reference, customer_name, customer_number, items, total_price, status, rejection_reason, created_at FROM orders WHERE (user_id = $1 OR user_id = $2) AND (table_number = $3 OR table_number = 'Table ' || $3 OR replace(table_number, ' ', '') ILIKE replace($3, ' ', '')) AND status IN ('REJECTED', 'CANCELLED') AND created_at >= NOW() - INTERVAL '15 minutes' ORDER BY created_at DESC LIMIT 1",
             [userId, targetUserId, cleanTable]
         );
-        const latestRejectedOrder = rejectedRes.rows[0] || null;
+        let latestRejectedOrder = rejectedRes.rows[0] || null;
+
+        // Suppress old rejection if there is a NEWER active session order or if an active order exists
+        if (latestRejectedOrder && sessionOrders.length > 0) {
+            const activeTime = new Date(sessionOrders[0].created_at).getTime();
+            const rejectedTime = new Date(latestRejectedOrder.created_at).getTime();
+            if (activeTime >= rejectedTime) {
+                latestRejectedOrder = null;
+            }
+        }
 
         let totalSessionAmount = sessionOrders.reduce((sum, ord) => sum + (parseFloat(ord.total_price) || 0), 0);
         if (totalSessionAmount === 0 && isOccupiedInState && activeItemsInState.length > 0) {
