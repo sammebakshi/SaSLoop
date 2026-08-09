@@ -2512,108 +2512,75 @@ const PublicOutletMenu = () => {
       {/* MAIN VIEW AREA */}
       <main className="max-w-7xl 2xl:max-w-[1440px] mx-auto px-3 sm:px-8 pt-3 sm:pt-4 pb-32 lg:pb-16 flex-1 w-full">
 
-        {/* 🏠 HOME VIEW SECTION WITH SLIDESHOW CAROUSEL & IMAGE COLLAGE */}
+        {/* 🏠 HOME VIEW SECTION CONNECTED TO BACK OFFICE HOME PAGE SETTINGS */}
         {activeNav === "home" && !selectedTableNumber && (
           <div className="space-y-8 max-w-6xl mx-auto py-2">
 
-            {/* 📸 HERO IMAGE SLIDESHOW CAROUSEL */}
-            <div className="relative rounded-3xl overflow-hidden shadow-2xl bg-stone-900 aspect-[16/9] sm:aspect-[21/9] min-h-[280px] sm:min-h-[380px]">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={currentSlide}
-                  initial={{ opacity: 0, scale: 1.05 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ duration: 0.7, ease: "easeInOut" }}
-                  className="absolute inset-0"
+            {/* 🎯 HERO HEADLINE CARD & ACTIONS */}
+            <div style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }} className="rounded-3xl p-6 sm:p-10 text-white shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[200px]">
+              <div className="relative z-10 space-y-2">
+                <span className="px-3.5 py-1 bg-white/20 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest text-white inline-block">
+                  {activeSettings.tagline || "Official Online Store"}
+                </span>
+                <h1 className="text-2xl sm:text-4xl font-display font-black tracking-tight leading-tight">
+                  {activeSettings.heroHeadlineLine1 || "Fresh & Hot Food."} {activeSettings.heroHeadlineLine2 || "Delivered to Your Home."}
+                </h1>
+                <p className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed max-w-2xl text-stone-100">
+                  {activeSettings.aboutUs || `Order directly from ${restaurantTitle}. Freshly prepared in our kitchen, dispatched fast for Home Delivery & Takeaway.`}
+                </p>
+              </div>
+
+              <div className="pt-6 flex flex-wrap items-center gap-3 relative z-10">
+                <button
+                  type="button"
+                  onClick={() => setActiveNav("menu")}
+                  className="px-6 py-3 bg-white text-stone-900 rounded-2xl font-black text-xs uppercase tracking-wider shadow-lg hover:bg-stone-100 transition cursor-pointer flex items-center gap-2"
                 >
-                  <img
-                    src={heroSlides[currentSlide].image}
-                    alt={heroSlides[currentSlide].title}
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Dark gradient overlay for typography readability */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-900/50 to-transparent" />
-                </motion.div>
-              </AnimatePresence>
-
-              {/* Banner Text Overlay */}
-              <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-between z-10 text-white">
-                <div className="flex items-center justify-between">
-                  <span className="px-3 py-1 bg-emerald-500/90 backdrop-blur-md text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">
-                    {heroSlides[currentSlide].tag}
-                  </span>
-                  <span className="text-[11px] font-extrabold text-white/80 tracking-widest uppercase">
-                    {restaurantTitle}
-                  </span>
-                </div>
-
-                <div className="space-y-2 max-w-2xl">
-                  <motion.h1
-                    key={`title-${currentSlide}`}
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    className="text-2xl sm:text-4xl font-display font-black tracking-tight leading-tight drop-shadow-md"
-                  >
-                    {heroSlides[currentSlide].title}
-                  </motion.h1>
-                  <motion.p
-                    key={`sub-${currentSlide}`}
-                    initial={{ y: 15, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.1 }}
-                    className="text-xs sm:text-sm font-semibold opacity-90 leading-relaxed max-w-xl drop-shadow-sm text-stone-200"
-                  >
-                    {heroSlides[currentSlide].subtitle}
-                  </motion.p>
-                </div>
-
-                {/* Buttons & Slide Indicator Dots */}
-                <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-                  <div className="flex items-center gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setActiveNav("menu")}
-                      style={{ backgroundColor: activeSettings.primaryColor || '#10b981' }}
-                      className="px-6 py-3 text-white rounded-2xl font-black text-xs uppercase tracking-wider shadow-xl hover:brightness-110 transition cursor-pointer flex items-center gap-2"
-                    >
-                      <span>Explore Menu Catalog</span>
-                      <ArrowRight size={16} />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setIsReservationModalOpen(true)}
-                      className="px-5 py-3 bg-stone-900/70 backdrop-blur-md hover:bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer border border-white/20 flex items-center gap-1.5"
-                    >
-                      <Calendar size={14} /> Book Table
-                    </button>
-                  </div>
-
-                  {/* Manual Slide Dots */}
-                  <div className="flex items-center gap-1.5 bg-black/40 backdrop-blur-md p-1.5 rounded-full border border-white/10">
-                    {heroSlides.map((_, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        onClick={() => setCurrentSlide(idx)}
-                        className={`h-2 rounded-full transition-all cursor-pointer ${
-                          currentSlide === idx ? "w-6 bg-emerald-400" : "w-2 bg-white/40 hover:bg-white/70"
-                        }`}
-                        title={`Go to slide ${idx + 1}`}
-                      />
-                    ))}
-                  </div>
-                </div>
+                  <span>{activeSettings.ctaExploreMenuText || "Explore Menu"}</span>
+                  <ArrowRight size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveNav("orders")}
+                  className="px-5 py-3 bg-stone-900/60 backdrop-blur-md hover:bg-stone-900 text-white rounded-2xl font-bold text-xs uppercase tracking-wider transition cursor-pointer border border-white/20 flex items-center gap-1.5"
+                >
+                  <Package size={14} /> {activeSettings.ctaViewOrdersText || "View Orders"}
+                </button>
               </div>
             </div>
 
-            {/* 🍱 FEATURED DISHES IMAGE COLLAGE GRID */}
-            <div className="space-y-4">
+            {/* 📸 2-COLUMN BACKOFFICE HERO GRID: SLIDESHOW (LEFT) & MOSAIC COLLAGE (RIGHT) */}
+            <div className="grid gap-6 md:grid-cols-2 items-center">
+              {/* Left Column: Interactive Dynamic Slideshow */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-black uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
+                    <Sparkles size={14} className="text-amber-500" /> Dynamic Slideshow
+                  </span>
+                  <span className="text-[10px] font-bold text-stone-400">Backoffice Settings</span>
+                </div>
+                <HeroSlideshow slides={activeSettings.slideImages} />
+              </div>
+
+              {/* Right Column: Dynamic Mosaic Image Collage */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between px-1">
+                  <span className="text-xs font-black uppercase tracking-wider text-stone-700 flex items-center gap-1.5">
+                    <Utensils size={14} className="text-emerald-600" /> Specialty Collage
+                  </span>
+                  <span className="text-[10px] font-bold text-stone-400">Featured Dishes</span>
+                </div>
+                <HeroImageCollage collageImages={activeSettings.collageImages} slides={activeSettings.slideImages} />
+              </div>
+            </div>
+
+            {/* 🍱 FEATURED DISHES CATEGORY COLLAGE GRID */}
+            <div className="space-y-4 pt-2">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-black text-stone-900 uppercase tracking-tight flex items-center gap-2">
                     <Sparkles className="w-5 h-5 text-amber-500" />
-                    <span>Specialty Culinary Collage</span>
+                    <span>Specialty Culinary Collections</span>
                   </h2>
                   <p className="text-xs text-stone-500 font-medium">Click any collection to jump directly to category menu</p>
                 </div>
