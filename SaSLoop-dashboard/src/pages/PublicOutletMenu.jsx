@@ -581,6 +581,8 @@ const PublicOutletMenu = () => {
   // 🔐 Table QR Login Gate — WhatsApp OTP Flow
   const [isTableLoginModalOpen, setIsTableLoginModalOpen] = useState(false);
   const [tableLoginStep, setTableLoginStep] = useState("PHONE"); // "PHONE" | "OTP" | "BLOCKED"
+  const [tableLoginMode, setTableLoginMode] = useState("GUEST"); // "GUEST" | "OTP"
+  const [tableGuestName, setTableGuestName] = useState("");
   const [tableLoginPhone, setTableLoginPhone] = useState("");
   const [tableLoginOtp, setTableLoginOtp] = useState("");
   const [tableLoginError, setTableLoginError] = useState("");
@@ -1195,6 +1197,57 @@ const PublicOutletMenu = () => {
       }
     } catch (err) {
       setTableLoginError("Verification failed. Please try again.");
+    } finally {
+      setIsTableLoginLoading(false);
+    }
+  };
+
+  // ⚡ Direct Guest Login for Table QR Ordering (No OTP Required)
+  const handleTableDirectGuestLogin = async () => {
+    setTableLoginError("");
+    const cleanPhone = tableLoginPhone.replace(/\D/g, "").slice(-10);
+    const guestName = tableGuestName.trim() || "Guest Customer";
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setTableLoginError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+    if (!tableGuestName.trim()) {
+      setTableLoginError("Please enter your full name.");
+      return;
+    }
+
+    setIsTableLoginLoading(true);
+    try {
+      // Check table status against entered phone
+      const statusRes = await fetch(`${API_BASE}/api/public/table-status/${selectedOutletId}/${encodeURIComponent(selectedTableNumber)}`);
+      const statusData = await statusRes.json();
+      setTableStatusData(statusData);
+
+      if (statusData && statusData.status === "OCCUPIED") {
+        const occupiedPhone = (statusData.customer_number || statusData.active_order?.customer_number || "").replace(/\D/g, "").slice(-10);
+        if (occupiedPhone && occupiedPhone.length >= 10 && occupiedPhone !== cleanPhone) {
+          // Table occupied by someone else -> Access BLOCKED!
+          setTableLoginStep("BLOCKED");
+          setTableBlockedReason(`Table ${selectedTableNumber} is currently occupied under phone ending in ****${occupiedPhone.slice(-4)}. Your entered number (${cleanPhone}) does not match.`);
+          setIsTableAccessBlocked(true);
+          return;
+        }
+      }
+
+      // Access Granted -> Direct Login!
+      const newSession = { isLoggedIn: true, phone: cleanPhone, name: guestName, isGuest: true, loginAt: new Date().toISOString() };
+      setUserSession(newSession);
+      localStorage.setItem("customer_user_session", JSON.stringify(newSession));
+      const updatedProfile = { ...profile, name: guestName, phone: cleanPhone };
+      setProfile(updatedProfile);
+      localStorage.setItem("customer_profile", JSON.stringify(updatedProfile));
+
+      setIsTableLoginModalOpen(false);
+      setIsTableAccessBlocked(false);
+      showToast(`⚡ Welcome ${guestName}! Table ${selectedTableNumber} unlocked.`);
+    } catch (err) {
+      console.error("Direct guest login error:", err);
+      setTableLoginError("Failed to login. Please try again.");
     } finally {
       setIsTableLoginLoading(false);
     }
@@ -3794,25 +3847,57 @@ const PublicOutletMenu = () => {
                                 );
                               }
 
-                              if (pStatus === 'NOT_RECEIVED' || pStatus === 'UNPAID') {
-                                return (
-                                  <div className="p-2.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs font-black flex items-center gap-2 shadow-2xs">
-                                    <span>🔴</span>
-                                    <span>Online Payment Status: NOT RECEIVED ❌</span>
-                                  </div>
-                                );
-                              }
-
-                              if (pStatus.includes('CUSTOMER') || pStatus.includes('CLAIM')) {
-                                return (
-                                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs font-black flex items-center gap-2 shadow-2xs animate-pulse">
-                                    <span>🟡</span>
-                                    <span>Payment Claimed — Awaiting Verification by Restaurant</span>
-                                  </div>
-                                );
-                              }
-
                               return null;
+                            })()}
+
+                            {/* 📍 VISUAL LIVE ORDER TRACKING STEPPER */}
+                            {(() => {
+                              const oStatus = String(ord.status || '').toUpperCase();
+                              if (['REJECTED', 'CANCELLED'].includes(oStatus)) return null;
+
+                              const stages = [
+                                { key: 'RECEIVED', label: 'Received', icon: '📥' },
+                                { key: 'PREPARING', label: 'Preparing', icon: '👨‍🍳' },
+                                { key: 'READY', label: 'Ready to Serve', icon: '🍽️' },
+                                { key: 'SERVED', label: 'Served / Settled', icon: '✨' }
+                              ];
+
+                              let currentStageIndex = 0;
+                              if (['PROCESSING', 'PREPARING', 'ACKNOWLEDGED'].includes(oStatus)) currentStageIndex = 1;
+                              else if (['FOOD_READY', 'READY'].includes(oStatus)) currentStageIndex = 2;
+                              else if (['DISPATCHED', 'SERVED', 'COMPLETED', 'SETTLED', 'PAID'].includes(oStatus)) currentStageIndex = 3;
+
+                              return (
+                                <div className="p-3 bg-white border border-stone-200 rounded-2xl space-y-2 shadow-2xs my-2">
+                                  <div className="flex items-center justify-between text-[10px] font-black uppercase text-stone-500 tracking-wider">
+                                    <span>Live Order Stage</span>
+                                    <span className="text-emerald-600 font-extrabold flex items-center gap-1">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+                                      <span>{stages[currentStageIndex]?.label}</span>
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-4 gap-1 relative pt-1">
+                                    {stages.map((stage, sIdx) => {
+                                      const isActive = sIdx <= currentStageIndex;
+                                      const isCurrent = sIdx === currentStageIndex;
+                                      return (
+                                        <div key={stage.key} className="flex flex-col items-center text-center">
+                                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all ${
+                                            isCurrent ? 'bg-emerald-500 text-white ring-4 ring-emerald-100 scale-110 shadow-sm' :
+                                            isActive ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-stone-100 text-stone-400'
+                                          }`}>
+                                            {stage.icon}
+                                          </div>
+                                          <span className={`text-[9px] font-black mt-1.5 leading-tight ${isActive ? 'text-stone-900' : 'text-stone-400'}`}>
+                                            {stage.label}
+                                          </span>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              );
                             })()}
 
                             <div className="space-y-1 text-xs text-stone-700">
@@ -4973,48 +5058,121 @@ const PublicOutletMenu = () => {
                   </div>
                 </>
               ) : (
-                /* STEP 1: Enter Phone Number */
+                /* STEP 1: Direct Guest Entry or WhatsApp OTP */
                 <>
-                  <div className="w-16 h-16 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-200">
-                    <WhatsAppIcon size={32} className="text-emerald-600" />
+                  <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto border-2 border-emerald-200">
+                    {tableLoginMode === 'GUEST' ? <Sparkles size={28} className="text-emerald-600" /> : <WhatsAppIcon size={28} className="text-emerald-600" />}
                   </div>
+
                   <div>
-                    <h3 className="text-base font-black text-stone-900 uppercase tracking-tight">Login to Continue</h3>
+                    <h3 className="text-base font-black text-stone-900 uppercase tracking-tight">
+                      {tableLoginMode === 'GUEST' ? '⚡ Quick Table Entry' : '📲 WhatsApp OTP Login'}
+                    </h3>
                     <p className="text-xs text-stone-500 font-medium mt-1">
-                      Verify your WhatsApp number to order on <span className="font-extrabold text-stone-800">Table {selectedTableNumber}</span>
+                      Order directly on <span className="font-extrabold text-stone-800">Table {selectedTableNumber}</span>
                     </p>
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition">
-                      <span className="text-sm font-bold text-stone-500">+91</span>
-                      <input
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        placeholder="Enter mobile number"
-                        value={tableLoginPhone}
-                        onChange={(e) => { setTableLoginPhone(e.target.value.replace(/\D/g, '')); setTableLoginError(""); }}
-                        className="flex-1 bg-transparent outline-none text-sm font-bold text-stone-900 placeholder:text-stone-400"
-                        autoFocus
-                      />
-                    </div>
-                    {tableLoginError && (
-                      <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl text-left">
-                        {tableLoginError}
-                      </div>
-                    )}
+
+                  {/* Mode Selector Tabs */}
+                  <div className="flex rounded-2xl bg-stone-100 p-1 border border-stone-200">
                     <button
                       type="button"
-                      onClick={handleTableSendOtp}
-                      disabled={isTableLoginLoading || tableLoginPhone.replace(/\D/g, '').length < 10}
-                      className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-extrabold transition cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                      onClick={() => { setTableLoginMode("GUEST"); setTableLoginError(""); }}
+                      className={`flex-1 py-2 text-xs font-black rounded-xl transition cursor-pointer ${
+                        tableLoginMode === "GUEST" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
+                      }`}
                     >
-                      {isTableLoginLoading ? "Sending OTP..." : "Send WhatsApp OTP"} <ArrowRight className="w-4 h-4" />
+                      ⚡ Quick Guest Entry
                     </button>
-                    <p className="text-[10px] text-stone-400 font-medium">
-                      You will receive a 4-digit verification code on WhatsApp
-                    </p>
+                    <button
+                      type="button"
+                      onClick={() => { setTableLoginMode("OTP"); setTableLoginError(""); }}
+                      className={`flex-1 py-2 text-xs font-black rounded-xl transition cursor-pointer ${
+                        tableLoginMode === "OTP" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500 hover:text-stone-800"
+                      }`}
+                    >
+                      📲 WhatsApp OTP
+                    </button>
                   </div>
+
+                  {tableLoginMode === "GUEST" ? (
+                    /* DIRECT GUEST ENTRY FORM */
+                    <form onSubmit={(e) => { e.preventDefault(); handleTableDirectGuestLogin(); }} className="space-y-3 text-left">
+                      <div>
+                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Your Full Name *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="e.g. Sajad Bakshi"
+                          value={tableGuestName}
+                          onChange={(e) => { setTableGuestName(e.target.value); setTableLoginError(""); }}
+                          className="w-full bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 text-xs font-bold text-stone-900 outline-none focus:border-emerald-500 transition"
+                          autoFocus
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block mb-1">Mobile Number *</label>
+                        <div className="flex items-center gap-2 bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition">
+                          <span className="text-xs font-bold text-stone-500">+91</span>
+                          <input
+                            type="tel"
+                            inputMode="numeric"
+                            maxLength={10}
+                            required
+                            placeholder="Enter 10-digit mobile number"
+                            value={tableLoginPhone}
+                            onChange={(e) => { setTableLoginPhone(e.target.value.replace(/\D/g, '')); setTableLoginError(""); }}
+                            className="flex-1 bg-transparent outline-none text-xs font-bold text-stone-900 placeholder:text-stone-400"
+                          />
+                        </div>
+                      </div>
+
+                      {tableLoginError && (
+                        <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl text-left">
+                          {tableLoginError}
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isTableLoginLoading || tableLoginPhone.replace(/\D/g, '').length < 10 || !tableGuestName.trim()}
+                        className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-extrabold transition cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isTableLoginLoading ? "Unlocking Menu..." : "⚡ Start Ordering Now"} <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </form>
+                  ) : (
+                    /* WHATSAPP OTP FORM */
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 bg-stone-50 border-2 border-stone-200 rounded-2xl px-4 py-3 focus-within:border-emerald-500 transition">
+                        <span className="text-sm font-bold text-stone-500">+91</span>
+                        <input
+                          type="tel"
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="Enter mobile number"
+                          value={tableLoginPhone}
+                          onChange={(e) => { setTableLoginPhone(e.target.value.replace(/\D/g, '')); setTableLoginError(""); }}
+                          className="flex-1 bg-transparent outline-none text-sm font-bold text-stone-900 placeholder:text-stone-400"
+                          autoFocus
+                        />
+                      </div>
+                      {tableLoginError && (
+                        <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold rounded-xl text-left">
+                          {tableLoginError}
+                        </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleTableSendOtp}
+                        disabled={isTableLoginLoading || tableLoginPhone.replace(/\D/g, '').length < 10}
+                        className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-extrabold transition cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {isTableLoginLoading ? "Sending OTP..." : "Send WhatsApp OTP"} <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
                 </>
               )}
             </motion.div>
